@@ -347,7 +347,12 @@ Final value reinforcement:
       (direction === 'down' && currentIndex < promptBlocks.length - 1)
     ) {
       const newBlocks = [...promptBlocks]
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+      let targetIndex
+      if (direction === 'up') {
+        targetIndex = currentIndex - 1
+      } else {
+        targetIndex = currentIndex + 1
+      }
       
       [newBlocks[currentIndex], newBlocks[targetIndex]] = [newBlocks[targetIndex], newBlocks[currentIndex]]
       setPromptBlocks(newBlocks)
