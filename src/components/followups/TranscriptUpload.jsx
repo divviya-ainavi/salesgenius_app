@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const mockFathomCalls = [
   { id: '1', title: 'Client Discovery Call - Acme Corp', date: '2024-01-15', duration: '45 min' },
