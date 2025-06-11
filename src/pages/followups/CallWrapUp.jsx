@@ -137,6 +137,7 @@ export const CallWrapUp = () => {
 
   const handleContinueToReview = () => {
     setCurrentStep(2)
+    setActiveTab('insights') // Ensure we start on the insights tab
   }
 
   const handleBackToUpload = () => {
@@ -226,9 +227,13 @@ export const CallWrapUp = () => {
             
             <TabsContent value="insights" className="mt-6">
               <div className="grid lg:grid-cols-3 gap-6">
-                {/* Main Content */}
+                {/* Main Content - Review Insights Component */}
                 <div className="lg:col-span-2">
-                  <ReviewInsights onSaveInsights={handleSaveInsights} />
+                  <ReviewInsights 
+                    onSaveInsights={handleSaveInsights}
+                    callNotesId={callData?.id}
+                    userId={userId}
+                  />
                 </div>
 
                 {/* Sidebar */}
