@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface TopNavProps {
@@ -11,7 +10,7 @@ export const TopNav: React.FC<TopNavProps> = ({ hubspotConnected, onConnectClick
     <nav className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-foreground">SalesGenius</h1>
+          <h1 className="text-2xl font-bold text-foreground">SalesGenius.ai</h1>
         </div>
       </div>
     </nav>
