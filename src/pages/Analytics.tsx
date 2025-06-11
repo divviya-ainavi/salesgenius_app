@@ -27,7 +27,7 @@ import {
   DollarSign,
   Activity,
   Gauge,
-  LineChart,
+  LineChart as LineChartIcon,
   PieChart,
   Eye,
   MessageSquare,
