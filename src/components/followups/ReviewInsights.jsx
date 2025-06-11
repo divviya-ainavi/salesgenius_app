@@ -20,7 +20,10 @@ import {
   Heart,
   CheckSquare,
   Lightbulb,
-  Star
+  Star,
+  Eye,
+  Ear,
+  Hand
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -62,6 +65,12 @@ const insightTypes = {
     label: 'Your Insight',
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     description: 'Your personal insights'
+  },
+  communication_style: {
+    icon: Eye,
+    label: 'Communication Style',
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    description: 'Visual/Auditory/Kinesthetic preferences'
   }
 }
 
@@ -87,15 +96,24 @@ const mockInsights = [
   },
   {
     id: '3',
+    type: 'communication_style',
+    content: 'Primary decision maker (Sarah Johnson) shows strong visual learning preference - frequently asked for charts and visual data during call. Recommend including infographics and ROI dashboards in follow-up.',
+    relevance_score: 88,
+    is_selected: true,
+    source: 'Communication Analysis',
+    timestamp: 'Throughout call'
+  },
+  {
+    id: '4',
     type: 'sales_signal',
     content: 'Strong positive sentiment when discussing ROI potential. Prospect used phrases like "exactly what we need" and "this could solve our biggest problem".',
-    relevance_score: 88,
+    relevance_score: 87,
     is_selected: true,
     source: 'Sentiment Analysis',
     timestamp: '22:10'
   },
   {
-    id: '4',
+    id: '5',
     type: 'research_insight',
     content: 'Company recently raised Series B funding ($15M) and is expanding their sales team by 200%. Perfect timing for our sales automation solution.',
     relevance_score: 85,
@@ -104,7 +122,16 @@ const mockInsights = [
     timestamp: 'Pre-call'
   },
   {
-    id: '5',
+    id: '6',
+    type: 'communication_style',
+    content: 'Sales Operations Manager (Mike Chen) demonstrates kinesthetic learning style - asked multiple questions about hands-on implementation and requested live demo. Include practical examples in follow-up.',
+    relevance_score: 83,
+    is_selected: true,
+    source: 'Communication Analysis',
+    timestamp: '18:30'
+  },
+  {
+    id: '7',
     type: 'opportunity',
     content: 'Prospect mentioned pain point with current manual lead scoring process taking 2-3 hours daily. Our solution could save 15+ hours per week.',
     relevance_score: 82,
@@ -113,7 +140,7 @@ const mockInsights = [
     timestamp: '12:30'
   },
   {
-    id: '6',
+    id: '8',
     type: 'prospect_mention',
     content: 'Current contract with competitor expires in 6 months. They are not happy with support response times and lack of customization options.',
     relevance_score: 80,
@@ -122,7 +149,7 @@ const mockInsights = [
     timestamp: '35:20'
   },
   {
-    id: '7',
+    id: '9',
     type: 'sales_signal',
     content: 'Decision maker confirmed - no additional stakeholders needed for approval. Prospect has full authority to make purchasing decisions.',
     relevance_score: 78,
@@ -233,6 +260,9 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
     .reduce((sum, insight) => sum + insight.relevance_score, 0)
   const avgRelevanceScore = selectedCount > 0 ? Math.round(totalRelevanceScore / selectedCount) : 0
 
+  // Count communication style insights
+  const communicationInsights = insights.filter(insight => insight.type === 'communication_style')
+
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
@@ -262,6 +292,34 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
           </Button>
         </div>
       </div>
+
+      {/* Communication Styles Summary */}
+      {communicationInsights.length > 0 && (
+        <Card className="border-indigo-200 bg-indigo-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-indigo-800">
+              <Eye className="w-5 h-5" />
+              <span>Communication Styles Detected</span>
+              <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+                {communicationInsights.length} insights
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-indigo-700 mb-3">
+              These insights will be used to personalize email templates and communication approach:
+            </p>
+            <div className="space-y-2">
+              {communicationInsights.map((insight) => (
+                <div key={insight.id} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2"></div>
+                  <p className="text-sm text-indigo-700">{insight.content}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Insights List */}
       <Card>
