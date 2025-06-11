@@ -18,8 +18,8 @@ export const CallWrapUp = () => {
   const [insights, setInsights] = useState(null)
   const [pushStatuses, setPushStatuses] = useState({})
 
-  // Mock user ID - in real app this would come from auth
-  const userId = 'mock-user-id'
+  // Generate a valid UUID for mock user - in real app this would come from auth
+  const userId = '550e8400-e29b-41d4-a716-446655440000'
 
   const handleFileUpload = async (file) => {
     setIsProcessing(true)

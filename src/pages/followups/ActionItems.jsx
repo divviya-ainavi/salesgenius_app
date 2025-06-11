@@ -39,8 +39,8 @@ export const ActionItems = () => {
   const [commitments, setCommitments] = useState(selectedCall.commitments)
   const [pushStatus, setPushStatus] = useState('draft')
 
-  // Mock user ID
-  const userId = 'mock-user-id'
+  // Generate a valid UUID for mock user - in real app this would come from auth
+  const userId = '550e8400-e29b-41d4-a716-446655440000'
 
   useEffect(() => {
     setCommitments(selectedCall.commitments)
