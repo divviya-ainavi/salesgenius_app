@@ -10,3 +10,5 @@ const Research = () => {
 };
 
 export default Research;
+
+export { Research }

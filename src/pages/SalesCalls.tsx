@@ -10,3 +10,5 @@ const SalesCalls = () => {
 };
 
 export default SalesCalls;
+
+export { SalesCalls }
