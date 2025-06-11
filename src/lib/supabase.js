@@ -166,6 +166,51 @@ export const dbHelpers = {
     return data
   },
 
+  async saveCallInsights(callNotesId, userId, insights) {
+    const insightRecords = insights.map(insight => ({
+      call_notes_id: callNotesId,
+      user_id: userId,
+      insight_type: insight.type,
+      content: insight.content,
+      relevance_score: insight.relevance_score,
+      is_selected: insight.is_selected,
+      source: insight.source,
+      timestamp: insight.timestamp
+    }))
+
+    const { data, error } = await supabase
+      .from('call_insights')
+      .insert(insightRecords)
+      .select()
+
+    if (error) throw error
+    return data
+  },
+
+  async updateCallInsight(id, updates) {
+    const { data, error } = await supabase
+      .from('call_insights')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async getCallInsights(callNotesId, userId) {
+    const { data, error } = await supabase
+      .from('call_insights')
+      .select('*')
+      .eq('call_notes_id', callNotesId)
+      .eq('user_id', userId)
+      .order('relevance_score', { ascending: false })
+
+    if (error) throw error
+    return data
+  },
+
   async logPushAction(userId, contentType, contentId, status, errorMessage = null, hubspotId = null) {
     const { data, error } = await supabase
       .from('push_log')

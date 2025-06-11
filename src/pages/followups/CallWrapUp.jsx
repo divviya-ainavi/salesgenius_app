@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { StepBasedWorkflow } from '@/components/followups/StepBasedWorkflow'
 import { TranscriptUpload } from '@/components/followups/TranscriptUpload'
+import { ReviewInsights } from '@/components/followups/ReviewInsights'
 import { InsightCard } from '@/components/followups/InsightCard'
 import { CRMConnectionStatus } from '@/components/followups/CRMConnectionStatus'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, CheckCircle } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { aiAgents, dbHelpers } from '@/lib/supabase'
 
@@ -16,7 +18,9 @@ export const CallWrapUp = () => {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [callData, setCallData] = useState(null)
   const [insights, setInsights] = useState(null)
+  const [selectedInsights, setSelectedInsights] = useState([])
   const [pushStatuses, setPushStatuses] = useState({})
+  const [activeTab, setActiveTab] = useState('insights')
 
   // Generate a valid UUID for mock user - in real app this would come from auth
   const userId = '550e8400-e29b-41d4-a716-446655440000'
@@ -84,6 +88,12 @@ export const CallWrapUp = () => {
     await handleFileUpload(mockFile)
   }
 
+  const handleSaveInsights = (updatedInsights) => {
+    setSelectedInsights(updatedInsights.filter(insight => insight.is_selected))
+    // In real app, save to database
+    console.log('Saving insights:', updatedInsights)
+  }
+
   const handleEditInsight = (type, content) => {
     setInsights(prev => ({
       ...prev,
@@ -127,6 +137,10 @@ export const CallWrapUp = () => {
 
   const handleContinueToReview = () => {
     setCurrentStep(2)
+  }
+
+  const handleBackToUpload = () => {
+    setCurrentStep(1)
   }
 
   return (
@@ -194,58 +208,131 @@ export const CallWrapUp = () => {
 
       {/* Step 2: Review Insights */}
       {currentStep === 2 && insights && (
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Call Summary */}
-            <InsightCard
-              title="Call Summary"
-              content={insights.call_summary}
-              type="call_summary"
-              onEdit={(content) => handleEditInsight('call_summary', content)}
-              onPush={(content) => handlePushToHubSpot('call_summary', content)}
-              status={pushStatuses.call_summary || 'draft'}
-            />
+        <div className="space-y-6">
+          {/* Back Button */}
+          <Button variant="outline" onClick={handleBackToUpload}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Upload
+          </Button>
 
-            {/* Follow-up Email */}
-            <InsightCard
-              title="Follow-up Email"
-              content={insights.follow_up_email}
-              type="follow_up_email"
-              onEdit={(content) => handleEditInsight('follow_up_email', content)}
-              onPush={(content) => handlePushToHubSpot('follow_up_email', content)}
-              onCopy={() => toast.success('Email copied to clipboard')}
-              status={pushStatuses.follow_up_email || 'draft'}
-            />
+          {/* Tabbed Interface */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="insights">Review Insights</TabsTrigger>
+              <TabsTrigger value="summary">Call Summary</TabsTrigger>
+              <TabsTrigger value="email">Follow-up Email</TabsTrigger>
+              <TabsTrigger value="deck">Presentation</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="insights" className="mt-6">
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Main Content */}
+                <div className="lg:col-span-2">
+                  <ReviewInsights onSaveInsights={handleSaveInsights} />
+                </div>
 
-            {/* Deck Prompt */}
-            <InsightCard
-              title="Presentation Prompt"
-              content={insights.deck_prompt}
-              type="deck_prompt"
-              onEdit={(content) => handleEditInsight('deck_prompt', content)}
-              onPush={(content) => handlePushToHubSpot('deck_prompt', content)}
-              onCopy={() => toast.success('Deck prompt copied to clipboard')}
-              onExport={() => toast.success('Exported to Gamma (coming soon)')}
-              status={pushStatuses.deck_prompt || 'draft'}
-              showExportButton={true}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* CRM Connection Status */}
-            <CRMConnectionStatus
-              status="connected"
-              lastSync="2 minutes ago"
-              accountInfo={{
-                name: "Acme Corp Sales",
-                hubId: "12345678"
-              }}
-              onReconnect={() => toast.success('Connection refreshed')}
-              onSettings={() => toast.info('Opening settings...')}
-            />
-          </div>
+                {/* Sidebar */}
+                <div className="space-y-6">
+                  {/* CRM Connection Status */}
+                  <CRMConnectionStatus
+                    status="connected"
+                    lastSync="2 minutes ago"
+                    accountInfo={{
+                      name: "Acme Corp Sales",
+                      hubId: "12345678"
+                    }}
+                    onReconnect={() => toast.success('Connection refreshed')}
+                    onSettings={() => toast.info('Opening settings...')}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="summary" className="mt-6">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <InsightCard
+                    title="Call Summary"
+                    content={insights.call_summary}
+                    type="call_summary"
+                    onEdit={(content) => handleEditInsight('call_summary', content)}
+                    onPush={(content) => handlePushToHubSpot('call_summary', content)}
+                    status={pushStatuses.call_summary || 'draft'}
+                  />
+                </div>
+                <div className="space-y-6">
+                  <CRMConnectionStatus
+                    status="connected"
+                    lastSync="2 minutes ago"
+                    accountInfo={{
+                      name: "Acme Corp Sales",
+                      hubId: "12345678"
+                    }}
+                    onReconnect={() => toast.success('Connection refreshed')}
+                    onSettings={() => toast.info('Opening settings...')}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="email" className="mt-6">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <InsightCard
+                    title="Follow-up Email"
+                    content={insights.follow_up_email}
+                    type="follow_up_email"
+                    onEdit={(content) => handleEditInsight('follow_up_email', content)}
+                    onPush={(content) => handlePushToHubSpot('follow_up_email', content)}
+                    onCopy={() => toast.success('Email copied to clipboard')}
+                    status={pushStatuses.follow_up_email || 'draft'}
+                  />
+                </div>
+                <div className="space-y-6">
+                  <CRMConnectionStatus
+                    status="connected"
+                    lastSync="2 minutes ago"
+                    accountInfo={{
+                      name: "Acme Corp Sales",
+                      hubId: "12345678"
+                    }}
+                    onReconnect={() => toast.success('Connection refreshed')}
+                    onSettings={() => toast.info('Opening settings...')}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="deck" className="mt-6">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <InsightCard
+                    title="Presentation Prompt"
+                    content={insights.deck_prompt}
+                    type="deck_prompt"
+                    onEdit={(content) => handleEditInsight('deck_prompt', content)}
+                    onPush={(content) => handlePushToHubSpot('deck_prompt', content)}
+                    onCopy={() => toast.success('Deck prompt copied to clipboard')}
+                    onExport={() => toast.success('Exported to Gamma (coming soon)')}
+                    status={pushStatuses.deck_prompt || 'draft'}
+                    showExportButton={true}
+                  />
+                </div>
+                <div className="space-y-6">
+                  <CRMConnectionStatus
+                    status="connected"
+                    lastSync="2 minutes ago"
+                    accountInfo={{
+                      name: "Acme Corp Sales",
+                      hubId: "12345678"
+                    }}
+                    onReconnect={() => toast.success('Connection refreshed')}
+                    onSettings={() => toast.info('Opening settings...')}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 
