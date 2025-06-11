@@ -1,5 +1,5 @@
 {
-  "name": "vite-react-tailwind-starter",
+  "name": "salesgenius-ai",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -29,7 +29,8 @@
     "@radix-ui/react-progress": "^1.0.3",
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-tabs": "^1.0.4",
-    "recharts": "^2.8.0"
+    "recharts": "^2.8.0",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
