@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { dbHelpers } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
 // Mock data for recent calls
 const mockRecentCalls = [
