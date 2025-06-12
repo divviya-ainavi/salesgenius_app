@@ -53,29 +53,125 @@ export const CallWrapUp = () => {
 
       setCallData(callNote)
 
-      // Call Follow Up Agent
-      const response = await aiAgents.callFollowUpAgent({ transcript: content })
+      // Call external Sales Insights API
+      const formData = new FormData()
+      formData.append('data', file)
+
+      const response = await fetch('https://salesgenius.ainavi.co.uk/webhook/sales-insigts', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+      }
+
+      const apiData = await response.json()
+      console.log('API Response:', apiData)
       
-      if (response.success) {
+      if (apiData && apiData.length > 0) {
+        const responseData = apiData[0]
+        
         clearInterval(progressInterval)
         setUploadProgress(100)
         
+        // Transform API response to match our expected format
+        const transformedInsights = {
+          call_summary: responseData.reviewinsights?.call_summary?.key_points?.join('\n\n') || 'No summary available',
+          follow_up_email: responseData.followupemail || 'No email template generated',
+          deck_prompt: responseData.presentation || 'No presentation prompt generated',
+          action_items: responseData.reviewinsights?.action_items || [],
+          communication_styles: responseData.reviewinsights?.communication_styles || [],
+          sentiment_score: responseData.reviewinsights?.call_summary?.sentiment_score || 0,
+          specific_user: responseData.reviewinsights?.call_summary?.specific_user || 'Unknown'
+        }
+
         // Update call note with AI summary
         await dbHelpers.updateCallNote(callNote.id, {
-          ai_summary: response.data.call_summary,
+          ai_summary: transformedInsights.call_summary,
           status: 'completed'
         })
 
-        // Store insights
-        setInsights(response.data)
+        // Store action items in database
+        if (transformedInsights.action_items.length > 0) {
+          const commitments = transformedInsights.action_items.map(item => item.task)
+          await dbHelpers.createCommitments(callNote.id, userId, commitments)
+        }
+
+        // Store follow-up email in database
+        if (transformedInsights.follow_up_email) {
+          await dbHelpers.createFollowUpEmail(callNote.id, userId, transformedInsights.follow_up_email)
+        }
+
+        // Store deck prompt in database
+        if (transformedInsights.deck_prompt) {
+          await dbHelpers.createDeckPrompt(callNote.id, userId, transformedInsights.deck_prompt)
+        }
+
+        // Transform insights for ReviewInsights component
+        const reviewInsights = []
+        
+        // Add call summary insights
+        if (responseData.reviewinsights?.call_summary?.key_points) {
+          responseData.reviewinsights.call_summary.key_points.forEach((point, index) => {
+            reviewInsights.push({
+              id: `key_point_${index}`,
+              type: 'prospect_mention',
+              content: point,
+              relevance_score: 85 + (index * 2),
+              is_selected: true,
+              source: 'AI Analysis',
+              timestamp: `${index * 5}:00`
+            })
+          })
+        }
+
+        // Add action items as insights
+        if (responseData.reviewinsights?.action_items) {
+          responseData.reviewinsights.action_items.forEach((item, index) => {
+            reviewInsights.push({
+              id: `action_${index}`,
+              type: 'agreed_action',
+              content: `${item.task} (Owner: ${item.owner})`,
+              relevance_score: 90 - (index * 2),
+              is_selected: true,
+              source: 'Call Transcript',
+              timestamp: 'Throughout call'
+            })
+          })
+        }
+
+        // Add communication styles as insights
+        if (responseData.reviewinsights?.communication_styles) {
+          responseData.reviewinsights.communication_styles.forEach((style, index) => {
+            reviewInsights.push({
+              id: `comm_style_${index}`,
+              type: 'communication_style',
+              content: `${style.role_name} demonstrates ${style.style} communication style. Evidence: ${style.evidence}`,
+              relevance_score: 80 - (index * 3),
+              is_selected: true,
+              source: 'Communication Analysis',
+              timestamp: 'Throughout call'
+            })
+          })
+        }
+
+        // Store insights and set state
+        setInsights({
+          ...transformedInsights,
+          reviewInsights: reviewInsights
+        })
         setCompletedSteps([1])
         setCurrentStep(2)
         
         toast.success('Call analysis completed!')
+      } else {
+        throw new Error('Invalid API response format')
       }
     } catch (error) {
       console.error('Error processing file:', error)
-      toast.error('Failed to process file')
+      toast.error(`Failed to process file: ${error.message}`)
+      clearInterval(progressInterval)
     } finally {
       setIsProcessing(false)
     }
@@ -236,6 +332,7 @@ export const CallWrapUp = () => {
                     onSaveInsights={handleSaveInsights}
                     callNotesId={callData?.id}
                     userId={userId}
+                    initialInsights={insights.reviewInsights || []}
                   />
                 </div>
 
