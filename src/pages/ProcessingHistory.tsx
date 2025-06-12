@@ -462,6 +462,7 @@ const ProcessingHistory = () => {
             showBackButton={false} // We already have a back button in the header
             isEditable={true}
             title="Processing History Details"
+            isProcessingHistory={true} // Mark as processing history context
           />
         )}
 
@@ -478,16 +479,15 @@ const ProcessingHistory = () => {
             <CardContent>
               <div className="space-y-3">
                 {selectedSession.call_commitments.map((commitment, index) => (
-                  <div key={commitment.id || index} className="flex items-start space-x-3 p-3 border border-border rounded-lg">
-                    <div className={cn(
-                      "w-3 h-3 rounded-full mt-1",
-                      commitment.is_pushed ? 'bg-green-500' : 'bg-gray-300'
-                    )} />
-                    <div className="flex-1">
-                      <p className="text-sm">{commitment.commitment_text}</p>
-                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                        <span>Created: {formatDate(commitment.created_at)}</span>
-                        {commitment.is_pushed && <span className="text-green-600">Pushed to HubSpot</span>}
+                  <div key={commitment.id || index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-900 leading-relaxed mb-2">{commitment.commitment_text}</p>
+                        <div className="flex items-center space-x-4 text-xs text-gray-600">
+                          <span>Created: {formatDate(commitment.created_at)}</span>
+                          {commitment.is_pushed && <span className="text-green-600">Pushed to HubSpot</span>}
+                        </div>
                       </div>
                     </div>
                   </div>

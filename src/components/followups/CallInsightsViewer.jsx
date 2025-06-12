@@ -17,7 +17,8 @@ export const CallInsightsViewer = ({
   pushStatuses = {},
   showBackButton = false,
   isEditable = true,
-  title = "Review Insights"
+  title = "Review Insights",
+  isProcessingHistory = false // New prop to identify processing history context
 }) => {
   const [activeTab, setActiveTab] = useState('insights')
 
@@ -55,6 +56,7 @@ export const CallInsightsViewer = ({
                 userId={userId}
                 initialInsights={insights.reviewInsights || []}
                 callAnalysisData={insights.callAnalysisData}
+                hideActionItems={false} // Show action items in Review Insights tab
               />
             </div>
 
@@ -78,7 +80,7 @@ export const CallInsightsViewer = ({
         <TabsContent value="summary" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              {/* Call Summary Content */}
+              {/* Call Summary Content - Hide action items here for processing history */}
               <InsightCard
                 title="Call Summary"
                 content={insights.call_summary}
@@ -90,6 +92,18 @@ export const CallInsightsViewer = ({
                 isEditable={isEditable}
                 showPushButton={true}
               />
+              
+              {/* Don't show action items in call summary for processing history */}
+              {!isProcessingHistory && insights.callAnalysisData?.action_items && insights.callAnalysisData.action_items.length > 0 && (
+                <ReviewInsights 
+                  onSaveInsights={handleSaveInsights}
+                  callNotesId={callNotesId}
+                  userId={userId}
+                  initialInsights={[]}
+                  callAnalysisData={insights.callAnalysisData}
+                  hideActionItems={false}
+                />
+              )}
             </div>
             <div className="space-y-6">
               <CRMConnectionStatus
