@@ -183,7 +183,7 @@ export const dbHelpers = {
           file_size,
           upload_date
         ),
-        call_notes (
+        call_notes!processing_history_call_notes_id_fkey (
           id,
           ai_summary,
           status
@@ -203,7 +203,7 @@ export const dbHelpers = {
       .select(`
         *,
         uploaded_files (*),
-        call_notes (*),
+        call_notes!processing_history_call_notes_id_fkey (*),
         call_commitments (*),
         follow_up_emails (*),
         deck_prompts (*),
