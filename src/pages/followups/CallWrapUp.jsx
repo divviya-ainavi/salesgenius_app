@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { aiAgents, dbHelpers, CURRENT_USER } from '@/lib/supabase'
-import { extractTextFromPDF, isPDF } from '@/utils/pdfExtractor'
+import { isPDF } from '@/utils/pdfExtractor'
 
 export const CallWrapUp = () => {
   const [currentStep, setCurrentStep] = useState(1)
@@ -45,17 +45,13 @@ export const CallWrapUp = () => {
         })
       }, 200)
 
-      // Extract text content based on file type
-      let content
-      if (isPDF(file)) {
-        toast.info('Extracting text from PDF...')
-        content = await extractTextFromPDF(file)
-        if (!content || content.trim().length === 0) {
-          throw new Error('No text content found in PDF file')
-        }
-      } else {
-        // Read text file content
+      // For text files, read content for database storage
+      let content = ''
+      if (!isPDF(file)) {
         content = await file.text()
+      } else {
+        // For PDFs, we'll store a placeholder since we're sending the file directly
+        content = `PDF file: ${file.name} (${file.size} bytes)`
       }
       
       // Create call note record with Sales Manager user ID
@@ -67,7 +63,7 @@ export const CallWrapUp = () => {
 
       setCallData(callNote)
 
-      // Call external Sales Insights API
+      // Call external Sales Insights API - send file directly
       const formData = new FormData()
       formData.append('data', file)
 
