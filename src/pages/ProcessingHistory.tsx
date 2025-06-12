@@ -26,7 +26,8 @@ import {
   CheckSquare,
   Copy,
   History,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
@@ -69,7 +70,7 @@ const ProcessingHistory = () => {
       const details = await dbHelpers.getProcessingSessionDetails(sessionId)
       setSelectedSession(details)
       setViewMode('details')
-      setActiveTab('insights')
+      setActiveTab('summary') // Start with Call Summary tab
     } catch (error) {
       console.error('Error loading session details:', error)
       toast.error('Failed to load session details')
@@ -199,12 +200,31 @@ const ProcessingHistory = () => {
     }
   }
 
+  // Get formatted call summary from API response
+  const getFormattedCallSummary = (session) => {
+    if (!session.api_response) {
+      return session.call_notes?.[0]?.ai_summary || 'No summary available'
+    }
+
+    const apiResponse = session.api_response
+    const reviewInsights = apiResponse.reviewinsights || {}
+    const callSummary = reviewInsights.call_summary || {}
+    
+    // If we have key_points, format them as a structured summary
+    if (callSummary.key_points && callSummary.key_points.length > 0) {
+      return callSummary.key_points.join('\n\n')
+    }
+    
+    // Fallback to stored summary
+    return session.call_notes?.[0]?.ai_summary || 'No summary available'
+  }
+
   // Transform session data for insights display
   const getSessionInsights = (session) => {
     if (!session) return null
 
     return {
-      call_summary: session.call_notes?.[0]?.ai_summary || 'No summary available',
+      call_summary: getFormattedCallSummary(session),
       follow_up_email: session.follow_up_emails?.[0]?.email_content || 'No email template generated',
       deck_prompt: session.deck_prompts?.[0]?.prompt_content || 'No presentation prompt generated',
       reviewInsights: getReviewInsights(session),
@@ -491,13 +511,56 @@ const ProcessingHistory = () => {
               <TabsContent value="summary" className="mt-6">
                 <div className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-6">
-                    {/* Call Analysis Overview for Summary Tab */}
+                    {/* Call Summary Card - Matching the format from the image */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <MessageSquare className="w-5 h-5" />
+                            <span>Call Summary</span>
+                            <Badge variant="outline" className="text-xs">
+                              Draft
+                            </Badge>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleCopy(insights.call_summary, 'Call Summary')}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy
+                            </Button>
+                            <Button 
+                              onClick={() => handlePushToHubSpot('call_summary', insights.call_summary)}
+                              disabled={pushStatuses.call_summary === 'pending'}
+                              size="sm"
+                            >
+                              {pushStatuses.call_summary === 'pending' ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                'Push to HubSpot'
+                              )}
+                            </Button>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="bg-muted rounded-lg p-4">
+                          <pre className="whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
+                            {insights.call_summary}
+                          </pre>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Call Analysis Overview if available */}
                     {insights.callAnalysisData && (
                       <Card className="border-blue-200 bg-blue-50">
                         <CardHeader>
                           <CardTitle className="flex items-center space-x-2 text-blue-800">
                             <User className="w-5 h-5" />
-                            <span>Call Summary</span>
+                            <span>Call Analysis Overview</span>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -510,7 +573,7 @@ const ProcessingHistory = () => {
                               </div>
                             </div>
                             <div className="flex items-center space-x-3">
-                              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                              <TrendingUp className="w-4 h-4 text-muted-foreground" />
                               <div>
                                 <p className="text-sm text-muted-foreground">Sentiment Score</p>
                                 <div className="flex items-center space-x-2">
@@ -547,17 +610,6 @@ const ProcessingHistory = () => {
                         </CardContent>
                       </Card>
                     )}
-
-                    <InsightCard
-                      title="Call Summary"
-                      content={insights.call_summary}
-                      type="call_summary"
-                      onEdit={(content) => handleEditInsight('call_summary', content)}
-                      onPush={(content) => handlePushToHubSpot('call_summary', content)}
-                      status={pushStatuses.call_summary || 'draft'}
-                      isEditable={true}
-                      showPushButton={true}
-                    />
                   </div>
                   <div className="space-y-6">
                     <CRMConnectionStatus
