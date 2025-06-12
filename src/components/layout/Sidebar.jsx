@@ -56,14 +56,14 @@ const mainNavItems = [
         href: '/follow-ups/actions',
         icon: CheckSquare,
         description: 'Commitments and tasks'
+      },
+      {
+        title: 'Processing History',
+        href: '/follow-ups/processing-history',
+        icon: History,
+        description: 'View processed files and insights'
       }
     ]
-  },
-  {
-    title: 'Processing History',
-    href: '/processing-history',
-    icon: History,
-    description: 'View processed files and insights'
   },
   {
     title: 'Analytics',

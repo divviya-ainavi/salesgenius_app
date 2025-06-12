@@ -34,8 +34,8 @@ const App = () => (
               <Route path="actions" element={<ActionItems />} />
               <Route path="emails" element={<EmailTemplates />} />
               <Route path="decks" element={<DeckBuilder />} />
+              <Route path="processing-history" element={<ProcessingHistory />} />
             </Route>
-            <Route path="processing-history" element={<ProcessingHistory />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
           </Route>

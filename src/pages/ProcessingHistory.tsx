@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { StepBasedWorkflow } from '@/components/followups/StepBasedWorkflow'
+import { ReviewInsights } from '@/components/followups/ReviewInsights'
+import { InsightCard } from '@/components/followups/InsightCard'
+import { CRMConnectionStatus } from '@/components/followups/CRMConnectionStatus'
 import { 
   FileText, 
   Calendar, 
@@ -15,14 +19,14 @@ import {
   Eye,
   RefreshCw,
   Download,
-  Trash2,
   ArrowLeft,
   MessageSquare,
   Mail,
   Presentation,
   CheckSquare,
   Copy,
-  History
+  History,
+  ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
@@ -33,7 +37,9 @@ const ProcessingHistory = () => {
   const [selectedSession, setSelectedSession] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState('history')
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'details'
+  const [activeTab, setActiveTab] = useState('insights')
+  const [pushStatuses, setPushStatuses] = useState({})
 
   const loadHistory = async () => {
     try {
@@ -62,7 +68,8 @@ const ProcessingHistory = () => {
     try {
       const details = await dbHelpers.getProcessingSessionDetails(sessionId)
       setSelectedSession(details)
-      setActiveTab('details')
+      setViewMode('details')
+      setActiveTab('insights')
     } catch (error) {
       console.error('Error loading session details:', error)
       toast.error('Failed to load session details')
@@ -71,12 +78,47 @@ const ProcessingHistory = () => {
 
   const handleBackToHistory = () => {
     setSelectedSession(null)
-    setActiveTab('history')
+    setViewMode('list')
   }
 
   const handleCopy = (content, type) => {
     navigator.clipboard.writeText(content)
     toast.success(`${type} copied to clipboard`)
+  }
+
+  const handleEditInsight = (type, content) => {
+    // Update the selected session data
+    if (selectedSession && selectedSession.call_notes && selectedSession.call_notes.length > 0) {
+      const updatedSession = { ...selectedSession }
+      if (type === 'call_summary') {
+        updatedSession.call_notes[0].ai_summary = content
+      }
+      setSelectedSession(updatedSession)
+    }
+  }
+
+  const handlePushToHubSpot = async (type, content) => {
+    setPushStatuses(prev => ({ ...prev, [type]: 'pending' }))
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Log push action
+      await dbHelpers.logPushAction(
+        CURRENT_USER.id,
+        type,
+        selectedSession.call_notes[0]?.id || selectedSession.id,
+        'success',
+        null,
+        `hubspot-${Date.now()}`
+      )
+      
+      setPushStatuses(prev => ({ ...prev, [type]: 'success' }))
+      toast.success(`${type} pushed to HubSpot successfully!`)
+    } catch (error) {
+      setPushStatuses(prev => ({ ...prev, [type]: 'error' }))
+      toast.error(`Failed to push ${type} to HubSpot`)
+    }
   }
 
   const getStatusIcon = (status) => {
@@ -121,6 +163,33 @@ const ProcessingHistory = () => {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Transform session data for ReviewInsights component
+  const getReviewInsights = (session) => {
+    if (!session.call_insights) return []
+    
+    return session.call_insights.map(insight => ({
+      id: insight.id,
+      type: insight.insight_type,
+      content: insight.content,
+      relevance_score: insight.relevance_score,
+      is_selected: insight.is_selected,
+      source: insight.source,
+      timestamp: insight.timestamp
+    }))
+  }
+
+  // Transform session data for insights display
+  const getSessionInsights = (session) => {
+    if (!session) return null
+
+    return {
+      call_summary: session.call_notes?.[0]?.ai_summary || 'No summary available',
+      follow_up_email: session.follow_up_emails?.[0]?.email_content || 'No email template generated',
+      deck_prompt: session.deck_prompts?.[0]?.prompt_content || 'No presentation prompt generated',
+      reviewInsights: getReviewInsights(session)
+    }
   }
 
   const HistoryList = () => {
@@ -257,20 +326,9 @@ const ProcessingHistory = () => {
                           handleViewDetails(session.id)
                         }}
                       >
-                        <Eye className="w-3 h-3" />
+                        <Eye className="w-3 h-3 mr-1" />
+                        View Details
                       </Button>
-                      {session.processing_status === 'completed' && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toast.info('Download feature coming soon')
-                          }}
-                        >
-                          <Download className="w-3 h-3" />
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -293,8 +351,12 @@ const ProcessingHistory = () => {
       )
     }
 
+    const insights = getSessionInsights(selectedSession)
+    const currentStep = selectedSession.processing_status === 'completed' ? 2 : 1
+    const completedSteps = selectedSession.processing_status === 'completed' ? [1] : []
+
     return (
-      <div className="space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -313,6 +375,12 @@ const ProcessingHistory = () => {
             {selectedSession.processing_status}
           </Badge>
         </div>
+
+        {/* Step-Based Workflow */}
+        <StepBasedWorkflow 
+          currentStep={currentStep} 
+          completedSteps={completedSteps} 
+        />
 
         {/* File Information */}
         <Card>
@@ -358,197 +426,171 @@ const ProcessingHistory = () => {
           </CardContent>
         </Card>
 
-        {/* Generated Content */}
-        {selectedSession.processing_status === 'completed' && (
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary">Call Summary</TabsTrigger>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
-              <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="presentation">Presentation</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="summary" className="mt-6">
-              {selectedSession.call_notes && selectedSession.call_notes.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Call Summary</span>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleCopy(selectedSession.call_notes[0].ai_summary, 'Call Summary')}
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-muted rounded-lg p-4">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {selectedSession.call_notes[0].ai_summary}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No call summary available
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="insights" className="mt-6">
-              {selectedSession.call_insights && selectedSession.call_insights.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedSession.call_insights.map((insight, index) => (
-                    <Card key={insight.id || index}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {insight.insight_type?.replace('_', ' ')}
-                          </Badge>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="secondary" className="text-xs">
-                              Score: {insight.relevance_score}
-                            </Badge>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleCopy(insight.content, 'Insight')}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
+        {/* Reuse Call Wrap-Up Interface for completed sessions */}
+        {selectedSession.processing_status === 'completed' && insights && (
+          <div className="space-y-6">
+            {/* Tabbed Interface - Same as Call Wrap-Up */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="insights">Review Insights</TabsTrigger>
+                <TabsTrigger value="summary">Call Summary</TabsTrigger>
+                <TabsTrigger value="email">Follow-up Email</TabsTrigger>
+                <TabsTrigger value="deck">Presentation</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="insights" className="mt-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  {/* Main Content - Review Insights Component */}
+                  <div className="lg:col-span-2">
+                    <ReviewInsights 
+                      onSaveInsights={() => {}} // Read-only for history
+                      callNotesId={selectedSession.call_notes?.[0]?.id}
+                      userId={CURRENT_USER.id}
+                      initialInsights={insights.reviewInsights || []}
+                    />
+                  </div>
+
+                  {/* Sidebar */}
+                  <div className="space-y-6">
+                    {/* CRM Connection Status */}
+                    <CRMConnectionStatus
+                      status="connected"
+                      lastSync="2 minutes ago"
+                      accountInfo={{
+                        name: "Acme Corp Sales",
+                        hubId: "12345678"
+                      }}
+                      onReconnect={() => toast.success('Connection refreshed')}
+                      onSettings={() => toast.info('Opening settings...')}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="summary" className="mt-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    <InsightCard
+                      title="Call Summary"
+                      content={insights.call_summary}
+                      type="call_summary"
+                      onEdit={(content) => handleEditInsight('call_summary', content)}
+                      onPush={(content) => handlePushToHubSpot('call_summary', content)}
+                      status={pushStatuses.call_summary || 'draft'}
+                      isEditable={true}
+                      showPushButton={true}
+                    />
+                  </div>
+                  <div className="space-y-6">
+                    <CRMConnectionStatus
+                      status="connected"
+                      lastSync="2 minutes ago"
+                      accountInfo={{
+                        name: "Acme Corp Sales",
+                        hubId: "12345678"
+                      }}
+                      onReconnect={() => toast.success('Connection refreshed')}
+                      onSettings={() => toast.info('Opening settings...')}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="email" className="mt-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <InsightCard
+                      title="Follow-up Email"
+                      content={insights.follow_up_email}
+                      type="follow_up_email"
+                      onEdit={(content) => handleEditInsight('follow_up_email', content)}
+                      onPush={(content) => handlePushToHubSpot('follow_up_email', content)}
+                      onCopy={() => toast.success('Email copied to clipboard')}
+                      status={pushStatuses.follow_up_email || 'draft'}
+                      isEditable={true}
+                      showPushButton={true}
+                    />
+                  </div>
+                  <div className="space-y-6">
+                    <CRMConnectionStatus
+                      status="connected"
+                      lastSync="2 minutes ago"
+                      accountInfo={{
+                        name: "Acme Corp Sales",
+                        hubId: "12345678"
+                      }}
+                      onReconnect={() => toast.success('Connection refreshed')}
+                      onSettings={() => toast.info('Opening settings...')}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="deck" className="mt-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <InsightCard
+                      title="Presentation Prompt"
+                      content={insights.deck_prompt}
+                      type="deck_prompt"
+                      onEdit={(content) => handleEditInsight('deck_prompt', content)}
+                      onPush={(content) => handlePushToHubSpot('deck_prompt', content)}
+                      onCopy={() => toast.success('Deck prompt copied to clipboard')}
+                      onExport={() => toast.success('Exported to Gamma (coming soon)')}
+                      status={pushStatuses.deck_prompt || 'draft'}
+                      isEditable={true}
+                      showPushButton={true}
+                      showExportButton={true}
+                    />
+                  </div>
+                  <div className="space-y-6">
+                    <CRMConnectionStatus
+                      status="connected"
+                      lastSync="2 minutes ago"
+                      accountInfo={{
+                        name: "Acme Corp Sales",
+                        hubId: "12345678"
+                      }}
+                      onReconnect={() => toast.success('Connection refreshed')}
+                      onSettings={() => toast.info('Opening settings...')}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Action Items */}
+            {selectedSession.call_commitments && selectedSession.call_commitments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckSquare className="w-5 h-5" />
+                    <span>Action Items</span>
+                    <Badge variant="secondary">{selectedSession.call_commitments.length} items</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {selectedSession.call_commitments.map((commitment, index) => (
+                      <div key={commitment.id || index} className="flex items-start space-x-3 p-3 border border-border rounded-lg">
+                        <div className={cn(
+                          "w-3 h-3 rounded-full mt-1",
+                          commitment.is_pushed ? 'bg-green-500' : 'bg-gray-300'
+                        )} />
+                        <div className="flex-1">
+                          <p className="text-sm">{commitment.commitment_text}</p>
+                          <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
+                            <span>Created: {formatDate(commitment.created_at)}</span>
+                            {commitment.is_pushed && <span className="text-green-600">Pushed to HubSpot</span>}
                           </div>
                         </div>
-                        <p className="text-sm leading-relaxed">{insight.content}</p>
-                        <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                          <span>Source: {insight.source}</span>
-                          {insight.timestamp && <span>Time: {insight.timestamp}</span>}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No insights available
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="email" className="mt-6">
-              {selectedSession.follow_up_emails && selectedSession.follow_up_emails.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Mail className="w-5 h-5" />
-                        <span>Follow-up Email</span>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleCopy(selectedSession.follow_up_emails[0].email_content, 'Follow-up Email')}
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-muted rounded-lg p-4">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {selectedSession.follow_up_emails[0].email_content}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No follow-up email available
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="presentation" className="mt-6">
-              {selectedSession.deck_prompts && selectedSession.deck_prompts.length > 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Presentation className="w-5 h-5" />
-                        <span>Presentation Prompt</span>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleCopy(selectedSession.deck_prompts[0].prompt_content, 'Presentation Prompt')}
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-muted rounded-lg p-4">
-                      <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {selectedSession.deck_prompts[0].prompt_content}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No presentation prompt available
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-
-        {/* Action Items */}
-        {selectedSession.call_commitments && selectedSession.call_commitments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckSquare className="w-5 h-5" />
-                <span>Action Items</span>
-                <Badge variant="secondary">{selectedSession.call_commitments.length} items</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {selectedSession.call_commitments.map((commitment, index) => (
-                  <div key={commitment.id || index} className="flex items-start space-x-3 p-3 border border-border rounded-lg">
-                    <div className={cn(
-                      "w-3 h-3 rounded-full mt-1",
-                      commitment.is_pushed ? 'bg-green-500' : 'bg-gray-300'
-                    )} />
-                    <div className="flex-1">
-                      <p className="text-sm">{commitment.commitment_text}</p>
-                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                        <span>Created: {formatDate(commitment.created_at)}</span>
-                        {commitment.is_pushed && <span className="text-green-600">Pushed to HubSpot</span>}
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
       </div>
     )
@@ -568,26 +610,7 @@ const ProcessingHistory = () => {
       </div>
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="history" className="flex items-center space-x-2">
-            <History className="w-4 h-4" />
-            <span>Processing History</span>
-          </TabsTrigger>
-          <TabsTrigger value="details" disabled={!selectedSession} className="flex items-center space-x-2">
-            <FileText className="w-4 h-4" />
-            <span>Session Details</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="history" className="mt-6">
-          <HistoryList />
-        </TabsContent>
-
-        <TabsContent value="details" className="mt-6">
-          <SessionDetails />
-        </TabsContent>
-      </Tabs>
+      {viewMode === 'list' ? <HistoryList /> : <SessionDetails />}
     </div>
   )
 }
