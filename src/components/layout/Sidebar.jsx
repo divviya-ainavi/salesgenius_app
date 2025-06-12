@@ -39,12 +39,6 @@ const mainNavItems = [
         description: 'AI-generated call summaries'
       },
       {
-        title: 'Action Items',
-        href: '/follow-ups/actions',
-        icon: CheckSquare,
-        description: 'Commitments and tasks'
-      },
-      {
         title: 'Email Templates',
         href: '/follow-ups/emails',
         icon: MessageSquare,
@@ -55,6 +49,12 @@ const mainNavItems = [
         href: '/follow-ups/decks',
         icon: Presentation,
         description: 'Sales presentation prompts'
+      },
+      {
+        title: 'Action Items',
+        href: '/follow-ups/actions',
+        icon: CheckSquare,
+        description: 'Commitments and tasks'
       }
     ]
   },
