@@ -5,6 +5,22 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Predefined user IDs for development/testing (simulating hierarchy)
+export const DEMO_USERS = {
+  SUPER_ADMIN: '00000000-0000-0000-0000-000000000001',
+  ORG_ADMIN: '00000000-0000-0000-0000-000000000002', 
+  SALES_MANAGER: '00000000-0000-0000-0000-000000000003' // Current logged-in user
+}
+
+// Current user context (Sales Manager for all operations)
+export const CURRENT_USER = {
+  id: DEMO_USERS.SALES_MANAGER,
+  email: 'sales.manager@company.com',
+  role: 'sales_manager',
+  name: 'Sarah Johnson',
+  organization_id: 'demo-org-001'
+}
+
 // API placeholder functions for AI agents
 export const aiAgents = {
   // Research Agent API placeholder

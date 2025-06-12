@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
 
 // Insight type configurations with icons and colors
 const insightTypes = {
@@ -159,7 +160,7 @@ const mockInsights = [
   }
 ]
 
-export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights }) => {
+export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights, callNotesId, userId = CURRENT_USER.id }) => {
   const [insights, setInsights] = useState(initialInsights)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newInsight, setNewInsight] = useState({ content: '', type: 'user_insight' })
@@ -210,7 +211,7 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
     }
   }
 
-  const handleAddInsight = () => {
+  const handleAddInsight = async () => {
     if (!newInsight.content.trim()) return
     
     const insight = {
@@ -228,7 +229,18 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
     setNewInsight({ content: '', type: 'user_insight' })
     setIsAddingNew(false)
     onSaveInsights?.(updatedInsights)
-    toast.success('Insight added successfully')
+    
+    // Save to database if callNotesId is provided
+    if (callNotesId) {
+      try {
+        await dbHelpers.saveCallInsights(callNotesId, userId, [insight])
+        toast.success('Insight added and saved')
+      } catch (error) {
+        toast.error('Insight added locally but failed to save to database')
+      }
+    } else {
+      toast.success('Insight added successfully')
+    }
   }
 
   const handleStartEdit = (insight) => {
@@ -236,7 +248,7 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
     setEditContent(insight.content)
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     const updatedInsights = insights.map(insight =>
       insight.id === editingId ? { ...insight, content: editContent } : insight
     )
@@ -244,7 +256,21 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
     setEditingId(null)
     setEditContent('')
     onSaveInsights?.(updatedInsights)
-    toast.success('Insight updated')
+    
+    // Update in database if possible
+    if (callNotesId) {
+      try {
+        const insightToUpdate = updatedInsights.find(insight => insight.id === editingId)
+        if (insightToUpdate) {
+          await dbHelpers.updateCallInsight(insightToUpdate.id, { content: editContent })
+          toast.success('Insight updated and saved')
+        }
+      } catch (error) {
+        toast.success('Insight updated locally')
+      }
+    } else {
+      toast.success('Insight updated')
+    }
   }
 
   const handleDelete = (id) => {
@@ -272,6 +298,9 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights 
           <p className="text-muted-foreground">
             AI-generated insights ranked by relevance for follow-up actions
           </p>
+          <div className="mt-1 text-sm text-muted-foreground">
+            Analyzing as: <span className="font-medium">{CURRENT_USER.name}</span>
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">

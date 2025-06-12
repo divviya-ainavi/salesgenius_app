@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, User } from 'lucide-react'
 import { toast } from 'sonner'
-import { dbHelpers } from '@/lib/supabase'
+import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 // Mock data for recent calls
@@ -39,8 +39,8 @@ export const ActionItems = () => {
   const [commitments, setCommitments] = useState(selectedCall.commitments)
   const [pushStatus, setPushStatus] = useState('draft')
 
-  // Generate a valid UUID for mock user - in real app this would come from auth
-  const userId = '550e8400-e29b-41d4-a716-446655440000'
+  // Use predefined Sales Manager user
+  const userId = CURRENT_USER.id
 
   useEffect(() => {
     setCommitments(selectedCall.commitments)
@@ -99,6 +99,9 @@ export const ActionItems = () => {
         <p className="text-muted-foreground">
           Manage and track commitments made during sales calls. Push selected items to HubSpot as tasks.
         </p>
+        <div className="mt-2 text-sm text-muted-foreground">
+          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
+        </div>
       </div>
 
       {/* Stats Overview */}

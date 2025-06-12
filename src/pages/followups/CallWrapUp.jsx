@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { aiAgents, dbHelpers } from '@/lib/supabase'
+import { aiAgents, dbHelpers, CURRENT_USER } from '@/lib/supabase'
 
 export const CallWrapUp = () => {
   const [currentStep, setCurrentStep] = useState(1)
@@ -22,8 +22,8 @@ export const CallWrapUp = () => {
   const [pushStatuses, setPushStatuses] = useState({})
   const [activeTab, setActiveTab] = useState('insights')
 
-  // Use a simple static user ID for now (ignoring authentication)
-  const userId = '550e8400-e29b-41d4-a716-446655440000'
+  // Use predefined Sales Manager user
+  const userId = CURRENT_USER.id
 
   const handleFileUpload = async (file) => {
     setIsProcessing(true)
@@ -44,7 +44,7 @@ export const CallWrapUp = () => {
       // Read file content
       const content = await file.text()
       
-      // Create call note record with static user ID
+      // Create call note record with Sales Manager user ID
       const callNote = await dbHelpers.createCallNote(
         userId,
         `call-${Date.now()}`,
@@ -108,7 +108,7 @@ export const CallWrapUp = () => {
       // Simulate API call to HubSpot
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Log push action with static user ID
+      // Log push action with Sales Manager user ID
       await dbHelpers.logPushAction(
         userId,
         type,
@@ -152,6 +152,9 @@ export const CallWrapUp = () => {
         <p className="text-muted-foreground">
           Upload your call transcript and get AI-powered insights for follow-up actions.
         </p>
+        <div className="mt-2 text-sm text-muted-foreground">
+          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
+        </div>
       </div>
 
       {/* Step-Based Workflow */}
