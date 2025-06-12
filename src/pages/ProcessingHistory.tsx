@@ -1,219 +1,227 @@
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { StepBasedWorkflow } from '@/components/followups/StepBasedWorkflow'
-import { CallInsightsViewer } from '@/components/followups/CallInsightsViewer'
-import { 
-  FileText, 
-  Calendar, 
-  Clock, 
-  User, 
-  CheckCircle, 
-  AlertCircle, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { StepBasedWorkflow } from "@/components/followups/StepBasedWorkflow";
+import { CallInsightsViewer } from "@/components/followups/CallInsightsViewer";
+import {
+  FileText,
+  Calendar,
+  Clock,
+  User,
+  CheckCircle,
+  AlertCircle,
   Loader2,
   Eye,
   RefreshCw,
   ArrowLeft,
   History,
-  CheckSquare
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
+  CheckSquare,
+} from "lucide-react";
+import { toast } from "sonner";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 const ProcessingHistory = () => {
-  const [history, setHistory] = useState([])
-  const [selectedSession, setSelectedSession] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [viewMode, setViewMode] = useState('list') // 'list' or 'details'
-  const [pushStatuses, setPushStatuses] = useState({})
+  const [history, setHistory] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState("list"); // 'list' or 'details'
+  const [pushStatuses, setPushStatuses] = useState({});
 
   const loadHistory = async () => {
     try {
-      const data = await dbHelpers.getProcessingHistory(CURRENT_USER.id)
-      setHistory(data)
+      const data = await dbHelpers.getProcessingHistory(CURRENT_USER.id);
+      setHistory(data);
     } catch (error) {
-      console.error('Error loading processing history:', error)
-      toast.error('Failed to load processing history')
+      console.error("Error loading processing history:", error);
+      toast.error("Failed to load processing history");
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    loadHistory();
+  }, []);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await loadHistory()
-    toast.success('History refreshed')
-  }
+    setIsRefreshing(true);
+    await loadHistory();
+    toast.success("History refreshed");
+  };
 
   const handleViewDetails = async (sessionId) => {
     try {
-      const details = await dbHelpers.getProcessingSessionDetails(sessionId)
-      setSelectedSession(details)
-      setViewMode('details')
+      const details = await dbHelpers.getProcessingSessionDetails(sessionId);
+      setSelectedSession(details);
+      setViewMode("details");
     } catch (error) {
-      console.error('Error loading session details:', error)
-      toast.error('Failed to load session details')
+      console.error("Error loading session details:", error);
+      toast.error("Failed to load session details");
     }
-  }
+  };
 
   const handleBackToHistory = () => {
-    setSelectedSession(null)
-    setViewMode('list')
-  }
+    setSelectedSession(null);
+    setViewMode("list");
+  };
 
   const handleEditInsight = (type, content) => {
     // Update the selected session data
-    if (selectedSession && selectedSession.call_notes && selectedSession.call_notes.length > 0) {
-      const updatedSession = { ...selectedSession }
-      if (type === 'call_summary') {
-        updatedSession.call_notes[0].ai_summary = content
+    if (
+      selectedSession &&
+      selectedSession.call_notes &&
+      selectedSession.call_notes.length > 0
+    ) {
+      const updatedSession = { ...selectedSession };
+      if (type === "call_summary") {
+        updatedSession.call_notes[0].ai_summary = content;
       }
-      setSelectedSession(updatedSession)
+      setSelectedSession(updatedSession);
     }
-  }
+  };
 
   const handlePushToHubSpot = async (type, content) => {
-    setPushStatuses(prev => ({ ...prev, [type]: 'pending' }))
-    
+    setPushStatuses((prev) => ({ ...prev, [type]: "pending" }));
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Log push action
       await dbHelpers.logPushAction(
         CURRENT_USER.id,
         type,
         selectedSession.call_notes[0]?.id || selectedSession.id,
-        'success',
+        "success",
         null,
         `hubspot-${Date.now()}`
-      )
-      
-      setPushStatuses(prev => ({ ...prev, [type]: 'success' }))
-      toast.success(`${type} pushed to HubSpot successfully!`)
+      );
+
+      setPushStatuses((prev) => ({ ...prev, [type]: "success" }));
+      toast.success(`${type} pushed to HubSpot successfully!`);
     } catch (error) {
-      setPushStatuses(prev => ({ ...prev, [type]: 'error' }))
-      toast.error(`Failed to push ${type} to HubSpot`)
+      setPushStatuses((prev) => ({ ...prev, [type]: "error" }));
+      toast.error(`Failed to push ${type} to HubSpot`);
     }
-  }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'failed':
-        return <AlertCircle className="w-4 h-4 text-red-600" />
-      case 'processing':
-        return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+      case "completed":
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case "failed":
+        return <AlertCircle className="w-4 h-4 text-red-600" />;
+      case "processing":
+        return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-600" />
+        return <Clock className="w-4 h-4 text-gray-600" />;
     }
-  }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'failed':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case 'processing':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case "completed":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "failed":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "processing":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
-  }
+  };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   // Transform session data for ReviewInsights component
   const getReviewInsights = (session) => {
-    if (!session.call_insights) return []
-    
-    return session.call_insights.map(insight => ({
+    if (!session.call_insights) return [];
+
+    return session.call_insights.map((insight) => ({
       id: insight.id,
       type: insight.insight_type,
       content: insight.content,
       relevance_score: insight.relevance_score,
       is_selected: insight.is_selected,
       source: insight.source,
-      timestamp: insight.timestamp
-    }))
-  }
+      timestamp: insight.timestamp,
+    }));
+  };
 
   // Extract call analysis data from API response
   const getCallAnalysisData = (session) => {
-    if (!session.api_response) return null
+    if (!session.api_response) return null;
 
-    const apiResponse = session.api_response
-    
+    const apiResponse = session.api_response;
+
     // Extract data from the API response structure
-    const reviewInsights = apiResponse.reviewinsights || {}
-    const callSummary = reviewInsights.call_summary || {}
-    
+    const reviewInsights = apiResponse.reviewinsights || {};
+    const callSummary = reviewInsights.call_summary || {};
+
     return {
-      specific_user: callSummary.specific_user || 'Unknown',
+      specific_user: callSummary.specific_user || "Unknown",
       sentiment_score: callSummary.sentiment_score || 0,
       action_items: reviewInsights.action_items || [],
       communication_styles: reviewInsights.communication_styles || [],
-      key_points: callSummary.key_points || []
-    }
-  }
+      key_points: callSummary.key_points || [],
+    };
+  };
 
   // Get formatted call summary from API response
   const getFormattedCallSummary = (session) => {
     if (!session.api_response) {
-      return session.call_notes?.[0]?.ai_summary || 'No summary available'
+      return session.call_notes?.[0]?.ai_summary || "No summary available";
     }
 
-    const apiResponse = session.api_response
-    const reviewInsights = apiResponse.reviewinsights || {}
-    const callSummary = reviewInsights.call_summary || {}
-    
+    const apiResponse = session.api_response;
+    const reviewInsights = apiResponse.reviewinsights || {};
+    const callSummary = reviewInsights.call_summary || {};
+
     // If we have key_points, format them as a structured summary
     if (callSummary.key_points && callSummary.key_points.length > 0) {
-      return callSummary.key_points.join('\n\n')
+      return callSummary.key_points.join("\n\n");
     }
-    
+
     // Fallback to stored summary
-    return session.call_notes?.[0]?.ai_summary || 'No summary available'
-  }
+    return session.call_notes?.[0]?.ai_summary || "No summary available";
+  };
 
   // Transform session data for insights display
   const getSessionInsights = (session) => {
-    if (!session) return null
+    if (!session) return null;
 
     return {
       call_summary: getFormattedCallSummary(session),
-      follow_up_email: session.follow_up_emails?.[0]?.email_content || 'No email template generated',
-      deck_prompt: session.deck_prompts?.[0]?.prompt_content || 'No presentation prompt generated',
+      follow_up_email:
+        session.follow_up_emails?.[0]?.email_content ||
+        "No email template generated",
+      deck_prompt:
+        session.deck_prompts?.[0]?.prompt_content ||
+        "No presentation prompt generated",
       reviewInsights: getReviewInsights(session),
-      callAnalysisData: getCallAnalysisData(session)
-    }
-  }
+      callAnalysisData: getCallAnalysisData(session),
+    };
+  };
 
   const HistoryList = () => {
     if (isLoading) {
@@ -226,7 +234,7 @@ const ProcessingHistory = () => {
             </div>
           </CardContent>
         </Card>
-      )
+      );
     }
 
     return (
@@ -238,9 +246,9 @@ const ProcessingHistory = () => {
               <span>Processing History</span>
               <Badge variant="secondary">{history.length} files</Badge>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -257,7 +265,9 @@ const ProcessingHistory = () => {
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="mb-2">No files processed yet</p>
-              <p className="text-sm">Upload your first call transcript to get started</p>
+              <p className="text-sm">
+                Upload your first call transcript to get started
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -266,8 +276,8 @@ const ProcessingHistory = () => {
                   key={session.id}
                   className={cn(
                     "border rounded-lg p-4 transition-colors cursor-pointer",
-                    selectedSession?.id === session.id 
-                      ? "border-primary bg-primary/5" 
+                    selectedSession?.id === session.id
+                      ? "border-primary bg-primary/5"
                       : "border-border hover:bg-accent"
                   )}
                   onClick={() => handleViewDetails(session.id)}
@@ -279,14 +289,23 @@ const ProcessingHistory = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium truncate">
-                          {session.uploaded_files?.filename || 'Unknown file'}
+                          {session.uploaded_files?.filename || "Unknown file"}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {session.uploaded_files?.file_type} • {formatFileSize(session.uploaded_files?.file_size || 0)}
+                          {session.uploaded_files?.file_type} •{" "}
+                          {formatFileSize(
+                            session.uploaded_files?.file_size || 0
+                          )}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline" className={cn("text-xs", getStatusColor(session.processing_status))}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        getStatusColor(session.processing_status)
+                      )}
+                    >
                       {session.processing_status}
                     </Badge>
                   </div>
@@ -294,44 +313,61 @@ const ProcessingHistory = () => {
                   <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
                     <div className="flex items-center space-x-1">
                       <Calendar className="w-3 h-3" />
-                      <span>Uploaded: {formatDate(session.uploaded_files?.upload_date || session.processing_started_at)}</span>
+                      <span>
+                        Uploaded:{" "}
+                        {formatDate(
+                          session.uploaded_files?.upload_date ||
+                            session.processing_started_at
+                        )}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
                       <span>
-                        {session.processing_completed_at 
-                          ? `Completed: ${formatDate(session.processing_completed_at)}`
-                          : 'In progress...'
-                        }
+                        {session.processing_completed_at
+                          ? `Completed: ${formatDate(
+                              session.processing_completed_at
+                            )}`
+                          : "In progress..."}
                       </span>
                     </div>
                   </div>
 
                   {/* Processing Progress for active sessions */}
-                  {session.processing_status === 'processing' && (
+                  {session.processing_status === "processing" && (
                     <div className="mb-3">
                       <Progress value={75} className="h-2" />
-                      <p className="text-xs text-muted-foreground mt-1">Processing insights...</p>
-                    </div>
-                  )}
-
-                  {/* Summary for completed sessions */}
-                  {session.processing_status === 'completed' && session.call_notes && session.call_notes.length > 0 && (
-                    <div className="bg-muted rounded-lg p-3 mb-3">
-                      <p className="text-sm font-medium mb-1">AI Summary</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {session.call_notes[0].ai_summary?.substring(0, 150)}...
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Processing insights...
                       </p>
                     </div>
                   )}
 
+                  {/* Summary for completed sessions */}
+                  {session.processing_status === "completed" &&
+                    session.call_notes &&
+                    session.call_notes.length > 0 && (
+                      <div className="bg-muted rounded-lg p-3 mb-3">
+                        <p className="text-sm font-medium mb-1">AI Summary</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {session.call_notes[0].ai_summary?.substring(0, 150)}
+                          ...
+                        </p>
+                      </div>
+                    )}
+
                   {/* Error message for failed sessions */}
-                  {session.processing_status === 'failed' && session.error_message && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
-                      <p className="text-sm font-medium text-red-800 mb-1">Error</p>
-                      <p className="text-xs text-red-700">{session.error_message}</p>
-                    </div>
-                  )}
+                  {session.processing_status === "failed" &&
+                    session.error_message && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm font-medium text-red-800 mb-1">
+                          Error
+                        </p>
+                        <p className="text-xs text-red-700">
+                          {session.error_message}
+                        </p>
+                      </div>
+                    )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -341,12 +377,12 @@ const ProcessingHistory = () => {
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleViewDetails(session.id)
+                          e.stopPropagation();
+                          handleViewDetails(session.id);
                         }}
                       >
                         <Eye className="w-3 h-3 mr-1" />
@@ -360,8 +396,8 @@ const ProcessingHistory = () => {
           )}
         </CardContent>
       </Card>
-    )
-  }
+    );
+  };
 
   const SessionDetails = () => {
     if (!selectedSession) {
@@ -371,12 +407,14 @@ const ProcessingHistory = () => {
             <p className="text-muted-foreground">No session selected</p>
           </CardContent>
         </Card>
-      )
+      );
     }
 
-    const insights = getSessionInsights(selectedSession)
-    const currentStep = selectedSession.processing_status === 'completed' ? 2 : 1
-    const completedSteps = selectedSession.processing_status === 'completed' ? [1] : []
+    const insights = getSessionInsights(selectedSession);
+    const currentStep =
+      selectedSession.processing_status === "completed" ? 2 : 1;
+    const completedSteps =
+      selectedSession.processing_status === "completed" ? [1] : [];
 
     return (
       <div className="max-w-7xl mx-auto space-y-6">
@@ -388,21 +426,33 @@ const ProcessingHistory = () => {
               Back to History
             </Button>
             <div>
-              <h2 className="text-xl font-semibold">{selectedSession.uploaded_files?.filename}</h2>
+              <h2 className="text-xl font-semibold">
+                {selectedSession.uploaded_files?.filename}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Processed on {formatDate(selectedSession.processing_completed_at || selectedSession.processing_started_at)}
+                Processed on{" "}
+                {formatDate(
+                  selectedSession.processing_completed_at ||
+                    selectedSession.processing_started_at
+                )}
               </p>
             </div>
           </div>
-          <Badge variant={selectedSession.processing_status === 'completed' ? 'default' : 'destructive'}>
+          <Badge
+            variant={
+              selectedSession.processing_status === "completed"
+                ? "default"
+                : "destructive"
+            }
+          >
             {selectedSession.processing_status}
           </Badge>
         </div>
 
         {/* Step-Based Workflow */}
-        <StepBasedWorkflow 
-          currentStep={currentStep} 
-          completedSteps={completedSteps} 
+        <StepBasedWorkflow
+          currentStep={currentStep}
+          completedSteps={completedSteps}
         />
 
         {/* File Information */}
@@ -417,31 +467,57 @@ const ProcessingHistory = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Filename:</span>
-                  <span className="text-sm font-medium">{selectedSession.uploaded_files?.filename}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Filename:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {selectedSession.uploaded_files?.filename}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">File Type:</span>
-                  <span className="text-sm font-medium">{selectedSession.uploaded_files?.file_type}</span>
+                  <span className="text-sm text-muted-foreground">
+                    File Type:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {selectedSession.uploaded_files?.file_type}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">File Size:</span>
-                  <span className="text-sm font-medium">{formatFileSize(selectedSession.uploaded_files?.file_size || 0)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    File Size:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatFileSize(
+                      selectedSession.uploaded_files?.file_size || 0
+                    )}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Upload Date:</span>
-                  <span className="text-sm font-medium">{formatDate(selectedSession.uploaded_files?.upload_date)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Upload Date:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatDate(selectedSession.uploaded_files?.upload_date)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Processing Started:</span>
-                  <span className="text-sm font-medium">{formatDate(selectedSession.processing_started_at)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Processing Started:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatDate(selectedSession.processing_started_at)}
+                  </span>
                 </div>
                 {selectedSession.processing_completed_at && (
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Processing Completed:</span>
-                    <span className="text-sm font-medium">{formatDate(selectedSession.processing_completed_at)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Processing Completed:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {formatDate(selectedSession.processing_completed_at)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -450,7 +526,7 @@ const ProcessingHistory = () => {
         </Card>
 
         {/* Use Reusable CallInsightsViewer Component for completed sessions */}
-        {selectedSession.processing_status === 'completed' && insights && (
+        {selectedSession.processing_status === "completed" && insights && (
           <CallInsightsViewer
             insights={insights}
             callNotesId={selectedSession.call_notes?.[0]?.id}
@@ -467,7 +543,7 @@ const ProcessingHistory = () => {
         )}
 
         {/* Action Items Summary for completed sessions */}
-        {selectedSession.processing_status === 'completed' && selectedSession.call_commitments && selectedSession.call_commitments.length > 0 && (
+        {/* {selectedSession.processing_status === 'completed' && selectedSession.call_commitments && selectedSession.call_commitments.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -495,29 +571,33 @@ const ProcessingHistory = () => {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Processing History</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Processing History
+        </h1>
         <p className="text-muted-foreground">
-          View and manage all your previously processed call transcripts and generated insights.
+          View and manage all your previously processed call transcripts and
+          generated insights.
         </p>
         <div className="mt-2 text-sm text-muted-foreground">
-          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
+          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span>{" "}
+          ({CURRENT_USER.role})
         </div>
       </div>
 
       {/* Main Content */}
-      {viewMode === 'list' ? <HistoryList /> : <SessionDetails />}
+      {viewMode === "list" ? <HistoryList /> : <SessionDetails />}
     </div>
-  )
-}
+  );
+};
 
-export default ProcessingHistory
-export { ProcessingHistory }
+export default ProcessingHistory;
+export { ProcessingHistory };

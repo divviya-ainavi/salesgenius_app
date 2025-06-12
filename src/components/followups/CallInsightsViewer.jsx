@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
-import { ReviewInsights } from './ReviewInsights'
-import { InsightCard } from './InsightCard'
-import { CRMConnectionStatus } from './CRMConnectionStatus'
-import { toast } from 'sonner'
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { ReviewInsights } from "./ReviewInsights";
+import { InsightCard } from "./InsightCard";
+import { CRMConnectionStatus } from "./CRMConnectionStatus";
+import { toast } from "sonner";
 
 export const CallInsightsViewer = ({
   insights,
@@ -18,14 +18,14 @@ export const CallInsightsViewer = ({
   showBackButton = false,
   isEditable = true,
   title = "Review Insights",
-  isProcessingHistory = false // New prop to identify processing history context
+  isProcessingHistory = false, // New prop to identify processing history context
 }) => {
-  const [activeTab, setActiveTab] = useState('insights')
+  const [activeTab, setActiveTab] = useState("insights");
 
   const handleSaveInsights = (updatedInsights) => {
     // This is handled by the parent component
-    console.log('Saving insights:', updatedInsights)
-  }
+    console.log("Saving insights:", updatedInsights);
+  };
 
   return (
     <div className="space-y-6">
@@ -45,12 +45,12 @@ export const CallInsightsViewer = ({
           <TabsTrigger value="email">Follow-up Email</TabsTrigger>
           <TabsTrigger value="deck">Presentation</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="insights" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Content - Review Insights Component */}
             <div className="lg:col-span-2">
-              <ReviewInsights 
+              <ReviewInsights
                 onSaveInsights={handleSaveInsights}
                 callNotesId={callNotesId}
                 userId={userId}
@@ -68,15 +68,15 @@ export const CallInsightsViewer = ({
                 lastSync="2 minutes ago"
                 accountInfo={{
                   name: "Acme Corp Sales",
-                  hubId: "12345678"
+                  hubId: "12345678",
                 }}
-                onReconnect={() => toast.success('Connection refreshed')}
-                onSettings={() => toast.info('Opening settings...')}
+                onReconnect={() => toast.success("Connection refreshed")}
+                onSettings={() => toast.info("Opening settings...")}
               />
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="summary" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -86,24 +86,26 @@ export const CallInsightsViewer = ({
                 content={insights.call_summary}
                 type="call_summary"
                 onEdit={onEditInsight}
-                onPush={(content) => onPushToHubSpot('call_summary', content)}
-                onCopy={() => toast.success('Call summary copied to clipboard')}
-                status={pushStatuses.call_summary || 'draft'}
+                onPush={(content) => onPushToHubSpot("call_summary", content)}
+                onCopy={() => toast.success("Call summary copied to clipboard")}
+                status={pushStatuses.call_summary || "draft"}
                 isEditable={isEditable}
                 showPushButton={true}
               />
-              
+
               {/* Don't show action items in call summary for processing history */}
-              {!isProcessingHistory && insights.callAnalysisData?.action_items && insights.callAnalysisData.action_items.length > 0 && (
-                <ReviewInsights 
-                  onSaveInsights={handleSaveInsights}
-                  callNotesId={callNotesId}
-                  userId={userId}
-                  initialInsights={[]}
-                  callAnalysisData={insights.callAnalysisData}
-                  hideActionItems={false}
-                />
-              )}
+              {!isProcessingHistory &&
+                insights.callAnalysisData?.action_items &&
+                insights.callAnalysisData.action_items.length > 0 && (
+                  <ReviewInsights
+                    onSaveInsights={handleSaveInsights}
+                    callNotesId={callNotesId}
+                    userId={userId}
+                    initialInsights={[]}
+                    callAnalysisData={insights.callAnalysisData}
+                    hideActionItems={true}
+                  />
+                )}
             </div>
             <div className="space-y-6">
               <CRMConnectionStatus
@@ -111,15 +113,15 @@ export const CallInsightsViewer = ({
                 lastSync="2 minutes ago"
                 accountInfo={{
                   name: "Acme Corp Sales",
-                  hubId: "12345678"
+                  hubId: "12345678",
                 }}
-                onReconnect={() => toast.success('Connection refreshed')}
-                onSettings={() => toast.info('Opening settings...')}
+                onReconnect={() => toast.success("Connection refreshed")}
+                onSettings={() => toast.info("Opening settings...")}
               />
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="email" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
@@ -128,9 +130,11 @@ export const CallInsightsViewer = ({
                 content={insights.follow_up_email}
                 type="follow_up_email"
                 onEdit={onEditInsight}
-                onPush={(content) => onPushToHubSpot('follow_up_email', content)}
-                onCopy={() => toast.success('Email copied to clipboard')}
-                status={pushStatuses.follow_up_email || 'draft'}
+                onPush={(content) =>
+                  onPushToHubSpot("follow_up_email", content)
+                }
+                onCopy={() => toast.success("Email copied to clipboard")}
+                status={pushStatuses.follow_up_email || "draft"}
                 isEditable={isEditable}
                 showPushButton={true}
               />
@@ -141,15 +145,15 @@ export const CallInsightsViewer = ({
                 lastSync="2 minutes ago"
                 accountInfo={{
                   name: "Acme Corp Sales",
-                  hubId: "12345678"
+                  hubId: "12345678",
                 }}
-                onReconnect={() => toast.success('Connection refreshed')}
-                onSettings={() => toast.info('Opening settings...')}
+                onReconnect={() => toast.success("Connection refreshed")}
+                onSettings={() => toast.info("Opening settings...")}
               />
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="deck" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
@@ -158,10 +162,12 @@ export const CallInsightsViewer = ({
                 content={insights.deck_prompt}
                 type="deck_prompt"
                 onEdit={onEditInsight}
-                onPush={(content) => onPushToHubSpot('deck_prompt', content)}
-                onCopy={() => toast.success('Deck prompt copied to clipboard')}
-                onExport={() => toast.success('Exported to Gamma (coming soon)')}
-                status={pushStatuses.deck_prompt || 'draft'}
+                onPush={(content) => onPushToHubSpot("deck_prompt", content)}
+                onCopy={() => toast.success("Deck prompt copied to clipboard")}
+                onExport={() =>
+                  toast.success("Exported to Gamma (coming soon)")
+                }
+                status={pushStatuses.deck_prompt || "draft"}
                 isEditable={isEditable}
                 showPushButton={true}
                 showExportButton={true}
@@ -173,15 +179,15 @@ export const CallInsightsViewer = ({
                 lastSync="2 minutes ago"
                 accountInfo={{
                   name: "Acme Corp Sales",
-                  hubId: "12345678"
+                  hubId: "12345678",
                 }}
-                onReconnect={() => toast.success('Connection refreshed')}
-                onSettings={() => toast.info('Opening settings...')}
+                onReconnect={() => toast.success("Connection refreshed")}
+                onSettings={() => toast.info("Opening settings...")}
               />
             </div>
           </div>
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
+  );
+};
