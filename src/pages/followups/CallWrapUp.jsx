@@ -43,14 +43,7 @@ export const CallWrapUp = () => {
         })
       }, 200)
 
-      // Save uploaded file to database first
-      uploadedFile = await dbHelpers.saveUploadedFile(userId, file)
-      
-      // Create processing session
-      session = await dbHelpers.createProcessingSession(userId, uploadedFile.id)
-      setProcessingSession(session)
-
-      // For text files, read content for database storage
+      // For text files, read content for database storage and API processing
       let content = ''
       const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
       
@@ -60,6 +53,13 @@ export const CallWrapUp = () => {
         // For PDFs, we'll store a placeholder since we're sending the file directly
         content = `PDF file: ${file.name} (${file.size} bytes)`
       }
+
+      // Save uploaded file to database with shareable link
+      uploadedFile = await dbHelpers.saveUploadedFile(userId, file, content)
+      
+      // Create processing session
+      session = await dbHelpers.createProcessingSession(userId, uploadedFile.id)
+      setProcessingSession(session)
 
       // Call external Sales Insights API - send file directly
       const formData = new FormData()
@@ -214,7 +214,7 @@ export const CallWrapUp = () => {
         setCompletedSteps([1])
         setCurrentStep(2)
         
-        toast.success('Call analysis completed!')
+        toast.success('Call analysis completed! File stored with shareable link.')
       } else {
         throw new Error('Invalid API response format')
       }
@@ -360,7 +360,7 @@ export const CallWrapUp = () => {
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Call Wrap-Up</h1>
         <p className="text-muted-foreground">
-          Upload your call transcript and get AI-powered insights for follow-up actions.
+          Upload your call transcript and get AI-powered insights for follow-up actions. Files are stored with shareable links for easy access.
         </p>
         <div className="mt-2 text-sm text-muted-foreground">
           Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
@@ -385,7 +385,7 @@ export const CallWrapUp = () => {
               </div>
               <Progress value={uploadProgress} className="w-full" />
               <p className="text-sm text-muted-foreground">
-                {uploadProgress < 30 ? 'Uploading file...' : 
+                {uploadProgress < 30 ? 'Uploading file and creating shareable link...' : 
                  uploadProgress < 60 ? 'Analyzing content...' : 
                  uploadProgress < 90 ? 'Generating insights...' : 
                  'Finalizing results...'}
@@ -401,7 +401,7 @@ export const CallWrapUp = () => {
                 <h3 className="text-lg font-semibold text-green-800">Processing Complete!</h3>
               </div>
               <p className="text-green-700">
-                Your call has been successfully analyzed. Click below to review the AI-generated insights.
+                Your call has been successfully analyzed and stored with a shareable link. Click below to review the AI-generated insights.
               </p>
               <Button onClick={handleContinueToReview} className="w-full">
                 Review Insights
@@ -447,7 +447,7 @@ export const CallWrapUp = () => {
               Successfully Pushed to HubSpot!
             </h2>
             <p className="text-muted-foreground">
-              Your call insights have been added to your CRM and are ready for follow-up.
+              Your call insights have been added to your CRM and are ready for follow-up. Files are stored with shareable links for easy access.
             </p>
           </div>
           <Button onClick={() => window.location.reload()}>

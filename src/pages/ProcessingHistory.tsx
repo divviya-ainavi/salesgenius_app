@@ -90,6 +90,16 @@ const ProcessingHistory = () => {
     }
   };
 
+  const handleOpenFileLink = async (fileId) => {
+    try {
+      await dbHelpers.openFile(fileId);
+      toast.success('File opened in new tab');
+    } catch (error) {
+      console.error("Error opening file:", error);
+      toast.error("Failed to open file");
+    }
+  };
+
   const handleDownloadFile = (file) => {
     if (file.file_content) {
       // For text files, create a blob and download
@@ -103,6 +113,10 @@ const ProcessingHistory = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success('File downloaded successfully');
+    } else if (file.file_url) {
+      // For files without stored content, open the shareable link
+      window.open(file.file_url, '_blank', 'noopener,noreferrer');
+      toast.success('File opened from shareable link');
     } else {
       toast.error('File content not available for download');
     }
@@ -111,6 +125,11 @@ const ProcessingHistory = () => {
   const handleCopyFileContent = (content) => {
     navigator.clipboard.writeText(content);
     toast.success('File content copied to clipboard');
+  };
+
+  const handleCopyFileLink = (fileUrl) => {
+    navigator.clipboard.writeText(fileUrl);
+    toast.success('Shareable file link copied to clipboard');
   };
 
   const handleEditInsight = async (type, content) => {
@@ -359,6 +378,7 @@ const ProcessingHistory = () => {
 
     const isPDF = selectedFile.content_type?.includes('pdf') || selectedFile.filename?.toLowerCase().endsWith('.pdf');
     const isTextFile = selectedFile.file_content && !isPDF;
+    const hasShareableLink = selectedFile.file_url;
 
     return (
       <Dialog open={showFileModal} onOpenChange={setShowFileModal}>
@@ -367,6 +387,12 @@ const ProcessingHistory = () => {
             <DialogTitle className="flex items-center space-x-2">
               {getFileIcon(selectedFile.content_type)}
               <span>{selectedFile.filename}</span>
+              {hasShareableLink && (
+                <Badge variant="default" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                  <Link className="w-3 h-3 mr-1" />
+                  Shareable Link
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
           
@@ -389,11 +415,46 @@ const ProcessingHistory = () => {
                   <span className="text-sm font-medium">{formatDate(selectedFile.upload_date)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Status:</span>
-                  <Badge variant="default" className="text-xs">Available</Badge>
+                  <span className="text-sm text-muted-foreground">Storage:</span>
+                  <Badge variant="default" className="text-xs">Cloud Storage</Badge>
                 </div>
               </div>
             </div>
+
+            {/* Shareable Link Section */}
+            {hasShareableLink && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center space-x-2">
+                  <Link className="w-4 h-4" />
+                  <span>Shareable Link</span>
+                </h4>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={selectedFile.file_url}
+                    readOnly
+                    className="flex-1 px-3 py-2 text-xs bg-white border border-blue-300 rounded-md font-mono"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyFileLink(selectedFile.file_url)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(selectedFile.file_url, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-blue-700 mt-2">
+                  This link can be shared with others to access the file directly.
+                </p>
+              </div>
+            )}
 
             {/* File Actions */}
             <div className="flex items-center space-x-2">
@@ -401,10 +462,9 @@ const ProcessingHistory = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={() => handleDownloadFile(selectedFile)}
-                disabled={!selectedFile.file_content}
               >
                 <Download className="w-4 h-4 mr-1" />
-                Download
+                {selectedFile.file_content ? 'Download' : 'Open Link'}
               </Button>
               {isTextFile && (
                 <Button 
@@ -416,9 +476,19 @@ const ProcessingHistory = () => {
                   Copy Content
                 </Button>
               )}
+              {hasShareableLink && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleCopyFileLink(selectedFile.file_url)}
+                >
+                  <Link className="w-4 h-4 mr-1" />
+                  Copy Link
+                </Button>
+              )}
               {isPDF && (
                 <Badge variant="secondary" className="text-xs">
-                  PDF files can be downloaded but content preview is not available
+                  PDF files open via shareable link
                 </Badge>
               )}
             </div>
@@ -442,11 +512,11 @@ const ProcessingHistory = () => {
                 <FileIcon className="w-16 h-16 mx-auto mb-4 text-red-600" />
                 <h4 className="text-lg font-medium mb-2">PDF File</h4>
                 <p className="text-muted-foreground mb-4">
-                  PDF content preview is not available. You can download the file to view it.
+                  PDF content preview is not available. Use the shareable link to view the file.
                 </p>
-                <Button onClick={() => handleDownloadFile(selectedFile)}>
-                  <Download className="w-4 h-4 mr-1" />
-                  Download PDF
+                <Button onClick={() => window.open(selectedFile.file_url, '_blank', 'noopener,noreferrer')}>
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Open PDF Link
                 </Button>
               </div>
             )}
@@ -525,6 +595,12 @@ const ProcessingHistory = () => {
                           <h4 className="font-medium truncate">
                             {session.uploaded_files?.filename || "Unknown file"}
                           </h4>
+                          {session.uploaded_files?.file_url && (
+                            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                              <Link className="w-3 h-3 mr-1" />
+                              Link
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {session.uploaded_files?.file_type} •{" "}
@@ -659,6 +735,19 @@ const ProcessingHistory = () => {
                         <FileText className="w-3 h-3 mr-1" />
                         View File
                       </Button>
+                      {session.uploaded_files?.file_url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenFileLink(session.file_id);
+                          }}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Open Link
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -729,6 +818,16 @@ const ProcessingHistory = () => {
               <FileText className="w-4 h-4 mr-1" />
               View Original File
             </Button>
+            {selectedSession.uploaded_files?.file_url && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenFileLink(selectedSession.file_id)}
+              >
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Open Shareable Link
+              </Button>
+            )}
             <Badge
               variant={
                 selectedSession.processing_status === "completed"
@@ -821,6 +920,43 @@ const ProcessingHistory = () => {
               </div>
             </div>
             
+            {/* Shareable Link Information */}
+            {selectedSession.uploaded_files?.file_url && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-medium mb-3 flex items-center space-x-2">
+                  <Link className="w-4 h-4" />
+                  <span>Shareable File Link</span>
+                </h4>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <input
+                      type="text"
+                      value={selectedSession.uploaded_files.file_url}
+                      readOnly
+                      className="flex-1 px-3 py-2 text-xs bg-white border border-blue-300 rounded-md font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyFileLink(selectedSession.uploaded_files.file_url)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(selectedSession.uploaded_files.file_url, '_blank', 'noopener,noreferrer')}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    This link provides direct access to the uploaded file and can be shared with others.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {/* Content References Information */}
             {selectedSession.content_references && (
               <div className="mt-4 pt-4 border-t border-border">
@@ -879,11 +1015,20 @@ const ProcessingHistory = () => {
                       handleDownloadFile(selectedSession.uploaded_files);
                     }
                   }}
-                  disabled={!selectedSession.uploaded_files?.file_content}
                 >
                   <Download className="w-4 h-4 mr-1" />
-                  Download File
+                  {selectedSession.uploaded_files?.file_content ? 'Download File' : 'Open Link'}
                 </Button>
+                {selectedSession.uploaded_files?.file_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyFileLink(selectedSession.uploaded_files.file_url)}
+                  >
+                    <Link className="w-4 h-4 mr-1" />
+                    Copy Shareable Link
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -918,7 +1063,7 @@ const ProcessingHistory = () => {
         </h1>
         <p className="text-muted-foreground">
           View and manage all your previously processed call transcripts and
-          generated insights. Content is stored in normalized database tables with linked references for consistency.
+          generated insights. Files are stored with shareable links for easy access and content is normalized across database tables.
         </p>
         <div className="mt-2 text-sm text-muted-foreground">
           Logged in as: <span className="font-medium">{CURRENT_USER.name}</span>{" "}

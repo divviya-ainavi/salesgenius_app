@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { fileStorage } from './fileStorage'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -105,27 +106,37 @@ Best regards,
   }
 }
 
-// Database helper functions with normalized structure
+// Database helper functions with normalized structure and file storage
 export const dbHelpers = {
-  // File management functions
+  // File management functions with shareable links
   async saveUploadedFile(userId, file, content = null) {
-    const fileData = {
-      user_id: userId,
-      filename: file.name,
-      file_type: file.type,
-      file_size: file.size,
-      content_type: file.type,
-      file_content: content // For text files
+    try {
+      // Upload file to Supabase Storage and get shareable URL
+      const uploadResult = await fileStorage.uploadFile(file, userId)
+      
+      const fileData = {
+        user_id: userId,
+        filename: uploadResult.fileName,
+        file_type: uploadResult.contentType,
+        file_size: uploadResult.fileSize,
+        content_type: uploadResult.contentType,
+        file_content: content, // For text files, store content for search/processing
+        file_url: uploadResult.publicUrl, // Store shareable URL
+        storage_path: uploadResult.filePath // Store storage path for management
+      }
+
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .insert(fileData)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error saving uploaded file:', error)
+      throw error
     }
-
-    const { data, error } = await supabase
-      .from('uploaded_files')
-      .insert(fileData)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
   },
 
   async getUploadedFiles(userId, limit = 10) {
@@ -149,6 +160,80 @@ export const dbHelpers = {
 
     if (error) throw error
     return data
+  },
+
+  // Get file content from shareable URL
+  async getFileContent(fileId) {
+    try {
+      const fileData = await this.getUploadedFile(fileId)
+      
+      // If content is stored in database, return it
+      if (fileData.file_content) {
+        return fileData.file_content
+      }
+      
+      // Otherwise, download from shareable URL
+      if (fileData.file_url) {
+        const content = await fileStorage.downloadFileContent(fileData.file_url)
+        
+        // Update database with downloaded content for future use
+        if (content) {
+          await supabase
+            .from('uploaded_files')
+            .update({ file_content: content })
+            .eq('id', fileId)
+        }
+        
+        return content
+      }
+      
+      throw new Error('No file content or URL available')
+    } catch (error) {
+      console.error('Error getting file content:', error)
+      throw error
+    }
+  },
+
+  // Open file using shareable link
+  async openFile(fileId) {
+    try {
+      const fileData = await this.getUploadedFile(fileId)
+      
+      if (fileData.file_url) {
+        // Open file in new tab using shareable URL
+        window.open(fileData.file_url, '_blank', 'noopener,noreferrer')
+        return true
+      }
+      
+      throw new Error('No shareable URL available for this file')
+    } catch (error) {
+      console.error('Error opening file:', error)
+      throw error
+    }
+  },
+
+  // Delete file and clean up storage
+  async deleteUploadedFile(fileId) {
+    try {
+      const fileData = await this.getUploadedFile(fileId)
+      
+      // Delete from storage if storage_path exists
+      if (fileData.storage_path) {
+        await fileStorage.deleteFile(fileData.storage_path)
+      }
+      
+      // Delete from database
+      const { error } = await supabase
+        .from('uploaded_files')
+        .delete()
+        .eq('id', fileId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      throw error
+    }
   },
 
   // Processing session management with normalized references
@@ -218,7 +303,9 @@ export const dbHelpers = {
           file_size,
           upload_date,
           content_type,
-          file_content
+          file_content,
+          file_url,
+          storage_path
         ),
         call_notes!processing_history_call_notes_id_fkey (
           id,
