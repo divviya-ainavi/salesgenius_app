@@ -378,64 +378,67 @@ export const ReviewInsights = ({
         </Card>
       )}
 
-      {/* Action Items Summary */}
+      {/* Action Items Section - Updated to match your reference image */}
       {(actionItems.length > 0 || (callAnalysisData?.action_items && callAnalysisData.action_items.length > 0)) && (
         <Card className="border-green-200 bg-green-50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-green-800">
               <CheckSquare className="w-5 h-5" />
-              <span>Action Items Detected</span>
+              <span>Action Items</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 {callAnalysisData?.action_items ? callAnalysisData.action_items.length : actionItems.length} items
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-green-700 mb-3">
-              These action items will be tracked and can be pushed to HubSpot as tasks:
-            </p>
             <div className="space-y-3">
               {/* Display action items from callAnalysisData if available, otherwise from insights */}
               {callAnalysisData?.action_items ? (
                 callAnalysisData.action_items.map((item, index) => (
-                  <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
-                    <p className="text-sm font-medium text-green-900 mb-2">{item.task}</p>
-                    <div className="flex items-center space-x-4 text-xs text-green-700">
-                      {item.owner && (
-                        <div className="flex items-center space-x-1">
-                          <User className="w-3 h-3" />
-                          <span>Owner: {item.owner}</span>
-                        </div>
-                      )}
-                      {item.deadline && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>Due: {item.deadline}</span>
-                        </div>
-                      )}
+                  <div key={index} className="flex items-start space-x-3 bg-white rounded-lg p-4 border border-green-200">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-900 mb-2">{item.task}</p>
+                      <div className="flex items-center space-x-4 text-xs text-green-700">
+                        {item.owner && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-muted-foreground">Created:</span>
+                            <span>{item.owner}</span>
+                          </div>
+                        )}
+                        {item.deadline && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-muted-foreground">Due:</span>
+                            <span>{item.deadline}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
               ) : (
                 actionItems.map((item) => (
-                  <div key={item.id} className="bg-white rounded-lg p-3 border border-green-200">
-                    <p className="text-sm font-medium text-green-900 mb-2">{item.content.split('\n')[0]}</p>
-                    <div className="flex items-center space-x-4 text-xs text-green-700">
-                      {item.owner && (
+                  <div key={item.id} className="flex items-start space-x-3 bg-white rounded-lg p-4 border border-green-200">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-900 mb-2">{item.content.split('\n')[0]}</p>
+                      <div className="flex items-center space-x-4 text-xs text-green-700">
+                        {item.owner && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-muted-foreground">Created:</span>
+                            <span>{item.owner}</span>
+                          </div>
+                        )}
+                        {item.deadline && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-muted-foreground">Due:</span>
+                            <span>{item.deadline}</span>
+                          </div>
+                        )}
                         <div className="flex items-center space-x-1">
-                          <User className="w-3 h-3" />
-                          <span>Owner: {item.owner}</span>
+                          <span className="text-muted-foreground">Time:</span>
+                          <span>{item.timestamp}</span>
                         </div>
-                      )}
-                      {item.deadline && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>Due: {item.deadline}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{item.timestamp}</span>
                       </div>
                     </div>
                   </div>
