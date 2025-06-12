@@ -29,9 +29,12 @@ export const CallWrapUp = () => {
     setIsProcessing(true)
     setUploadProgress(0)
     
+    // Declare progressInterval at function scope
+    let progressInterval = null
+    
     try {
       // Simulate upload progress
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
             clearInterval(progressInterval)
@@ -66,13 +69,26 @@ export const CallWrapUp = () => {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`)
       }
 
-      const apiData = await response.json()
+      // Get response as text first, then try to parse as JSON
+      const responseText = await response.text()
+      let apiData
+      
+      try {
+        apiData = JSON.parse(responseText)
+      } catch (jsonError) {
+        console.error('Failed to parse API response as JSON:', responseText)
+        throw new Error(`Invalid JSON response from API: ${jsonError.message}`)
+      }
+
       console.log('API Response:', apiData)
       
       if (apiData && apiData.length > 0) {
         const responseData = apiData[0]
         
-        clearInterval(progressInterval)
+        if (progressInterval) {
+          clearInterval(progressInterval)
+          progressInterval = null
+        }
         setUploadProgress(100)
         
         // Transform API response to match our expected format
@@ -171,9 +187,14 @@ export const CallWrapUp = () => {
     } catch (error) {
       console.error('Error processing file:', error)
       toast.error(`Failed to process file: ${error.message}`)
-      clearInterval(progressInterval)
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
     } finally {
       setIsProcessing(false)
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
     }
   }
 
