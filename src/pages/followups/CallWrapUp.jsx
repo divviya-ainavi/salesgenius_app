@@ -356,9 +356,8 @@ export const CallWrapUp = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
+      {/* Page Description */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Call Wrap-Up</h1>
         <p className="text-muted-foreground">
           Upload your call transcript and get AI-powered insights for follow-up actions. Files are stored with shareable links for easy access.
         </p>
