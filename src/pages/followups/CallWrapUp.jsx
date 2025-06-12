@@ -196,7 +196,7 @@ export const CallWrapUp = () => {
         })
 
         // Get the created call note for state
-        const callNote = await dbHelpers.updateCallNote(createdContentIds.callNotesId, {})
+        const callNote = await dbHelpers.getCallNote(createdContentIds.callNotesId)
         setCallData(callNote)
 
         // Store insights and set state

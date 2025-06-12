@@ -324,6 +324,17 @@ export const dbHelpers = {
     return data
   },
 
+  async getCallNote(id) {
+    const { data, error } = await supabase
+      .from('call_notes')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
   async updateCallNote(id, updates) {
     const { data, error } = await supabase
       .from('call_notes')
