@@ -10,8 +10,12 @@ import {
   CheckSquare,
   MessageSquare,
   Presentation,
-  History
+  History,
+  Bell,
+  User
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const mainNavItems = [
@@ -142,9 +146,30 @@ export const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Footer with moved icons and HubSpot status */}
       <div className="p-4 border-t border-border">
-        <div className="text-xs text-muted-foreground">
+        <div className="flex flex-col items-center space-y-4">
+          {/* HubSpot Connection Status */}
+          <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+            HubSpot Connected
+          </Badge>
+
+          {/* Action Icons */}
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm">
+              <Bell className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Settings className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <User className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Copyright */}
+        <div className="text-xs text-muted-foreground text-center mt-4">
           <p>© 2024 SalesGenius.ai</p>
           <p>Version 1.0.0</p>
         </div>
