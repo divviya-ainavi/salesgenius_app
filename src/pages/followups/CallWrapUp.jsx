@@ -17,6 +17,7 @@ export const CallWrapUp = () => {
   const [insights, setInsights] = useState(null)
   const [pushStatuses, setPushStatuses] = useState({})
   const [processingSession, setProcessingSession] = useState(null)
+  const [contentIds, setContentIds] = useState({})
 
   // Use predefined Sales Manager user
   const userId = CURRENT_USER.id
@@ -59,17 +60,6 @@ export const CallWrapUp = () => {
         // For PDFs, we'll store a placeholder since we're sending the file directly
         content = `PDF file: ${file.name} (${file.size} bytes)`
       }
-      
-      // Create call note record with Sales Manager user ID
-      const callNote = await dbHelpers.createCallNote(
-        userId,
-        `call-${Date.now()}`,
-        content,
-        uploadedFile.id,
-        session.id
-      )
-
-      setCallData(callNote)
 
       // Call external Sales Insights API - send file directly
       const formData = new FormData()
@@ -115,34 +105,6 @@ export const CallWrapUp = () => {
           communication_styles: responseData.reviewinsights?.communication_styles || [],
           sentiment_score: responseData.reviewinsights?.call_summary?.sentiment_score || 0,
           specific_user: responseData.reviewinsights?.call_summary?.specific_user || 'Unknown'
-        }
-
-        // Update call note with AI summary
-        await dbHelpers.updateCallNote(callNote.id, {
-          ai_summary: transformedInsights.call_summary,
-          status: 'completed'
-        })
-
-        // Update processing session
-        await dbHelpers.updateProcessingSession(session.id, {
-          processing_status: 'completed',
-          api_response: responseData
-        })
-
-        // Store action items in database
-        if (transformedInsights.action_items.length > 0) {
-          const commitments = transformedInsights.action_items.map(item => item.task)
-          await dbHelpers.createCommitments(callNote.id, userId, commitments, session.id)
-        }
-
-        // Store follow-up email in database
-        if (transformedInsights.follow_up_email) {
-          await dbHelpers.createFollowUpEmail(callNote.id, userId, transformedInsights.follow_up_email, session.id)
-        }
-
-        // Store deck prompt in database
-        if (transformedInsights.deck_prompt) {
-          await dbHelpers.createDeckPrompt(callNote.id, userId, transformedInsights.deck_prompt, session.id)
         }
 
         // Transform insights for ReviewInsights component
@@ -207,10 +169,35 @@ export const CallWrapUp = () => {
           })
         }
 
-        // Save insights to database
-        if (reviewInsights.length > 0) {
-          await dbHelpers.saveCallInsights(callNote.id, userId, reviewInsights, session.id)
+        // Create complete call analysis using normalized structure
+        const analysisData = {
+          transcript: content,
+          call_summary: transformedInsights.call_summary,
+          follow_up_email: transformedInsights.follow_up_email,
+          deck_prompt: transformedInsights.deck_prompt,
+          action_items: transformedInsights.action_items,
+          insights: reviewInsights
         }
+
+        // Create all content and get their IDs for linking
+        const createdContentIds = await dbHelpers.createCompleteCallAnalysis(
+          userId,
+          uploadedFile.id,
+          session.id,
+          analysisData
+        )
+
+        setContentIds(createdContentIds)
+
+        // Update processing session with completion status and API response
+        await dbHelpers.updateProcessingSession(session.id, {
+          processing_status: 'completed',
+          api_response: responseData
+        })
+
+        // Get the created call note for state
+        const callNote = await dbHelpers.updateCallNote(createdContentIds.callNotesId, {})
+        setCallData(callNote)
 
         // Store insights and set state
         setInsights({
@@ -261,11 +248,52 @@ export const CallWrapUp = () => {
     await handleFileUpload(mockFile)
   }
 
-  const handleEditInsight = (type, content) => {
-    setInsights(prev => ({
-      ...prev,
-      [type]: content
-    }))
+  const handleEditInsight = async (type, content) => {
+    // Update content in the normalized database structure
+    try {
+      let contentId
+      let contentType
+      let updateField
+
+      switch (type) {
+        case 'call_summary':
+          contentId = contentIds.callNotesId
+          contentType = 'call_summary'
+          updateField = 'edited_summary'
+          break
+        case 'follow_up_email':
+          contentId = contentIds.followUpEmailId
+          contentType = 'follow_up_email'
+          updateField = 'edited_content'
+          break
+        case 'deck_prompt':
+          contentId = contentIds.deckPromptId
+          contentType = 'deck_prompt'
+          updateField = 'edited_content'
+          break
+        default:
+          console.warn('Unknown content type for editing:', type)
+          return
+      }
+
+      if (contentId) {
+        // Update in database
+        await dbHelpers.updateContentById(contentType, contentId, {
+          [updateField]: content
+        })
+
+        // Update local state
+        setInsights(prev => ({
+          ...prev,
+          [type]: content
+        }))
+
+        toast.success(`${type.replace('_', ' ')} updated successfully`)
+      }
+    } catch (error) {
+      console.error('Error updating content:', error)
+      toast.error('Failed to update content')
+    }
   }
 
   const handlePushToHubSpot = async (type, content) => {
@@ -275,11 +303,27 @@ export const CallWrapUp = () => {
       // Simulate API call to HubSpot
       await new Promise(resolve => setTimeout(resolve, 2000))
       
+      // Determine content ID for logging
+      let contentId
+      switch (type) {
+        case 'call_summary':
+          contentId = contentIds.callNotesId
+          break
+        case 'follow_up_email':
+          contentId = contentIds.followUpEmailId
+          break
+        case 'deck_prompt':
+          contentId = contentIds.deckPromptId
+          break
+        default:
+          contentId = callData?.id || processingSession?.id
+      }
+
       // Log push action with Sales Manager user ID
       await dbHelpers.logPushAction(
         userId,
         type,
-        callData.id,
+        contentId,
         'success',
         null,
         `hubspot-${Date.now()}`
