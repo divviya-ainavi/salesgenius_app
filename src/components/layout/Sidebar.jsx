@@ -99,8 +99,8 @@ export const Sidebar = () => {
 
   return (
     <div className="w-64 bg-card border-r border-border flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-border">
+      {/* Logo - Aligned with main content */}
+      <div className="h-24 p-6 border-b border-border flex flex-col justify-center">
         <h1 className="text-xl font-bold text-foreground">SalesGenius.ai</h1>
         <p className="text-sm text-muted-foreground mt-1">AI-Powered Sales Assistant</p>
       </div>
