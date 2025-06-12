@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar'
 import { UserDropdown } from './UserDropdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Settings } from 'lucide-react'
+import { Bell } from 'lucide-react'
 
 export const MainLayout = () => {
   const location = useLocation()
@@ -31,9 +31,6 @@ export const MainLayout = () => {
           <div className="flex items-center space-x-2">
             <Button variant="ghost" size="sm" aria-label="Notifications">
               <Bell className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="sm" aria-label="Settings">
-              <Settings className="w-4 h-4" />
             </Button>
             {/* User Dropdown Menu */}
             <UserDropdown />

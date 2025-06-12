@@ -1056,19 +1056,15 @@ const ProcessingHistory = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
           Processing History
         </h1>
         <p className="text-muted-foreground">
           View and manage all your previously processed call transcripts and
           generated insights. Files are stored with shareable links for easy access and content is normalized across database tables.
         </p>
-        <div className="mt-2 text-sm text-muted-foreground">
-          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span>{" "}
-          ({CURRENT_USER.role})
-        </div>
       </div>
 
       {/* Main Content */}

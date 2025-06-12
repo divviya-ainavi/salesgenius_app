@@ -93,15 +93,12 @@ export const ActionItems = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Action Items & Commitments</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Action Items & Commitments</h1>
         <p className="text-muted-foreground">
           Manage and track commitments made during sales calls. Push selected items to HubSpot as tasks.
         </p>
-        <div className="mt-2 text-sm text-muted-foreground">
-          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
-        </div>
       </div>
 
       {/* Stats Overview */}

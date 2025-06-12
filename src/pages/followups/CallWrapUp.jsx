@@ -362,9 +362,6 @@ export const CallWrapUp = () => {
         <p className="text-muted-foreground">
           Upload your call transcript and get AI-powered insights for follow-up actions. Files are stored with shareable links for easy access.
         </p>
-        <div className="mt-2 text-sm text-muted-foreground">
-          Logged in as: <span className="font-medium">{CURRENT_USER.name}</span> ({CURRENT_USER.role})
-        </div>
       </div>
 
       {/* Step-Based Workflow */}
