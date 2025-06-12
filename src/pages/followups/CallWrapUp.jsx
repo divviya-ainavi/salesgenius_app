@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { aiAgents, dbHelpers } from '@/lib/supabase'
+import { aiAgents, dbHelpers, supabase } from '@/lib/supabase'
 
 export const CallWrapUp = () => {
   const [currentStep, setCurrentStep] = useState(1)
@@ -21,11 +21,41 @@ export const CallWrapUp = () => {
   const [selectedInsights, setSelectedInsights] = useState([])
   const [pushStatuses, setPushStatuses] = useState({})
   const [activeTab, setActiveTab] = useState('insights')
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Generate a valid UUID for mock user - in real app this would come from auth
-  const userId = '550e8400-e29b-41d4-a716-446655440000'
+  // Get authenticated user on component mount
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Error getting user:', error)
+          toast.error('Authentication error. Please log in.')
+          return
+        }
+        if (!user) {
+          toast.error('Please log in to continue')
+          return
+        }
+        setUser(user)
+      } catch (error) {
+        console.error('Error fetching user:', error)
+        toast.error('Failed to authenticate user')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    getUser()
+  }, [])
 
   const handleFileUpload = async (file) => {
+    if (!user) {
+      toast.error('Please log in to upload files')
+      return
+    }
+
     setIsProcessing(true)
     setUploadProgress(0)
     
@@ -44,9 +74,9 @@ export const CallWrapUp = () => {
       // Read file content
       const content = await file.text()
       
-      // Create call note record
+      // Create call note record with authenticated user ID
       const callNote = await dbHelpers.createCallNote(
-        userId,
+        user.id,
         `call-${Date.now()}`,
         content
       )
@@ -82,6 +112,11 @@ export const CallWrapUp = () => {
   }
 
   const handleFathomSelect = async (recordingId) => {
+    if (!user) {
+      toast.error('Please log in to access Fathom recordings')
+      return
+    }
+
     // Mock Fathom integration
     const mockTranscript = `Mock transcript from Fathom recording ${recordingId}...`
     const mockFile = new File([mockTranscript], 'fathom-recording.txt', { type: 'text/plain' })
@@ -102,15 +137,20 @@ export const CallWrapUp = () => {
   }
 
   const handlePushToHubSpot = async (type, content) => {
+    if (!user) {
+      toast.error('Please log in to push to HubSpot')
+      return
+    }
+
     setPushStatuses(prev => ({ ...prev, [type]: 'pending' }))
     
     try {
       // Simulate API call to HubSpot
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Log push action
+      // Log push action with authenticated user ID
       await dbHelpers.logPushAction(
-        userId,
+        user.id,
         type,
         callData.id,
         'success',
@@ -142,6 +182,34 @@ export const CallWrapUp = () => {
 
   const handleBackToUpload = () => {
     setCurrentStep(1)
+  }
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login prompt if user is not authenticated
+  if (!user) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-foreground">Authentication Required</h1>
+          <p className="text-muted-foreground">
+            Please log in to access the Call Wrap-Up feature.
+          </p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -232,7 +300,7 @@ export const CallWrapUp = () => {
                   <ReviewInsights 
                     onSaveInsights={handleSaveInsights}
                     callNotesId={callData?.id}
-                    userId={userId}
+                    userId={user.id}
                   />
                 </div>
 
