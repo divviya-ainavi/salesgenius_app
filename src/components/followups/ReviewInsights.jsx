@@ -165,7 +165,13 @@ const mockInsights = [
   }
 ]
 
-export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights, callNotesId, userId = CURRENT_USER.id }) => {
+export const ReviewInsights = ({ 
+  onSaveInsights, 
+  initialInsights = mockInsights, 
+  callNotesId, 
+  userId = CURRENT_USER.id,
+  callAnalysisData = null
+}) => {
   const [insights, setInsights] = useState(initialInsights)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newInsight, setNewInsight] = useState({ content: '', type: 'user_insight' })
@@ -330,15 +336,57 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights,
         </div>
       </div>
 
+      {/* Call Analysis Overview */}
+      {callAnalysisData && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-blue-800">
+              <User className="w-5 h-5" />
+              <span>Call Analysis Overview</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Specific User</p>
+                  <p className="font-medium text-blue-900">{callAnalysisData.specific_user}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Sentiment Score</p>
+                  <div className="flex items-center space-x-2">
+                    <p className="font-medium text-blue-900">{callAnalysisData.sentiment_score}</p>
+                    <Badge 
+                      variant={
+                        callAnalysisData.sentiment_score >= 0.7 ? 'default' : 
+                        callAnalysisData.sentiment_score >= 0.4 ? 'secondary' : 'destructive'
+                      }
+                      className="text-xs"
+                    >
+                      {callAnalysisData.sentiment_score >= 0.7 ? 'Positive' : 
+                       callAnalysisData.sentiment_score >= 0.4 ? 'Neutral' : 'Negative'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action Items Summary */}
-      {actionItems.length > 0 && (
+      {(actionItems.length > 0 || (callAnalysisData?.action_items && callAnalysisData.action_items.length > 0)) && (
         <Card className="border-green-200 bg-green-50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-green-800">
               <CheckSquare className="w-5 h-5" />
               <span>Action Items Detected</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {actionItems.length} items
+                {callAnalysisData?.action_items ? callAnalysisData.action_items.length : actionItems.length} items
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -347,29 +395,52 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights,
               These action items will be tracked and can be pushed to HubSpot as tasks:
             </p>
             <div className="space-y-3">
-              {actionItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-lg p-3 border border-green-200">
-                  <p className="text-sm font-medium text-green-900 mb-2">{item.content.split('\n')[0]}</p>
-                  <div className="flex items-center space-x-4 text-xs text-green-700">
-                    {item.owner && (
-                      <div className="flex items-center space-x-1">
-                        <User className="w-3 h-3" />
-                        <span>Owner: {item.owner}</span>
-                      </div>
-                    )}
-                    {item.deadline && (
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>Due: {item.deadline}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{item.timestamp}</span>
+              {/* Display action items from callAnalysisData if available, otherwise from insights */}
+              {callAnalysisData?.action_items ? (
+                callAnalysisData.action_items.map((item, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
+                    <p className="text-sm font-medium text-green-900 mb-2">{item.task}</p>
+                    <div className="flex items-center space-x-4 text-xs text-green-700">
+                      {item.owner && (
+                        <div className="flex items-center space-x-1">
+                          <User className="w-3 h-3" />
+                          <span>Owner: {item.owner}</span>
+                        </div>
+                      )}
+                      {item.deadline && (
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>Due: {item.deadline}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                actionItems.map((item) => (
+                  <div key={item.id} className="bg-white rounded-lg p-3 border border-green-200">
+                    <p className="text-sm font-medium text-green-900 mb-2">{item.content.split('\n')[0]}</p>
+                    <div className="flex items-center space-x-4 text-xs text-green-700">
+                      {item.owner && (
+                        <div className="flex items-center space-x-1">
+                          <User className="w-3 h-3" />
+                          <span>Owner: {item.owner}</span>
+                        </div>
+                      )}
+                      {item.deadline && (
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>Due: {item.deadline}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{item.timestamp}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

@@ -378,6 +378,11 @@ export const CallWrapUp = () => {
                     callNotesId={callData?.id}
                     userId={userId}
                     initialInsights={insights.reviewInsights || []}
+                    callAnalysisData={{
+                      specific_user: insights.specific_user,
+                      sentiment_score: insights.sentiment_score,
+                      action_items: insights.action_items
+                    }}
                   />
                 </div>
 
@@ -401,90 +406,6 @@ export const CallWrapUp = () => {
             <TabsContent value="summary" className="mt-6">
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Call Summary Metadata */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <User className="w-5 h-5" />
-                        <span>Call Analysis Overview</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="flex items-center space-x-3">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Specific User</p>
-                            <p className="font-medium">{insights.specific_user}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Sentiment Score</p>
-                            <div className="flex items-center space-x-2">
-                              <p className="font-medium">{insights.sentiment_score}</p>
-                              <Badge 
-                                variant={
-                                  insights.sentiment_score >= 0.7 ? 'default' : 
-                                  insights.sentiment_score >= 0.4 ? 'secondary' : 'destructive'
-                                }
-                                className="text-xs"
-                              >
-                                {insights.sentiment_score >= 0.7 ? 'Positive' : 
-                                 insights.sentiment_score >= 0.4 ? 'Neutral' : 'Negative'}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Action Items Summary */}
-                  {insights.action_items && insights.action_items.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <CheckCircle className="w-5 h-5" />
-                          <span>Action Items Summary</span>
-                          <Badge variant="secondary">{insights.action_items.length} items</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {insights.action_items.map((item, index) => (
-                            <div key={index} className="border border-border rounded-lg p-4 space-y-3">
-                              <p className="font-medium text-sm">{item.task}</p>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center space-x-4">
-                                  {item.owner && (
-                                    <div className="flex items-center space-x-1">
-                                      <User className="w-3 h-3" />
-                                      <span>Owner: {item.owner}</span>
-                                    </div>
-                                  )}
-                                  {item.deadline && (
-                                    <div className="flex items-center space-x-1">
-                                      <Calendar className="w-3 h-3" />
-                                      <span>Due: {item.deadline}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <Badge 
-                                  variant={item.deadline ? 'default' : 'secondary'}
-                                  className="text-xs"
-                                >
-                                  {item.deadline ? 'Scheduled' : 'Open'}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
                   {/* Call Summary Content */}
                   <InsightCard
                     title="Call Summary"
