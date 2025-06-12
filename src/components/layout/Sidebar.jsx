@@ -9,7 +9,8 @@ import {
   FileText,
   CheckSquare,
   MessageSquare,
-  Presentation
+  Presentation,
+  History
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +58,12 @@ const mainNavItems = [
         description: 'Commitments and tasks'
       }
     ]
+  },
+  {
+    title: 'Processing History',
+    href: '/processing-history',
+    icon: History,
+    description: 'View processed files and insights'
   },
   {
     title: 'Analytics',

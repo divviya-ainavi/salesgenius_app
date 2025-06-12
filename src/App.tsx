@@ -12,6 +12,7 @@ import { Research } from "@/pages/Research";
 import { SalesCalls } from "@/pages/SalesCalls";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
+import { ProcessingHistory } from "@/pages/ProcessingHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="emails" element={<EmailTemplates />} />
               <Route path="decks" element={<DeckBuilder />} />
             </Route>
+            <Route path="processing-history" element={<ProcessingHistory />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
           </Route>
