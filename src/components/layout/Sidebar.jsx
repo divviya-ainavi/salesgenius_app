@@ -5,7 +5,6 @@ import {
   Phone, 
   Mail, 
   BarChart3, 
-  Settings,
   FileText,
   CheckSquare,
   MessageSquare,
@@ -70,12 +69,6 @@ const mainNavItems = [
     href: '/analytics',
     icon: BarChart3,
     description: 'Performance metrics and insights'
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    description: 'Account and integration settings'
   }
 ]
 
