@@ -23,6 +23,8 @@ import {
   FileIcon,
   ExternalLink,
   Copy,
+  Database,
+  Link,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
@@ -111,18 +113,63 @@ const ProcessingHistory = () => {
     toast.success('File content copied to clipboard');
   };
 
-  const handleEditInsight = (type, content) => {
-    // Update the selected session data
-    if (
-      selectedSession &&
-      selectedSession.call_notes &&
-      selectedSession.call_notes.length > 0
-    ) {
-      const updatedSession = { ...selectedSession };
-      if (type === "call_summary") {
-        updatedSession.call_notes[0].ai_summary = content;
+  const handleEditInsight = async (type, content) => {
+    // Update content using normalized database structure
+    if (!selectedSession || !selectedSession.content_references) {
+      toast.error('Unable to update content - session data not available');
+      return;
+    }
+
+    try {
+      let contentId
+      let contentType
+      let updateField
+
+      const contentRefs = selectedSession.content_references
+
+      switch (type) {
+        case 'call_summary':
+          contentId = contentRefs.call_notes_id
+          contentType = 'call_summary'
+          updateField = 'edited_summary'
+          break
+        case 'follow_up_email':
+          contentId = contentRefs.follow_up_email_id
+          contentType = 'follow_up_email'
+          updateField = 'edited_content'
+          break
+        case 'deck_prompt':
+          contentId = contentRefs.deck_prompt_id
+          contentType = 'deck_prompt'
+          updateField = 'edited_content'
+          break
+        default:
+          console.warn('Unknown content type for editing:', type)
+          return
       }
-      setSelectedSession(updatedSession);
+
+      if (contentId) {
+        // Update in database using normalized structure
+        await dbHelpers.updateContentById(contentType, contentId, {
+          [updateField]: content
+        })
+
+        // Update local state
+        const updatedSession = { ...selectedSession }
+        if (type === "call_summary" && updatedSession.call_notes && updatedSession.call_notes.length > 0) {
+          updatedSession.call_notes[0].edited_summary = content
+        } else if (type === "follow_up_email" && updatedSession.follow_up_emails && updatedSession.follow_up_emails.length > 0) {
+          updatedSession.follow_up_emails[0].edited_content = content
+        } else if (type === "deck_prompt" && updatedSession.deck_prompts && updatedSession.deck_prompts.length > 0) {
+          updatedSession.deck_prompts[0].edited_content = content
+        }
+        
+        setSelectedSession(updatedSession)
+        toast.success(`${type.replace('_', ' ')} updated and synced across all references`)
+      }
+    } catch (error) {
+      console.error('Error updating content:', error)
+      toast.error('Failed to update content')
     }
   };
 
@@ -132,11 +179,30 @@ const ProcessingHistory = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      // Determine content ID for logging using normalized structure
+      let contentId
+      if (selectedSession?.content_references) {
+        const contentRefs = selectedSession.content_references
+        switch (type) {
+          case 'call_summary':
+            contentId = contentRefs.call_notes_id
+            break
+          case 'follow_up_email':
+            contentId = contentRefs.follow_up_email_id
+            break
+          case 'deck_prompt':
+            contentId = contentRefs.deck_prompt_id
+            break
+          default:
+            contentId = selectedSession.id
+        }
+      }
+
       // Log push action
       await dbHelpers.logPushAction(
         CURRENT_USER.id,
         type,
-        selectedSession.call_notes[0]?.id || selectedSession.id,
+        contentId || selectedSession.id,
         "success",
         null,
         `hubspot-${Date.now()}`
@@ -235,23 +301,44 @@ const ProcessingHistory = () => {
     };
   };
 
-  // Get formatted call summary from API response
+  // Get formatted call summary from database (prioritizing edited version)
   const getFormattedCallSummary = (session) => {
-    if (!session.api_response) {
-      return session.call_notes?.[0]?.ai_summary || "No summary available";
+    if (session.call_notes && session.call_notes.length > 0) {
+      const callNote = session.call_notes[0]
+      // Return edited version if available, otherwise return AI-generated version
+      return callNote.edited_summary || callNote.ai_summary || "No summary available"
     }
 
-    const apiResponse = session.api_response;
-    const reviewInsights = apiResponse.reviewinsights || {};
-    const callSummary = reviewInsights.call_summary || {};
+    // Fallback to API response if no database content
+    if (session.api_response) {
+      const apiResponse = session.api_response;
+      const reviewInsights = apiResponse.reviewinsights || {};
+      const callSummary = reviewInsights.call_summary || {};
 
-    // If we have key_points, format them as a structured summary
-    if (callSummary.key_points && callSummary.key_points.length > 0) {
-      return callSummary.key_points.join("\n\n");
+      if (callSummary.key_points && callSummary.key_points.length > 0) {
+        return callSummary.key_points.join("\n\n");
+      }
     }
 
-    // Fallback to stored summary
-    return session.call_notes?.[0]?.ai_summary || "No summary available";
+    return "No summary available"
+  };
+
+  // Get formatted email content (prioritizing edited version)
+  const getFormattedEmailContent = (session) => {
+    if (session.follow_up_emails && session.follow_up_emails.length > 0) {
+      const email = session.follow_up_emails[0]
+      return email.edited_content || email.email_content || "No email template generated"
+    }
+    return "No email template generated"
+  };
+
+  // Get formatted deck prompt (prioritizing edited version)
+  const getFormattedDeckPrompt = (session) => {
+    if (session.deck_prompts && session.deck_prompts.length > 0) {
+      const deck = session.deck_prompts[0]
+      return deck.edited_content || deck.prompt_content || "No presentation prompt generated"
+    }
+    return "No presentation prompt generated"
   };
 
   // Transform session data for insights display
@@ -260,12 +347,8 @@ const ProcessingHistory = () => {
 
     return {
       call_summary: getFormattedCallSummary(session),
-      follow_up_email:
-        session.follow_up_emails?.[0]?.email_content ||
-        "No email template generated",
-      deck_prompt:
-        session.deck_prompts?.[0]?.prompt_content ||
-        "No presentation prompt generated",
+      follow_up_email: getFormattedEmailContent(session),
+      deck_prompt: getFormattedDeckPrompt(session),
       reviewInsights: getReviewInsights(session),
       callAnalysisData: getCallAnalysisData(session),
     };
@@ -451,15 +534,24 @@ const ProcessingHistory = () => {
                         </p>
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs",
-                        getStatusColor(session.processing_status)
+                    <div className="flex items-center space-x-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs",
+                          getStatusColor(session.processing_status)
+                        )}
+                      >
+                        {session.processing_status}
+                      </Badge>
+                      {/* Show normalized structure indicator */}
+                      {session.content_references && (
+                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                          <Database className="w-3 h-3 mr-1" />
+                          Linked
+                        </Badge>
                       )}
-                    >
-                      {session.processing_status}
-                    </Badge>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
@@ -485,6 +577,33 @@ const ProcessingHistory = () => {
                     </div>
                   </div>
 
+                  {/* Content References Info */}
+                  {session.content_references && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Link className="w-4 h-4 text-blue-600" />
+                        <p className="text-sm font-medium text-blue-800">Normalized Content Structure</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                        {session.content_references.call_notes_id && (
+                          <span>✓ Call Summary</span>
+                        )}
+                        {session.content_references.follow_up_email_id && (
+                          <span>✓ Follow-up Email</span>
+                        )}
+                        {session.content_references.deck_prompt_id && (
+                          <span>✓ Presentation</span>
+                        )}
+                        {session.content_references.commitments_ids?.length > 0 && (
+                          <span>✓ {session.content_references.commitments_ids.length} Action Items</span>
+                        )}
+                        {session.content_references.insights_ids?.length > 0 && (
+                          <span>✓ {session.content_references.insights_ids.length} Insights</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Processing Progress for active sessions */}
                   {session.processing_status === "processing" && (
                     <div className="mb-3">
@@ -502,7 +621,7 @@ const ProcessingHistory = () => {
                       <div className="bg-muted rounded-lg p-3 mb-3">
                         <p className="text-sm font-medium mb-1">AI Summary</p>
                         <p className="text-xs text-muted-foreground line-clamp-2">
-                          {session.call_notes[0].ai_summary?.substring(0, 150)}
+                          {(session.call_notes[0].edited_summary || session.call_notes[0].ai_summary)?.substring(0, 150)}
                           ...
                         </p>
                       </div>
@@ -619,6 +738,12 @@ const ProcessingHistory = () => {
             >
               {selectedSession.processing_status}
             </Badge>
+            {selectedSession.content_references && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                <Database className="w-4 h-4 mr-1" />
+                Normalized Structure
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -696,6 +821,45 @@ const ProcessingHistory = () => {
               </div>
             </div>
             
+            {/* Content References Information */}
+            {selectedSession.content_references && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-medium mb-3 flex items-center space-x-2">
+                  <Database className="w-4 h-4" />
+                  <span>Content References (Normalized Structure)</span>
+                </h4>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Call Summary ID:</span>
+                      <span className="font-mono text-xs">{selectedSession.content_references.call_notes_id || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email ID:</span>
+                      <span className="font-mono text-xs">{selectedSession.content_references.follow_up_email_id || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deck ID:</span>
+                      <span className="font-mono text-xs">{selectedSession.content_references.deck_prompt_id || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Action Items:</span>
+                      <span className="text-xs">{selectedSession.content_references.commitments_ids?.length || 0} items</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Insights:</span>
+                      <span className="text-xs">{selectedSession.content_references.insights_ids?.length || 0} items</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Content is stored in normalized tables and linked by ID. Updates in one place automatically reflect everywhere.
+                </p>
+              </div>
+            )}
+            
             {/* File Actions */}
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center space-x-2">
@@ -754,7 +918,7 @@ const ProcessingHistory = () => {
         </h1>
         <p className="text-muted-foreground">
           View and manage all your previously processed call transcripts and
-          generated insights. Click on any file to view its content or processing details.
+          generated insights. Content is stored in normalized database tables with linked references for consistency.
         </p>
         <div className="mt-2 text-sm text-muted-foreground">
           Logged in as: <span className="font-medium">{CURRENT_USER.name}</span>{" "}
