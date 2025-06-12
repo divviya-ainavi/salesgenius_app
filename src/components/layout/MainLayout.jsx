@@ -1,9 +1,10 @@
 import React from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { UserDropdown } from './UserDropdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Settings, User } from 'lucide-react'
+import { Bell, Settings } from 'lucide-react'
 
 export const MainLayout = () => {
   const location = useLocation()
@@ -28,15 +29,14 @@ export const MainLayout = () => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" aria-label="Notifications">
               <Bell className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" aria-label="Settings">
               <Settings className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
-              <User className="w-4 h-4" />
-            </Button>
+            {/* User Dropdown Menu */}
+            <UserDropdown />
           </div>
         </div>
       </header>
