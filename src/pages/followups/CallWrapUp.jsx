@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowRight, CheckCircle, ArrowLeft, User, TrendingUp } from 'lucide-react'
+import { ArrowRight, CheckCircle, ArrowLeft, User, TrendingUp, Calendar, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { aiAgents, dbHelpers, CURRENT_USER } from '@/lib/supabase'
 
@@ -152,17 +152,31 @@ export const CallWrapUp = () => {
           })
         }
 
-        // Add action items as insights
+        // Add action items as insights with owner and deadline
         if (responseData.reviewinsights?.action_items) {
           responseData.reviewinsights.action_items.forEach((item, index) => {
+            let actionContent = item.task
+            
+            // Add owner information if available
+            if (item.owner) {
+              actionContent += `\n\nOwner: ${item.owner}`
+            }
+            
+            // Add deadline information if available
+            if (item.deadline) {
+              actionContent += `\nDeadline: ${item.deadline}`
+            }
+            
             reviewInsights.push({
               id: `action_${index}`,
               type: 'agreed_action',
-              content: `${item.task} (Owner: ${item.owner})`,
+              content: actionContent,
               relevance_score: 90 - (index * 2),
               is_selected: true,
               source: 'Call Transcript',
-              timestamp: 'Throughout call'
+              timestamp: 'Throughout call',
+              owner: item.owner || 'Unassigned',
+              deadline: item.deadline || 'No deadline set'
             })
           })
         }
@@ -426,6 +440,50 @@ export const CallWrapUp = () => {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Action Items Summary */}
+                  {insights.action_items && insights.action_items.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <CheckCircle className="w-5 h-5" />
+                          <span>Action Items Summary</span>
+                          <Badge variant="secondary">{insights.action_items.length} items</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {insights.action_items.map((item, index) => (
+                            <div key={index} className="border border-border rounded-lg p-4 space-y-3">
+                              <p className="font-medium text-sm">{item.task}</p>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex items-center space-x-4">
+                                  {item.owner && (
+                                    <div className="flex items-center space-x-1">
+                                      <User className="w-3 h-3" />
+                                      <span>Owner: {item.owner}</span>
+                                    </div>
+                                  )}
+                                  {item.deadline && (
+                                    <div className="flex items-center space-x-1">
+                                      <Calendar className="w-3 h-3" />
+                                      <span>Due: {item.deadline}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <Badge 
+                                  variant={item.deadline ? 'default' : 'secondary'}
+                                  className="text-xs"
+                                >
+                                  {item.deadline ? 'Scheduled' : 'Open'}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Call Summary Content */}
                   <InsightCard

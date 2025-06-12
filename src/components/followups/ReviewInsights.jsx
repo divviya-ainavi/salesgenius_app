@@ -23,7 +23,10 @@ import {
   Star,
   Eye,
   Ear,
-  Hand
+  Hand,
+  User,
+  Calendar,
+  Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -93,7 +96,9 @@ const mockInsights = [
     relevance_score: 90,
     is_selected: true,
     source: 'Call Transcript',
-    timestamp: '28:45'
+    timestamp: '28:45',
+    owner: 'Sarah Johnson',
+    deadline: '2024-01-23'
   },
   {
     id: '3',
@@ -288,6 +293,9 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights,
 
   // Count communication style insights
   const communicationInsights = insights.filter(insight => insight.type === 'communication_style')
+  
+  // Count action items
+  const actionItems = insights.filter(insight => insight.type === 'agreed_action')
 
   return (
     <div className="space-y-6">
@@ -321,6 +329,51 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights,
           </Button>
         </div>
       </div>
+
+      {/* Action Items Summary */}
+      {actionItems.length > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-800">
+              <CheckSquare className="w-5 h-5" />
+              <span>Action Items Detected</span>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                {actionItems.length} items
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-green-700 mb-3">
+              These action items will be tracked and can be pushed to HubSpot as tasks:
+            </p>
+            <div className="space-y-3">
+              {actionItems.map((item) => (
+                <div key={item.id} className="bg-white rounded-lg p-3 border border-green-200">
+                  <p className="text-sm font-medium text-green-900 mb-2">{item.content.split('\n')[0]}</p>
+                  <div className="flex items-center space-x-4 text-xs text-green-700">
+                    {item.owner && (
+                      <div className="flex items-center space-x-1">
+                        <User className="w-3 h-3" />
+                        <span>Owner: {item.owner}</span>
+                      </div>
+                    )}
+                    {item.deadline && (
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Due: {item.deadline}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{item.timestamp}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Communication Styles Summary */}
       {communicationInsights.length > 0 && (
@@ -514,12 +567,32 @@ export const ReviewInsights = ({ onSaveInsights, initialInsights = mockInsights,
                       className="min-h-20"
                     />
                   ) : (
-                    <p className={cn(
-                      "text-sm leading-relaxed",
-                      !insight.is_selected && "text-muted-foreground"
-                    )}>
-                      {insight.content}
-                    </p>
+                    <div className="space-y-2">
+                      <p className={cn(
+                        "text-sm leading-relaxed",
+                        !insight.is_selected && "text-muted-foreground"
+                      )}>
+                        {insight.content}
+                      </p>
+                      
+                      {/* Show owner and deadline for action items */}
+                      {insight.type === 'agreed_action' && (insight.owner || insight.deadline) && (
+                        <div className="flex items-center space-x-4 text-xs text-muted-foreground pt-2 border-t border-border">
+                          {insight.owner && (
+                            <div className="flex items-center space-x-1">
+                              <User className="w-3 h-3" />
+                              <span>Owner: {insight.owner}</span>
+                            </div>
+                          )}
+                          {insight.deadline && (
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>Due: {insight.deadline}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
