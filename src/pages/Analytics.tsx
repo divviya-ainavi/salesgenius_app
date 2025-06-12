@@ -686,10 +686,7 @@ const Analytics = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center space-x-3">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            <span>Analytics Intelligence Hub</span>
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Analytics Intelligence Hub</h1>
           <p className="text-muted-foreground">
             Transform raw data into strategic intelligence with actionable insights and measurable impact.
           </p>

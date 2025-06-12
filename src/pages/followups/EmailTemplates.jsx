@@ -25,8 +25,7 @@ import {
   ArrowRight,
   Edit,
   Save,
-  X,
-  Mail
+  X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -264,10 +263,7 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center space-x-3">
-          <Mail className="w-5 h-5 text-primary" />
-          <span>Email Templates</span>
-        </h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Email Templates</h1>
         <p className="text-muted-foreground">
           Generate personalized follow-up emails based on personality analysis and communication preferences.
         </p>

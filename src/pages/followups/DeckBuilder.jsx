@@ -379,10 +379,7 @@ Final value reinforcement:
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center space-x-3">
-          <Presentation className="w-5 h-5 text-primary" />
-          <span>AI-Powered Presentation Strategist</span>
-        </h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">AI-Powered Presentation Strategist</h1>
         <p className="text-muted-foreground">
           Transform call insights into persuasive, context-aware presentation prompts designed to accelerate your sales cycle.
         </p>

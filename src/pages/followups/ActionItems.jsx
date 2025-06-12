@@ -95,7 +95,7 @@ export const ActionItems = () => {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Action Items & Commitments</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Action Items & Commitments</h1>
         <p className="text-muted-foreground">
           Manage and track commitments made during sales calls. Push selected items to HubSpot as tasks.
         </p>
