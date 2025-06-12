@@ -10,9 +10,9 @@ export const fileStorage = {
       const fileExtension = file.name.split('.').pop()
       const uniqueFileName = `${userId}/${timestamp}_${file.name}`
       
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage using transcript-files bucket
       const { data, error } = await supabase.storage
-        .from('call-transcripts')
+        .from('transcript-files')
         .upload(uniqueFileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -24,7 +24,7 @@ export const fileStorage = {
 
       // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
-        .from('call-transcripts')
+        .from('transcript-files')
         .getPublicUrl(uniqueFileName)
 
       return {
@@ -44,7 +44,7 @@ export const fileStorage = {
   async getFileUrl(filePath) {
     try {
       const { data } = supabase.storage
-        .from('call-transcripts')
+        .from('transcript-files')
         .getPublicUrl(filePath)
 
       return data.publicUrl
@@ -81,7 +81,7 @@ export const fileStorage = {
   async deleteFile(filePath) {
     try {
       const { error } = await supabase.storage
-        .from('call-transcripts')
+        .from('transcript-files')
         .remove([filePath])
 
       if (error) {
@@ -99,7 +99,7 @@ export const fileStorage = {
   async createSignedUrl(filePath, expiresIn = 3600) {
     try {
       const { data, error } = await supabase.storage
-        .from('call-transcripts')
+        .from('transcript-files')
         .createSignedUrl(filePath, expiresIn)
 
       if (error) {

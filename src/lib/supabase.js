@@ -108,7 +108,7 @@ Best regards,
 
 // Database helper functions with normalized structure and file storage
 export const dbHelpers = {
-  // File management functions with shareable links
+  // File management functions with shareable links using transcript-files bucket
   async saveUploadedFile(userId, file, content = null) {
     try {
       // Upload file to Supabase Storage and get shareable URL
