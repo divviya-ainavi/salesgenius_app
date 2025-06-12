@@ -140,6 +140,17 @@ export const dbHelpers = {
     return data || []
   },
 
+  async getUploadedFile(fileId) {
+    const { data, error } = await supabase
+      .from('uploaded_files')
+      .select('*')
+      .eq('id', fileId)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
   async createProcessingSession(userId, fileId) {
     const { data, error } = await supabase
       .from('processing_history')
@@ -181,7 +192,9 @@ export const dbHelpers = {
           filename,
           file_type,
           file_size,
-          upload_date
+          upload_date,
+          content_type,
+          file_content
         ),
         call_notes!processing_history_call_notes_id_fkey (
           id,

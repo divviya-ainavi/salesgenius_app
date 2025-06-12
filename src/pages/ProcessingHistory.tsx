@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StepBasedWorkflow } from "@/components/followups/StepBasedWorkflow";
 import { CallInsightsViewer } from "@/components/followups/CallInsightsViewer";
 import {
@@ -18,6 +19,10 @@ import {
   ArrowLeft,
   History,
   CheckSquare,
+  Download,
+  FileIcon,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
@@ -30,6 +35,8 @@ const ProcessingHistory = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'details'
   const [pushStatuses, setPushStatuses] = useState({});
+  const [showFileModal, setShowFileModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const loadHistory = async () => {
     try {
@@ -68,6 +75,40 @@ const ProcessingHistory = () => {
   const handleBackToHistory = () => {
     setSelectedSession(null);
     setViewMode("list");
+  };
+
+  const handleViewFile = async (fileId) => {
+    try {
+      const fileData = await dbHelpers.getUploadedFile(fileId);
+      setSelectedFile(fileData);
+      setShowFileModal(true);
+    } catch (error) {
+      console.error("Error loading file:", error);
+      toast.error("Failed to load file");
+    }
+  };
+
+  const handleDownloadFile = (file) => {
+    if (file.file_content) {
+      // For text files, create a blob and download
+      const blob = new Blob([file.file_content], { type: file.content_type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('File downloaded successfully');
+    } else {
+      toast.error('File content not available for download');
+    }
+  };
+
+  const handleCopyFileContent = (content) => {
+    navigator.clipboard.writeText(content);
+    toast.success('File content copied to clipboard');
   };
 
   const handleEditInsight = (type, content) => {
@@ -153,6 +194,13 @@ const ProcessingHistory = () => {
     });
   };
 
+  const getFileIcon = (fileType) => {
+    if (fileType?.includes('pdf')) {
+      return <FileIcon className="w-4 h-4 text-red-600" />;
+    }
+    return <FileText className="w-4 h-4 text-blue-600" />;
+  };
+
   // Transform session data for ReviewInsights component
   const getReviewInsights = (session) => {
     if (!session.call_insights) return [];
@@ -223,6 +271,108 @@ const ProcessingHistory = () => {
     };
   };
 
+  const FileViewModal = () => {
+    if (!selectedFile) return null;
+
+    const isPDF = selectedFile.content_type?.includes('pdf') || selectedFile.filename?.toLowerCase().endsWith('.pdf');
+    const isTextFile = selectedFile.file_content && !isPDF;
+
+    return (
+      <Dialog open={showFileModal} onOpenChange={setShowFileModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              {getFileIcon(selectedFile.content_type)}
+              <span>{selectedFile.filename}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* File Information */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">File Type:</span>
+                  <span className="text-sm font-medium">{selectedFile.content_type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">File Size:</span>
+                  <span className="text-sm font-medium">{formatFileSize(selectedFile.file_size)}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Uploaded:</span>
+                  <span className="text-sm font-medium">{formatDate(selectedFile.upload_date)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <Badge variant="default" className="text-xs">Available</Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* File Actions */}
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleDownloadFile(selectedFile)}
+                disabled={!selectedFile.file_content}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Download
+              </Button>
+              {isTextFile && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleCopyFileContent(selectedFile.file_content)}
+                >
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy Content
+                </Button>
+              )}
+              {isPDF && (
+                <Badge variant="secondary" className="text-xs">
+                  PDF files can be downloaded but content preview is not available
+                </Badge>
+              )}
+            </div>
+
+            {/* File Content Preview */}
+            {isTextFile && (
+              <div className="border rounded-lg">
+                <div className="bg-muted px-4 py-2 border-b">
+                  <h4 className="text-sm font-medium">File Content Preview</h4>
+                </div>
+                <div className="p-4 max-h-96 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                    {selectedFile.file_content}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {isPDF && (
+              <div className="border rounded-lg p-8 text-center">
+                <FileIcon className="w-16 h-16 mx-auto mb-4 text-red-600" />
+                <h4 className="text-lg font-medium mb-2">PDF File</h4>
+                <p className="text-muted-foreground mb-4">
+                  PDF content preview is not available. You can download the file to view it.
+                </p>
+                <Button onClick={() => handleDownloadFile(selectedFile)}>
+                  <Download className="w-4 h-4 mr-1" />
+                  Download PDF
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   const HistoryList = () => {
     if (isLoading) {
       return (
@@ -275,12 +425,11 @@ const ProcessingHistory = () => {
                 <div
                   key={session.id}
                   className={cn(
-                    "border rounded-lg p-4 transition-colors cursor-pointer",
+                    "border rounded-lg p-4 transition-colors",
                     selectedSession?.id === session.id
                       ? "border-primary bg-primary/5"
                       : "border-border hover:bg-accent"
                   )}
-                  onClick={() => handleViewDetails(session.id)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start space-x-3">
@@ -288,9 +437,12 @@ const ProcessingHistory = () => {
                         {getStatusIcon(session.processing_status)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">
-                          {session.uploaded_files?.filename || "Unknown file"}
-                        </h4>
+                        <div className="flex items-center space-x-2 mb-1">
+                          {getFileIcon(session.uploaded_files?.file_type)}
+                          <h4 className="font-medium truncate">
+                            {session.uploaded_files?.filename || "Unknown file"}
+                          </h4>
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {session.uploaded_files?.file_type} •{" "}
                           {formatFileSize(
@@ -382,6 +534,17 @@ const ProcessingHistory = () => {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleViewFile(session.file_id);
+                        }}
+                      >
+                        <FileText className="w-3 h-3 mr-1" />
+                        View File
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleViewDetails(session.id);
                         }}
                       >
@@ -438,15 +601,25 @@ const ProcessingHistory = () => {
               </p>
             </div>
           </div>
-          <Badge
-            variant={
-              selectedSession.processing_status === "completed"
-                ? "default"
-                : "destructive"
-            }
-          >
-            {selectedSession.processing_status}
-          </Badge>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleViewFile(selectedSession.file_id)}
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              View Original File
+            </Button>
+            <Badge
+              variant={
+                selectedSession.processing_status === "completed"
+                  ? "default"
+                  : "destructive"
+              }
+            >
+              {selectedSession.processing_status}
+            </Badge>
+          </div>
         </div>
 
         {/* Step-Based Workflow */}
@@ -522,6 +695,33 @@ const ProcessingHistory = () => {
                 )}
               </div>
             </div>
+            
+            {/* File Actions */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewFile(selectedSession.file_id)}
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View File Content
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedSession.uploaded_files) {
+                      handleDownloadFile(selectedSession.uploaded_files);
+                    }
+                  }}
+                  disabled={!selectedSession.uploaded_files?.file_content}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download File
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -541,37 +741,6 @@ const ProcessingHistory = () => {
             isProcessingHistory={true} // Mark as processing history context
           />
         )}
-
-        {/* Action Items Summary for completed sessions */}
-        {/* {selectedSession.processing_status === 'completed' && selectedSession.call_commitments && selectedSession.call_commitments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckSquare className="w-5 h-5" />
-                <span>Action Items</span>
-                <Badge variant="secondary">{selectedSession.call_commitments.length} items</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {selectedSession.call_commitments.map((commitment, index) => (
-                  <div key={commitment.id || index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-900 leading-relaxed mb-2">{commitment.commitment_text}</p>
-                        <div className="flex items-center space-x-4 text-xs text-gray-600">
-                          <span>Created: {formatDate(commitment.created_at)}</span>
-                          {commitment.is_pushed && <span className="text-green-600">Pushed to HubSpot</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
       </div>
     );
   };
@@ -585,7 +754,7 @@ const ProcessingHistory = () => {
         </h1>
         <p className="text-muted-foreground">
           View and manage all your previously processed call transcripts and
-          generated insights.
+          generated insights. Click on any file to view its content or processing details.
         </p>
         <div className="mt-2 text-sm text-muted-foreground">
           Logged in as: <span className="font-medium">{CURRENT_USER.name}</span>{" "}
@@ -595,6 +764,9 @@ const ProcessingHistory = () => {
 
       {/* Main Content */}
       {viewMode === "list" ? <HistoryList /> : <SessionDetails />}
+
+      {/* File View Modal */}
+      <FileViewModal />
     </div>
   );
 };
