@@ -21,12 +21,12 @@ export const TranscriptUpload = ({ onFileUpload, onFathomSelect, isProcessing, d
     const file = acceptedFiles[0]
     if (file) {
       // Validate file type
-      const validTypes = ['text/plain', 'text/vtt']
-      const validExtensions = ['.txt', '.vtt']
+      const validTypes = ['text/plain', 'text/vtt', 'application/pdf']
+      const validExtensions = ['.txt', '.vtt', '.pdf']
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
       
       if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
-        toast.error('Please upload only .txt or .vtt files')
+        toast.error('Please upload only .txt, .vtt, or .pdf files')
         return
       }
       
@@ -43,7 +43,8 @@ export const TranscriptUpload = ({ onFileUpload, onFathomSelect, isProcessing, d
     onDrop,
     accept: {
       'text/plain': ['.txt'],
-      'text/vtt': ['.vtt']
+      'text/vtt': ['.vtt'],
+      'application/pdf': ['.pdf']
     },
     maxFiles: 1,
     disabled: disabled || isProcessing
@@ -86,11 +87,11 @@ export const TranscriptUpload = ({ onFileUpload, onFathomSelect, isProcessing, d
                 <p className="text-sm text-muted-foreground mb-2">
                   {isProcessing 
                     ? 'Please wait while we analyze your call'
-                    : 'Drag and drop your .txt or .vtt file, or click to browse'
+                    : 'Drag and drop your .txt, .vtt, or .pdf file, or click to browse'
                   }
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: TXT, VTT (Max 10MB)
+                  Supported formats: TXT, VTT, PDF (Max 10MB)
                 </p>
               </div>
             </div>

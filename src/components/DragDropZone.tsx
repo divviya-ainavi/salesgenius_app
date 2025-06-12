@@ -9,8 +9,8 @@ interface DragDropZoneProps {
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['text/plain', 'text/vtt'];
-const ALLOWED_EXTENSIONS = ['.txt', '.vtt'];
+const ALLOWED_TYPES = ['text/plain', 'text/vtt', 'application/pdf'];
+const ALLOWED_EXTENSIONS = ['.txt', '.vtt', '.pdf'];
 
 export const DragDropZone: React.FC<DragDropZoneProps> = ({
   onFileUpload,
@@ -25,14 +25,14 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
 
     // Check file type
     if (!ALLOWED_TYPES.includes(file.type) && file.type !== '') {
-      toast.error('Please upload only .txt or .vtt files');
+      toast.error('Please upload only .txt, .vtt, or .pdf files');
       return false;
     }
 
     // Check file extension as fallback
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
-      toast.error('Please upload only .txt or .vtt files');
+      toast.error('Please upload only .txt, .vtt, or .pdf files');
       return false;
     }
 
@@ -54,7 +54,7 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
       if (disabled) return;
 
       if (fileRejections && fileRejections.length > 0) {
-        toast.error('Please upload only .txt or .vtt files');
+        toast.error('Please upload only .txt, .vtt, or .pdf files');
         return;
       }
 
@@ -71,6 +71,7 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
     accept: {
       'text/plain': ['.txt'],
       'text/vtt': ['.vtt'],
+      'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
     maxSize: MAX_FILE_SIZE,
@@ -107,10 +108,10 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
           <p className="text-muted-foreground mb-4">
             {disabled
               ? 'Please wait while we process your file'
-              : 'Drag and drop your .txt or .vtt file here, or click to browse'}
+              : 'Drag and drop your .txt, .vtt, or .pdf file here, or click to browse'}
           </p>
           <p className="text-sm text-muted-foreground">
-            Supported formats: TXT, VTT (Max 10MB)
+            Supported formats: TXT, VTT, PDF (Max 10MB)
           </p>
         </div>
       </div>
