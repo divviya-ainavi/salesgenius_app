@@ -5,24 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bell, Settings, User } from 'lucide-react'
 
-// Page title mapping
-const getPageTitle = (pathname) => {
-  if (pathname === '/research') return 'Research'
-  if (pathname === '/calls') return 'Sales Calls'
-  if (pathname.startsWith('/follow-ups/wrap-up')) return 'Call Wrap-Up'
-  if (pathname.startsWith('/follow-ups/actions')) return 'Action Items'
-  if (pathname.startsWith('/follow-ups/emails')) return 'Email Templates'
-  if (pathname.startsWith('/follow-ups/decks')) return 'Deck Builder'
-  if (pathname.startsWith('/follow-ups/processing-history')) return 'Processing History'
-  if (pathname.startsWith('/follow-ups')) return 'Follow Ups'
-  if (pathname === '/analytics') return 'Analytics'
-  if (pathname === '/settings') return 'Settings'
-  return 'Dashboard'
-}
-
 export const MainLayout = () => {
   const location = useLocation()
-  const pageTitle = getPageTitle(location.pathname)
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -30,10 +14,9 @@ export const MainLayout = () => {
       <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
         <div className="flex items-center space-x-6">
           {/* Application Logo/Brand */}
-          <div className="flex items-center space-x-3">
+          <div>
             <h1 className="text-xl font-bold text-foreground">SalesGenius.ai</h1>
-            <div className="h-6 w-px bg-border" />
-            <h2 className="text-lg font-semibold text-foreground">{pageTitle}</h2>
+            <p className="text-sm text-muted-foreground">AI-Powered Sales Assistant</p>
           </div>
         </div>
 
