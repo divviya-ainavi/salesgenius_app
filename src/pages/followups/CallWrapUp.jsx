@@ -7,7 +7,9 @@ import { CRMConnectionStatus } from '@/components/followups/CRMConnectionStatus'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowRight, CheckCircle, ArrowLeft, User, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { aiAgents, dbHelpers, CURRENT_USER } from '@/lib/supabase'
 
@@ -384,7 +386,48 @@ export const CallWrapUp = () => {
             
             <TabsContent value="summary" className="mt-6">
               <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Call Summary Metadata */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <User className="w-5 h-5" />
+                        <span>Call Analysis Overview</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-3">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Specific User</p>
+                            <p className="font-medium">{insights.specific_user}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Sentiment Score</p>
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium">{insights.sentiment_score}</p>
+                              <Badge 
+                                variant={
+                                  insights.sentiment_score >= 0.7 ? 'default' : 
+                                  insights.sentiment_score >= 0.4 ? 'secondary' : 'destructive'
+                                }
+                                className="text-xs"
+                              >
+                                {insights.sentiment_score >= 0.7 ? 'Positive' : 
+                                 insights.sentiment_score >= 0.4 ? 'Neutral' : 'Negative'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Call Summary Content */}
                   <InsightCard
                     title="Call Summary"
                     content={insights.call_summary}
