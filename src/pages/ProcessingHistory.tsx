@@ -180,6 +180,25 @@ const ProcessingHistory = () => {
     }))
   }
 
+  // Extract call analysis data from API response
+  const getCallAnalysisData = (session) => {
+    if (!session.api_response) return null
+
+    const apiResponse = session.api_response
+    
+    // Extract data from the API response structure
+    const reviewInsights = apiResponse.reviewinsights || {}
+    const callSummary = reviewInsights.call_summary || {}
+    
+    return {
+      specific_user: callSummary.specific_user || 'Unknown',
+      sentiment_score: callSummary.sentiment_score || 0,
+      action_items: reviewInsights.action_items || [],
+      communication_styles: reviewInsights.communication_styles || [],
+      key_points: callSummary.key_points || []
+    }
+  }
+
   // Transform session data for insights display
   const getSessionInsights = (session) => {
     if (!session) return null
@@ -188,7 +207,8 @@ const ProcessingHistory = () => {
       call_summary: session.call_notes?.[0]?.ai_summary || 'No summary available',
       follow_up_email: session.follow_up_emails?.[0]?.email_content || 'No email template generated',
       deck_prompt: session.deck_prompts?.[0]?.prompt_content || 'No presentation prompt generated',
-      reviewInsights: getReviewInsights(session)
+      reviewInsights: getReviewInsights(session),
+      callAnalysisData: getCallAnalysisData(session)
     }
   }
 
@@ -447,6 +467,7 @@ const ProcessingHistory = () => {
                       callNotesId={selectedSession.call_notes?.[0]?.id}
                       userId={CURRENT_USER.id}
                       initialInsights={insights.reviewInsights || []}
+                      callAnalysisData={insights.callAnalysisData}
                     />
                   </div>
 
@@ -470,6 +491,63 @@ const ProcessingHistory = () => {
               <TabsContent value="summary" className="mt-6">
                 <div className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-6">
+                    {/* Call Analysis Overview for Summary Tab */}
+                    {insights.callAnalysisData && (
+                      <Card className="border-blue-200 bg-blue-50">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2 text-blue-800">
+                            <User className="w-5 h-5" />
+                            <span>Call Summary</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="flex items-center space-x-3">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Specific User</p>
+                                <p className="font-medium text-blue-900">{insights.callAnalysisData.specific_user}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm text-muted-foreground">Sentiment Score</p>
+                                <div className="flex items-center space-x-2">
+                                  <p className="font-medium text-blue-900">{insights.callAnalysisData.sentiment_score}</p>
+                                  <Badge 
+                                    variant={
+                                      insights.callAnalysisData.sentiment_score >= 0.7 ? 'default' : 
+                                      insights.callAnalysisData.sentiment_score >= 0.4 ? 'secondary' : 'destructive'
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {insights.callAnalysisData.sentiment_score >= 0.7 ? 'Positive' : 
+                                     insights.callAnalysisData.sentiment_score >= 0.4 ? 'Neutral' : 'Negative'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Key Points */}
+                          {insights.callAnalysisData.key_points && insights.callAnalysisData.key_points.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-medium text-blue-900 mb-2">Key Points</h4>
+                              <div className="space-y-2">
+                                {insights.callAnalysisData.key_points.map((point, index) => (
+                                  <div key={index} className="flex items-start space-x-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                    <p className="text-sm text-blue-700">{point}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
                     <InsightCard
                       title="Call Summary"
                       content={insights.call_summary}
