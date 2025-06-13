@@ -257,7 +257,7 @@ const insightTypes = {
   }
 };
 
-const communicationStyles = {
+const communicationStyleConfigs = {
   Visual: {
     icon: Eye,
     color: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -700,7 +700,7 @@ const CallInsights = () => {
               {communicationStyles.length > 0 ? (
                 <div className="space-y-6">
                   {communicationStyles.map((stakeholder) => {
-                    const styleConfig = communicationStyles[stakeholder.style];
+                    const styleConfig = communicationStyleConfigs[stakeholder.style];
                     const StyleIcon = styleConfig.icon;
 
                     return (
