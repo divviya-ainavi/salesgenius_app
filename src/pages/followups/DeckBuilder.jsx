@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
-import { CRMConnectionStatus } from '@/components/followups/CRMConnectionStatus'
+import { ProspectSelector } from '@/components/shared/ProspectSelector'
 import { 
   Presentation,
   Target,
@@ -40,28 +40,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-// Mock data for recent calls
-const mockRecentCalls = [
-  {
-    id: '1',
-    title: 'Discovery Call - Acme Corp',
-    date: '2024-01-15',
-    duration: '45 min',
-    attendees: ['Sarah Johnson (VP Sales)', 'Mike Chen (Sales Ops)', 'Lisa Rodriguez (Marketing Dir)'],
-    keyInsights: 8,
-    sentiment: 'positive'
-  },
-  {
-    id: '2',
-    title: 'Follow-up - TechStart Inc',
-    date: '2024-01-14',
-    duration: '30 min',
-    attendees: ['John Smith (CEO)', 'Emma Wilson (CTO)'],
-    keyInsights: 5,
-    sentiment: 'neutral'
-  }
-]
 
 // Sales methodologies
 const salesMethodologies = {
@@ -97,13 +75,33 @@ const presentationObjectives = [
   { value: 'demonstrate_roi', label: 'Demonstrate ROI', icon: TrendingUp }
 ]
 
-// Mock company content library
-const mockContentLibrary = [
-  { id: '1', title: 'ROI Calculator Template', type: 'template', lastUsed: '2024-01-10' },
-  { id: '2', title: 'Customer Success Stories', type: 'case_study', lastUsed: '2024-01-08' },
-  { id: '3', title: 'Technical Integration Guide', type: 'technical', lastUsed: '2024-01-05' },
-  { id: '4', title: 'Competitive Comparison', type: 'competitive', lastUsed: '2024-01-03' }
-]
+// Mock company content library based on prospect
+const getContentLibrary = (prospectId) => {
+  const baseContent = [
+    { id: '1', title: 'ROI Calculator Template', type: 'template', lastUsed: '2024-01-10' },
+    { id: '2', title: 'Customer Success Stories', type: 'case_study', lastUsed: '2024-01-08' },
+    { id: '3', title: 'Technical Integration Guide', type: 'technical', lastUsed: '2024-01-05' },
+    { id: '4', title: 'Competitive Comparison', type: 'competitive', lastUsed: '2024-01-03' }
+  ];
+
+  // Add prospect-specific content
+  const prospectSpecific = {
+    'acme_corp': [
+      { id: '5', title: 'Sales Team Scaling Playbook', type: 'playbook', lastUsed: '2024-01-12' },
+      { id: '6', title: 'HubSpot Integration Demo', type: 'demo', lastUsed: '2024-01-11' }
+    ],
+    'techstart_inc': [
+      { id: '7', title: 'Startup Growth Framework', type: 'framework', lastUsed: '2024-01-09' },
+      { id: '8', title: 'API Documentation', type: 'technical', lastUsed: '2024-01-07' }
+    ],
+    'global_solutions': [
+      { id: '9', title: 'Enterprise Security Overview', type: 'security', lastUsed: '2024-01-06' },
+      { id: '10', title: 'Process Optimization Guide', type: 'process', lastUsed: '2024-01-04' }
+    ]
+  };
+
+  return [...baseContent, ...(prospectSpecific[prospectId] || [])];
+};
 
 // Quick refinement prompts
 const quickPrompts = [
@@ -117,11 +115,59 @@ const quickPrompts = [
   'Strengthen the call-to-action'
 ]
 
+// Mock prospects data
+const mockProspects = [
+  {
+    id: 'acme_corp',
+    companyName: 'Acme Corp',
+    prospectName: 'Sarah Johnson',
+    title: 'VP of Sales',
+    status: 'hot',
+    dealValue: '$120K',
+    probability: 85,
+    nextAction: 'Pilot program approval',
+    stakeholders: [
+      { name: 'Sarah Johnson', role: 'VP Sales', style: 'Visual' },
+      { name: 'Mike Chen', role: 'Sales Ops', style: 'Kinesthetic' },
+      { name: 'Lisa Rodriguez', role: 'Marketing Dir', style: 'Auditory' }
+    ]
+  },
+  {
+    id: 'techstart_inc',
+    companyName: 'TechStart Inc',
+    prospectName: 'John Smith',
+    title: 'CEO',
+    status: 'warm',
+    dealValue: '$45K',
+    probability: 65,
+    nextAction: 'Technical demo',
+    stakeholders: [
+      { name: 'John Smith', role: 'CEO', style: 'Visual' },
+      { name: 'Emma Wilson', role: 'CTO', style: 'Kinesthetic' }
+    ]
+  },
+  {
+    id: 'global_solutions',
+    companyName: 'Global Solutions Ltd',
+    prospectName: 'Emma Wilson',
+    title: 'Director of Operations',
+    status: 'warm',
+    dealValue: '$85K',
+    probability: 70,
+    nextAction: 'Proposal review',
+    stakeholders: [
+      { name: 'Emma Wilson', role: 'Director Operations', style: 'Auditory' },
+      { name: 'David Brown', role: 'IT Manager', style: 'Kinesthetic' }
+    ]
+  }
+];
+
 export function DeckBuilder() {
-  const [selectedCall, setSelectedCall] = useState(mockRecentCalls[0])
+  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0])
   const [selectedMethodology, setSelectedMethodology] = useState('spin')
   const [selectedObjective, setSelectedObjective] = useState('educate')
   const [selectedContent, setSelectedContent] = useState([])
+  const [contentLibrary, setContentLibrary] = useState([])
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [promptBlocks, setPromptBlocks] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -132,9 +178,27 @@ export function DeckBuilder() {
   const [editingBlock, setEditingBlock] = useState(null)
   const [editText, setEditText] = useState('')
 
+  // Update content library when prospect changes
+  useEffect(() => {
+    if (selectedProspect) {
+      const library = getContentLibrary(selectedProspect.id);
+      setContentLibrary(library);
+      setSelectedContent([]); // Reset selected content
+      setGeneratedPrompt(''); // Clear previous prompt
+      setPromptBlocks([]);
+      setChatMessages([]);
+      setQualityScore(0);
+      toast.success(`Loaded content library for ${selectedProspect.companyName}`);
+    }
+  }, [selectedProspect]);
+
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+  };
+
   // Generate initial prompt when setup is complete
   const handleGeneratePrompt = async () => {
-    if (!selectedCall || !selectedMethodology || !selectedObjective) {
+    if (!selectedProspect || !selectedMethodology || !selectedObjective) {
       toast.error('Please complete the setup before generating prompt')
       return
     }
@@ -148,97 +212,94 @@ export function DeckBuilder() {
       const methodology = salesMethodologies[selectedMethodology]
       const objective = presentationObjectives.find(obj => obj.value === selectedObjective)
       
-      const prompt = `# AI-Generated Presentation Prompt for Gamma
+      const prompt = `# AI-Generated Presentation Prompt for Gamma - ${selectedProspect.companyName}
 
 ## Presentation Overview
 **Objective**: ${objective.label}
 **Methodology**: ${methodology.name}
-**Target Audience**: ${selectedCall.attendees.join(', ')}
-**Call Context**: ${selectedCall.title} (${selectedCall.date})
+**Target Audience**: ${selectedProspect.stakeholders.map(s => s.name).join(', ')}
+**Company Context**: ${selectedProspect.companyName} (${selectedProspect.dealValue} opportunity)
+**Next Action**: ${selectedProspect.nextAction}
 
 ## Slide Structure & Content
 
-### Slide 1: Executive Summary
+### Slide 1: Executive Summary for ${selectedProspect.companyName}
 Create an executive summary slide that immediately captures attention with:
-- Bold headline addressing the primary pain point discussed: "Streamline Your Lead Qualification Process"
-- Key statistic from our conversation: "Currently spending 15+ hours weekly on manual lead scoring"
-- Value proposition: "Reduce manual work by 70% while improving lead quality"
+- Bold headline addressing ${selectedProspect.companyName}'s primary challenge
+- Key statistic relevant to their ${selectedProspect.dealValue} investment
+- Value proposition aligned with their ${selectedProspect.nextAction}
 - Visual element: Include a before/after comparison chart
 
-### Slide 2: Problem Statement (SPIN: Situation Questions)
-Based on our discovery call insights:
-- Current state: Manual lead qualification taking 2-3 hours daily per team member
-- Impact: Sales team spending 40% of time on administrative tasks instead of selling
-- Consequence: Missing qualified leads due to delayed response times
+### Slide 2: Problem Statement (${methodology.name}: ${methodology.stages[0]})
+Based on our discovery with ${selectedProspect.companyName}:
+- Current state challenges specific to their industry
+- Impact on ${selectedProspect.prospectName}'s team and objectives
+- Consequence of inaction for their ${selectedProspect.nextAction}
 - Visual: Process flow diagram showing current inefficiencies
 
-### Slide 3: Implications & Cost (SPIN: Problem & Implication Questions)
-Quantify the impact using insights from our call:
-- Time cost: 15 hours/week × £50/hour = £750 weekly loss per team member
-- Opportunity cost: 30% of leads go cold due to delayed follow-up
-- Competitive disadvantage: Slower response times vs. competitors
+### Slide 3: Implications & Cost Analysis
+Quantify the impact using insights from ${selectedProspect.companyName}:
+- Financial impact relevant to their ${selectedProspect.dealValue} budget
+- Opportunity cost specific to their business model
+- Competitive disadvantage in their market
 - Visual: ROI calculator showing current losses
 
-### Slide 4: Solution Overview (SPIN: Need-Payoff Questions)
-Present our solution addressing specific needs mentioned:
-- Automated lead scoring based on 50+ data points
-- Real-time alerts for high-priority prospects
-- CRM integration with existing HubSpot setup
+### Slide 4: Solution Overview Tailored for ${selectedProspect.companyName}
+Present our solution addressing their specific needs:
+- Features most relevant to ${selectedProspect.prospectName}'s priorities
+- Integration capabilities for their existing systems
+- Scalability for their growth plans
 - Visual: Solution architecture diagram
 
-### Slide 5: Personalized ROI Analysis
-Based on their team size (8 sales reps) and current metrics:
-- Time savings: 12 hours/week per rep = 96 hours total
-- Cost savings: £4,800 monthly in productivity gains
-- Revenue impact: 25% increase in qualified lead conversion
-- Payback period: 4.2 months
+### Slide 5: Personalized ROI Analysis for ${selectedProspect.companyName}
+Based on their ${selectedProspect.dealValue} investment and requirements:
+- Cost savings specific to their operation size
+- Revenue impact aligned with their growth targets
+- Payback period for their ${selectedProspect.nextAction} timeline
 - Visual: Interactive ROI dashboard mockup
 
 ### Slide 6: Implementation Roadmap
-Address their Q2 timeline requirement:
-- Phase 1 (Week 1-2): Setup and CRM integration
-- Phase 2 (Week 3-4): Team training and pilot program
-- Phase 3 (Week 5-6): Full deployment and optimization
-- Ongoing: Monthly optimization reviews
-- Visual: Timeline with milestones
+Address their ${selectedProspect.nextAction} requirements:
+- Phase-by-phase implementation plan
+- Timeline aligned with their business calendar
+- Resource requirements and support structure
+- Ongoing optimization and success metrics
+- Visual: Timeline with key milestones
 
-### Slide 7: Success Stories
+### Slide 7: Success Stories from Similar Companies
 Include relevant case studies:
-- TechCorp (similar size): 60% reduction in qualification time
-- SalesForce Inc: 40% increase in lead conversion
-- Growth Ltd: 6-month ROI of 300%
+- Companies similar to ${selectedProspect.companyName}
+- Results achieved in comparable timeframes
+- Testimonials from similar roles to ${selectedProspect.prospectName}
 - Visual: Customer testimonial quotes with logos
 
-### Slide 8: Addressing Concerns
-Based on objections raised in our call:
-- Integration complexity: "Seamless HubSpot integration in 24 hours"
-- Team adoption: "Intuitive interface with 2-hour training requirement"
-- Data security: "SOC 2 Type II certified with enterprise-grade security"
+### Slide 8: Addressing ${selectedProspect.companyName}'s Specific Concerns
+Based on their evaluation criteria:
+- Technical requirements and capabilities
+- Security and compliance considerations
+- Support and training provisions
 - Visual: Security and compliance badges
 
 ### Slide 9: Next Steps & Call to Action
-Clear path forward aligned with their decision process:
-- Technical demo with Mike's team (proposed: Tuesday 2 PM)
-- Pilot program proposal for 2 team members
-- Contract terms and pricing discussion
-- Decision timeline: End of Q1 as discussed
+Clear path forward for ${selectedProspect.companyName}:
+- Immediate next steps for their ${selectedProspect.nextAction}
+- Timeline for decision and implementation
+- Contact information and follow-up schedule
 - Visual: Clear next steps flowchart
 
-### Slide 10: Investment & Value Summary
+### Slide 10: Investment Summary for ${selectedProspect.companyName}
 Final value reinforcement:
-- Monthly investment: £X per user
-- Annual savings: £57,600 in productivity gains
-- Additional revenue: £120,000 from improved conversion
-- Net ROI: 400% in first year
+- Investment details for their ${selectedProspect.dealValue} budget
+- Expected returns and timeline
+- Risk mitigation and guarantees
 - Visual: Value summary infographic
 
-## Presentation Notes
-- Use visual learning elements throughout (charts, diagrams, infographics) to match Sarah's preference
-- Include hands-on demonstration elements for Mike's kinesthetic learning style
-- Emphasize collaboration benefits for Lisa's team-focused approach
-- Maintain professional, results-oriented tone throughout
-- Include specific metrics and data points from our conversation
-- End each section with a clear transition to maintain flow
+## Presentation Notes for ${selectedProspect.companyName}
+- Tailor communication style to each stakeholder:
+${selectedProspect.stakeholders.map(s => `  • ${s.name} (${s.role}): ${s.style} learner - use appropriate presentation techniques`).join('\n')}
+- Emphasize elements most relevant to their ${selectedProspect.nextAction}
+- Include specific metrics and data points relevant to their industry
+- End each section with clear transitions maintaining flow
 
 ## Gamma-Specific Instructions
 - Use modern, professional template with company brand colors
@@ -258,9 +319,9 @@ Final value reinforcement:
       }))
       
       setPromptBlocks(blocks)
-      setQualityScore(87) // Mock quality score
+      setQualityScore(92) // Higher score for personalized content
       
-      toast.success('Presentation prompt generated successfully!')
+      toast.success(`Presentation prompt generated for ${selectedProspect.companyName}!`)
       
     } catch (error) {
       toast.error('Failed to generate prompt')
@@ -291,12 +352,12 @@ Final value reinforcement:
       // Simulate AI refinement
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Simple refinement logic
+      // Simple refinement logic with prospect context
       let refinedPrompt = generatedPrompt
       if (prompt.toLowerCase().includes('executive')) {
-        refinedPrompt = generatedPrompt.replace(/detailed/g, 'high-level strategic')
+        refinedPrompt = generatedPrompt.replace(/detailed/g, `high-level strategic for ${selectedProspect.companyName}`)
       } else if (prompt.toLowerCase().includes('technical')) {
-        refinedPrompt = generatedPrompt + '\n\n### Additional Technical Slide: Integration Architecture\nDetailed technical specifications and API documentation...'
+        refinedPrompt = generatedPrompt + `\n\n### Additional Technical Slide for ${selectedProspect.companyName}: Integration Architecture\nDetailed technical specifications and API documentation tailored to their existing systems...`
       }
       
       setGeneratedPrompt(refinedPrompt)
@@ -305,7 +366,7 @@ Final value reinforcement:
       // Add AI response
       const aiMessage = { 
         role: 'assistant', 
-        content: `I've refined the presentation prompt based on your request. The changes focus on ${prompt.toLowerCase()} and should improve the overall impact.`, 
+        content: `I've refined the presentation prompt for ${selectedProspect.companyName} based on your request. The changes focus on ${prompt.toLowerCase()} while maintaining personalization for their ${selectedProspect.dealValue} opportunity.`, 
         timestamp: new Date() 
       }
       setChatMessages(prev => [...prev, aiMessage])
@@ -372,7 +433,7 @@ Final value reinforcement:
 
   const handleExportToGamma = () => {
     // Simulate export to Gamma
-    toast.success('Prompt exported to Gamma successfully!')
+    toast.success(`Prompt for ${selectedProspect.companyName} exported to Gamma successfully!`)
   }
 
   return (
@@ -381,11 +442,104 @@ Final value reinforcement:
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">AI-Powered Presentation Strategist</h1>
         <p className="text-muted-foreground">
-          Transform call insights into persuasive, context-aware presentation prompts designed to accelerate your sales cycle.
+          Transform prospect insights into persuasive, context-aware presentation prompts designed to accelerate your sales cycle.
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
+        {/* Sidebar - Prospect Selector */}
+        <div className="space-y-6">
+          <ProspectSelector
+            selectedProspect={selectedProspect}
+            onProspectSelect={handleProspectSelect}
+            compact={true}
+            showStakeholders={true}
+          />
+
+          {/* Strategic Compass */}
+          {generatedPrompt && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Brain className="w-5 h-5" />
+                  <span>Strategic Compass</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Quality Indicators */}
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Impact Preview</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Personalization</span>
+                      <Badge variant="default" className="text-xs">High</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Call-to-Action Strength</span>
+                      <Badge variant="default" className="text-xs">Strong</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Prospect Relevance</span>
+                      <Badge variant="default" className="text-xs">Excellent</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Gamma Compatibility</span>
+                      <Badge variant="default" className="text-xs">Optimized</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quality Score */}
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Quality Score</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Overall Quality</span>
+                      <span className="text-sm font-medium">{qualityScore}/100</span>
+                    </div>
+                    <Progress value={qualityScore} className="h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Excellent personalization for {selectedProspect.companyName}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Presentation Tips */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Presentation Best Practices</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-3">
+                <div className="flex items-start space-x-2">
+                  <Eye className="w-4 h-4 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Visual Impact</p>
+                    <p className="text-xs text-muted-foreground">Use charts and infographics for data-heavy slides</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Users className="w-4 h-4 text-green-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Audience Engagement</p>
+                    <p className="text-xs text-muted-foreground">Include interactive elements and questions</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Target className="w-4 h-4 text-purple-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Clear Objectives</p>
+                    <p className="text-xs text-muted-foreground">Each slide should advance toward your goal</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Setup Section */}
@@ -393,50 +547,10 @@ Final value reinforcement:
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Settings className="w-5 h-5" />
-                <span>Contextual Setup</span>
+                <span>Contextual Setup for {selectedProspect.companyName}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Call Selection */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">Select Call</label>
-                <div className="space-y-2">
-                  {mockRecentCalls.map((call) => (
-                    <div
-                      key={call.id}
-                      className={cn(
-                        "p-4 rounded-lg border cursor-pointer transition-colors",
-                        selectedCall.id === call.id 
-                          ? "border-primary bg-primary/5" 
-                          : "border-border hover:bg-accent"
-                      )}
-                      onClick={() => setSelectedCall(call)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">{call.title}</h4>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {call.keyInsights} insights
-                          </Badge>
-                          <Badge 
-                            variant={call.sentiment === 'positive' ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {call.sentiment}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {call.date} • {call.duration}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Attendees: {call.attendees.join(', ')}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Methodology & Objective */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -483,9 +597,11 @@ Final value reinforcement:
 
               {/* Content Library */}
               <div>
-                <label className="text-sm font-medium mb-3 block">Company Content Library</label>
+                <label className="text-sm font-medium mb-3 block">
+                  Content Library for {selectedProspect.companyName}
+                </label>
                 <div className="grid md:grid-cols-2 gap-2">
-                  {mockContentLibrary.map((content) => (
+                  {contentLibrary.map((content) => (
                     <div
                       key={content.id}
                       className={cn(
@@ -513,14 +629,14 @@ Final value reinforcement:
               {/* Generate Button */}
               <Button 
                 onClick={handleGeneratePrompt}
-                disabled={isGenerating || !selectedCall || !selectedMethodology || !selectedObjective}
+                disabled={isGenerating || !selectedProspect || !selectedMethodology || !selectedObjective}
                 className="w-full"
                 size="lg"
               >
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    Generating Strategic Prompt...
+                    Generating Strategic Prompt for {selectedProspect.companyName}...
                   </>
                 ) : (
                   <>
@@ -539,7 +655,7 @@ Final value reinforcement:
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <FileText className="w-5 h-5" />
-                    <span>Strategic Canvas</span>
+                    <span>Strategic Canvas for {selectedProspect.companyName}</span>
                     <Badge variant="secondary" className="flex items-center space-x-1">
                       <Star className="w-3 h-3" />
                       <span>Quality: {qualityScore}/100</span>
@@ -646,7 +762,7 @@ Final value reinforcement:
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Zap className="w-5 h-5" />
-                  <span>Co-Pilot Refinement</span>
+                  <span>Co-Pilot Refinement for {selectedProspect.companyName}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -701,7 +817,7 @@ Final value reinforcement:
                   <Input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Refine the presentation... (e.g., 'Add more competitive analysis' or 'Make it more technical')"
+                    placeholder={`Refine the presentation for ${selectedProspect.companyName}... (e.g., 'Add more competitive analysis' or 'Make it more technical')`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -724,117 +840,6 @@ Final value reinforcement:
               </CardContent>
             </Card>
           )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Strategic Compass */}
-          {generatedPrompt && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Brain className="w-5 h-5" />
-                  <span>Strategic Compass</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Quality Indicators */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Impact Preview</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Personalization</span>
-                      <Badge variant="default" className="text-xs">High</Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Call-to-Action Strength</span>
-                      <Badge variant="default" className="text-xs">Strong</Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Objection Handling</span>
-                      <Badge variant="secondary" className="text-xs">Good</Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Gamma Compatibility</span>
-                      <Badge variant="default" className="text-xs">Optimized</Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Methodology Mapping */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Methodology Alignment</h4>
-                  <div className="space-y-2">
-                    {salesMethodologies[selectedMethodology].stages.slice(0, 4).map((stage, index) => (
-                      <div key={index} className="flex items-center space-x-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-muted-foreground">{stage}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quality Score */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Quality Score</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Overall Quality</span>
-                      <span className="text-sm font-medium">{qualityScore}/100</span>
-                    </div>
-                    <Progress value={qualityScore} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      Excellent personalization and strategic alignment
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* CRM Connection Status */}
-          <CRMConnectionStatus
-            status="connected"
-            lastSync="1 minute ago"
-            accountInfo={{
-              name: "Acme Corp Sales",
-              hubId: "12345678"
-            }}
-            onReconnect={() => toast.success('Connection refreshed')}
-            onSettings={() => toast.info('Opening settings...')}
-          />
-
-          {/* Presentation Tips */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Presentation Best Practices</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-3">
-                <div className="flex items-start space-x-2">
-                  <Eye className="w-4 h-4 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Visual Impact</p>
-                    <p className="text-xs text-muted-foreground">Use charts and infographics for data-heavy slides</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Users className="w-4 h-4 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Audience Engagement</p>
-                    <p className="text-xs text-muted-foreground">Include interactive elements and questions</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Target className="w-4 h-4 text-purple-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Clear Objectives</p>
-                    <p className="text-xs text-muted-foreground">Each slide should advance toward your goal</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CRMConnectionStatus } from '@/components/followups/CRMConnectionStatus'
+import { ProspectSelector } from '@/components/shared/ProspectSelector'
 import { 
   Eye, 
   Ear, 
@@ -25,55 +25,133 @@ import {
   ArrowRight,
   Edit,
   Save,
-  X
+  X,
+  Mail
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-// Mock personality analysis data
-const mockPersonalityAnalysis = {
-  primary_contact: {
-    name: "Sarah Johnson",
-    role: "VP of Sales",
-    communication_style: "visual",
-    personality_type: "ENTJ",
-    confidence: 0.85,
-    key_traits: ["Direct", "Results-oriented", "Strategic thinker"],
-    communication_preferences: [
-      "Prefers visual data and charts",
-      "Values efficiency and quick decisions", 
-      "Responds well to ROI-focused messaging"
-    ]
-  },
-  attendees: [
-    {
-      name: "Mike Chen",
-      role: "Sales Operations Manager", 
-      communication_style: "kinesthetic",
-      personality_type: "ISTJ",
-      confidence: 0.78,
-      key_traits: ["Detail-oriented", "Process-focused", "Analytical"],
-      communication_preferences: [
-        "Prefers hands-on demonstrations",
-        "Values detailed implementation plans",
-        "Needs concrete examples and case studies"
+// Mock personality analysis data based on selected prospect
+const getPersonalityAnalysis = (prospectId) => {
+  const analysisData = {
+    'acme_corp': {
+      primary_contact: {
+        name: "Sarah Johnson",
+        role: "VP of Sales",
+        communication_style: "visual",
+        personality_type: "ENTJ",
+        confidence: 0.85,
+        key_traits: ["Direct", "Results-oriented", "Strategic thinker"],
+        communication_preferences: [
+          "Prefers visual data and charts",
+          "Values efficiency and quick decisions", 
+          "Responds well to ROI-focused messaging"
+        ]
+      },
+      attendees: [
+        {
+          name: "Mike Chen",
+          role: "Sales Operations Manager", 
+          communication_style: "kinesthetic",
+          personality_type: "ISTJ",
+          confidence: 0.78,
+          key_traits: ["Detail-oriented", "Process-focused", "Analytical"],
+          communication_preferences: [
+            "Prefers hands-on demonstrations",
+            "Values detailed implementation plans",
+            "Needs concrete examples and case studies"
+          ]
+        },
+        {
+          name: "Lisa Rodriguez",
+          role: "Director of Marketing",
+          communication_style: "auditory", 
+          personality_type: "ENFP",
+          confidence: 0.72,
+          key_traits: ["Creative", "Collaborative", "Enthusiastic"],
+          communication_preferences: [
+            "Enjoys verbal discussions and calls",
+            "Values team collaboration features",
+            "Responds to emotional and inspirational messaging"
+          ]
+        }
       ]
     },
-    {
-      name: "Lisa Rodriguez",
-      role: "Director of Marketing",
-      communication_style: "auditory", 
-      personality_type: "ENFP",
-      confidence: 0.72,
-      key_traits: ["Creative", "Collaborative", "Enthusiastic"],
-      communication_preferences: [
-        "Enjoys verbal discussions and calls",
-        "Values team collaboration features",
-        "Responds to emotional and inspirational messaging"
+    'techstart_inc': {
+      primary_contact: {
+        name: "John Smith",
+        role: "CEO",
+        communication_style: "visual",
+        personality_type: "INTJ",
+        confidence: 0.88,
+        key_traits: ["Analytical", "Strategic", "Independent"],
+        communication_preferences: [
+          "Prefers data-driven presentations",
+          "Values long-term strategic thinking",
+          "Responds to innovation and efficiency"
+        ]
+      },
+      attendees: [
+        {
+          name: "Emma Wilson",
+          role: "CTO",
+          communication_style: "kinesthetic",
+          personality_type: "ISTP",
+          confidence: 0.82,
+          key_traits: ["Technical", "Practical", "Problem-solver"],
+          communication_preferences: [
+            "Prefers technical demonstrations",
+            "Values hands-on testing",
+            "Needs detailed technical specifications"
+          ]
+        }
+      ]
+    },
+    'global_solutions': {
+      primary_contact: {
+        name: "Emma Wilson",
+        role: "Director of Operations",
+        communication_style: "auditory",
+        personality_type: "ESFJ",
+        confidence: 0.79,
+        key_traits: ["Collaborative", "Process-oriented", "People-focused"],
+        communication_preferences: [
+          "Prefers verbal communication",
+          "Values team consensus",
+          "Responds to relationship-building"
+        ]
+      },
+      attendees: [
+        {
+          name: "David Brown",
+          role: "IT Manager",
+          communication_style: "kinesthetic",
+          personality_type: "ISTJ",
+          confidence: 0.85,
+          key_traits: ["Methodical", "Reliable", "Detail-focused"],
+          communication_preferences: [
+            "Prefers step-by-step processes",
+            "Values practical implementation",
+            "Needs comprehensive documentation"
+          ]
+        }
       ]
     }
-  ]
-}
+  };
+
+  return analysisData[prospectId] || {
+    primary_contact: {
+      name: "Unknown Contact",
+      role: "Unknown Role",
+      communication_style: "visual",
+      personality_type: "UNKNOWN",
+      confidence: 0.5,
+      key_traits: ["To be determined"],
+      communication_preferences: ["Analysis pending"]
+    },
+    attendees: []
+  };
+};
 
 const communicationStyles = {
   visual: {
@@ -101,7 +179,9 @@ const personalityTypes = {
   ISTJ: { label: "The Logistician", traits: ["Practical", "Fact-minded", "Reliable"] },
   ENFP: { label: "The Campaigner", traits: ["Enthusiastic", "Creative", "Sociable"] },
   INTJ: { label: "The Architect", traits: ["Imaginative", "Strategic", "Independent"] },
-  ESTP: { label: "The Entrepreneur", traits: ["Bold", "Practical", "Perceptive"] }
+  ISTP: { label: "The Virtuoso", traits: ["Practical", "Experimental", "Adaptable"] },
+  ESFJ: { label: "The Consul", traits: ["Caring", "Social", "Popular"] },
+  UNKNOWN: { label: "Analysis Pending", traits: ["To be determined"] }
 }
 
 const quickPrompts = [
@@ -115,7 +195,56 @@ const quickPrompts = [
   "Emphasize integration capabilities"
 ]
 
+// Mock prospects data
+const mockProspects = [
+  {
+    id: 'acme_corp',
+    companyName: 'Acme Corp',
+    prospectName: 'Sarah Johnson',
+    title: 'VP of Sales',
+    status: 'hot',
+    dealValue: '$120K',
+    probability: 85,
+    nextAction: 'Pilot program approval',
+    stakeholders: [
+      { name: 'Sarah Johnson', role: 'VP Sales', style: 'Visual' },
+      { name: 'Mike Chen', role: 'Sales Ops', style: 'Kinesthetic' },
+      { name: 'Lisa Rodriguez', role: 'Marketing Dir', style: 'Auditory' }
+    ]
+  },
+  {
+    id: 'techstart_inc',
+    companyName: 'TechStart Inc',
+    prospectName: 'John Smith',
+    title: 'CEO',
+    status: 'warm',
+    dealValue: '$45K',
+    probability: 65,
+    nextAction: 'Technical demo',
+    stakeholders: [
+      { name: 'John Smith', role: 'CEO', style: 'Visual' },
+      { name: 'Emma Wilson', role: 'CTO', style: 'Kinesthetic' }
+    ]
+  },
+  {
+    id: 'global_solutions',
+    companyName: 'Global Solutions Ltd',
+    prospectName: 'Emma Wilson',
+    title: 'Director of Operations',
+    status: 'warm',
+    dealValue: '$85K',
+    probability: 70,
+    nextAction: 'Proposal review',
+    stakeholders: [
+      { name: 'Emma Wilson', role: 'Director Operations', style: 'Auditory' },
+      { name: 'David Brown', role: 'IT Manager', style: 'Kinesthetic' }
+    ]
+  }
+];
+
 export const EmailTemplates = () => {
+  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0])
+  const [personalityAnalysis, setPersonalityAnalysis] = useState(null)
   const [selectedInsights, setSelectedInsights] = useState([])
   const [generatedEmail, setGeneratedEmail] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -125,15 +254,32 @@ export const EmailTemplates = () => {
   const [emailSubject, setEmailSubject] = useState('')
   const [pushStatus, setPushStatus] = useState('draft')
 
-  // Initialize with some insights selected
+  // Load personality analysis when prospect changes
   useEffect(() => {
-    const defaultInsights = [
-      { id: 'primary_contact', type: 'personality', selected: true },
-      { id: 'communication_visual', type: 'communication', selected: true },
-      { id: 'attendee_1', type: 'attendee', selected: true }
-    ]
-    setSelectedInsights(defaultInsights)
-  }, [])
+    if (selectedProspect) {
+      const analysis = getPersonalityAnalysis(selectedProspect.id);
+      setPersonalityAnalysis(analysis);
+      
+      // Auto-select primary contact and first attendee
+      const defaultInsights = [
+        { id: 'primary_contact', type: 'personality', selected: true },
+        { id: 'attendee_1', type: 'attendee', selected: true }
+      ];
+      setSelectedInsights(defaultInsights);
+      
+      // Clear previous email content
+      setGeneratedEmail('');
+      setEmailSubject('');
+      setChatMessages([]);
+      setPushStatus('draft');
+      
+      toast.success(`Loaded analysis for ${selectedProspect.companyName}`);
+    }
+  }, [selectedProspect]);
+
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+  };
 
   const handleToggleInsight = (insightId, type) => {
     setSelectedInsights(prev => {
@@ -155,38 +301,39 @@ export const EmailTemplates = () => {
     setIsGenerating(true)
     
     try {
-      // Simulate AI email generation
+      // Simulate AI email generation based on selected prospect
       await new Promise(resolve => setTimeout(resolve, 3000))
       
-      const email = `Subject: Following up on our sales automation discussion
+      const primaryContact = personalityAnalysis.primary_contact;
+      const companyName = selectedProspect.companyName;
+      
+      const email = `Subject: Following up on our ${companyName} automation discussion
 
-Hi Sarah,
+Hi ${primaryContact.name},
 
-Thank you for taking the time to speak with me yesterday about your sales team's automation needs. I was impressed by your strategic vision for scaling your sales operations.
+Thank you for taking the time to speak with me about ${companyName}'s sales automation needs. I was impressed by your ${primaryContact.key_traits[0].toLowerCase()} approach to scaling your operations.
 
-Based on our conversation and your preference for visual data, I've prepared a comprehensive ROI analysis that shows how our solution can deliver the 40% efficiency gains you're targeting. The visual dashboard I mentioned would give you real-time insights into your team's performance metrics.
+Based on our conversation and your ${primaryContact.communication_style} communication preference, I've prepared a comprehensive analysis that shows how our solution can deliver the results you're targeting for ${companyName}.
 
-For Mike, I've included detailed implementation timelines and hands-on training materials that address the process integration concerns he raised. Our step-by-step approach ensures smooth adoption without disrupting current workflows.
+${personalityAnalysis.attendees.length > 0 ? `For ${personalityAnalysis.attendees[0].name}, I've included detailed implementation materials that address the ${personalityAnalysis.attendees[0].key_traits[0].toLowerCase()} requirements discussed during our call.` : ''}
 
-Lisa, I think you'll be excited about the collaboration features that enable seamless alignment between sales and marketing teams - exactly what you mentioned as a key priority.
+Key next steps aligned with your ${selectedProspect.nextAction.toLowerCase()}:
+• Technical demonstration tailored to your team's needs
+• ROI analysis specific to ${companyName}'s current metrics
+• Implementation timeline for your target deployment
 
-Key next steps:
-• Technical demo with Mike's team (Tuesday 2 PM)
-• ROI presentation with visual metrics (Thursday 10 AM)  
-• Pilot program proposal for Q2 implementation
+I've attached the analysis we discussed. Given your preference for ${primaryContact.communication_style === 'visual' ? 'visual data presentations' : primaryContact.communication_style === 'auditory' ? 'verbal discussions' : 'hands-on demonstrations'}, would you prefer a brief call to walk through the details, or shall we proceed directly to the next phase?
 
-I've attached the visual ROI analysis and implementation roadmap we discussed. Would you prefer a brief call to walk through the numbers, or shall we proceed directly to the technical demo?
-
-Looking forward to helping you achieve your ambitious growth targets.
+Looking forward to helping ${companyName} achieve your ambitious growth targets.
 
 Best regards,
 [Your Name]
 
-P.S. The case study from TechCorp (similar size/industry) shows 6-month payback - happy to share those specific metrics if helpful.`
+P.S. The case study from a similar ${selectedProspect.dealValue} implementation shows excellent results - happy to share those specific metrics if helpful.`
 
       setGeneratedEmail(email)
-      setEmailSubject('Following up on our sales automation discussion')
-      toast.success('Email generated successfully!')
+      setEmailSubject(`Following up on our ${companyName} automation discussion`)
+      toast.success('Personalized email generated successfully!')
       
     } catch (error) {
       toast.error('Failed to generate email')
@@ -211,13 +358,13 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
       
       let refinedEmail = generatedEmail
       
-      // Simple refinement logic based on prompt
+      // Simple refinement logic based on prompt and prospect context
       if (prompt.toLowerCase().includes('concise')) {
         refinedEmail = generatedEmail.replace(/\. [A-Z]/g, '.\n\n').slice(0, Math.floor(generatedEmail.length * 0.7)) + '\n\nBest regards,\n[Your Name]'
       } else if (prompt.toLowerCase().includes('technical')) {
-        refinedEmail = generatedEmail + '\n\nTechnical specifications:\n• API integration capabilities\n• Real-time data synchronization\n• Advanced security protocols\n• Scalable cloud infrastructure'
+        refinedEmail = generatedEmail + `\n\nTechnical specifications for ${selectedProspect.companyName}:\n• API integration capabilities\n• Real-time data synchronization\n• Advanced security protocols\n• Scalable cloud infrastructure`
       } else if (prompt.toLowerCase().includes('roi')) {
-        refinedEmail = generatedEmail.replace('40% efficiency gains', '40% efficiency gains ($120K annual savings)')
+        refinedEmail = generatedEmail.replace('results you\'re targeting', `results you're targeting (projected ${selectedProspect.dealValue} annual value)`)
       }
       
       setGeneratedEmail(refinedEmail)
@@ -225,7 +372,7 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
       // Add AI response
       const aiMessage = { 
         role: 'assistant', 
-        content: 'I\'ve updated the email based on your request. The changes have been applied to focus on ' + prompt.toLowerCase() + '.', 
+        content: `I've updated the email for ${selectedProspect.companyName} based on your request. The changes focus on ${prompt.toLowerCase()} while maintaining personalization for ${personalityAnalysis.primary_contact.name}'s ${personalityAnalysis.primary_contact.communication_style} communication style.`, 
         timestamp: new Date() 
       }
       setChatMessages(prev => [...prev, aiMessage])
@@ -250,7 +397,7 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
       setPushStatus('success')
-      toast.success('Email template saved to HubSpot!')
+      toast.success(`Email template for ${selectedProspect.companyName} saved to HubSpot!`)
     } catch (error) {
       setPushStatus('error')
       toast.error('Failed to push to HubSpot')
@@ -265,172 +412,233 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Email Templates</h1>
         <p className="text-muted-foreground">
-          Generate personalized follow-up emails based on personality analysis and communication preferences.
+          Generate personalized follow-up emails based on prospect personality analysis and communication preferences.
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Decision Maker Analysis */}
+        {/* Sidebar - Prospect Selector */}
+        <div className="space-y-6">
+          <ProspectSelector
+            selectedProspect={selectedProspect}
+            onProspectSelect={handleProspectSelect}
+            compact={true}
+            showStakeholders={true}
+          />
+
+          {/* Communication Styles Guide */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="w-5 h-5" />
-                <span>Decision Maker Analysis</span>
-                <Badge variant="secondary">AI Analyzed</Badge>
-              </CardTitle>
+              <CardTitle className="text-lg">Communication Styles</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Primary Contact */}
-              <div className="border border-border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      checked={selectedInsights.some(item => item.id === 'primary_contact')}
-                      onCheckedChange={() => handleToggleInsight('primary_contact', 'personality')}
-                    />
-                    <div>
-                      <h4 className="font-semibold">{mockPersonalityAnalysis.primary_contact.name}</h4>
-                      <p className="text-sm text-muted-foreground">{mockPersonalityAnalysis.primary_contact.role}</p>
-                    </div>
+            <CardContent className="space-y-3">
+              {Object.entries(communicationStyles).map(([key, style]) => {
+                const Icon = style.icon
+                return (
+                  <div key={key} className="flex items-start space-x-3">
+                    <Badge variant="outline" className={cn("text-xs", style.color)}>
+                      <Icon className="w-3 h-3 mr-1" />
+                      {style.label}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {style.description}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {Math.round(mockPersonalityAnalysis.primary_contact.confidence * 100)}% confidence
-                  </Badge>
-                </div>
+                )
+              })}
+            </CardContent>
+          </Card>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* Communication Style */}
+          {/* Email Tips */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Personalization Tips</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-start space-x-2">
+                  <Eye className="w-4 h-4 text-blue-600 mt-0.5" />
                   <div>
-                    <h5 className="text-sm font-medium mb-2">Communication Style</h5>
-                    <div className="flex items-center space-x-2">
-                      {(() => {
-                        const style = communicationStyles[mockPersonalityAnalysis.primary_contact.communication_style]
-                        const Icon = style.icon
-                        return (
-                          <>
-                            <Badge variant="outline" className={cn("text-xs", style.color)}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {style.label}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{style.description}</span>
-                          </>
-                        )
-                      })()}
-                    </div>
+                    <p className="text-sm font-medium">Visual Learners</p>
+                    <p className="text-xs text-muted-foreground">Include charts, infographics, and visual data</p>
                   </div>
-
-                  {/* Personality Type */}
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Ear className="w-4 h-4 text-green-600 mt-0.5" />
                   <div>
-                    <h5 className="text-sm font-medium mb-2">Personality Type</h5>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                        <Brain className="w-3 h-3 mr-1" />
-                        {mockPersonalityAnalysis.primary_contact.personality_type}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {personalityTypes[mockPersonalityAnalysis.primary_contact.personality_type]?.label}
-                      </span>
-                    </div>
+                    <p className="text-sm font-medium">Auditory Learners</p>
+                    <p className="text-xs text-muted-foreground">Mention calls, discussions, and verbal feedback</p>
                   </div>
                 </div>
-
-                {/* Key Traits */}
-                <div>
-                  <h5 className="text-sm font-medium mb-2">Key Traits</h5>
-                  <div className="flex flex-wrap gap-1">
-                    {mockPersonalityAnalysis.primary_contact.key_traits.map((trait, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {trait}
-                      </Badge>
-                    ))}
+                <div className="flex items-start space-x-2">
+                  <Hand className="w-4 h-4 text-purple-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Kinesthetic Learners</p>
+                    <p className="text-xs text-muted-foreground">Focus on hands-on demos and practical examples</p>
                   </div>
-                </div>
-
-                {/* Communication Preferences */}
-                <div>
-                  <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    {mockPersonalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="text-primary mt-1">•</span>
-                        <span>{pref}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Call Attendees Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="w-5 h-5" />
-                <span>Call Attendees</span>
-                <Badge variant="secondary">{mockPersonalityAnalysis.attendees.length} analyzed</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {mockPersonalityAnalysis.attendees.map((attendee, index) => (
-                <div key={index} className="border border-border rounded-lg p-4 space-y-3">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Decision Maker Analysis */}
+          {personalityAnalysis && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="w-5 h-5" />
+                  <span>Decision Maker Analysis - {selectedProspect.companyName}</span>
+                  <Badge variant="secondary">AI Analyzed</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Primary Contact */}
+                <div className="border border-border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Checkbox
-                        checked={selectedInsights.some(item => item.id === `attendee_${index + 1}`)}
-                        onCheckedChange={() => handleToggleInsight(`attendee_${index + 1}`, 'attendee')}
+                        checked={selectedInsights.some(item => item.id === 'primary_contact')}
+                        onCheckedChange={() => handleToggleInsight('primary_contact', 'personality')}
                       />
                       <div>
-                        <h4 className="font-semibold">{attendee.name}</h4>
-                        <p className="text-sm text-muted-foreground">{attendee.role}</p>
+                        <h4 className="font-semibold">{personalityAnalysis.primary_contact.name}</h4>
+                        <p className="text-sm text-muted-foreground">{personalityAnalysis.primary_contact.role}</p>
                       </div>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {Math.round(attendee.confidence * 100)}% confidence
+                      {Math.round(personalityAnalysis.primary_contact.confidence * 100)}% confidence
                     </Badge>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
+                    {/* Communication Style */}
                     <div>
-                      <div className="flex items-center space-x-2 mb-2">
+                      <h5 className="text-sm font-medium mb-2">Communication Style</h5>
+                      <div className="flex items-center space-x-2">
                         {(() => {
-                          const style = communicationStyles[attendee.communication_style]
+                          const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
                           const Icon = style.icon
                           return (
-                            <Badge variant="outline" className={cn("text-xs", style.color)}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {style.label}
-                            </Badge>
+                            <>
+                              <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                <Icon className="w-3 h-3 mr-1" />
+                                {style.label}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">{style.description}</span>
+                            </>
                           )
                         })()}
+                      </div>
+                    </div>
+
+                    {/* Personality Type */}
+                    <div>
+                      <h5 className="text-sm font-medium mb-2">Personality Type</h5>
+                      <div className="flex items-center space-x-2">
                         <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
                           <Brain className="w-3 h-3 mr-1" />
-                          {attendee.personality_type}
+                          {personalityAnalysis.primary_contact.personality_type}
                         </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {attendee.key_traits.map((trait, traitIndex) => (
-                          <Badge key={traitIndex} variant="secondary" className="text-xs">
-                            {trait}
-                          </Badge>
-                        ))}
+                        <span className="text-xs text-muted-foreground">
+                          {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  {/* Key Traits */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Key Traits</h5>
+                    <div className="flex flex-wrap gap-1">
+                      {personalityAnalysis.primary_contact.key_traits.map((trait, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {trait}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Communication Preferences */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {personalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{pref}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+
+                {/* Call Attendees Analysis */}
+                {personalityAnalysis.attendees.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Key Stakeholders</h4>
+                    {personalityAnalysis.attendees.map((attendee, index) => (
+                      <div key={index} className="border border-border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={selectedInsights.some(item => item.id === `attendee_${index + 1}`)}
+                              onCheckedChange={() => handleToggleInsight(`attendee_${index + 1}`, 'attendee')}
+                            />
+                            <div>
+                              <h4 className="font-semibold">{attendee.name}</h4>
+                              <p className="text-sm text-muted-foreground">{attendee.role}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {Math.round(attendee.confidence * 100)}% confidence
+                          </Badge>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              {(() => {
+                                const style = communicationStyles[attendee.communication_style]
+                                const Icon = style.icon
+                                return (
+                                  <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                    <Icon className="w-3 h-3 mr-1" />
+                                    {style.label}
+                                  </Badge>
+                                )
+                              })()}
+                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                                <Brain className="w-3 h-3 mr-1" />
+                                {attendee.personality_type}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {attendee.key_traits.map((trait, traitIndex) => (
+                                <Badge key={traitIndex} variant="secondary" className="text-xs">
+                                  {trait}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Email Generation */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Generated Email</span>
+                  <Mail className="w-5 h-5" />
+                  <span>Generated Email for {selectedProspect.companyName}</span>
                   {selectedCount > 0 && (
                     <Badge variant="secondary">{selectedCount} insights selected</Badge>
                   )}
@@ -505,7 +713,7 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No email generated yet</p>
+                  <p className="mb-2">No email generated yet for {selectedProspect.companyName}</p>
                   <p className="text-sm">Select insights above and click "Generate Email" to create a personalized follow-up</p>
                 </div>
               )}
@@ -518,7 +726,7 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Zap className="w-5 h-5" />
-                  <span>Refine Email</span>
+                  <span>Refine Email for {selectedProspect.companyName}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -596,76 +804,6 @@ P.S. The case study from TechCorp (similar size/industry) shows 6-month payback 
               </CardContent>
             </Card>
           )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* CRM Connection Status */}
-          <CRMConnectionStatus
-            status="connected"
-            lastSync="3 minutes ago"
-            accountInfo={{
-              name: "Acme Corp Sales",
-              hubId: "12345678"
-            }}
-            onReconnect={() => toast.success('Connection refreshed')}
-            onSettings={() => toast.info('Opening settings...')}
-          />
-
-          {/* Communication Styles Guide */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Communication Styles</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Object.entries(communicationStyles).map(([key, style]) => {
-                const Icon = style.icon
-                return (
-                  <div key={key} className="flex items-start space-x-3">
-                    <Badge variant="outline" className={cn("text-xs", style.color)}>
-                      <Icon className="w-3 h-3 mr-1" />
-                      {style.label}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {style.description}
-                    </p>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Email Tips */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Personalization Tips</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <Eye className="w-4 h-4 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Visual Learners</p>
-                    <p className="text-xs text-muted-foreground">Include charts, infographics, and visual data</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Ear className="w-4 h-4 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Auditory Learners</p>
-                    <p className="text-xs text-muted-foreground">Mention calls, discussions, and verbal feedback</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Hand className="w-4 h-4 text-purple-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Kinesthetic Learners</p>
-                    <p className="text-xs text-muted-foreground">Focus on hands-on demos and practical examples</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
