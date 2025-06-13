@@ -13,36 +13,66 @@ import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
+import { useEffect } from "react";
+import { analytics } from "@/lib/analytics";
+import { CURRENT_USER } from "@/lib/supabase";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/calls" replace />} />
-            <Route path="research" element={<Research />} />
-            <Route path="calls" element={<SalesCalls />} />
-            <Route path="call-insights" element={<CallInsights />} />
-            <Route path="follow-ups">
-              <Route index element={<Navigate to="/call-insights" replace />} />
-              <Route path="actions" element={<ActionItems />} />
-              <Route path="emails" element={<EmailTemplates />} />
-              <Route path="decks" element={<DeckBuilder />} />
-              <Route path="wrap-up" element={<CallInsights />} />
+const App = () => {
+  // Initialize user identification and properties
+  useEffect(() => {
+    // Identify the current user for analytics
+    analytics.identify(CURRENT_USER.id, {
+      email: CURRENT_USER.email,
+      name: CURRENT_USER.name,
+      role: CURRENT_USER.role,
+      organization_id: CURRENT_USER.organization_id,
+    })
+
+    // Set user properties
+    analytics.setUserProperties({
+      user_type: 'sales_manager',
+      subscription_tier: 'demo',
+      signup_date: new Date().toISOString(),
+    })
+
+    // Track app initialization
+    analytics.track('app_initialized', {
+      user_id: CURRENT_USER.id,
+      user_role: CURRENT_USER.role,
+      timestamp: new Date().toISOString(),
+    })
+  }, [])
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/calls" replace />} />
+              <Route path="research" element={<Research />} />
+              <Route path="calls" element={<SalesCalls />} />
+              <Route path="call-insights" element={<CallInsights />} />
+              <Route path="follow-ups">
+                <Route index element={<Navigate to="/call-insights" replace />} />
+                <Route path="actions" element={<ActionItems />} />
+                <Route path="emails" element={<EmailTemplates />} />
+                <Route path="decks" element={<DeckBuilder />} />
+                <Route path="wrap-up" element={<CallInsights />} />
+              </Route>
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

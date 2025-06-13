@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrackedButton } from '@/components/ui/tracked-button';
 import { 
   Upload,
   FileText,
@@ -33,6 +34,7 @@ import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 // Mock data for Fireflies.ai imports
 const mockFirefliesCalls = [
@@ -151,6 +153,7 @@ const mockProcessedCalls = [
 
 const SalesCalls = () => {
   const navigate = useNavigate();
+  const { trackButtonClick, trackFeatureUsage, trackFileUpload } = useAnalytics();
   const [activeTab, setActiveTab] = useState('upload');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCall, setSelectedCall] = useState(null);
@@ -164,7 +167,15 @@ const SalesCalls = () => {
   // Load uploaded files on component mount
   useEffect(() => {
     loadUploadedFiles();
+    
+    // Track page visit
+    trackFeatureUsage('sales_calls', 'page_visit');
   }, []);
+
+  // Track tab changes
+  useEffect(() => {
+    trackFeatureUsage('sales_calls', 'tab_change', { tab: activeTab });
+  }, [activeTab]);
 
   const loadUploadedFiles = async () => {
     try {
@@ -183,6 +194,9 @@ const SalesCalls = () => {
     const file = acceptedFiles[0];
     
     try {
+      // Track file upload start
+      trackFileUpload(file.name, file.size, file.type, 'started');
+      
       // Validate file type
       const validTypes = ['text/plain', 'text/vtt', 'application/pdf'];
       const validExtensions = ['.txt', '.vtt', '.pdf'];
@@ -190,11 +204,13 @@ const SalesCalls = () => {
       
       if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
         toast.error('Please upload only .txt, .vtt, or .pdf files');
+        trackFileUpload(file.name, file.size, file.type, 'failed');
         return;
       }
       
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error('File size must be less than 10MB');
+        trackFileUpload(file.name, file.size, file.type, 'failed');
         return;
       }
 
@@ -212,11 +228,13 @@ const SalesCalls = () => {
       await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
       
       toast.success('File uploaded successfully!');
+      trackFileUpload(file.name, file.size, file.type, 'completed');
       await loadUploadedFiles(); // Refresh the list
       
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error(`Failed to upload file: ${error.message}`);
+      trackFileUpload(file.name, file.size, file.type, 'failed');
     } finally {
       setIsUploading(false);
     }
@@ -234,12 +252,14 @@ const SalesCalls = () => {
   });
 
   const handleViewSummary = (call) => {
+    trackButtonClick('View Summary', { call_id: call.id, company: call.companyName });
     setModalTitle(`Call Summary - ${call.companyName}`);
     setModalContent(call.firefliesSummary);
     setShowSummaryModal(true);
   };
 
   const handleViewTranscript = (call) => {
+    trackButtonClick('View Transcript', { call_id: call.id, company: call.companyName });
     setModalTitle(`Full Transcript - ${call.companyName}`);
     setModalContent(call.transcript);
     setShowTranscriptModal(true);
@@ -248,6 +268,7 @@ const SalesCalls = () => {
   const handleCopyTranscript = () => {
     navigator.clipboard.writeText(modalContent);
     toast.success('Transcript copied to clipboard');
+    trackButtonClick('Copy Transcript');
   };
 
   const handleDownloadTranscriptPDF = () => {
@@ -270,6 +291,7 @@ const SalesCalls = () => {
       // Save the PDF
       doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.pdf`);
       toast.success('PDF downloaded successfully');
+      trackButtonClick('Download PDF', { content_type: 'transcript' });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Failed to generate PDF');
@@ -287,9 +309,21 @@ const SalesCalls = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Transcript downloaded');
+    trackButtonClick('Download Transcript', { call_id: call.id, company: call.companyName });
   };
 
   const handleProcessCall = (call, source = 'fireflies') => {
+    trackButtonClick('Generate Insights', { 
+      call_id: call.id, 
+      company: call.companyName, 
+      source: source 
+    });
+    
+    trackFeatureUsage('call_processing', 'start_processing', {
+      source: source,
+      company: call.companyName
+    });
+
     // Navigate to Call Insights page with the selected call data
     navigate('/call-insights', { 
       state: { 
@@ -364,14 +398,23 @@ const SalesCalls = () => {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" size="sm">
+            <TrackedButton 
+              variant="outline" 
+              size="sm"
+              trackingName="Filter Calls"
+            >
               <Filter className="w-4 h-4 mr-1" />
               Filter
-            </Button>
-            <Button variant="outline" size="sm" onClick={loadUploadedFiles}>
+            </TrackedButton>
+            <TrackedButton 
+              variant="outline" 
+              size="sm" 
+              onClick={loadUploadedFiles}
+              trackingName="Refresh Files"
+            >
               <RefreshCw className="w-4 h-4 mr-1" />
               Refresh
-            </Button>
+            </TrackedButton>
           </div>
         </CardContent>
       </Card>
@@ -460,7 +503,7 @@ const SalesCalls = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Button
+                          <TrackedButton
                             variant="ghost"
                             size="sm"
                             onClick={() => {
@@ -476,10 +519,12 @@ const SalesCalls = () => {
                               };
                               handleProcessCall(mockCall, 'upload');
                             }}
+                            trackingName="Process Uploaded File"
+                            trackingContext={{ file_id: file.id, filename: file.filename }}
                           >
                             <ArrowRight className="w-3 h-3 mr-1" />
                             Process
-                          </Button>
+                          </TrackedButton>
                         </div>
                       </div>
                     ))}
@@ -500,10 +545,14 @@ const SalesCalls = () => {
                   <span>Fireflies.ai Imports</span>
                   <Badge variant="secondary">{filteredFirefliesCalls.length} calls</Badge>
                 </div>
-                <Button variant="outline" size="sm">
+                <TrackedButton 
+                  variant="outline" 
+                  size="sm"
+                  trackingName="Sync Fireflies"
+                >
                   <RefreshCw className="w-4 h-4 mr-1" />
                   Sync from Fireflies
-                </Button>
+                </TrackedButton>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -551,30 +600,38 @@ const SalesCalls = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {call.hasSummary && (
-                            <Button
+                            <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewSummary(call)}
+                              trackingName="View Summary"
+                              trackingContext={{ call_id: call.id, company: call.companyName }}
                             >
                               <Eye className="w-3 h-3 mr-1" />
                               View Summary
-                            </Button>
+                            </TrackedButton>
                           )}
                           {call.hasTranscript && (
-                            <Button
+                            <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewTranscript(call)}
+                              trackingName="View Transcript"
+                              trackingContext={{ call_id: call.id, company: call.companyName }}
                             >
                               <FileText className="w-3 h-3 mr-1" />
                               View Transcript
-                            </Button>
+                            </TrackedButton>
                           )}
                         </div>
-                        <Button onClick={() => handleProcessCall(call, 'fireflies')}>
+                        <TrackedButton 
+                          onClick={() => handleProcessCall(call, 'fireflies')}
+                          trackingName="Generate Insights"
+                          trackingContext={{ call_id: call.id, company: call.companyName, source: 'fireflies' }}
+                        >
                           <ArrowRight className="w-4 h-4 mr-1" />
                           Generate Insights
-                        </Button>
+                        </TrackedButton>
                       </div>
                     </div>
                   ))}
@@ -643,38 +700,50 @@ const SalesCalls = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Button
+                          <TrackedButton
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewTranscript(call)}
+                            trackingName="View Original Transcript"
+                            trackingContext={{ call_id: call.id, company: call.companyName }}
                           >
                             <FileText className="w-3 h-3 mr-1" />
                             View Original Transcript
-                          </Button>
-                          <Button
+                          </TrackedButton>
+                          <TrackedButton
                             variant="outline"
                             size="sm"
                             onClick={() => handleDownloadTranscript(call)}
+                            trackingName="Download Transcript PDF"
+                            trackingContext={{ call_id: call.id, company: call.companyName }}
                           >
                             <Download className="w-3 h-3 mr-1" />
                             Download PDF
-                          </Button>
+                          </TrackedButton>
                         </div>
                         <div className="flex items-center space-x-2">
                           {call.hasInsights && (
-                            <Button 
+                            <TrackedButton 
                               variant="outline"
-                              onClick={() => navigate('/call-insights', { 
-                                state: { 
-                                  selectedCall: call,
-                                  source: call.source,
-                                  viewMode: 'insights'
-                                } 
-                              })}
+                              onClick={() => {
+                                trackButtonClick('View Insights', { 
+                                  call_id: call.id, 
+                                  company: call.companyName 
+                                });
+                                navigate('/call-insights', { 
+                                  state: { 
+                                    selectedCall: call,
+                                    source: call.source,
+                                    viewMode: 'insights'
+                                  } 
+                                });
+                              }}
+                              trackingName="View Call Insights"
+                              trackingContext={{ call_id: call.id, company: call.companyName }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View Insights
-                            </Button>
+                            </TrackedButton>
                           )}
                         </div>
                       </div>
@@ -693,17 +762,18 @@ const SalesCalls = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{modalTitle}</span>
-              <Button
+              <TrackedButton
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(modalContent);
                   toast.success('Summary copied to clipboard');
                 }}
+                trackingName="Copy Summary"
               >
                 <Copy className="w-4 h-4 mr-1" />
                 Copy Text
-              </Button>
+              </TrackedButton>
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
@@ -721,22 +791,24 @@ const SalesCalls = () => {
             <DialogTitle className="flex items-center justify-between">
               <span>{modalTitle}</span>
               <div className="flex items-center space-x-2">
-                <Button
+                <TrackedButton
                   variant="outline"
                   size="sm"
                   onClick={handleCopyTranscript}
+                  trackingName="Copy Transcript"
                 >
                   <Copy className="w-4 h-4 mr-1" />
                   Copy Text
-                </Button>
-                <Button
+                </TrackedButton>
+                <TrackedButton
                   variant="outline"
                   size="sm"
                   onClick={handleDownloadTranscriptPDF}
+                  trackingName="Download Transcript PDF"
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Download PDF
-                </Button>
+                </TrackedButton>
               </div>
             </DialogTitle>
           </DialogHeader>

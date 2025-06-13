@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { fileStorage } from './fileStorage'
+import { analytics } from './analytics'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -26,38 +27,60 @@ export const CURRENT_USER = {
 export const aiAgents = {
   // Research Agent API placeholder
   async callResearchAgent(data) {
+    const startTime = Date.now()
     console.log('Calling Research Agent with:', data)
-    // TODO: Replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: {
-            research_summary: 'Research insights will be generated here',
-            key_findings: ['Finding 1', 'Finding 2', 'Finding 3']
-          }
-        })
-      }, 1000)
-    })
+    
+    try {
+      // TODO: Replace with actual API call
+      const result = await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            data: {
+              research_summary: 'Research insights will be generated here',
+              key_findings: ['Finding 1', 'Finding 2', 'Finding 3']
+            }
+          })
+        }, 1000)
+      })
+
+      // Track successful API response
+      analytics.trackApiResponse('/api/research-agent', 'POST', 200, Date.now() - startTime)
+      analytics.trackAiInteraction('research_analysis', 'user_input', 'research_summary', true, {
+        findings_count: result.data.key_findings.length
+      })
+
+      return result
+    } catch (error) {
+      // Track failed API response
+      analytics.trackApiResponse('/api/research-agent', 'POST', 500, Date.now() - startTime, error.message)
+      analytics.trackAiInteraction('research_analysis', 'user_input', 'research_summary', false, {
+        error: error.message
+      })
+      throw error
+    }
   },
 
   // Follow Up Agent API placeholder
   async callFollowUpAgent(transcriptData) {
+    const startTime = Date.now()
     console.log('Calling Follow Up Agent with:', transcriptData)
-    // TODO: Replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: {
-            call_summary: `AI-generated summary of the call based on transcript analysis...`,
-            commitments: [
-              'Send product demo video by end of week',
-              'Schedule technical deep-dive with engineering team',
-              'Prepare customized proposal with pricing',
-              'Follow up on integration requirements'
-            ],
-            follow_up_email: `Hi [Client Name],
+    
+    try {
+      // TODO: Replace with actual API call
+      const result = await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            data: {
+              call_summary: `AI-generated summary of the call based on transcript analysis...`,
+              commitments: [
+                'Send product demo video by end of week',
+                'Schedule technical deep-dive with engineering team',
+                'Prepare customized proposal with pricing',
+                'Follow up on integration requirements'
+              ],
+              follow_up_email: `Hi [Client Name],
 
 Thank you for taking the time to speak with me today. I wanted to follow up on our conversation and summarize the key points we discussed:
 
@@ -73,7 +96,7 @@ Next steps:
 
 Best regards,
 [Your Name]`,
-            deck_prompt: `Create a sales presentation focusing on:
+              deck_prompt: `Create a sales presentation focusing on:
 
 1. Problem Statement:
    - Current lead qualification challenges
@@ -99,10 +122,28 @@ Best regards,
    - Technical requirements review
    - Pilot program proposal
    - Timeline and pricing discussion`
-          }
-        })
-      }, 2000)
-    })
+            }
+          })
+        }, 2000)
+      })
+
+      // Track successful AI interaction
+      analytics.trackApiResponse('/api/follow-up-agent', 'POST', 200, Date.now() - startTime)
+      analytics.trackAiInteraction('call_analysis', 'transcript', 'follow_up_content', true, {
+        commitments_count: result.data.commitments.length,
+        has_email: !!result.data.follow_up_email,
+        has_deck_prompt: !!result.data.deck_prompt
+      })
+
+      return result
+    } catch (error) {
+      // Track failed AI interaction
+      analytics.trackApiResponse('/api/follow-up-agent', 'POST', 500, Date.now() - startTime, error.message)
+      analytics.trackAiInteraction('call_analysis', 'transcript', 'follow_up_content', false, {
+        error: error.message
+      })
+      throw error
+    }
   }
 }
 
@@ -110,7 +151,12 @@ Best regards,
 export const dbHelpers = {
   // File management functions with shareable links using transcript-files bucket
   async saveUploadedFile(userId, file, content = null) {
+    const startTime = Date.now()
+    
     try {
+      // Track file upload start
+      analytics.trackFileUpload(file.name, file.size, file.type, 'started')
+
       // Upload file to Supabase Storage and get shareable URL
       const uploadResult = await fileStorage.uploadFile(file, userId)
       
@@ -132,34 +178,61 @@ export const dbHelpers = {
         .single()
 
       if (error) throw error
+
+      // Track successful file upload
+      analytics.trackFileUpload(file.name, file.size, file.type, 'completed')
+      analytics.trackApiResponse('/api/upload-file', 'POST', 200, Date.now() - startTime)
+
       return data
     } catch (error) {
+      // Track failed file upload
+      analytics.trackFileUpload(file.name, file.size, file.type, 'failed')
+      analytics.trackApiResponse('/api/upload-file', 'POST', 500, Date.now() - startTime, error.message)
+      
       console.error('Error saving uploaded file:', error)
       throw error
     }
   },
 
   async getUploadedFiles(userId, limit = 10) {
-    const { data, error } = await supabase
-      .from('uploaded_files')
-      .select('*')
-      .eq('user_id', userId)
-      .order('upload_date', { ascending: false })
-      .limit(limit)
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('upload_date', { ascending: false })
+        .limit(limit)
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-files', 'GET', 200, Date.now() - startTime)
+      return data || []
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-files', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async getUploadedFile(fileId) {
-    const { data, error } = await supabase
-      .from('uploaded_files')
-      .select('*')
-      .eq('id', fileId)
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .eq('id', fileId)
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-file', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-file', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   // Get file content from shareable URL
@@ -200,6 +273,14 @@ export const dbHelpers = {
       const fileData = await this.getUploadedFile(fileId)
       
       if (fileData.file_url) {
+        // Track file access
+        analytics.track('file_accessed', {
+          file_id: fileId,
+          file_name: fileData.filename,
+          file_type: fileData.file_type,
+          access_method: 'shareable_link'
+        })
+
         // Open file in new tab using shareable URL
         window.open(fileData.file_url, '_blank', 'noopener,noreferrer')
         return true
@@ -214,6 +295,8 @@ export const dbHelpers = {
 
   // Delete file and clean up storage
   async deleteUploadedFile(fileId) {
+    const startTime = Date.now()
+    
     try {
       const fileData = await this.getUploadedFile(fileId)
       
@@ -229,8 +312,18 @@ export const dbHelpers = {
         .eq('id', fileId)
 
       if (error) throw error
+
+      // Track file deletion
+      analytics.track('file_deleted', {
+        file_id: fileId,
+        file_name: fileData.filename,
+        file_type: fileData.file_type
+      })
+      analytics.trackApiResponse('/api/delete-file', 'DELETE', 200, Date.now() - startTime)
+
       return true
     } catch (error) {
+      analytics.trackApiResponse('/api/delete-file', 'DELETE', 500, Date.now() - startTime, error.message)
       console.error('Error deleting file:', error)
       throw error
     }
@@ -238,337 +331,580 @@ export const dbHelpers = {
 
   // Processing session management with normalized references
   async createProcessingSession(userId, fileId) {
-    const { data, error } = await supabase
-      .from('processing_history')
-      .insert({
-        user_id: userId,
-        file_id: fileId,
-        processing_status: 'processing'
-      })
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('processing_history')
+        .insert({
+          user_id: userId,
+          file_id: fileId,
+          processing_status: 'processing'
+        })
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track processing session creation
+      analytics.track('processing_session_created', {
+        session_id: data.id,
+        user_id: userId,
+        file_id: fileId
+      })
+      analytics.trackApiResponse('/api/create-session', 'POST', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-session', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateProcessingSession(sessionId, updates) {
-    const updateData = {
-      ...updates,
-      processing_completed_at: updates.processing_status === 'completed' ? new Date().toISOString() : undefined
+    const startTime = Date.now()
+    
+    try {
+      const updateData = {
+        ...updates,
+        processing_completed_at: updates.processing_status === 'completed' ? new Date().toISOString() : undefined
+      }
+
+      const { data, error } = await supabase
+        .from('processing_history')
+        .update(updateData)
+        .eq('id', sessionId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Track processing session update
+      analytics.track('processing_session_updated', {
+        session_id: sessionId,
+        status: updates.processing_status,
+        success: updates.processing_status === 'completed'
+      })
+      analytics.trackApiResponse('/api/update-session', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-session', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
     }
-
-    const { data, error } = await supabase
-      .from('processing_history')
-      .update(updateData)
-      .eq('id', sessionId)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
   },
 
   // Link content IDs to processing session
   async linkContentToSession(sessionId, contentIds) {
-    const { data, error } = await supabase
-      .from('processing_history')
-      .update({
-        call_notes_id: contentIds.callNotesId || null,
-        // Store content IDs as JSONB for flexible reference
-        content_references: {
-          call_notes_id: contentIds.callNotesId,
-          commitments_ids: contentIds.commitmentsIds || [],
-          follow_up_email_id: contentIds.followUpEmailId,
-          deck_prompt_id: contentIds.deckPromptId,
-          insights_ids: contentIds.insightsIds || []
-        }
-      })
-      .eq('id', sessionId)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('processing_history')
+        .update({
+          call_notes_id: contentIds.callNotesId || null,
+          // Store content IDs as JSONB for flexible reference
+          content_references: {
+            call_notes_id: contentIds.callNotesId,
+            commitments_ids: contentIds.commitmentsIds || [],
+            follow_up_email_id: contentIds.followUpEmailId,
+            deck_prompt_id: contentIds.deckPromptId,
+            insights_ids: contentIds.insightsIds || []
+          }
+        })
+        .eq('id', sessionId)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track content linking
+      analytics.track('content_linked_to_session', {
+        session_id: sessionId,
+        content_types: Object.keys(contentIds).filter(key => contentIds[key])
+      })
+      analytics.trackApiResponse('/api/link-content', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/link-content', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async getProcessingHistory(userId, limit = 20) {
-    const { data, error } = await supabase
-      .from('processing_history')
-      .select(`
-        *,
-        uploaded_files (
-          filename,
-          file_type,
-          file_size,
-          upload_date,
-          content_type,
-          file_content,
-          file_url,
-          storage_path
-        ),
-        call_notes!processing_history_call_notes_id_fkey (
-          id,
-          ai_summary,
-          status,
-          edited_summary
-        )
-      `)
-      .eq('user_id', userId)
-      .order('processing_started_at', { ascending: false })
-      .limit(limit)
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('processing_history')
+        .select(`
+          *,
+          uploaded_files (
+            filename,
+            file_type,
+            file_size,
+            upload_date,
+            content_type,
+            file_content,
+            file_url,
+            storage_path
+          ),
+          call_notes!processing_history_call_notes_id_fkey (
+            id,
+            ai_summary,
+            status,
+            edited_summary
+          )
+        `)
+        .eq('user_id', userId)
+        .order('processing_started_at', { ascending: false })
+        .limit(limit)
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-processing-history', 'GET', 200, Date.now() - startTime)
+      return data || []
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-processing-history', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async getProcessingSessionDetails(sessionId) {
-    const { data: session, error } = await supabase
-      .from('processing_history')
-      .select(`
-        *,
-        uploaded_files (*),
-        call_notes!processing_history_call_notes_id_fkey (*)
-      `)
-      .eq('id', sessionId)
-      .single()
-
-    if (error) throw error
-
-    // Get all related content using the content_references
-    const contentRefs = session.content_references || {}
+    const startTime = Date.now()
     
-    // Fetch commitments
-    let commitments = []
-    if (contentRefs.commitments_ids && contentRefs.commitments_ids.length > 0) {
-      const { data: commitmentsData } = await supabase
-        .from('call_commitments')
-        .select('*')
-        .in('id', contentRefs.commitments_ids)
-        .order('created_at', { ascending: true })
-      commitments = commitmentsData || []
-    }
-
-    // Fetch follow-up email
-    let followUpEmail = null
-    if (contentRefs.follow_up_email_id) {
-      const { data: emailData } = await supabase
-        .from('follow_up_emails')
-        .select('*')
-        .eq('id', contentRefs.follow_up_email_id)
+    try {
+      const { data: session, error } = await supabase
+        .from('processing_history')
+        .select(`
+          *,
+          uploaded_files (*),
+          call_notes!processing_history_call_notes_id_fkey (*)
+        `)
+        .eq('id', sessionId)
         .single()
-      followUpEmail = emailData
-    }
 
-    // Fetch deck prompt
-    let deckPrompt = null
-    if (contentRefs.deck_prompt_id) {
-      const { data: deckData } = await supabase
-        .from('deck_prompts')
-        .select('*')
-        .eq('id', contentRefs.deck_prompt_id)
-        .single()
-      deckPrompt = deckData
-    }
+      if (error) throw error
 
-    // Fetch insights
-    let insights = []
-    if (contentRefs.insights_ids && contentRefs.insights_ids.length > 0) {
-      const { data: insightsData } = await supabase
-        .from('call_insights')
-        .select('*')
-        .in('id', contentRefs.insights_ids)
-        .order('relevance_score', { ascending: false })
-      insights = insightsData || []
-    }
+      // Get all related content using the content_references
+      const contentRefs = session.content_references || {}
+      
+      // Fetch commitments
+      let commitments = []
+      if (contentRefs.commitments_ids && contentRefs.commitments_ids.length > 0) {
+        const { data: commitmentsData } = await supabase
+          .from('call_commitments')
+          .select('*')
+          .in('id', contentRefs.commitments_ids)
+          .order('created_at', { ascending: true })
+        commitments = commitmentsData || []
+      }
 
-    // Return session with all related content
-    return {
-      ...session,
-      call_commitments: commitments,
-      follow_up_emails: followUpEmail ? [followUpEmail] : [],
-      deck_prompts: deckPrompt ? [deckPrompt] : [],
-      call_insights: insights
+      // Fetch follow-up email
+      let followUpEmail = null
+      if (contentRefs.follow_up_email_id) {
+        const { data: emailData } = await supabase
+          .from('follow_up_emails')
+          .select('*')
+          .eq('id', contentRefs.follow_up_email_id)
+          .single()
+        followUpEmail = emailData
+      }
+
+      // Fetch deck prompt
+      let deckPrompt = null
+      if (contentRefs.deck_prompt_id) {
+        const { data: deckData } = await supabase
+          .from('deck_prompts')
+          .select('*')
+          .eq('id', contentRefs.deck_prompt_id)
+          .single()
+        deckPrompt = deckData
+      }
+
+      // Fetch insights
+      let insights = []
+      if (contentRefs.insights_ids && contentRefs.insights_ids.length > 0) {
+        const { data: insightsData } = await supabase
+          .from('call_insights')
+          .select('*')
+          .in('id', contentRefs.insights_ids)
+          .order('relevance_score', { ascending: false })
+        insights = insightsData || []
+      }
+
+      analytics.trackApiResponse('/api/get-session-details', 'GET', 200, Date.now() - startTime)
+
+      // Return session with all related content
+      return {
+        ...session,
+        call_commitments: commitments,
+        follow_up_emails: followUpEmail ? [followUpEmail] : [],
+        deck_prompts: deckPrompt ? [deckPrompt] : [],
+        call_insights: insights
+      }
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-session-details', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
     }
   },
 
   // Content creation functions that return IDs for linking
   async createCallNote(userId, callId, transcriptContent, fileId = null, processingSessionId = null) {
-    const { data, error } = await supabase
-      .from('call_notes')
-      .insert({
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_notes')
+        .insert({
+          user_id: userId,
+          call_id: callId,
+          transcript_content: transcriptContent,
+          status: 'processing',
+          file_id: fileId,
+          processing_session_id: processingSessionId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Track call note creation
+      analytics.track('call_note_created', {
+        call_note_id: data.id,
         user_id: userId,
-        call_id: callId,
-        transcript_content: transcriptContent,
-        status: 'processing',
-        file_id: fileId,
+        has_transcript: !!transcriptContent,
         processing_session_id: processingSessionId
       })
-      .select()
-      .single()
+      analytics.trackApiResponse('/api/create-call-note', 'POST', 200, Date.now() - startTime)
 
-    if (error) throw error
-    return data
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-call-note', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async getCallNote(id) {
-    const { data, error } = await supabase
-      .from('call_notes')
-      .select('*')
-      .eq('id', id)
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_notes')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-call-note', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-call-note', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateCallNote(id, updates) {
-    const { data, error } = await supabase
-      .from('call_notes')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_notes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track call note update
+      analytics.track('call_note_updated', {
+        call_note_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-call-note', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-call-note', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async createCommitments(callNotesId, userId, commitments, processingSessionId = null) {
-    const commitmentRecords = commitments.map((commitment, index) => ({
-      call_notes_id: callNotesId,
-      user_id: userId,
-      commitment_text: typeof commitment === 'string' ? commitment : commitment.task,
-      is_selected: true,
-      processing_session_id: processingSessionId,
-      // Add owner and deadline if available
-      ...(typeof commitment === 'object' && {
-        owner: commitment.owner,
-        deadline: commitment.deadline
+    const startTime = Date.now()
+    
+    try {
+      const commitmentRecords = commitments.map((commitment, index) => ({
+        call_notes_id: callNotesId,
+        user_id: userId,
+        commitment_text: typeof commitment === 'string' ? commitment : commitment.task,
+        is_selected: true,
+        processing_session_id: processingSessionId,
+        // Add owner and deadline if available
+        ...(typeof commitment === 'object' && {
+          owner: commitment.owner,
+          deadline: commitment.deadline
+        })
+      }))
+
+      const { data, error } = await supabase
+        .from('call_commitments')
+        .insert(commitmentRecords)
+        .select()
+
+      if (error) throw error
+
+      // Track commitments creation
+      analytics.track('commitments_created', {
+        call_notes_id: callNotesId,
+        user_id: userId,
+        commitments_count: commitments.length,
+        processing_session_id: processingSessionId
       })
-    }))
+      analytics.trackApiResponse('/api/create-commitments', 'POST', 200, Date.now() - startTime)
 
-    const { data, error } = await supabase
-      .from('call_commitments')
-      .insert(commitmentRecords)
-      .select()
-
-    if (error) throw error
-    return data
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-commitments', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateCommitment(id, updates) {
-    const { data, error } = await supabase
-      .from('call_commitments')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_commitments')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track commitment update
+      analytics.track('commitment_updated', {
+        commitment_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-commitment', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-commitment', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async createFollowUpEmail(callNotesId, userId, emailContent, processingSessionId = null) {
-    const { data, error } = await supabase
-      .from('follow_up_emails')
-      .insert({
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_emails')
+        .insert({
+          call_notes_id: callNotesId,
+          user_id: userId,
+          email_content: emailContent,
+          processing_session_id: processingSessionId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Track email creation
+      analytics.track('follow_up_email_created', {
+        email_id: data.id,
         call_notes_id: callNotesId,
         user_id: userId,
-        email_content: emailContent,
         processing_session_id: processingSessionId
       })
-      .select()
-      .single()
+      analytics.trackApiResponse('/api/create-email', 'POST', 200, Date.now() - startTime)
 
-    if (error) throw error
-    return data
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-email', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateFollowUpEmail(id, updates) {
-    const { data, error } = await supabase
-      .from('follow_up_emails')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_emails')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track email update
+      analytics.track('follow_up_email_updated', {
+        email_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-email', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-email', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async createDeckPrompt(callNotesId, userId, promptContent, processingSessionId = null) {
-    const { data, error } = await supabase
-      .from('deck_prompts')
-      .insert({
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('deck_prompts')
+        .insert({
+          call_notes_id: callNotesId,
+          user_id: userId,
+          prompt_content: promptContent,
+          processing_session_id: processingSessionId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Track deck prompt creation
+      analytics.track('deck_prompt_created', {
+        deck_prompt_id: data.id,
         call_notes_id: callNotesId,
         user_id: userId,
-        prompt_content: promptContent,
         processing_session_id: processingSessionId
       })
-      .select()
-      .single()
+      analytics.trackApiResponse('/api/create-deck-prompt', 'POST', 200, Date.now() - startTime)
 
-    if (error) throw error
-    return data
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-deck-prompt', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateDeckPrompt(id, updates) {
-    const { data, error } = await supabase
-      .from('deck_prompts')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('deck_prompts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track deck prompt update
+      analytics.track('deck_prompt_updated', {
+        deck_prompt_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-deck-prompt', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-deck-prompt', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async saveCallInsights(callNotesId, userId, insights, processingSessionId = null) {
-    const insightRecords = insights.map(insight => ({
-      call_notes_id: callNotesId,
-      user_id: userId,
-      insight_type: insight.type,
-      content: insight.content,
-      relevance_score: insight.relevance_score,
-      is_selected: insight.is_selected,
-      source: insight.source,
-      timestamp: insight.timestamp,
-      processing_session_id: processingSessionId
-    }))
+    const startTime = Date.now()
+    
+    try {
+      const insightRecords = insights.map(insight => ({
+        call_notes_id: callNotesId,
+        user_id: userId,
+        insight_type: insight.type,
+        content: insight.content,
+        relevance_score: insight.relevance_score,
+        is_selected: insight.is_selected,
+        source: insight.source,
+        timestamp: insight.timestamp,
+        processing_session_id: processingSessionId
+      }))
 
-    const { data, error } = await supabase
-      .from('call_insights')
-      .insert(insightRecords)
-      .select()
+      const { data, error } = await supabase
+        .from('call_insights')
+        .insert(insightRecords)
+        .select()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track insights creation
+      analytics.track('call_insights_created', {
+        call_notes_id: callNotesId,
+        user_id: userId,
+        insights_count: insights.length,
+        processing_session_id: processingSessionId
+      })
+      analytics.trackApiResponse('/api/save-insights', 'POST', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/save-insights', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async updateCallInsight(id, updates) {
-    const { data, error } = await supabase
-      .from('call_insights')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_insights')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track insight update
+      analytics.track('call_insight_updated', {
+        insight_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-insight', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-insight', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async getCallInsights(callNotesId, userId) {
-    const { data, error } = await supabase
-      .from('call_insights')
-      .select('*')
-      .eq('call_notes_id', callNotesId)
-      .eq('user_id', userId)
-      .order('relevance_score', { ascending: false })
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_insights')
+        .select('*')
+        .eq('call_notes_id', callNotesId)
+        .eq('user_id', userId)
+        .order('relevance_score', { ascending: false })
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-insights', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-insights', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   // Comprehensive content creation with automatic linking
@@ -576,6 +912,13 @@ export const dbHelpers = {
     const contentIds = {}
 
     try {
+      // Track the start of complete analysis
+      analytics.track('complete_call_analysis_started', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId
+      })
+
       // Create call note
       const callNote = await this.createCallNote(
         userId,
@@ -641,8 +984,24 @@ export const dbHelpers = {
       // Link all content to processing session
       await this.linkContentToSession(processingSessionId, contentIds)
 
+      // Track successful completion
+      analytics.track('complete_call_analysis_completed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        content_types_created: Object.keys(contentIds).filter(key => contentIds[key])
+      })
+
       return contentIds
     } catch (error) {
+      // Track failed analysis
+      analytics.track('complete_call_analysis_failed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        error: error.message
+      })
+      
       console.error('Error creating complete call analysis:', error)
       throw error
     }
@@ -671,43 +1030,89 @@ export const dbHelpers = {
         throw new Error(`Unknown content type: ${contentType}`)
     }
 
-    const { data, error } = await supabase
-      .from(table)
-      .update(updates)
-      .eq('id', contentId)
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from(table)
+        .update(updates)
+        .eq('id', contentId)
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track content update
+      analytics.track('content_updated', {
+        content_type: contentType,
+        content_id: contentId,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse(`/api/update-${contentType}`, 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse(`/api/update-${contentType}`, 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   // Get all processing sessions that reference a specific content item
   async getSessionsReferencingContent(contentType, contentId) {
-    const { data, error } = await supabase
-      .from('processing_history')
-      .select('*')
-      .contains('content_references', { [`${contentType}_id`]: contentId })
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('processing_history')
+        .select('*')
+        .contains('content_references', { [`${contentType}_id`]: contentId })
 
-    if (error) throw error
-    return data || []
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-referencing-sessions', 'GET', 200, Date.now() - startTime)
+      return data || []
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-referencing-sessions', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   },
 
   async logPushAction(userId, contentType, contentId, status, errorMessage = null, hubspotId = null) {
-    const { data, error } = await supabase
-      .from('push_log')
-      .insert({
-        user_id: userId,
-        content_type: contentType,
-        content_id: contentId,
-        push_status: status,
-        error_message: errorMessage,
-        hubspot_id: hubspotId
-      })
-      .select()
-      .single()
+    const startTime = Date.now()
+    
+    try {
+      const { data, error } = await supabase
+        .from('push_log')
+        .insert({
+          user_id: userId,
+          content_type: contentType,
+          content_id: contentId,
+          push_status: status,
+          error_message: errorMessage,
+          hubspot_id: hubspotId
+        })
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) throw error
+
+      // Track CRM push action
+      analytics.trackCrmIntegration(
+        `push_${contentType}`,
+        'hubspot',
+        status === 'success',
+        {
+          content_id: contentId,
+          hubspot_id: hubspotId,
+          error_message: errorMessage
+        }
+      )
+      analytics.trackApiResponse('/api/log-push-action', 'POST', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/log-push-action', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   }
 }
