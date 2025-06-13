@@ -9,7 +9,7 @@ import {
   CheckSquare,
   MessageSquare,
   Presentation,
-  History
+  Mail
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -45,9 +45,9 @@ const mainNavItems = [
         description: 'AI-generated call summaries'
       },
       {
-        title: 'Email Templates',
+        title: 'Email',
         href: '/follow-ups/emails',
-        icon: MessageSquare,
+        icon: Mail,
         description: 'Follow-up email generation'
       },
       {
@@ -61,12 +61,6 @@ const mainNavItems = [
         href: '/follow-ups/actions',
         icon: CheckSquare,
         description: 'Commitments and tasks'
-      },
-      {
-        title: 'Processing History',
-        href: '/follow-ups/processing-history',
-        icon: History,
-        description: 'View processed files and insights'
       }
     ]
   },
