@@ -4,65 +4,6 @@ import { analytics } from '@/lib/analytics';
 
 // Fireflies.ai Service for handling all Fireflies integrations
 class FirefliesService {
-  constructor() {
-    this.isDevelopment = import.meta.env.DEV;
-    this.mockData = this.generateMockFirefliesData();
-  }
-
-  // Generate mock data for development/testing
-  generateMockFirefliesData() {
-    return [
-      {
-        success: true,
-        data: {
-          id: 'ff_001',
-          title: 'Sales Discovery Call - TechCorp Solutions',
-          dateString: '2024-01-15T14:30:00Z',
-          participants: ['john.doe@techcorp.com', 'sales@company.com'],
-          organizer_email: 'sales@company.com',
-          meeting_link: 'https://zoom.us/j/123456789',
-        }
-      },
-      {
-        success: true,
-        data: {
-          id: 'ff_002',
-          title: 'Product Demo - InnovateCorp',
-          dateString: '2024-01-12T10:00:00Z',
-          participants: ['sarah.smith@innovatecorp.com', 'demo@company.com'],
-          organizer_email: 'demo@company.com',
-          meeting_link: 'https://meet.google.com/abc-defg-hij',
-        }
-      },
-      {
-        success: true,
-        data: {
-          id: 'ff_003',
-          title: 'Follow-up Discussion - StartupXYZ',
-          dateString: '2024-01-10T16:15:00Z',
-          participants: ['mike.johnson@startupxyz.com', 'followup@company.com'],
-          organizer_email: 'followup@company.com',
-          meeting_link: 'https://teams.microsoft.com/l/meetup-join/xyz',
-        }
-      }
-    ];
-  }
-
-  // Check if API is available
-  async checkApiAvailability() {
-    try {
-      // Try a simple health check or lightweight endpoint
-      const response = await fetch(`${api.config.getBaseURL()}health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-      return response.ok;
-    } catch (error) {
-      console.warn('API health check failed:', error.message);
-      return false;
-    }
-  }
-
   // Get all Fireflies transcripts
   async getTranscripts(options = {}) {
     try {
@@ -70,28 +11,6 @@ class FirefliesService {
         options: Object.keys(options),
       });
 
-      // Check if we're in development or if API is unavailable
-      const isApiAvailable = await this.checkApiAvailability();
-      
-      if (this.isDevelopment && !isApiAvailable) {
-        console.warn('API not available in development, using mock data');
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const transformedData = this.transformFirefliesResponse(this.mockData);
-        
-        analytics.track('fireflies_fetch_transcripts_completed', {
-          transcripts_count: transformedData.length,
-          successful_transcripts: transformedData.filter(t => t.success).length,
-          failed_transcripts: transformedData.filter(t => !t.success).length,
-          source: 'mock_data',
-        });
-
-        return transformedData;
-      }
-
-      // Try to make the actual API call
       const response = await api.get(API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPTS, {
         limit: options.limit || 50,
         offset: options.offset || 0,
@@ -107,7 +26,6 @@ class FirefliesService {
         transcripts_count: transformedData.length,
         successful_transcripts: transformedData.filter(t => t.success).length,
         failed_transcripts: transformedData.filter(t => !t.success).length,
-        source: 'api',
       });
 
       return transformedData;
@@ -117,15 +35,7 @@ class FirefliesService {
       });
       
       console.error('Error fetching Fireflies transcripts:', error);
-      
-      // If it's a network error and we're in development, fall back to mock data
-      if (this.isDevelopment && (error.message.includes('Failed to fetch') || error.message.includes('fetch'))) {
-        console.warn('Network error in development, falling back to mock data');
-        return this.transformFirefliesResponse(this.mockData);
-      }
-      
-      // Re-throw the error for production or non-network errors
-      throw new Error(`Failed to load Fireflies transcripts: ${error.message}`);
+      throw error;
     }
   }
 
@@ -136,36 +46,12 @@ class FirefliesService {
         transcript_id: transcriptId,
       });
 
-      // Check if we're using mock data
-      const isApiAvailable = await this.checkApiAvailability();
-      
-      if (this.isDevelopment && !isApiAvailable) {
-        // Return mock transcript detail
-        const mockDetail = {
-          id: transcriptId,
-          transcript: `[Mock Transcript for ${transcriptId}]\n\n[00:00] Participant 1: Thank you for joining today's call...\n[00:15] Participant 2: Happy to be here. Let's discuss our requirements...\n[01:30] Participant 1: Based on what you've shared, I think our solution could be a great fit...\n\n[Continue with detailed mock transcript...]`,
-          summary: `Mock summary for transcript ${transcriptId}. This call covered key discussion points about requirements, solution fit, and next steps.`,
-          duration: 1800, // 30 minutes in seconds
-          participants: ['participant1@company.com', 'participant2@prospect.com'],
-        };
-
-        analytics.track('fireflies_fetch_transcript_detail_completed', {
-          transcript_id: transcriptId,
-          has_transcript: true,
-          has_summary: true,
-          source: 'mock_data',
-        });
-
-        return mockDetail;
-      }
-
       const response = await api.get(`${API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPT_DETAIL}/${transcriptId}`);
 
       analytics.track('fireflies_fetch_transcript_detail_completed', {
         transcript_id: transcriptId,
         has_transcript: !!response.data.transcript,
         has_summary: !!response.data.summary,
-        source: 'api',
       });
 
       return response.data;
@@ -176,7 +62,7 @@ class FirefliesService {
       });
       
       console.error('Error fetching Fireflies transcript detail:', error);
-      throw new Error(`Failed to load transcript details: ${error.message}`);
+      throw error;
     }
   }
 
@@ -186,31 +72,6 @@ class FirefliesService {
       analytics.track('fireflies_sync_started', {
         sync_options: Object.keys(options),
       });
-
-      // Check if we're in development or if API is unavailable
-      const isApiAvailable = await this.checkApiAvailability();
-      
-      if (this.isDevelopment && !isApiAvailable) {
-        console.warn('API not available in development, simulating sync');
-        
-        // Simulate sync delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const mockSyncResult = {
-          synced_count: this.mockData.length,
-          new_transcripts: 1,
-          updated_transcripts: this.mockData.length - 1,
-          status: 'completed',
-          message: 'Mock sync completed successfully',
-        };
-
-        analytics.track('fireflies_sync_completed', {
-          ...mockSyncResult,
-          source: 'mock_data',
-        });
-
-        return mockSyncResult;
-      }
 
       const response = await api.post(API_ENDPOINTS.FIREFLIES.SYNC_TRANSCRIPTS, {
         sync_options: {
@@ -226,7 +87,6 @@ class FirefliesService {
         synced_count: response.data.synced_count,
         new_transcripts: response.data.new_transcripts,
         updated_transcripts: response.data.updated_transcripts,
-        source: 'api',
       });
 
       return response.data;
@@ -236,20 +96,7 @@ class FirefliesService {
       });
       
       console.error('Error syncing Fireflies transcripts:', error);
-      
-      // If it's a network error and we're in development, return mock success
-      if (this.isDevelopment && (error.message.includes('Failed to fetch') || error.message.includes('fetch'))) {
-        console.warn('Network error in development, returning mock sync result');
-        return {
-          synced_count: this.mockData.length,
-          new_transcripts: 0,
-          updated_transcripts: this.mockData.length,
-          status: 'completed_with_fallback',
-          message: 'Sync completed using fallback data (development mode)',
-        };
-      }
-      
-      throw new Error(`Failed to sync Fireflies transcripts: ${error.message}`);
+      throw error;
     }
   }
 
@@ -416,25 +263,11 @@ Note: This is a preliminary summary. Detailed analysis will be available after p
   // Check Fireflies connection status
   async getConnectionStatus() {
     try {
-      const isApiAvailable = await this.checkApiAvailability();
-      
-      if (!isApiAvailable) {
-        return { 
-          connected: false, 
-          error: 'API server not reachable',
-          fallback_mode: this.isDevelopment,
-        };
-      }
-
       const response = await api.get('/fireflies/status');
       return response.data;
     } catch (error) {
       console.error('Error checking Fireflies connection:', error);
-      return { 
-        connected: false, 
-        error: error.message,
-        fallback_mode: this.isDevelopment,
-      };
+      return { connected: false, error: error.message };
     }
   }
 
