@@ -224,18 +224,15 @@ const makeRequest = async (endpoint, options = {}) => {
       try {
         data = await response.json();
       } catch (jsonError) {
-        // If JSON parsing fails, get the raw response text for debugging
-        const rawText = await response.text();
+        // If JSON parsing fails, create error without trying to read response body again
         const error = new Error(`Failed to parse JSON response: ${jsonError.message}`);
         error.originalError = jsonError;
-        error.rawResponse = rawText;
         error.endpoint = endpoint;
         error.method = method;
         error.status = response.status;
         
         console.error(`❌ JSON Parse Error: ${method} ${url}`, {
           originalError: jsonError.message,
-          rawResponse: rawText,
           responseHeaders: Object.fromEntries(response.headers.entries())
         });
         
