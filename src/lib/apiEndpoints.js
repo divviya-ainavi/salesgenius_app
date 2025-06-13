@@ -46,7 +46,7 @@ const API_ENDPOINTS = {
   FIREFLIES: {
     GET_TRANSCRIPTS: '/get-fireflies-transcripts',
     GET_TRANSCRIPT_DETAIL: '/get-fireflies-transcript',
-    SYNC_TRANSCRIPTS: '/sync-fireflies-transcripts',
+    SYNC_TRANSCRIPTS: '/get-fireflies-transcripts',
   },
 
   // Prospect management endpoints
@@ -123,12 +123,12 @@ const API_ENDPOINTS = {
 // Helper function to build endpoint URLs with parameters
 export const buildEndpoint = (endpoint, params = {}) => {
   let url = endpoint;
-  
+
   // Replace path parameters (e.g., /users/:id -> /users/123)
   Object.keys(params).forEach(key => {
     url = url.replace(`:${key}`, params[key]);
   });
-  
+
   return url;
 };
 
@@ -136,14 +136,14 @@ export const buildEndpoint = (endpoint, params = {}) => {
 export const getEndpoint = (path) => {
   const keys = path.split('.');
   let endpoint = API_ENDPOINTS;
-  
+
   for (const key of keys) {
     endpoint = endpoint[key];
     if (!endpoint) {
       throw new Error(`Endpoint not found: ${path}`);
     }
   }
-  
+
   return endpoint;
 };
 

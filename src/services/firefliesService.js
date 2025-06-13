@@ -33,7 +33,7 @@ class FirefliesService {
       analytics.track('fireflies_fetch_transcripts_failed', {
         error: error.message,
       });
-      
+
       console.error('Error fetching Fireflies transcripts:', error);
       throw error;
     }
@@ -60,7 +60,7 @@ class FirefliesService {
         transcript_id: transcriptId,
         error: error.message,
       });
-      
+
       console.error('Error fetching Fireflies transcript detail:', error);
       throw error;
     }
@@ -73,15 +73,17 @@ class FirefliesService {
         sync_options: Object.keys(options),
       });
 
-      const response = await api.post(API_ENDPOINTS.FIREFLIES.SYNC_TRANSCRIPTS, {
-        sync_options: {
-          force_refresh: options.forceRefresh || false,
-          date_range: options.dateRange || '7d',
-          include_processed: options.includeProcessed !== false,
-          ...options,
-        },
-        timestamp: new Date().toISOString(),
-      });
+      const response = await api.get(API_ENDPOINTS.FIREFLIES.SYNC_TRANSCRIPTS
+        //   , {
+        //   sync_options: {
+        //     force_refresh: options.forceRefresh || false,
+        //     date_range: options.dateRange || '7d',
+        //     include_processed: options.includeProcessed !== false,
+        //     ...options,
+        //   },
+        //   timestamp: new Date().toISOString(),
+        // }
+      );
 
       analytics.track('fireflies_sync_completed', {
         synced_count: response.data.synced_count,
@@ -94,7 +96,7 @@ class FirefliesService {
       analytics.track('fireflies_sync_failed', {
         error: error.message,
       });
-      
+
       console.error('Error syncing Fireflies transcripts:', error);
       throw error;
     }
@@ -132,13 +134,13 @@ class FirefliesService {
       }
 
       const data = item.data;
-      
+
       // Extract company and prospect names from participants or title
       const { companyName, prospectName } = this.extractNamesFromFirefliesData(data);
-      
+
       // Format date
       const formattedDate = this.formatFirefliesDate(data.dateString);
-      
+
       // Calculate duration (placeholder - would need actual duration from API)
       const duration = this.calculateDuration(data);
 
@@ -225,19 +227,20 @@ class FirefliesService {
   calculateDuration(data) {
     // This is a placeholder - in reality, you'd get duration from the API
     // For now, we'll estimate based on meeting type or use a default
-    if (data.title && data.title.toLowerCase().includes('sync')) {
-      return '30 min';
-    } else if (data.title && data.title.toLowerCase().includes('demo')) {
-      return '45 min';
-    } else {
-      return '25 min'; // Default duration
-    }
+    // if (data.title && data.title.toLowerCase().includes('sync')) {
+    //   return '30 min';
+    // } else if (data.title && data.title.toLowerCase().includes('demo')) {
+    //   return '45 min';
+    // } else {
+    //   return '25 min'; // Default duration
+    // }
+    return 'Unknown Duration';
   }
 
   // Generate summary from Fireflies data
   generateSummaryFromFirefliesData(data) {
-    const participantsList = data.participants && data.participants.length > 0 
-      ? data.participants.join(', ') 
+    const participantsList = data.participants && data.participants.length > 0
+      ? data.participants.join(', ')
       : 'No participants listed';
 
     return `Meeting Summary:
