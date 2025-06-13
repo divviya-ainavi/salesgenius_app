@@ -10,6 +10,7 @@ import { EmailTemplates } from "@/pages/followups/EmailTemplates";
 import { DeckBuilder } from "@/pages/followups/DeckBuilder";
 import { Research } from "@/pages/Research";
 import { SalesCalls } from "@/pages/SalesCalls";
+import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import { ProcessingHistory } from "@/pages/ProcessingHistory";
@@ -25,9 +26,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/follow-ups/wrap-up" replace />} />
+            <Route index element={<Navigate to="/calls" replace />} />
             <Route path="research" element={<Research />} />
             <Route path="calls" element={<SalesCalls />} />
+            <Route path="call-insights" element={<CallInsights />} />
             <Route path="follow-ups">
               <Route index element={<Navigate to="/follow-ups/wrap-up" replace />} />
               <Route path="wrap-up" element={<CallWrapUp />} />

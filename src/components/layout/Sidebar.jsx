@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { 
   Search, 
   Phone, 
-  Mail, 
+  Brain,
   BarChart3, 
   FileText,
   CheckSquare,
@@ -24,12 +24,18 @@ const mainNavItems = [
     title: 'Sales Calls',
     href: '/calls',
     icon: Phone,
-    description: 'Call management and recordings'
+    description: 'Call data loading and management'
+  },
+  {
+    title: 'Call Insights',
+    href: '/call-insights',
+    icon: Brain,
+    description: 'AI-driven prospect understanding'
   },
   {
     title: 'Follow Ups',
     href: '/follow-ups',
-    icon: Mail,
+    icon: FileText,
     description: 'Post-call follow-up automation',
     subItems: [
       {
