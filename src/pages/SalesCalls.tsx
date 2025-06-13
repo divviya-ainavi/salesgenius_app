@@ -26,7 +26,9 @@ import {
   FileIcon,
   Plus,
   ArrowRight,
-  Copy
+  Copy,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
@@ -35,121 +37,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { useAnalytics } from '@/hooks/useAnalytics';
-
-// Mock data for Fireflies.ai imports
-const mockFirefliesCalls = [
-  {
-    id: 'ff_001',
-    callId: 'Call 1',
-    companyName: 'Acme Corp',
-    prospectName: 'Sarah Johnson',
-    date: '2024-01-15',
-    duration: '45 min',
-    status: 'completed',
-    hasTranscript: true,
-    hasSummary: true,
-    firefliesSummary: `Key Discussion Points:
-• Current lead qualification process taking 2-3 hours daily
-• Team of 8 sales reps struggling with manual processes
-• Budget approved for Q2 implementation
-• Decision timeline: End of Q1
-• Key stakeholders: Sarah (VP Sales), Mike (Sales Ops), Lisa (Marketing)
-
-Pain Points Identified:
-• 40% of time spent on administrative tasks
-• 30% of leads going cold due to delayed response
-• Lack of real-time lead scoring
-• Manual CRM data entry
-
-Next Steps:
-• Technical demo scheduled for next Tuesday
-• ROI analysis requested
-• Integration requirements review`,
-    transcript: `[00:00] Sarah Johnson: Thanks for joining today. I wanted to discuss our lead qualification challenges...
-
-[02:15] Sales Rep: Can you tell me more about your current process?
-
-[02:30] Sarah Johnson: Currently, each of our 8 sales reps spends about 2-3 hours daily on manual lead qualification. We're looking at implementing an automated solution by Q2.
-
-[05:45] Mike Chen: From a technical perspective, we need something that integrates seamlessly with our existing HubSpot setup...
-
-[Continue with full transcript...]`,
-    audioUrl: null
-  },
-  {
-    id: 'ff_002',
-    callId: 'Call 2',
-    companyName: 'TechStart Inc',
-    prospectName: 'John Smith',
-    date: '2024-01-14',
-    duration: '30 min',
-    status: 'completed',
-    hasTranscript: true,
-    hasSummary: true,
-    firefliesSummary: `Discovery Call Summary:
-• Startup with 15 employees, rapid growth phase
-• Current CRM: Basic Salesforce setup
-• Pain point: No lead scoring mechanism
-• Budget: £2K-5K monthly
-• Decision maker: John Smith (CEO)
-• Timeline: Immediate need
-
-Technical Requirements:
-• API integration capabilities
-• Real-time notifications
-• Mobile accessibility
-• Reporting dashboard
-
-Competitive Landscape:
-• Evaluating 2 other vendors
-• Price sensitivity due to startup budget
-• Looking for quick implementation`,
-    transcript: `[00:00] John Smith: Hi, thanks for reaching out. We're a growing startup and really need help with lead management...
-
-[01:30] Sales Rep: What's your current setup like?
-
-[01:45] John Smith: We're using basic Salesforce but have no automated lead scoring. With our growth, we're missing opportunities...
-
-[Continue with full transcript...]`,
-    audioUrl: null
-  }
-];
-
-// Mock data for past processed calls
-const mockProcessedCalls = [
-  {
-    id: 'proc_001',
-    callId: 'Call 3',
-    companyName: 'Global Solutions Ltd',
-    prospectName: 'Emma Wilson',
-    date: '2024-01-10',
-    duration: '35 min',
-    status: 'processed',
-    source: 'upload',
-    hasInsights: true,
-    transcript: `[00:00] Emma Wilson: We're looking to scale our sales operations significantly this year...
-
-[02:00] Sales Rep: What's driving this need for scaling?
-
-[02:15] Emma Wilson: We've just secured Series B funding and plan to double our sales team by Q3...
-
-[Continue with full transcript...]`
-  },
-  {
-    id: 'proc_002',
-    callId: 'Call 4',
-    companyName: 'Innovation Hub',
-    prospectName: 'David Brown',
-    date: '2024-01-08',
-    duration: '50 min',
-    status: 'processed',
-    source: 'fireflies',
-    hasInsights: true,
-    transcript: `[00:00] David Brown: Our current lead qualification process is completely manual and it's killing our productivity...
-
-[Continue with full transcript...]`
-  }
-];
+import firefliesService from '@/services/firefliesService';
 
 const SalesCalls = () => {
   const navigate = useNavigate();
@@ -163,10 +51,17 @@ const SalesCalls = () => {
   const [modalTitle, setModalTitle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  
+  // Fireflies state
+  const [firefliesCalls, setFirefliesCalls] = useState([]);
+  const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
+  const [firefliesError, setFirefliesError] = useState(null);
+  const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
 
-  // Load uploaded files on component mount
+  // Load uploaded files and Fireflies data on component mount
   useEffect(() => {
     loadUploadedFiles();
+    loadFirefliesTranscripts();
     
     // Track page visit
     trackFeatureUsage('sales_calls', 'page_visit');
@@ -183,6 +78,62 @@ const SalesCalls = () => {
       setUploadedFiles(files);
     } catch (error) {
       console.error('Error loading uploaded files:', error);
+    }
+  };
+
+  const loadFirefliesTranscripts = async () => {
+    setIsLoadingFireflies(true);
+    setFirefliesError(null);
+    
+    try {
+      trackFeatureUsage('fireflies', 'fetch_transcripts');
+      
+      const transcripts = await firefliesService.getTranscripts({
+        limit: 50,
+      });
+      
+      setFirefliesCalls(transcripts);
+      setLastFirefliesSync(new Date());
+      
+      trackFeatureUsage('fireflies', 'fetch_transcripts_success', {
+        transcripts_count: transcripts.length,
+      });
+      
+    } catch (error) {
+      console.error('Error loading Fireflies transcripts:', error);
+      setFirefliesError(error.message);
+      
+      trackFeatureUsage('fireflies', 'fetch_transcripts_error', {
+        error: error.message,
+      });
+      
+      // Show user-friendly error message
+      toast.error('Failed to load Fireflies transcripts. Please try again.');
+    } finally {
+      setIsLoadingFireflies(false);
+    }
+  };
+
+  const handleSyncFireflies = async () => {
+    setIsLoadingFireflies(true);
+    
+    try {
+      trackButtonClick('Sync Fireflies');
+      
+      await firefliesService.syncTranscripts({
+        forceRefresh: true,
+      });
+      
+      // Reload transcripts after sync
+      await loadFirefliesTranscripts();
+      
+      toast.success('Fireflies transcripts synced successfully!');
+      
+    } catch (error) {
+      console.error('Error syncing Fireflies:', error);
+      toast.error('Failed to sync Fireflies transcripts. Please try again.');
+    } finally {
+      setIsLoadingFireflies(false);
     }
   };
 
@@ -359,11 +310,47 @@ const SalesCalls = () => {
   };
 
   // Filter functions
-  const filteredFirefliesCalls = mockFirefliesCalls.filter(call =>
+  const filteredFirefliesCalls = firefliesCalls.filter(call =>
     call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Mock processed calls (keeping existing functionality)
+  const mockProcessedCalls = [
+    {
+      id: 'proc_001',
+      callId: 'Call 3',
+      companyName: 'Global Solutions Ltd',
+      prospectName: 'Emma Wilson',
+      date: '2024-01-10',
+      duration: '35 min',
+      status: 'processed',
+      source: 'upload',
+      hasInsights: true,
+      transcript: `[00:00] Emma Wilson: We're looking to scale our sales operations significantly this year...
+
+[02:00] Sales Rep: What's driving this need for scaling?
+
+[02:15] Emma Wilson: We've just secured Series B funding and plan to double our sales team by Q3...
+
+[Continue with full transcript...]`
+    },
+    {
+      id: 'proc_002',
+      callId: 'Call 4',
+      companyName: 'Innovation Hub',
+      prospectName: 'David Brown',
+      date: '2024-01-08',
+      duration: '50 min',
+      status: 'processed',
+      source: 'fireflies',
+      hasInsights: true,
+      transcript: `[00:00] David Brown: Our current lead qualification process is completely manual and it's killing our productivity...
+
+[Continue with full transcript...]`
+    }
+  ];
 
   const filteredProcessedCalls = mockProcessedCalls.filter(call =>
     call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -543,24 +530,68 @@ const SalesCalls = () => {
                 <div className="flex items-center space-x-2">
                   <ExternalLink className="w-5 h-5" />
                   <span>Fireflies.ai Imports</span>
-                  <Badge variant="secondary">{filteredFirefliesCalls.length} calls</Badge>
+                  {isLoadingFireflies ? (
+                    <Badge variant="secondary" className="flex items-center space-x-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Loading...</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">{filteredFirefliesCalls.length} calls</Badge>
+                  )}
                 </div>
-                <TrackedButton 
-                  variant="outline" 
-                  size="sm"
-                  trackingName="Sync Fireflies"
-                >
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Sync from Fireflies
-                </TrackedButton>
+                <div className="flex items-center space-x-2">
+                  {lastFirefliesSync && (
+                    <span className="text-xs text-muted-foreground">
+                      Last sync: {lastFirefliesSync.toLocaleTimeString()}
+                    </span>
+                  )}
+                  <TrackedButton 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleSyncFireflies}
+                    disabled={isLoadingFireflies}
+                    trackingName="Sync Fireflies"
+                  >
+                    {isLoadingFireflies ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                    )}
+                    Sync from Fireflies
+                  </TrackedButton>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredFirefliesCalls.length === 0 ? (
+              {firefliesError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-red-900">Error loading Fireflies data</h4>
+                    <p className="text-sm text-red-700 mt-1">{firefliesError}</p>
+                    <TrackedButton 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={loadFirefliesTranscripts}
+                      trackingName="Retry Fireflies Load"
+                    >
+                      Try Again
+                    </TrackedButton>
+                  </div>
+                </div>
+              )}
+
+              {isLoadingFireflies ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Loading Fireflies transcripts...</p>
+                </div>
+              ) : filteredFirefliesCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No Fireflies.ai calls found</p>
-                  <p className="text-sm">Connect your Fireflies.ai account to import calls</p>
+                  <p className="text-sm">Sync your Fireflies.ai account to import calls</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -570,7 +601,14 @@ const SalesCalls = () => {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="font-semibold">{call.callId}</h3>
-                            <Badge variant="outline">{call.status}</Badge>
+                            <Badge variant={call.status === 'failed' ? 'destructive' : 'outline'}>
+                              {call.status}
+                            </Badge>
+                            {call.status === 'failed' && call.error && (
+                              <Badge variant="secondary" className="text-xs">
+                                {call.error}
+                              </Badge>
+                            )}
                           </div>
                           <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
                             <div className="space-y-1">
@@ -594,12 +632,18 @@ const SalesCalls = () => {
                               </div>
                             </div>
                           </div>
+                          {call.participants && call.participants.length > 0 && (
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              <span className="font-medium">Participants:</span> {call.participants.slice(0, 3).join(', ')}
+                              {call.participants.length > 3 && ` +${call.participants.length - 3} more`}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          {call.hasSummary && (
+                          {call.hasSummary && call.status !== 'failed' && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
@@ -611,7 +655,7 @@ const SalesCalls = () => {
                               View Summary
                             </TrackedButton>
                           )}
-                          {call.hasTranscript && (
+                          {call.hasTranscript && call.status !== 'failed' && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
@@ -624,14 +668,16 @@ const SalesCalls = () => {
                             </TrackedButton>
                           )}
                         </div>
-                        <TrackedButton 
-                          onClick={() => handleProcessCall(call, 'fireflies')}
-                          trackingName="Generate Insights"
-                          trackingContext={{ call_id: call.id, company: call.companyName, source: 'fireflies' }}
-                        >
-                          <ArrowRight className="w-4 h-4 mr-1" />
-                          Generate Insights
-                        </TrackedButton>
+                        {call.status !== 'failed' && (
+                          <TrackedButton 
+                            onClick={() => handleProcessCall(call, 'fireflies')}
+                            trackingName="Generate Insights"
+                            trackingContext={{ call_id: call.id, company: call.companyName, source: 'fireflies' }}
+                          >
+                            <ArrowRight className="w-4 h-4 mr-1" />
+                            Generate Insights
+                          </TrackedButton>
+                        )}
                       </div>
                     </div>
                   ))}

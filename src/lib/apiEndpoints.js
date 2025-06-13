@@ -42,6 +42,13 @@ const API_ENDPOINTS = {
     ANALYSIS: '/calls/analysis',
   },
 
+  // Fireflies.ai Integration endpoints
+  FIREFLIES: {
+    GET_TRANSCRIPTS: '/get-fireflies-transcripts',
+    GET_TRANSCRIPT_DETAIL: '/get-fireflies-transcript',
+    SYNC_TRANSCRIPTS: '/sync-fireflies-transcripts',
+  },
+
   // Prospect management endpoints
   PROSPECTS: {
     LIST: '/prospects/list',
