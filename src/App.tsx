@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { CallWrapUp } from "@/pages/followups/CallWrapUp";
 import { ActionItems } from "@/pages/followups/ActionItems";
 import { EmailTemplates } from "@/pages/followups/EmailTemplates";
 import { DeckBuilder } from "@/pages/followups/DeckBuilder";
@@ -30,8 +29,7 @@ const App = () => (
             <Route path="calls" element={<SalesCalls />} />
             <Route path="call-insights" element={<CallInsights />} />
             <Route path="follow-ups">
-              <Route index element={<Navigate to="/follow-ups/wrap-up" replace />} />
-              <Route path="wrap-up" element={<CallWrapUp />} />
+              <Route index element={<Navigate to="/call-insights" replace />} />
               <Route path="actions" element={<ActionItems />} />
               <Route path="emails" element={<EmailTemplates />} />
               <Route path="decks" element={<DeckBuilder />} />

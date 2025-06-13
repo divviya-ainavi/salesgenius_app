@@ -39,10 +39,10 @@ const mainNavItems = [
     description: 'Post-call follow-up automation',
     subItems: [
       {
-        title: 'Call Wrap-Up',
-        href: '/follow-ups/wrap-up',
-        icon: FileText,
-        description: 'AI-generated call summaries'
+        title: 'Call Insights',
+        href: '/call-insights',
+        icon: Brain,
+        description: 'AI-driven prospect understanding'
       },
       {
         title: 'Email',
