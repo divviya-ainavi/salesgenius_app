@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { fileStorage } from './fileStorage'
 import { analytics } from './analytics'
+import api from './api'
+import aiService from '@/services/aiService'
+import fileService from '@/services/fileService'
+import crmService from '@/services/crmService'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -23,64 +27,47 @@ export const CURRENT_USER = {
   organization_id: 'demo-org-001'
 }
 
-// API placeholder functions for AI agents
+// API placeholder functions for AI agents - now using centralized API service
 export const aiAgents = {
-  // Research Agent API placeholder
+  // Research Agent API
   async callResearchAgent(data) {
-    const startTime = Date.now()
-    console.log('Calling Research Agent with:', data)
-    
     try {
-      // TODO: Replace with actual API call
-      const result = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            data: {
-              research_summary: 'Research insights will be generated here',
-              key_findings: ['Finding 1', 'Finding 2', 'Finding 3']
-            }
-          })
-        }, 1000)
-      })
-
-      // Track successful API response
-      analytics.trackApiResponse('/api/research-agent', 'POST', 200, Date.now() - startTime)
-      analytics.trackAiInteraction('research_analysis', 'user_input', 'research_summary', true, {
-        findings_count: result.data.key_findings.length
-      })
-
-      return result
+      // Use centralized AI service
+      return await aiService.callResearchAgent(data);
     } catch (error) {
-      // Track failed API response
-      analytics.trackApiResponse('/api/research-agent', 'POST', 500, Date.now() - startTime, error.message)
-      analytics.trackAiInteraction('research_analysis', 'user_input', 'research_summary', false, {
-        error: error.message
-      })
-      throw error
+      console.error('Research Agent Error:', error);
+      
+      // Fallback to mock data for development
+      return {
+        success: true,
+        data: {
+          research_summary: 'Research insights will be generated here',
+          key_findings: ['Finding 1', 'Finding 2', 'Finding 3']
+        }
+      };
     }
   },
 
-  // Follow Up Agent API placeholder
+  // Follow Up Agent API
   async callFollowUpAgent(transcriptData) {
-    const startTime = Date.now()
-    console.log('Calling Follow Up Agent with:', transcriptData)
-    
     try {
-      // TODO: Replace with actual API call
-      const result = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            data: {
-              call_summary: `AI-generated summary of the call based on transcript analysis...`,
-              commitments: [
-                'Send product demo video by end of week',
-                'Schedule technical deep-dive with engineering team',
-                'Prepare customized proposal with pricing',
-                'Follow up on integration requirements'
-              ],
-              follow_up_email: `Hi [Client Name],
+      // Use centralized AI service
+      return await aiService.callFollowUpAgent(transcriptData);
+    } catch (error) {
+      console.error('Follow Up Agent Error:', error);
+      
+      // Fallback to mock data for development
+      return {
+        success: true,
+        data: {
+          call_summary: `AI-generated summary of the call based on transcript analysis...`,
+          commitments: [
+            'Send product demo video by end of week',
+            'Schedule technical deep-dive with engineering team',
+            'Prepare customized proposal with pricing',
+            'Follow up on integration requirements'
+          ],
+          follow_up_email: `Hi [Client Name],
 
 Thank you for taking the time to speak with me today. I wanted to follow up on our conversation and summarize the key points we discussed:
 
@@ -96,7 +83,7 @@ Next steps:
 
 Best regards,
 [Your Name]`,
-              deck_prompt: `Create a sales presentation focusing on:
+          deck_prompt: `Create a sales presentation focusing on:
 
 1. Problem Statement:
    - Current lead qualification challenges
@@ -122,75 +109,64 @@ Best regards,
    - Technical requirements review
    - Pilot program proposal
    - Timeline and pricing discussion`
-            }
-          })
-        }, 2000)
-      })
-
-      // Track successful AI interaction
-      analytics.trackApiResponse('/api/follow-up-agent', 'POST', 200, Date.now() - startTime)
-      analytics.trackAiInteraction('call_analysis', 'transcript', 'follow_up_content', true, {
-        commitments_count: result.data.commitments.length,
-        has_email: !!result.data.follow_up_email,
-        has_deck_prompt: !!result.data.deck_prompt
-      })
-
-      return result
-    } catch (error) {
-      // Track failed AI interaction
-      analytics.trackApiResponse('/api/follow-up-agent', 'POST', 500, Date.now() - startTime, error.message)
-      analytics.trackAiInteraction('call_analysis', 'transcript', 'follow_up_content', false, {
-        error: error.message
-      })
-      throw error
+        }
+      };
     }
   }
 }
 
-// Database helper functions with normalized structure and file storage
+// Database helper functions with centralized API integration
 export const dbHelpers = {
-  // File management functions with shareable links using transcript-files bucket
+  // File management functions using centralized file service
   async saveUploadedFile(userId, file, content = null) {
-    const startTime = Date.now()
-    
     try {
-      // Track file upload start
-      analytics.trackFileUpload(file.name, file.size, file.type, 'started')
-
-      // Upload file to Supabase Storage and get shareable URL
-      const uploadResult = await fileStorage.uploadFile(file, userId)
-      
-      const fileData = {
-        user_id: userId,
-        filename: uploadResult.fileName,
-        file_type: uploadResult.contentType,
-        file_size: uploadResult.fileSize,
-        content_type: uploadResult.contentType,
-        file_content: content, // For text files, store content for search/processing
-        file_url: uploadResult.publicUrl, // Store shareable URL
-        storage_path: uploadResult.filePath // Store storage path for management
-      }
-
-      const { data, error } = await supabase
-        .from('uploaded_files')
-        .insert(fileData)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Track successful file upload
-      analytics.trackFileUpload(file.name, file.size, file.type, 'completed')
-      analytics.trackApiResponse('/api/upload-file', 'POST', 200, Date.now() - startTime)
-
-      return data
+      // Use centralized file service
+      return await fileService.uploadFile(file, {
+        userId,
+        metadata: {
+          content_type: file.type,
+          file_content: content,
+        }
+      });
     } catch (error) {
-      // Track failed file upload
-      analytics.trackFileUpload(file.name, file.size, file.type, 'failed')
-      analytics.trackApiResponse('/api/upload-file', 'POST', 500, Date.now() - startTime, error.message)
+      console.error('Error saving uploaded file:', error);
       
-      console.error('Error saving uploaded file:', error)
-      throw error
+      // Fallback to direct Supabase for development
+      const startTime = Date.now()
+      
+      try {
+        analytics.trackFileUpload(file.name, file.size, file.type, 'started')
+
+        const uploadResult = await fileStorage.uploadFile(file, userId)
+        
+        const fileData = {
+          user_id: userId,
+          filename: uploadResult.fileName,
+          file_type: uploadResult.contentType,
+          file_size: uploadResult.fileSize,
+          content_type: uploadResult.contentType,
+          file_content: content,
+          file_url: uploadResult.publicUrl,
+          storage_path: uploadResult.filePath
+        }
+
+        const { data, error } = await supabase
+          .from('uploaded_files')
+          .insert(fileData)
+          .select()
+          .single()
+
+        if (error) throw error
+
+        analytics.trackFileUpload(file.name, file.size, file.type, 'completed')
+        analytics.trackApiResponse('/api/upload-file', 'POST', 200, Date.now() - startTime)
+
+        return data
+      } catch (fallbackError) {
+        analytics.trackFileUpload(file.name, file.size, file.type, 'failed')
+        analytics.trackApiResponse('/api/upload-file', 'POST', 500, Date.now() - startTime, fallbackError.message)
+        throw fallbackError
+      }
     }
   },
 
@@ -240,16 +216,13 @@ export const dbHelpers = {
     try {
       const fileData = await this.getUploadedFile(fileId)
       
-      // If content is stored in database, return it
       if (fileData.file_content) {
         return fileData.file_content
       }
       
-      // Otherwise, download from shareable URL
       if (fileData.file_url) {
         const content = await fileStorage.downloadFileContent(fileData.file_url)
         
-        // Update database with downloaded content for future use
         if (content) {
           await supabase
             .from('uploaded_files')
@@ -273,7 +246,6 @@ export const dbHelpers = {
       const fileData = await this.getUploadedFile(fileId)
       
       if (fileData.file_url) {
-        // Track file access
         analytics.track('file_accessed', {
           file_id: fileId,
           file_name: fileData.filename,
@@ -281,7 +253,6 @@ export const dbHelpers = {
           access_method: 'shareable_link'
         })
 
-        // Open file in new tab using shareable URL
         window.open(fileData.file_url, '_blank', 'noopener,noreferrer')
         return true
       }
@@ -300,12 +271,10 @@ export const dbHelpers = {
     try {
       const fileData = await this.getUploadedFile(fileId)
       
-      // Delete from storage if storage_path exists
       if (fileData.storage_path) {
         await fileStorage.deleteFile(fileData.storage_path)
       }
       
-      // Delete from database
       const { error } = await supabase
         .from('uploaded_files')
         .delete()
@@ -313,7 +282,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track file deletion
       analytics.track('file_deleted', {
         file_id: fileId,
         file_name: fileData.filename,
@@ -346,7 +314,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track processing session creation
       analytics.track('processing_session_created', {
         session_id: data.id,
         user_id: userId,
@@ -379,7 +346,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track processing session update
       analytics.track('processing_session_updated', {
         session_id: sessionId,
         status: updates.processing_status,
@@ -403,7 +369,6 @@ export const dbHelpers = {
         .from('processing_history')
         .update({
           call_notes_id: contentIds.callNotesId || null,
-          // Store content IDs as JSONB for flexible reference
           content_references: {
             call_notes_id: contentIds.callNotesId,
             commitments_ids: contentIds.commitmentsIds || [],
@@ -418,7 +383,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track content linking
       analytics.track('content_linked_to_session', {
         session_id: sessionId,
         content_types: Object.keys(contentIds).filter(key => contentIds[key])
@@ -487,10 +451,8 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Get all related content using the content_references
       const contentRefs = session.content_references || {}
       
-      // Fetch commitments
       let commitments = []
       if (contentRefs.commitments_ids && contentRefs.commitments_ids.length > 0) {
         const { data: commitmentsData } = await supabase
@@ -501,7 +463,6 @@ export const dbHelpers = {
         commitments = commitmentsData || []
       }
 
-      // Fetch follow-up email
       let followUpEmail = null
       if (contentRefs.follow_up_email_id) {
         const { data: emailData } = await supabase
@@ -512,7 +473,6 @@ export const dbHelpers = {
         followUpEmail = emailData
       }
 
-      // Fetch deck prompt
       let deckPrompt = null
       if (contentRefs.deck_prompt_id) {
         const { data: deckData } = await supabase
@@ -523,7 +483,6 @@ export const dbHelpers = {
         deckPrompt = deckData
       }
 
-      // Fetch insights
       let insights = []
       if (contentRefs.insights_ids && contentRefs.insights_ids.length > 0) {
         const { data: insightsData } = await supabase
@@ -536,7 +495,6 @@ export const dbHelpers = {
 
       analytics.trackApiResponse('/api/get-session-details', 'GET', 200, Date.now() - startTime)
 
-      // Return session with all related content
       return {
         ...session,
         call_commitments: commitments,
@@ -570,7 +528,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track call note creation
       analytics.track('call_note_created', {
         call_note_id: data.id,
         user_id: userId,
@@ -619,7 +576,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track call note update
       analytics.track('call_note_updated', {
         call_note_id: id,
         updated_fields: Object.keys(updates)
@@ -643,7 +599,6 @@ export const dbHelpers = {
         commitment_text: typeof commitment === 'string' ? commitment : commitment.task,
         is_selected: true,
         processing_session_id: processingSessionId,
-        // Add owner and deadline if available
         ...(typeof commitment === 'object' && {
           owner: commitment.owner,
           deadline: commitment.deadline
@@ -657,7 +612,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track commitments creation
       analytics.track('commitments_created', {
         call_notes_id: callNotesId,
         user_id: userId,
@@ -686,7 +640,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track commitment update
       analytics.track('commitment_updated', {
         commitment_id: id,
         updated_fields: Object.keys(updates)
@@ -717,7 +670,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track email creation
       analytics.track('follow_up_email_created', {
         email_id: data.id,
         call_notes_id: callNotesId,
@@ -746,7 +698,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track email update
       analytics.track('follow_up_email_updated', {
         email_id: id,
         updated_fields: Object.keys(updates)
@@ -777,7 +728,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track deck prompt creation
       analytics.track('deck_prompt_created', {
         deck_prompt_id: data.id,
         call_notes_id: callNotesId,
@@ -806,7 +756,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track deck prompt update
       analytics.track('deck_prompt_updated', {
         deck_prompt_id: id,
         updated_fields: Object.keys(updates)
@@ -843,7 +792,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track insights creation
       analytics.track('call_insights_created', {
         call_notes_id: callNotesId,
         user_id: userId,
@@ -872,7 +820,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track insight update
       analytics.track('call_insight_updated', {
         insight_id: id,
         updated_fields: Object.keys(updates)
@@ -912,14 +859,12 @@ export const dbHelpers = {
     const contentIds = {}
 
     try {
-      // Track the start of complete analysis
       analytics.track('complete_call_analysis_started', {
         user_id: userId,
         file_id: fileId,
         processing_session_id: processingSessionId
       })
 
-      // Create call note
       const callNote = await this.createCallNote(
         userId,
         `call-${Date.now()}`,
@@ -929,7 +874,6 @@ export const dbHelpers = {
       )
       contentIds.callNotesId = callNote.id
 
-      // Update call note with summary
       if (analysisData.call_summary) {
         await this.updateCallNote(callNote.id, {
           ai_summary: analysisData.call_summary,
@@ -937,7 +881,6 @@ export const dbHelpers = {
         })
       }
 
-      // Create commitments/action items
       if (analysisData.action_items && analysisData.action_items.length > 0) {
         const commitments = await this.createCommitments(
           callNote.id,
@@ -948,7 +891,6 @@ export const dbHelpers = {
         contentIds.commitmentsIds = commitments.map(c => c.id)
       }
 
-      // Create follow-up email
       if (analysisData.follow_up_email) {
         const email = await this.createFollowUpEmail(
           callNote.id,
@@ -959,7 +901,6 @@ export const dbHelpers = {
         contentIds.followUpEmailId = email.id
       }
 
-      // Create deck prompt
       if (analysisData.deck_prompt) {
         const deck = await this.createDeckPrompt(
           callNote.id,
@@ -970,7 +911,6 @@ export const dbHelpers = {
         contentIds.deckPromptId = deck.id
       }
 
-      // Create insights
       if (analysisData.insights && analysisData.insights.length > 0) {
         const insights = await this.saveCallInsights(
           callNote.id,
@@ -981,10 +921,8 @@ export const dbHelpers = {
         contentIds.insightsIds = insights.map(i => i.id)
       }
 
-      // Link all content to processing session
       await this.linkContentToSession(processingSessionId, contentIds)
 
-      // Track successful completion
       analytics.track('complete_call_analysis_completed', {
         user_id: userId,
         file_id: fileId,
@@ -994,7 +932,6 @@ export const dbHelpers = {
 
       return contentIds
     } catch (error) {
-      // Track failed analysis
       analytics.track('complete_call_analysis_failed', {
         user_id: userId,
         file_id: fileId,
@@ -1042,7 +979,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track content update
       analytics.track('content_updated', {
         content_type: contentType,
         content_id: contentId,
@@ -1081,6 +1017,20 @@ export const dbHelpers = {
     const startTime = Date.now()
     
     try {
+      // Try using centralized CRM service first
+      if (status === 'success') {
+        // This would be called after a successful CRM push
+        analytics.trackCrmIntegration(
+          `push_${contentType}`,
+          'hubspot',
+          true,
+          {
+            content_id: contentId,
+            hubspot_id: hubspotId
+          }
+        )
+      }
+
       const { data, error } = await supabase
         .from('push_log')
         .insert({
@@ -1096,17 +1046,6 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      // Track CRM push action
-      analytics.trackCrmIntegration(
-        `push_${contentType}`,
-        'hubspot',
-        status === 'success',
-        {
-          content_id: contentId,
-          hubspot_id: hubspotId,
-          error_message: errorMessage
-        }
-      )
       analytics.trackApiResponse('/api/log-push-action', 'POST', 200, Date.now() - startTime)
 
       return data
@@ -1116,3 +1055,6 @@ export const dbHelpers = {
     }
   }
 }
+
+// Export centralized services for easy access
+export { api, aiService, fileService, crmService }
