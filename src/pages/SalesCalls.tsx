@@ -28,7 +28,9 @@ import {
   ArrowRight,
   Copy,
   AlertCircle,
-  Loader2
+  Loader2,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
@@ -57,11 +59,13 @@ const SalesCalls = () => {
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState({ connected: false, fallback_mode: false });
 
   // Load uploaded files and Fireflies data on component mount
   useEffect(() => {
     loadUploadedFiles();
     loadFirefliesTranscripts();
+    checkConnectionStatus();
     
     // Track page visit
     trackFeatureUsage('sales_calls', 'page_visit');
@@ -71,6 +75,16 @@ const SalesCalls = () => {
   useEffect(() => {
     trackFeatureUsage('sales_calls', 'tab_change', { tab: activeTab });
   }, [activeTab]);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const status = await firefliesService.getConnectionStatus();
+      setConnectionStatus(status);
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+      setConnectionStatus({ connected: false, fallback_mode: import.meta.env.DEV });
+    }
+  };
 
   const loadUploadedFiles = async () => {
     try {
@@ -108,7 +122,7 @@ const SalesCalls = () => {
       });
       
       // Show user-friendly error message
-      toast.error('Failed to load Fireflies transcripts. Please try again.');
+      toast.error('Failed to load Fireflies transcripts. Please check your connection and try again.');
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -116,22 +130,43 @@ const SalesCalls = () => {
 
   const handleSyncFireflies = async () => {
     setIsLoadingFireflies(true);
+    setFirefliesError(null);
     
     try {
       trackButtonClick('Sync Fireflies');
       
-      await firefliesService.syncTranscripts({
+      const syncResult = await firefliesService.syncTranscripts({
         forceRefresh: true,
       });
       
       // Reload transcripts after sync
       await loadFirefliesTranscripts();
       
-      toast.success('Fireflies transcripts synced successfully!');
+      // Show appropriate success message based on sync result
+      if (syncResult.status === 'completed_with_fallback') {
+        toast.success('Fireflies sync completed using development data!', {
+          description: 'Using mock data while API is unavailable.',
+        });
+      } else {
+        toast.success('Fireflies transcripts synced successfully!', {
+          description: `Synced ${syncResult.synced_count} transcripts.`,
+        });
+      }
       
     } catch (error) {
       console.error('Error syncing Fireflies:', error);
-      toast.error('Failed to sync Fireflies transcripts. Please try again.');
+      setFirefliesError(error.message);
+      
+      // Show more specific error messages
+      if (error.message.includes('Failed to fetch')) {
+        toast.error('Unable to connect to Fireflies API', {
+          description: 'Please check your internet connection and try again.',
+        });
+      } else {
+        toast.error('Failed to sync Fireflies transcripts', {
+          description: error.message,
+        });
+      }
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -372,6 +407,23 @@ const SalesCalls = () => {
         </p>
       </div>
 
+      {/* Connection Status Banner */}
+      {connectionStatus.fallback_mode && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <WifiOff className="w-5 h-5 text-amber-600" />
+              <div>
+                <h4 className="font-medium text-amber-900">Development Mode</h4>
+                <p className="text-sm text-amber-700">
+                  API server not available. Using mock data for development and testing.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
@@ -538,6 +590,11 @@ const SalesCalls = () => {
                   ) : (
                     <Badge variant="secondary">{filteredFirefliesCalls.length} calls</Badge>
                   )}
+                  {connectionStatus.fallback_mode && (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                      Mock Data
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   {lastFirefliesSync && (
@@ -569,15 +626,25 @@ const SalesCalls = () => {
                   <div>
                     <h4 className="font-medium text-red-900">Error loading Fireflies data</h4>
                     <p className="text-sm text-red-700 mt-1">{firefliesError}</p>
-                    <TrackedButton 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={loadFirefliesTranscripts}
-                      trackingName="Retry Fireflies Load"
-                    >
-                      Try Again
-                    </TrackedButton>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <TrackedButton 
+                        variant="outline" 
+                        size="sm"
+                        onClick={loadFirefliesTranscripts}
+                        trackingName="Retry Fireflies Load"
+                      >
+                        Try Again
+                      </TrackedButton>
+                      <TrackedButton 
+                        variant="outline" 
+                        size="sm"
+                        onClick={checkConnectionStatus}
+                        trackingName="Check Connection"
+                      >
+                        <Wifi className="w-3 h-3 mr-1" />
+                        Check Connection
+                      </TrackedButton>
+                    </div>
                   </div>
                 </div>
               )}
@@ -586,6 +653,9 @@ const SalesCalls = () => {
                 <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
                   <p className="text-muted-foreground">Loading Fireflies transcripts...</p>
+                  {connectionStatus.fallback_mode && (
+                    <p className="text-xs text-amber-600 mt-2">Using development data</p>
+                  )}
                 </div>
               ) : filteredFirefliesCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
