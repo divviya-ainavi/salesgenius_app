@@ -33,6 +33,7 @@ const App = () => (
               <Route path="actions" element={<ActionItems />} />
               <Route path="emails" element={<EmailTemplates />} />
               <Route path="decks" element={<DeckBuilder />} />
+              <Route path="wrap-up" element={<CallInsights />} />
             </Route>
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
