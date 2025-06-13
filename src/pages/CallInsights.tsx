@@ -3,11 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft,
-  Brain,
+  Sparkles,
   TrendingUp,
   Users,
   Target,
@@ -17,8 +18,6 @@ import {
   MessageSquare,
   CheckSquare,
   FileText,
-  Presentation,
-  Mail,
   Building,
   User,
   Calendar,
@@ -28,711 +27,793 @@ import {
   Zap,
   BarChart3,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Edit,
+  Save,
+  X,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  Filter,
+  Ear,
+  Hand,
+  Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CallInsightsViewer } from '@/components/followups/CallInsightsViewer';
-import { aiAgents, dbHelpers, CURRENT_USER } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
-// Mock cumulative insights data that builds over multiple calls
-const mockCumulativeInsights = {
-  'Acme Corp': {
+// Mock prospects data with cumulative insights
+const mockProspects = [
+  {
+    id: 'acme_corp',
+    companyName: 'Acme Corp',
     prospectName: 'Sarah Johnson',
+    title: 'VP of Sales',
     totalCalls: 4,
     lastCallDate: '2024-01-15',
+    lastEngagement: '2 hours ago',
+    status: 'hot',
+    dealValue: '$120K',
+    probability: 85,
+    nextAction: 'Pilot program approval',
     dataSources: {
       fireflies: 3,
       hubspot: 1,
       presentations: 2,
       emails: 5
-    },
-    cumulativeInsights: {
-      call_summary: `Comprehensive Prospect Analysis - Acme Corp (4 Calls)
+    }
+  },
+  {
+    id: 'techstart_inc',
+    companyName: 'TechStart Inc',
+    prospectName: 'John Smith',
+    title: 'CEO',
+    totalCalls: 2,
+    lastCallDate: '2024-01-14',
+    lastEngagement: '1 day ago',
+    status: 'warm',
+    dealValue: '$45K',
+    probability: 65,
+    nextAction: 'Technical demo',
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 3
+    }
+  },
+  {
+    id: 'global_solutions',
+    companyName: 'Global Solutions Ltd',
+    prospectName: 'Emma Wilson',
+    title: 'Director of Operations',
+    totalCalls: 3,
+    lastCallDate: '2024-01-10',
+    lastEngagement: '5 days ago',
+    status: 'warm',
+    dealValue: '$85K',
+    probability: 70,
+    nextAction: 'Proposal review',
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 4
+    }
+  }
+];
 
-EXECUTIVE SUMMARY:
-Sarah Johnson (VP Sales) at Acme Corp represents a high-value opportunity with strong buying signals and clear pain points. Through 4 progressive calls, we've identified significant automation needs and budget approval for Q2 implementation.
-
-CUMULATIVE PAIN POINTS:
-• Manual lead qualification consuming 15+ hours weekly across 8-person sales team
-• 40% of sales time spent on administrative tasks vs. selling activities  
-• 30% lead leakage due to delayed response times (identified in calls 1-3)
-• Lack of real-time lead scoring causing missed opportunities
-• Integration challenges with existing HubSpot setup (technical deep-dive in call 2)
-
-DECISION-MAKING DYNAMICS:
-• Sarah Johnson: Primary decision maker with full budget authority (confirmed call 3)
-• Mike Chen (Sales Ops): Technical influencer, concerned about integration complexity
-• Lisa Rodriguez (Marketing): Collaborative stakeholder, focused on lead handoff process
-• No additional stakeholders required for approval (major advantage)
-
-COMPETITIVE LANDSCAPE:
-• Evaluating 3 total vendors (us + 2 competitors)
-• Price sensitivity: Budget approved but cost-conscious due to startup mentality
-• Differentiation opportunity: Real-time scoring + seamless HubSpot integration
-
-BUYING SIGNALS & MOMENTUM:
-• Budget pre-approved for £50K annually (revealed in call 2)
-• Urgent timeline: Decision required by end of Q1 for Q2 implementation
-• Technical demo scheduled and completed successfully (call 3)
-• ROI analysis requested and delivered (call 4)
-• Strong positive sentiment throughout all interactions
-
-NEXT STEPS & STRATEGY:
-• Pilot program proposal for 2 team members (recommended approach from call 4)
-• Final pricing discussion scheduled
-• Implementation timeline: 6-week rollout plan prepared
-• Success metrics defined: 70% reduction in manual qualification time`,
-
-      follow_up_email: `Subject: Acme Corp Implementation Roadmap - Ready to Transform Your Sales Process
-
-Hi Sarah,
-
-Thank you for the productive conversation yesterday. After four comprehensive discussions with you, Mike, and Lisa, I'm excited to present our tailored implementation roadmap for Acme Corp.
-
-WHAT WE'VE LEARNED TOGETHER:
-Over our conversations, you've shared that your 8-person sales team is spending 40% of their time on manual tasks instead of selling. This translates to roughly £120K annually in lost productivity - a challenge we're uniquely positioned to solve.
-
-PERSONALIZED SOLUTION APPROACH:
-Based on your preference for visual data (noted in our first call), I've prepared comprehensive ROI dashboards that show real-time impact metrics. For Mike's technical requirements, we've designed a seamless HubSpot integration that requires zero disruption to current workflows. And for Lisa's collaboration needs, our solution includes automated lead handoff protocols that align sales and marketing perfectly.
-
-CUMULATIVE VALUE PROPOSITION:
-• 70% reduction in manual qualification time (saving 10.5 hours weekly per rep)
-• Real-time lead scoring preventing the 30% leakage you mentioned
-• £84K annual productivity savings based on your team size
-• 6-month ROI timeline with measurable KPIs
-
-PROVEN TRACK RECORD:
-Since our first conversation, I've compiled case studies from similar companies:
-• TechCorp (8-person team): 60% efficiency gain in 4 months
-• GrowthCo (similar HubSpot setup): 40% increase in qualified leads
-• ScaleUp Ltd: 300% ROI within 6 months
-
-NEXT STEPS - PILOT PROGRAM:
-As discussed, I recommend starting with a 2-person pilot:
-• Week 1-2: Setup and integration (Mike's team involved throughout)
-• Week 3-4: Training and optimization
-• Week 5-6: Full team rollout based on pilot results
-
-INVESTMENT & TIMELINE:
-• Pilot investment: £2,500 monthly for 2 users
-• Full team: £15,000 annually (well within your £50K budget)
-• Implementation: 6 weeks to full deployment
-• ROI realization: Month 3 based on similar deployments
-
-I'm attaching the detailed implementation timeline, ROI calculator with your specific metrics, and technical integration guide for Mike's review.
-
-Would you prefer a brief call to finalize the pilot details, or shall we proceed with the proposal documentation for your Q1 decision timeline?
-
-Looking forward to helping Acme Corp achieve the 70% efficiency gains we've discussed.
-
-Best regards,
-[Your Name]
-
-P.S. The HubSpot integration demo video I mentioned is ready - happy to share the private link when convenient.`,
-
-      deck_prompt: `# Comprehensive Sales Presentation: Acme Corp Transformation Strategy
-
-## Presentation Context
-**Audience**: Sarah Johnson (VP Sales), Mike Chen (Sales Ops), Lisa Rodriguez (Marketing)
-**Objective**: Secure pilot program approval and advance to full implementation
-**Methodology**: Consultative selling with cumulative insight integration
-**Data Sources**: 4 progressive calls + HubSpot analysis + competitive research
-
-## Slide Structure & Strategic Narrative
-
-### Slide 1: Executive Summary - The Acme Corp Opportunity
-**Visual Focus**: Bold ROI dashboard showing £84K annual savings
-- Headline: "Transforming Acme Corp's Sales Efficiency: From 40% Admin Time to 70% Selling Time"
-- Key Metric Callout: "£120K Annual Productivity Loss → £84K Annual Savings"
-- Cumulative Insight: "Based on 4 comprehensive discovery sessions with your team"
-- Visual Element: Before/after productivity comparison chart
-
-### Slide 2: The Cumulative Challenge (Insights from 4 Calls)
-**Strategic Positioning**: Demonstrate deep understanding through progressive discovery
-- Current State Analysis:
-  • 8 sales reps × 15 hours weekly = 120 hours lost to manual processes
-  • 30% lead leakage due to delayed response (quantified in call 2)
-  • HubSpot underutilization creating data silos (technical review with Mike)
-  • Sales-Marketing misalignment affecting lead quality (Lisa's concern from call 3)
-- Visual: Process flow diagram showing current inefficiencies with time/cost annotations
-
-### Slide 3: Decision-Making Dynamics & Stakeholder Alignment
-**Personalization Strategy**: Address each stakeholder's specific concerns
-- Sarah's Strategic Vision: "Scaling sales operations for aggressive growth targets"
-- Mike's Technical Requirements: "Seamless integration without workflow disruption"  
-- Lisa's Collaboration Goals: "Improved lead handoff and attribution tracking"
-- Competitive Advantage: "Single solution addressing all three priorities"
-- Visual: Stakeholder influence map with solution alignment
-
-### Slide 4: Cumulative ROI Analysis (Data-Driven Approach)
-**Sarah's Visual Learning Preference**: Interactive ROI calculator
-- Time Savings Calculation:
-  • Current: 120 hours weekly × £50/hour = £6,000 weekly cost
-  • Post-Implementation: 36 hours weekly × £50/hour = £1,800 weekly cost
-  • Net Savings: £4,200 weekly = £218,400 annually
-- Investment vs. Return:
-  • Annual Investment: £15,000 (full team)
-  • Net Annual Benefit: £203,400
-  • ROI: 1,356% in first year
-- Visual: Interactive dashboard with adjustable parameters
-
-### Slide 5: Technical Integration Roadmap (Mike's Requirements)
-**Kinesthetic Learning Approach**: Hands-on implementation plan
-- Phase 1 (Weeks 1-2): HubSpot API integration and data mapping
-- Phase 2 (Weeks 3-4): Pilot program with 2 team members
-- Phase 3 (Weeks 5-6): Full team deployment and optimization
-- Technical Specifications:
-  • Real-time data synchronization
-  • Zero downtime implementation
-  • Existing workflow preservation
-- Visual: Technical architecture diagram with integration points
-
-### Slide 6: Pilot Program Strategy (Risk Mitigation)
-**Conservative Approach**: Address startup mentality and risk concerns
-- Pilot Scope: 2 team members for 6 weeks
-- Success Metrics:
-  • 50% reduction in qualification time
-  • 25% increase in lead response speed
-  • 90% user adoption rate
-- Investment: £2,500 monthly during pilot
-- Go/No-Go Decision: Based on measurable KPIs
-- Visual: Pilot timeline with success milestones
-
-### Slide 7: Competitive Differentiation Matrix
-**Strategic Positioning**: Address 3-vendor evaluation process
-- Vendor Comparison Framework:
-  • Integration Complexity: Us (Seamless) vs. Competitors (Complex)
-  • Implementation Time: Us (6 weeks) vs. Competitors (3-6 months)
-  • HubSpot Compatibility: Us (Native) vs. Competitors (Third-party)
-  • Support Model: Us (Dedicated) vs. Competitors (Shared)
-- Visual: Comparison matrix with clear advantage indicators
-
-### Slide 8: Success Stories & Social Proof
-**Credibility Building**: Relevant case studies from similar companies
-- TechCorp Case Study:
-  • Similar Profile: 8-person sales team, HubSpot users
-  • Results: 60% efficiency gain, 4-month ROI
-  • Testimonial: "Game-changing automation without disruption"
-- GrowthCo Implementation:
-  • Challenge: Lead leakage and response delays
-  • Solution: Real-time scoring and automated workflows
-  • Outcome: 40% increase in qualified leads
-- Visual: Customer logos with key metrics and quotes
-
-### Slide 9: Implementation Timeline & Milestones
-**Project Management Focus**: Clear path forward with accountability
-- Week 1: Technical setup and HubSpot integration
-- Week 2: Pilot user training and initial configuration
-- Week 3-4: Pilot execution with daily monitoring
-- Week 5: Results analysis and optimization
-- Week 6: Full team rollout decision and planning
-- Success Checkpoints: Weekly reviews with measurable KPIs
-- Visual: Gantt chart with milestone markers and success criteria
-
-### Slide 10: Investment Summary & Next Steps
-**Clear Call to Action**: Simplified decision framework
-- Pilot Investment: £2,500 monthly (2 users, 6 weeks)
-- Full Implementation: £15,000 annually (8 users)
-- Expected ROI: 1,356% first year based on productivity gains
-- Decision Timeline: Pilot approval by end of Q1 for Q2 implementation
-- Immediate Next Steps:
-  1. Pilot agreement and user selection
-  2. Technical requirements finalization with Mike
-  3. Success metrics definition with Sarah and Lisa
-- Visual: Investment vs. return comparison with timeline
-
-## Presentation Delivery Notes
-- **Opening**: Reference specific insights from all 4 previous calls
-- **Transitions**: Use cumulative learning to bridge between sections
-- **Interaction**: Include Mike in technical discussions, engage Lisa on process improvements
-- **Closing**: Emphasize partnership approach and long-term value creation
-- **Follow-up**: Provide detailed pilot proposal within 24 hours
-
-## Gamma-Specific Instructions
-- Use professional template with Acme Corp brand colors if available
-- Ensure all charts are interactive and data-driven
-- Include speaker notes with specific talking points from each call
-- Add smooth transitions emphasizing cumulative insight development
-- Optimize for both live presentation and leave-behind reference document`,
-
-      reviewInsights: [
-        {
-          id: 'cumulative_1',
-          type: 'prospect_mention',
-          content: 'Cumulative Analysis: Acme Corp has consistently mentioned budget approval across 3 calls, with final confirmation of £50K annual budget in call 4. This represents strong buying intent and removes a major qualification barrier.',
-          relevance_score: 98,
-          is_selected: true,
-          source: 'Cumulative AI Analysis',
-          timestamp: 'Calls 1-4'
-        },
-        {
-          id: 'cumulative_2',
-          type: 'sales_signal',
-          content: 'Progressive Buying Signals: Sentiment analysis across 4 calls shows increasing positive sentiment (Call 1: 72% → Call 4: 91%). Key phrases evolved from "exploring options" to "ready to implement" indicating strong purchase intent.',
-          relevance_score: 96,
-          is_selected: true,
-          source: 'Sentiment Tracking',
-          timestamp: 'Progressive Analysis'
-        },
-        {
-          id: 'cumulative_3',
-          type: 'communication_style',
-          content: 'Sarah Johnson Communication Profile: Consistently demonstrates visual learning preference across all interactions. Responds positively to charts, ROI dashboards, and data visualizations. Recommend maintaining visual-heavy approach in all future communications.',
-          relevance_score: 94,
-          is_selected: true,
-          source: 'Communication Analysis',
-          timestamp: 'Behavioral Pattern'
-        },
-        {
-          id: 'cumulative_4',
-          type: 'opportunity',
-          content: 'Competitive Advantage Identified: Through progressive discovery, we\'ve learned that 2 competing vendors require 3-6 month implementations vs. our 6-week timeline. This speed advantage has become increasingly important to their Q2 deadline.',
-          relevance_score: 92,
-          is_selected: true,
-          source: 'Competitive Intelligence',
-          timestamp: 'Strategic Analysis'
-        },
-        {
-          id: 'cumulative_5',
-          type: 'agreed_action',
-          content: 'Cumulative Commitment Tracking: Pilot program approach agreed upon in call 4, building on technical requirements from call 2 and stakeholder alignment from call 3. All parties aligned on 2-person pilot starting with Sarah\'s top performers.',
-          relevance_score: 90,
-          is_selected: true,
-          source: 'Commitment Tracking',
-          timestamp: 'Call 4 Agreement'
-        }
-      ],
-
-      callAnalysisData: {
-        specific_user: 'Sarah Johnson (VP Sales)',
-        sentiment_score: 0.91,
-        action_items: [
-          {
-            task: 'Finalize pilot program agreement with 2-person team selection',
-            owner: 'Sarah Johnson',
-            deadline: '2024-01-20'
-          },
-          {
-            task: 'Complete technical integration requirements review',
-            owner: 'Mike Chen',
-            deadline: '2024-01-18'
-          },
-          {
-            task: 'Prepare detailed ROI calculator with Acme-specific metrics',
-            owner: 'Sales Rep',
-            deadline: '2024-01-17'
-          }
+// Mock cumulative insights for selected prospect
+const mockCumulativeInsights = {
+  'acme_corp': {
+    salesInsights: [
+      {
+        id: 'insight_1',
+        type: 'buying_signal',
+        content: 'Strong budget approval confirmed across 3 calls. £50K annual budget pre-approved with Q2 implementation timeline. Decision authority confirmed with Sarah Johnson.',
+        relevance_score: 98,
+        is_selected: true,
+        source: 'Cumulative Analysis',
+        timestamp: 'Calls 1-4',
+        trend: 'increasing'
+      },
+      {
+        id: 'insight_2',
+        type: 'pain_point',
+        content: 'Manual lead qualification consuming 15+ hours weekly across 8-person sales team. 40% of time spent on admin vs. selling. 30% lead leakage due to delayed response.',
+        relevance_score: 96,
+        is_selected: true,
+        source: 'Progressive Discovery',
+        timestamp: 'Consistent across calls',
+        trend: 'stable'
+      },
+      {
+        id: 'insight_3',
+        type: 'competitive_advantage',
+        content: 'Speed advantage identified: 6-week implementation vs. competitors\' 3-6 months. Critical for Q2 deadline. HubSpot native integration is key differentiator.',
+        relevance_score: 94,
+        is_selected: true,
+        source: 'Competitive Intelligence',
+        timestamp: 'Call 3-4',
+        trend: 'increasing'
+      },
+      {
+        id: 'insight_4',
+        type: 'stakeholder_dynamics',
+        content: 'Sarah (decision maker), Mike (technical influencer), Lisa (process stakeholder). No additional approvals needed. Consensus building complete.',
+        relevance_score: 92,
+        is_selected: true,
+        source: 'Stakeholder Mapping',
+        timestamp: 'Progressive analysis',
+        trend: 'stable'
+      },
+      {
+        id: 'insight_5',
+        type: 'urgency_driver',
+        content: 'Q2 scaling plans driving urgency. Series B funding secured, doubling sales team. Automation critical for growth execution.',
+        relevance_score: 90,
+        is_selected: true,
+        source: 'Business Context',
+        timestamp: 'Call 2-4',
+        trend: 'increasing'
+      }
+    ],
+    communicationStyles: [
+      {
+        id: 'comm_1',
+        stakeholder: 'Sarah Johnson',
+        role: 'VP of Sales',
+        style: 'Visual',
+        confidence: 0.92,
+        evidence: 'Consistently requests charts, dashboards, and visual data across all 4 calls. Responds positively to ROI visualizations.',
+        preferences: [
+          'Data-driven presentations',
+          'Visual ROI calculators',
+          'Dashboard mockups',
+          'Infographic summaries'
         ],
-        communication_styles: [
-          {
-            role_name: 'Sarah Johnson',
-            style: 'Visual',
-            evidence: 'Consistently requests charts, dashboards, and visual data across all 4 calls'
-          },
-          {
-            role_name: 'Mike Chen',
-            style: 'Kinesthetic',
-            evidence: 'Prefers hands-on technical demos and detailed implementation plans'
-          }
+        communication_tips: [
+          'Lead with visual data',
+          'Use charts and graphs',
+          'Provide dashboard previews',
+          'Include visual case studies'
+        ]
+      },
+      {
+        id: 'comm_2',
+        stakeholder: 'Mike Chen',
+        role: 'Sales Operations Manager',
+        style: 'Kinesthetic',
+        confidence: 0.87,
+        evidence: 'Prefers hands-on technical demos, asks for implementation details, wants to "see it in action".',
+        preferences: [
+          'Live demonstrations',
+          'Hands-on trials',
+          'Technical deep-dives',
+          'Implementation walkthroughs'
         ],
-        key_points: [
-          'Budget approved for £50K annually with Q2 implementation timeline',
-          'Technical requirements clearly defined through progressive discovery',
-          'Pilot program approach reduces risk and accelerates decision-making',
-          'Strong competitive positioning due to integration speed and HubSpot compatibility'
+        communication_tips: [
+          'Offer hands-on demos',
+          'Provide trial access',
+          'Show technical details',
+          'Include implementation guides'
+        ]
+      },
+      {
+        id: 'comm_3',
+        stakeholder: 'Lisa Rodriguez',
+        role: 'Director of Marketing',
+        style: 'Auditory',
+        confidence: 0.83,
+        evidence: 'Engages well in verbal discussions, asks clarifying questions, prefers phone calls over emails.',
+        preferences: [
+          'Verbal explanations',
+          'Phone discussions',
+          'Collaborative conversations',
+          'Team meetings'
+        ],
+        communication_tips: [
+          'Schedule regular calls',
+          'Encourage questions',
+          'Use storytelling',
+          'Focus on collaboration'
         ]
       }
-    }
+    ]
+  }
+};
+
+const insightTypes = {
+  buying_signal: {
+    icon: TrendingUp,
+    label: 'Buying Signal',
+    color: 'bg-green-100 text-green-800 border-green-200'
+  },
+  pain_point: {
+    icon: Target,
+    label: 'Pain Point',
+    color: 'bg-red-100 text-red-800 border-red-200'
+  },
+  competitive_advantage: {
+    icon: Star,
+    label: 'Competitive Edge',
+    color: 'bg-blue-100 text-blue-800 border-blue-200'
+  },
+  stakeholder_dynamics: {
+    icon: Users,
+    label: 'Stakeholder Dynamics',
+    color: 'bg-purple-100 text-purple-800 border-purple-200'
+  },
+  urgency_driver: {
+    icon: Clock,
+    label: 'Urgency Driver',
+    color: 'bg-orange-100 text-orange-800 border-orange-200'
+  },
+  user_insight: {
+    icon: Lightbulb,
+    label: 'Your Insight',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+  }
+};
+
+const communicationStyles = {
+  Visual: {
+    icon: Eye,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    description: 'Prefers charts, graphs, and visual demonstrations'
+  },
+  Auditory: {
+    icon: Ear,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    description: 'Learns through listening and verbal communication'
+  },
+  Kinesthetic: {
+    icon: Hand,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    description: 'Prefers hands-on experiences and practical examples'
   }
 };
 
 const CallInsights = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [insights, setInsights] = useState(null);
-  const [pushStatuses, setPushStatuses] = useState({});
-  const [selectedCall, setSelectedCall] = useState(null);
-  const [callSource, setCallSource] = useState('');
+  const [selectedProspect, setSelectedProspect] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [insights, setInsights] = useState([]);
+  const [communicationStyles, setCommunicationStyles] = useState([]);
+  const [isAddingInsight, setIsAddingInsight] = useState(false);
+  const [newInsight, setNewInsight] = useState({ content: '', type: 'user_insight' });
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
-    // Get call data from navigation state
+    // Check if we have a selected call from navigation
     if (location.state?.selectedCall) {
-      setSelectedCall(location.state.selectedCall);
-      setCallSource(location.state.source || 'unknown');
-      
-      // Check if we should show existing insights or process new ones
-      if (location.state.viewMode === 'insights') {
-        // Show existing insights for processed calls
-        loadExistingInsights(location.state.selectedCall);
-      } else {
-        // Process new insights
-        processCallInsights(location.state.selectedCall);
-      }
+      const call = location.state.selectedCall;
+      // Find matching prospect or create new one
+      const prospect = mockProspects.find(p => p.companyName === call.companyName) || {
+        id: call.companyName.toLowerCase().replace(/\s+/g, '_'),
+        companyName: call.companyName,
+        prospectName: call.prospectName,
+        title: 'Unknown',
+        totalCalls: 1,
+        lastCallDate: call.date,
+        lastEngagement: 'Just now',
+        status: 'new',
+        dealValue: 'TBD',
+        probability: 50,
+        nextAction: 'Initial follow-up',
+        dataSources: { fireflies: 1, hubspot: 0, presentations: 0, emails: 0 }
+      };
+      setSelectedProspect(prospect);
+      loadProspectInsights(prospect.id);
+    } else {
+      // Default to most recent prospect
+      setSelectedProspect(mockProspects[0]);
+      loadProspectInsights(mockProspects[0].id);
     }
   }, [location.state]);
 
-  const loadExistingInsights = (call) => {
-    // Load cumulative insights for this prospect/company
-    const companyInsights = mockCumulativeInsights[call.companyName];
-    
-    if (companyInsights) {
-      setInsights(companyInsights.cumulativeInsights);
-      toast.success('Cumulative insights loaded successfully');
+  const loadProspectInsights = (prospectId) => {
+    const prospectInsights = mockCumulativeInsights[prospectId];
+    if (prospectInsights) {
+      setInsights(prospectInsights.salesInsights);
+      setCommunicationStyles(prospectInsights.communicationStyles);
     } else {
-      toast.error('No insights found for this prospect');
+      // New prospect - minimal insights
+      setInsights([
+        {
+          id: 'new_1',
+          type: 'pain_point',
+          content: 'Initial discovery call completed. Basic qualification and needs assessment conducted.',
+          relevance_score: 75,
+          is_selected: true,
+          source: 'Initial Analysis',
+          timestamp: 'First call',
+          trend: 'new'
+        }
+      ]);
+      setCommunicationStyles([]);
     }
   };
 
-  const processCallInsights = async (call) => {
-    setIsProcessing(true);
-    setProcessingProgress(0);
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+    loadProspectInsights(prospect.id);
+    toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
 
-    try {
-      // Simulate processing with progress updates
-      const progressInterval = setInterval(() => {
-        setProcessingProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
+  const handleAddInsight = () => {
+    if (!newInsight.content.trim()) return;
 
-      // Check if we have cumulative insights for this company
-      const companyInsights = mockCumulativeInsights[call.companyName];
+    const insight = {
+      id: Date.now().toString(),
+      type: newInsight.type,
+      content: newInsight.content.trim(),
+      relevance_score: 85,
+      is_selected: true,
+      source: 'User Input',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      trend: 'new'
+    };
+
+    setInsights(prev => [insight, ...prev]);
+    setNewInsight({ content: '', type: 'user_insight' });
+    setIsAddingInsight(false);
+    toast.success('Insight added successfully');
+  };
+
+  const handleEditInsight = (insightId) => {
+    const insight = insights.find(i => i.id === insightId);
+    setEditingId(insightId);
+    setEditContent(insight.content);
+  };
+
+  const handleSaveEdit = () => {
+    setInsights(prev => prev.map(insight =>
+      insight.id === editingId ? { ...insight, content: editContent } : insight
+    ));
+    setEditingId(null);
+    setEditContent('');
+    toast.success('Insight updated');
+  };
+
+  const handleMoveInsight = (insightId, direction) => {
+    const currentIndex = insights.findIndex(insight => insight.id === insightId);
+    if (
+      (direction === 'up' && currentIndex > 0) ||
+      (direction === 'down' && currentIndex < insights.length - 1)
+    ) {
+      const newInsights = [...insights];
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      [newInsights[currentIndex], newInsights[targetIndex]] = [newInsights[targetIndex], newInsights[currentIndex]];
       
-      if (companyInsights) {
-        // Use cumulative insights
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        clearInterval(progressInterval);
-        setProcessingProgress(100);
-        
-        setInsights(companyInsights.cumulativeInsights);
-        toast.success(`Cumulative insights loaded from ${companyInsights.totalCalls} previous calls`);
-      } else {
-        // Process new insights (for new prospects)
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        clearInterval(progressInterval);
-        setProcessingProgress(100);
-        
-        // Generate basic insights for new prospects
-        const newInsights = {
-          call_summary: `Initial Call Analysis - ${call.companyName}
-
-This is the first interaction with ${call.prospectName} at ${call.companyName}. Based on the call transcript, we've identified initial pain points and opportunities for follow-up.
-
-Key discussion points and next steps will be tracked as we build a cumulative understanding of this prospect's needs and decision-making process.`,
-          
-          follow_up_email: `Subject: Thank you for the productive conversation
-
-Hi ${call.prospectName},
-
-Thank you for taking the time to speak with me today about ${call.companyName}'s needs. I found our conversation very insightful and I'm excited about the potential to help your team.
-
-Based on our discussion, I'll prepare some additional information that addresses the specific challenges you mentioned. I'll follow up within the next few days with relevant case studies and next steps.
-
-Looking forward to continuing our conversation.
-
-Best regards,
-[Your Name]`,
-          
-          deck_prompt: `Create a presentation for ${call.companyName} focusing on their specific needs discussed in the call. Include relevant case studies and a clear value proposition tailored to their industry and company size.`,
-          
-          reviewInsights: [
-            {
-              id: 'new_1',
-              type: 'prospect_mention',
-              content: `First interaction with ${call.prospectName} at ${call.companyName}. Initial discovery call to understand their current challenges and potential fit for our solution.`,
-              relevance_score: 85,
-              is_selected: true,
-              source: 'AI Analysis',
-              timestamp: 'Initial Call'
-            }
-          ],
-          
-          callAnalysisData: {
-            specific_user: call.prospectName,
-            sentiment_score: 0.75,
-            action_items: [
-              {
-                task: 'Send follow-up email with relevant case studies',
-                owner: 'Sales Rep',
-                deadline: '2024-01-18'
-              }
-            ],
-            communication_styles: [],
-            key_points: [
-              'Initial discovery call completed',
-              'Basic qualification and needs assessment conducted',
-              'Follow-up scheduled to continue conversation'
-            ]
-          }
-        };
-        
-        setInsights(newInsights);
-        toast.success('Initial insights generated - cumulative analysis will improve with additional calls');
-      }
-    } catch (error) {
-      console.error('Error processing insights:', error);
-      toast.error('Failed to process call insights');
-    } finally {
-      setIsProcessing(false);
+      setInsights(newInsights);
+      toast.success('Insight priority updated');
     }
   };
 
-  const handleEditInsight = async (type, content) => {
-    // Update insights locally
-    setInsights(prev => ({
-      ...prev,
-      [type]: content
-    }));
-    toast.success(`${type.replace('_', ' ')} updated successfully`);
+  const handleDeleteInsight = (insightId) => {
+    setInsights(prev => prev.filter(insight => insight.id !== insightId));
+    toast.success('Insight removed');
   };
 
-  const handlePushToHubSpot = async (type, content) => {
-    setPushStatuses(prev => ({ ...prev, [type]: 'pending' }));
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setPushStatuses(prev => ({ ...prev, [type]: 'success' }));
-      toast.success(`${type} pushed to HubSpot successfully!`);
-    } catch (error) {
-      setPushStatuses(prev => ({ ...prev, [type]: 'error' }));
-      toast.error(`Failed to push ${type} to HubSpot`);
+  const filteredProspects = mockProspects.filter(prospect =>
+    prospect.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prospect.prospectName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'hot': return 'bg-red-100 text-red-800 border-red-200';
+      case 'warm': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'cold': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'new': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const handleBackToSalesCalls = () => {
-    navigate('/calls');
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case 'increasing': return <TrendingUp className="w-3 h-3 text-green-600" />;
+      case 'decreasing': return <TrendingUp className="w-3 h-3 text-red-600 rotate-180" />;
+      case 'new': return <Star className="w-3 h-3 text-blue-600" />;
+      default: return null;
+    }
   };
-
-  if (!selectedCall) {
-    return (
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="text-center py-12">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h2 className="text-xl font-semibold mb-2">No Call Selected</h2>
-          <p className="text-muted-foreground mb-4">
-            Please select a call from the Sales Calls page to view insights.
-          </p>
-          <Button onClick={handleBackToSalesCalls}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Go to Sales Calls
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Get company insights data for display
-  const companyInsights = mockCumulativeInsights[selectedCall.companyName];
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={handleBackToSalesCalls}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Sales Calls
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Call Insights</h1>
-            <p className="text-muted-foreground">
-              AI-driven prospect understanding and cumulative insights
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Call Insights</h1>
+          <p className="text-muted-foreground">
+            Accelerating Prospect Conversion - Your ultimate hub for AI-driven prospect intelligence
+          </p>
         </div>
         
-        {companyInsights && (
-          <div className="flex items-center space-x-2">
-            <Badge variant="default" className="bg-blue-100 text-blue-800 border-blue-200">
-              <Database className="w-3 h-3 mr-1" />
-              {companyInsights.totalCalls} Calls Analyzed
-            </Badge>
-            <Badge variant="outline">
-              <Layers className="w-3 h-3 mr-1" />
-              Cumulative Insights
-            </Badge>
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/calls')}>
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Sales Calls
+          </Button>
+        </div>
       </div>
 
-      {/* Call Information */}
+      {/* Cumulative Intelligence Active Indicator */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
+
+      {/* Prospect Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5" />
-              <span>Call Information</span>
-            </div>
-            <Badge variant={callSource === 'fireflies' ? 'default' : 'secondary'}>
-              {callSource === 'fireflies' ? 'Fireflies.ai' : callSource === 'upload' ? 'Uploaded' : 'Processed'}
-            </Badge>
+          <CardTitle className="flex items-center space-x-2">
+            <Building className="w-5 h-5" />
+            <span>Prospect Selection</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Building className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Company:</span>
-                <span className="font-medium">{selectedCall.companyName}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Prospect:</span>
-                <span className="font-medium">{selectedCall.prospectName}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Date:</span>
-                <span className="font-medium">{selectedCall.date}</span>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Duration:</span>
-                <span className="font-medium">{selectedCall.duration}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Call ID:</span>
-                <span className="font-medium">{selectedCall.callId}</span>
-              </div>
-              {companyInsights && (
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Total Interactions:</span>
-                  <span className="font-medium">{companyInsights.totalCalls} calls</span>
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search prospects by company or name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Prospect List */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredProspects.map((prospect) => (
+              <div
+                key={prospect.id}
+                className={cn(
+                  "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                  selectedProspect?.id === prospect.id
+                    ? "border-primary bg-primary/5 shadow-md"
+                    : "border-border hover:border-primary/50"
+                )}
+                onClick={() => handleProspectSelect(prospect)}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-sm">{prospect.companyName}</h3>
+                    <p className="text-xs text-muted-foreground">{prospect.prospectName} • {prospect.title}</p>
+                  </div>
+                  <Badge variant="outline" className={cn("text-xs", getStatusColor(prospect.status))}>
+                    {prospect.status}
+                  </Badge>
                 </div>
-              )}
-            </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Calls:</span>
+                    <span className="font-medium">{prospect.totalCalls}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deal Value:</span>
+                    <span className="font-medium">{prospect.dealValue}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Probability:</span>
+                    <span className="font-medium">{prospect.probability}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Engagement:</span>
+                    <span className="font-medium">{prospect.lastEngagement}</span>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Next:</span> {prospect.nextAction}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Data Sources Indicator */}
-      {companyInsights && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-blue-800">
-              <Layers className="w-5 h-5" />
-              <span>Cumulative Data Sources</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="flex items-center space-x-2">
-                <ExternalLink className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-700">Fireflies Calls:</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                  {companyInsights.dataSources.fireflies}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Database className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-700">HubSpot Data:</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                  {companyInsights.dataSources.hubspot}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Presentation className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-700">Presentations:</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                  {companyInsights.dataSources.presentations}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-700">Email Threads:</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                  {companyInsights.dataSources.emails}
-                </Badge>
-              </div>
-            </div>
-            <p className="text-sm text-blue-700 mt-3">
-              These insights represent an amalgamation of data from all interactions with {selectedCall.companyName}, 
-              providing a comprehensive and evolving understanding of the prospect relationship.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Processing Status */}
-      {isProcessing && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {companyInsights ? 'Loading Cumulative Insights...' : 'Generating Initial Insights...'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {companyInsights 
-                      ? `Analyzing data from ${companyInsights.totalCalls} previous calls with ${selectedCall.companyName}`
-                      : 'Processing your first call with this prospect'
-                    }
-                  </p>
+      {selectedProspect && (
+        <>
+          {/* Sales Insights Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sales Insights</span>
+                  <Badge variant="secondary">{insights.length} insights</Badge>
                 </div>
-              </div>
-              <Progress value={processingProgress} className="w-full" />
-              <p className="text-sm text-muted-foreground">
-                {processingProgress < 30 ? 'Analyzing transcript content...' : 
-                 processingProgress < 60 ? 'Generating insights...' : 
-                 processingProgress < 90 ? 'Building cumulative analysis...' : 
-                 'Finalizing results...'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <Button onClick={() => setIsAddingInsight(true)} disabled={isAddingInsight}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Insight
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Insight */}
+              {isAddingInsight && (
+                <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Select value={newInsight.type} onValueChange={(value) => setNewInsight(prev => ({ ...prev, type: value }))}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(insightTypes).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center space-x-2">
+                              <config.icon className="w-4 h-4" />
+                              <span>{config.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      {/* Insights Display */}
-      {insights && !isProcessing && (
-        <div className="space-y-6">
-          {/* Cumulative Insights Header */}
-          {companyInsights && (
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <Zap className="w-5 h-5 text-green-600" />
-                  <div>
-                    <h3 className="font-semibold text-green-800">Cumulative Intelligence Active</h3>
-                    <p className="text-sm text-green-700">
-                      These insights build upon {companyInsights.totalCalls} previous interactions with {selectedCall.companyName}, 
-                      providing deep prospect understanding and strategic context.
-                    </p>
+                  <Textarea
+                    value={newInsight.content}
+                    onChange={(e) => setNewInsight(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Enter your insight about this prospect..."
+                    className="min-h-20"
+                    autoFocus
+                  />
+
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" onClick={handleAddInsight}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Insight
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingInsight(false);
+                        setNewInsight({ content: '', type: 'user_insight' });
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
 
-          {/* Main Insights Viewer */}
-          <CallInsightsViewer
-            insights={insights}
-            callNotesId={selectedCall.id}
-            userId={CURRENT_USER.id}
-            onNavigateBack={handleBackToSalesCalls}
-            onEditInsight={handleEditInsight}
-            onPushToHubSpot={handlePushToHubSpot}
-            pushStatuses={pushStatuses}
-            showBackButton={false}
-            isEditable={true}
-            title="Cumulative Prospect Insights"
-            isProcessingHistory={false}
-          />
-        </div>
+              {/* Insights List */}
+              {insights.map((insight, index) => {
+                const typeConfig = insightTypes[insight.type];
+                const TypeIcon = typeConfig.icon;
+
+                return (
+                  <div
+                    key={insight.id}
+                    className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline" className={cn("text-xs", typeConfig.color)}>
+                          <TypeIcon className="w-3 h-3 mr-1" />
+                          {typeConfig.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Score: {insight.relevance_score}
+                        </Badge>
+                        {getTrendIcon(insight.trend)}
+                        <span className="text-xs text-muted-foreground">
+                          {insight.source} • {insight.timestamp}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, 'up')}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, 'down')}
+                          disabled={index === insights.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        {editingId === insight.id ? (
+                          <div className="flex space-x-1">
+                            <Button variant="outline" size="sm" onClick={handleSaveEdit}>
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditInsight(insight.id)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteInsight(insight.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ml-6">
+                      {editingId === insight.id ? (
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-20"
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed">{insight.content}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {insights.length === 0 && !isAddingInsight && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No insights available yet</p>
+                  <p className="text-sm mb-4">Add your first insight about this prospect</p>
+                  <Button variant="outline" size="sm" onClick={() => setIsAddingInsight(true)}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add First Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Communication Styles Detected */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Communication Styles Detected</span>
+                <Badge variant="secondary">{communicationStyles.length} stakeholders</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles.map((stakeholder) => {
+                    const styleConfig = communicationStyles[stakeholder.style];
+                    const StyleIcon = styleConfig.icon;
+
+                    return (
+                      <div key={stakeholder.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold">{stakeholder.stakeholder}</h3>
+                            <p className="text-sm text-muted-foreground">{stakeholder.role}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className={cn("text-xs", styleConfig.color)}>
+                              <StyleIcon className="w-3 h-3 mr-1" />
+                              {stakeholder.style}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {Math.round(stakeholder.confidence * 100)}% confidence
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Evidence</h4>
+                            <p className="text-sm text-muted-foreground">{stakeholder.evidence}</p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Preferences</h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li key={index} className="flex items-start space-x-2">
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Communication Tips</h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map((tip, index) => (
+                                  <li key={index} className="flex items-start space-x-2">
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No communication styles detected yet</p>
+                  <p className="text-sm">Communication styles will be identified as you have more calls with this prospect</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Cumulative Intelligence Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink className={cn("w-4 h-4", selectedProspect.dataSources.fireflies > 0 ? "text-blue-600" : "text-gray-400")} />
+                  <span className="text-sm">Fireflies Calls:</span>
+                  <Badge variant={selectedProspect.dataSources.fireflies > 0 ? "default" : "secondary"}>
+                    {selectedProspect.dataSources.fireflies}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database className={cn("w-4 h-4", selectedProspect.dataSources.hubspot > 0 ? "text-orange-600" : "text-gray-400")} />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge variant={selectedProspect.dataSources.hubspot > 0 ? "default" : "secondary"}>
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className={cn("w-4 h-4", selectedProspect.dataSources.presentations > 0 ? "text-purple-600" : "text-gray-400")} />
+                  <span className="text-sm">Presentations:</span>
+                  <Badge variant={selectedProspect.dataSources.presentations > 0 ? "default" : "secondary"}>
+                    {selectedProspect.dataSources.presentations}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className={cn("w-4 h-4", selectedProspect.dataSources.emails > 0 ? "text-green-600" : "text-gray-400")} />
+                  <span className="text-sm">Email Threads:</span>
+                  <Badge variant={selectedProspect.dataSources.emails > 0 ? "default" : "secondary"}>
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                These insights represent an amalgamation of data from all interactions with {selectedProspect.companyName}, 
+                providing a comprehensive and evolving understanding of the prospect relationship.
+              </p>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
