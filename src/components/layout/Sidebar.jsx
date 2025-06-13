@@ -51,13 +51,13 @@ const mainNavItems = [
         description: 'Follow-up email generation'
       },
       {
-        title: 'Deck Builder',
+        title: 'Presentation',
         href: '/follow-ups/decks',
         icon: Presentation,
         description: 'Sales presentation prompts'
       },
       {
-        title: 'Action Items',
+        title: 'Actions',
         href: '/follow-ups/actions',
         icon: CheckSquare,
         description: 'Commitments and tasks'
@@ -77,13 +77,25 @@ export const Sidebar = () => {
 
   const isActiveRoute = (href) => {
     if (href === '/follow-ups') {
-      return location.pathname.startsWith('/follow-ups')
+      // Show Follow Ups as active if we're on any follow-up related route
+      return location.pathname.startsWith('/follow-ups') || location.pathname === '/call-insights'
     }
     return location.pathname === href || location.pathname.startsWith(href + '/')
   }
 
   const isActiveSubRoute = (href) => {
     return location.pathname === href
+  }
+
+  const shouldShowSubItems = (item) => {
+    if (!item.subItems) return false
+    
+    if (item.href === '/follow-ups') {
+      // Show sub-items if we're on any follow-up related route or call insights
+      return location.pathname.startsWith('/follow-ups') || location.pathname === '/call-insights'
+    }
+    
+    return isActiveRoute(item.href)
   }
 
   return (
@@ -93,7 +105,7 @@ export const Sidebar = () => {
         {mainNavItems.map((item) => (
           <div key={item.href}>
             <NavLink
-              to={item.href}
+              to={item.href === '/follow-ups' ? '/call-insights' : item.href}
               className={cn(
                 "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActiveRoute(item.href)
@@ -106,7 +118,7 @@ export const Sidebar = () => {
             </NavLink>
 
             {/* Sub-navigation for Follow Ups */}
-            {item.subItems && isActiveRoute(item.href) && (
+            {item.subItems && shouldShowSubItems(item) && (
               <div className="ml-8 mt-2 space-y-1">
                 {item.subItems.map((subItem) => (
                   <NavLink
