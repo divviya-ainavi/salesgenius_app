@@ -216,12 +216,31 @@ const makeRequest = async (endpoint, options = {}) => {
 
     const duration = Date.now() - startTime;
 
-    // Parse response
+    // Parse response with improved error handling
     let data;
     const contentType = response.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // If JSON parsing fails, get the raw response text for debugging
+        const rawText = await response.text();
+        const error = new Error(`Failed to parse JSON response: ${jsonError.message}`);
+        error.originalError = jsonError;
+        error.rawResponse = rawText;
+        error.endpoint = endpoint;
+        error.method = method;
+        error.status = response.status;
+        
+        console.error(`❌ JSON Parse Error: ${method} ${url}`, {
+          originalError: jsonError.message,
+          rawResponse: rawText,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+        
+        throw error;
+      }
     } else {
       data = await response.text();
     }
