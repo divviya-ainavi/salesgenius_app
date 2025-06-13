@@ -38,7 +38,6 @@ import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import firefliesService from '@/services/firefliesService';
-import api from '@/lib/api';
 
 const SalesCalls = () => {
   const navigate = useNavigate();
@@ -58,9 +57,6 @@ const SalesCalls = () => {
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
-  
-  // Modal loading states
-  const [isLoadingModalContent, setIsLoadingModalContent] = useState(false);
 
   // Load uploaded files and Fireflies data on component mount
   useEffect(() => {
@@ -206,170 +202,23 @@ const SalesCalls = () => {
     disabled: isUploading
   });
 
-  const handleViewSummary = async (call) => {
+  const handleViewSummary = (call) => {
     trackButtonClick('View Summary', { call_id: call.id, company: call.companyName });
     setModalTitle(`Call Summary - ${call.companyName}`);
+    setModalContent(call.firefliesSummary);
     setShowSummaryModal(true);
-    setIsLoadingModalContent(true);
-    
-    try {
-      // If we already have the summary from the list, use it
-      if (call.firefliesSummary && call.firefliesSummary !== 'Failed to load summary') {
-        setModalContent(call.firefliesSummary);
-        setIsLoadingModalContent(false);
-        return;
-      }
-
-      // Otherwise, fetch detailed data from API
-      const response = await api.post('/get-fireflies-transcripts-byid', {
-        id: call.id
-      });
-
-      if (response.data && response.data.length > 0 && response.data[0].success) {
-        const detailData = response.data[0].data;
-        
-        // Format the summary from the detailed response
-        let summaryContent = '';
-        
-        if (detailData.summary) {
-          const summary = detailData.summary;
-          
-          summaryContent = `# ${detailData.title}
-
-## Meeting Overview
-**Date:** ${new Date(detailData.dateString).toLocaleDateString()}
-**Duration:** ${Math.round(detailData.duration)} minutes
-**Organizer:** ${detailData.organizer_email}
-**Participants:** ${detailData.participants?.join(', ') || 'No participants listed'}
-
-## Key Discussion Points
-${summary.overview || 'No overview available'}
-
-## Action Items
-${summary.action_items || 'No action items identified'}
-
-## Keywords
-${summary.keywords?.join(', ') || 'No keywords identified'}
-
-## Meeting Summary
-${summary.short_summary || summary.gist || 'No detailed summary available'}
-
-## Quick Insights
-${summary.bullet_gist || 'No quick insights available'}`;
-        } else {
-          // Fallback summary if no detailed summary is available
-          summaryContent = `# ${detailData.title}
-
-## Meeting Information
-**Date:** ${new Date(detailData.dateString).toLocaleDateString()}
-**Duration:** ${Math.round(detailData.duration)} minutes
-**Organizer:** ${detailData.organizer_email}
-**Participants:** ${detailData.participants?.join(', ') || 'No participants listed'}
-**Meeting Link:** ${detailData.meeting_link || 'Not available'}
-
-## Summary
-This meeting was recorded via Fireflies.ai. Detailed transcript analysis is available.
-
-**Note:** Full AI-generated summary and insights are available after processing the complete transcript.`;
-        }
-        
-        setModalContent(summaryContent);
-      } else {
-        throw new Error('Failed to load detailed summary data');
-      }
-    } catch (error) {
-      console.error('Error loading detailed summary:', error);
-      setModalContent(`# Error Loading Summary
-
-Unable to load detailed summary for this call. Please try again later.
-
-**Error:** ${error.message}
-
-**Basic Information:**
-- Call: ${call.callId}
-- Company: ${call.companyName}
-- Date: ${call.date}`);
-      toast.error('Failed to load detailed summary');
-    } finally {
-      setIsLoadingModalContent(false);
-    }
   };
 
-  const handleViewTranscript = async (call) => {
+  const handleViewTranscript = (call) => {
     trackButtonClick('View Transcript', { call_id: call.id, company: call.companyName });
     setModalTitle(`Full Transcript - ${call.companyName}`);
+    setModalContent(call.transcript);
     setShowTranscriptModal(true);
-    setIsLoadingModalContent(true);
-    
-    try {
-      // Fetch detailed transcript data from API
-      const response = await api.post('/get-fireflies-transcripts-byid', {
-        id: call.id
-      });
-
-      if (response.data && response.data.length > 0 && response.data[0].success) {
-        const detailData = response.data[0].data;
-        
-        // Format the transcript from sentences
-        let transcriptContent = `# ${detailData.title}
-
-## Meeting Information
-**Date:** ${new Date(detailData.dateString).toLocaleDateString()}
-**Duration:** ${Math.round(detailData.duration)} minutes
-**Organizer:** ${detailData.organizer_email}
-**Meeting Link:** ${detailData.meeting_link || 'Not available'}
-
-## Speakers
-${detailData.speakers?.map(speaker => `- ${speaker.name} (ID: ${speaker.id})`).join('\n') || 'No speaker information available'}
-
-## Full Transcript
-
-`;
-
-        // Add formatted transcript from sentences
-        if (detailData.sentences && detailData.sentences.length > 0) {
-          detailData.sentences.forEach(sentence => {
-            const timestamp = formatTimestamp(sentence.start_time);
-            transcriptContent += `[${timestamp}] ${sentence.speaker_name}: ${sentence.text}\n\n`;
-          });
-        } else {
-          transcriptContent += 'No transcript content available.';
-        }
-
-        setModalContent(transcriptContent);
-      } else {
-        throw new Error('Failed to load transcript data');
-      }
-    } catch (error) {
-      console.error('Error loading transcript:', error);
-      setModalContent(`# Error Loading Transcript
-
-Unable to load transcript for this call. Please try again later.
-
-**Error:** ${error.message}
-
-**Basic Information:**
-- Call: ${call.callId}
-- Company: ${call.companyName}
-- Date: ${call.date}
-
-**Note:** You can try accessing the transcript directly via Fireflies.ai if available.`);
-      toast.error('Failed to load transcript');
-    } finally {
-      setIsLoadingModalContent(false);
-    }
-  };
-
-  // Helper function to format timestamp from seconds to MM:SS
-  const formatTimestamp = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleCopyTranscript = () => {
     navigator.clipboard.writeText(modalContent);
-    toast.success('Content copied to clipboard');
+    toast.success('Transcript copied to clipboard');
     trackButtonClick('Copy Transcript');
   };
 
@@ -967,7 +816,6 @@ Unable to load transcript for this call. Please try again later.
                   toast.success('Summary copied to clipboard');
                 }}
                 trackingName="Copy Summary"
-                disabled={isLoadingModalContent}
               >
                 <Copy className="w-4 h-4 mr-1" />
                 Copy Text
@@ -975,16 +823,9 @@ Unable to load transcript for this call. Please try again later.
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            {isLoadingModalContent ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span>Loading summary...</span>
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                {modalContent}
-              </pre>
-            )}
+            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+              {modalContent}
+            </pre>
           </div>
         </DialogContent>
       </Dialog>
@@ -1001,7 +842,6 @@ Unable to load transcript for this call. Please try again later.
                   size="sm"
                   onClick={handleCopyTranscript}
                   trackingName="Copy Transcript"
-                  disabled={isLoadingModalContent}
                 >
                   <Copy className="w-4 h-4 mr-1" />
                   Copy Text
@@ -1011,7 +851,6 @@ Unable to load transcript for this call. Please try again later.
                   size="sm"
                   onClick={handleDownloadTranscriptPDF}
                   trackingName="Download Transcript PDF"
-                  disabled={isLoadingModalContent}
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Download PDF
@@ -1020,16 +859,9 @@ Unable to load transcript for this call. Please try again later.
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            {isLoadingModalContent ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span>Loading transcript...</span>
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                {modalContent}
-              </pre>
-            )}
+            <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+              {modalContent}
+            </pre>
           </div>
         </DialogContent>
       </Dialog>
