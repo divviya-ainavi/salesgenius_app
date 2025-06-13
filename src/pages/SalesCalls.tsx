@@ -676,10 +676,6 @@ const SalesCalls = () => {
                               View Insights
                             </Button>
                           )}
-                          <Button onClick={() => handleProcessCall(call, call.source)}>
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            Reprocess
-                          </Button>
                         </div>
                       </div>
                     </div>
