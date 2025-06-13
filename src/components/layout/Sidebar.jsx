@@ -34,16 +34,10 @@ const mainNavItems = [
   },
   {
     title: 'Follow Ups',
-    href: '/follow-ups',
+    href: null, // Make non-clickable
     icon: FileText,
     description: 'Post-call follow-up automation',
     subItems: [
-      {
-        title: 'Call Insights',
-        href: '/call-insights',
-        icon: Brain,
-        description: 'AI-driven prospect understanding'
-      },
       {
         title: 'Email',
         href: '/follow-ups/emails',
@@ -76,10 +70,7 @@ export const Sidebar = () => {
   const location = useLocation()
 
   const isActiveRoute = (href) => {
-    if (href === '/follow-ups') {
-      // Show Follow Ups as active if we're on any follow-up related route
-      return location.pathname.startsWith('/follow-ups') || location.pathname === '/call-insights'
-    }
+    if (!href) return false // For non-clickable items
     return location.pathname === href || location.pathname.startsWith(href + '/')
   }
 
@@ -90,12 +81,16 @@ export const Sidebar = () => {
   const shouldShowSubItems = (item) => {
     if (!item.subItems) return false
     
-    if (item.href === '/follow-ups') {
-      // Show sub-items if we're on any follow-up related route or call insights
-      return location.pathname.startsWith('/follow-ups') || location.pathname === '/call-insights'
+    if (item.title === 'Follow Ups') {
+      // Always show Follow Ups sub-items
+      return true
     }
     
-    return isActiveRoute(item.href)
+    return false
+  }
+
+  const isFollowUpsSectionActive = () => {
+    return location.pathname.startsWith('/follow-ups')
   }
 
   return (
@@ -103,19 +98,34 @@ export const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {mainNavItems.map((item) => (
-          <div key={item.href}>
-            <NavLink
-              to={item.href === '/follow-ups' ? '/call-insights' : item.href}
-              className={cn(
-                "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActiveRoute(item.href)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.title}</span>
-            </NavLink>
+          <div key={item.title}>
+            {item.href ? (
+              <NavLink
+                to={item.href}
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActiveRoute(item.href)
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.title}</span>
+              </NavLink>
+            ) : (
+              // Non-clickable Follow Ups header
+              <div
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium",
+                  isFollowUpsSectionActive()
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.title}</span>
+              </div>
+            )}
 
             {/* Sub-navigation for Follow Ups */}
             {item.subItems && shouldShowSubItems(item) && (
