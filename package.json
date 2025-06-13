@@ -35,7 +35,8 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "recharts": "^2.8.0",
     "@supabase/supabase-js": "^2.39.0",
-    "pdfjs-dist": "^3.11.174"
+    "pdfjs-dist": "^3.11.174",
+    "jspdf": "^2.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

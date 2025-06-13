@@ -24,13 +24,15 @@ import {
   Volume2,
   FileIcon,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
 
 // Mock data for Fireflies.ai imports
 const mockFirefliesCalls = [
@@ -241,6 +243,37 @@ const SalesCalls = () => {
     setModalTitle(`Full Transcript - ${call.companyName}`);
     setModalContent(call.transcript);
     setShowTranscriptModal(true);
+  };
+
+  const handleCopyTranscript = () => {
+    navigator.clipboard.writeText(modalContent);
+    toast.success('Transcript copied to clipboard');
+  };
+
+  const handleDownloadTranscriptPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Set up the document
+      doc.setFontSize(16);
+      doc.text('Call Transcript', 20, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Title: ${modalTitle}`, 20, 35);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+      
+      // Add the transcript content
+      doc.setFontSize(10);
+      const splitText = doc.splitTextToSize(modalContent, 170);
+      doc.text(splitText, 20, 60);
+      
+      // Save the PDF
+      doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.pdf`);
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
   };
 
   const handleDownloadTranscript = (call) => {
@@ -537,14 +570,6 @@ const SalesCalls = () => {
                               View Transcript
                             </Button>
                           )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadTranscript(call)}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download PDF
-                          </Button>
                         </div>
                         <Button onClick={() => handleProcessCall(call, 'fireflies')}>
                           <ArrowRight className="w-4 h-4 mr-1" />
@@ -670,7 +695,20 @@ const SalesCalls = () => {
       <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>{modalTitle}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{modalTitle}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(modalContent);
+                  toast.success('Summary copied to clipboard');
+                }}
+              >
+                <Copy className="w-4 h-4 mr-1" />
+                Copy Text
+              </Button>
+            </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
             <pre className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -686,25 +724,24 @@ const SalesCalls = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{modalTitle}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const blob = new Blob([modalContent], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `transcript.txt`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                  toast.success('Transcript downloaded');
-                }}
-              >
-                <Download className="w-4 h-4 mr-1" />
-                Download PDF
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyTranscript}
+                >
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy Text
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTranscriptPDF}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download PDF
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
