@@ -221,21 +221,7 @@ const makeRequest = async (endpoint, options = {}) => {
     const contentType = response.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        // Handle JSON parsing errors with user-friendly message
-        if (jsonError.message && jsonError.message.includes('Unexpected end of JSON input')) {
-          const error = new Error('Server returned incomplete response. Please try again.');
-          error.status = response.status;
-          error.endpoint = endpoint;
-          error.method = method;
-          error.originalError = jsonError;
-          throw error;
-        }
-        // Re-throw other JSON parsing errors
-        throw jsonError;
-      }
+      data = await response.json();
     } else {
       data = await response.text();
     }
