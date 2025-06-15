@@ -13,20 +13,14 @@ import {
   Ear, 
   Hand, 
   Brain, 
-  Heart, 
   Zap,
   Send,
   Copy,
   RefreshCw,
-  Plus,
   MessageSquare,
   User,
-  Target,
   Sparkles,
   ArrowRight,
-  Edit,
-  Save,
-  X,
   Mail,
   Crown,
   Star
@@ -177,25 +171,13 @@ const communicationStyles = {
   }
 }
 
-const personalityTypes = {
-  ENTJ: { label: "The Commander", traits: ["Natural leader", "Strategic", "Decisive"] },
-  ISTJ: { label: "The Logistician", traits: ["Practical", "Fact-minded", "Reliable"] },
-  ENFP: { label: "The Campaigner", traits: ["Enthusiastic", "Creative", "Sociable"] },
-  INTJ: { label: "The Architect", traits: ["Imaginative", "Strategic", "Independent"] },
-  ISTP: { label: "The Virtuoso", traits: ["Practical", "Experimental", "Adaptable"] },
-  ESFJ: { label: "The Consul", traits: ["Caring", "Social", "Popular"] },
-  UNKNOWN: { label: "Analysis Pending", traits: ["To be determined"] }
-}
-
 const quickPrompts = [
-  "Make it more concise and direct",
-  "Add more technical details", 
-  "Include specific ROI metrics",
-  "Make it more personal and warm",
-  "Add urgency and next steps",
-  "Focus on competitive advantages",
-  "Include social proof and testimonials",
-  "Emphasize integration capabilities"
+  "Make it more concise",
+  "Add technical details", 
+  "Include ROI metrics",
+  "Add urgency",
+  "Focus on benefits",
+  "Include social proof"
 ]
 
 // Mock prospects data
@@ -377,7 +359,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
       // Add AI response
       const aiMessage = { 
         role: 'assistant', 
-        content: `I've updated the email for ${selectedProspect.companyName} based on your request. The changes focus on ${prompt.toLowerCase()} while maintaining personalization for ${personalityAnalysis.primary_contact.name}'s ${personalityAnalysis.primary_contact.communication_style} communication style.`, 
+        content: `Updated email for ${selectedProspect.companyName} with ${prompt.toLowerCase()} focus.`, 
         timestamp: new Date() 
       }
       setChatMessages(prev => [...prev, aiMessage])
@@ -419,79 +401,46 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
   return (
     <TooltipProvider>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Page Header */}
+        {/* Streamlined Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Personalized Emails with AI Insights</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">AI Email Personalization</h1>
           <p className="text-muted-foreground">
-            Generate personalized follow-up emails based on prospect personality analysis and communication preferences.
+            Generate personalized emails using prospect insights and communication preferences.
           </p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Sidebar - Prospect Selector */}
-          <div className="space-y-6">
+          {/* Sidebar - Only Prospect Selector */}
+          <div>
             <ProspectSelector
               selectedProspect={selectedProspect}
               onProspectSelect={handleProspectSelect}
               compact={true}
               showStakeholders={true}
             />
-
-            {/* Email Tips */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Personalization Tips</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-start space-x-2">
-                    <Eye className="w-4 h-4 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Visual Learners</p>
-                      <p className="text-xs text-muted-foreground">Include charts, infographics, and visual data</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <Ear className="w-4 h-4 text-green-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Auditory Learners</p>
-                      <p className="text-xs text-muted-foreground">Mention calls, discussions, and verbal feedback</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <Hand className="w-4 h-4 text-purple-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Kinesthetic Learners</p>
-                      <p className="text-xs text-muted-foreground">Focus on hands-on demos and practical examples</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="insights" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="insights">Decision Maker & Stakeholder Insights</TabsTrigger>
-                <TabsTrigger value="email">Email Generator</TabsTrigger>
+                <TabsTrigger value="insights">Insights</TabsTrigger>
+                <TabsTrigger value="email">Email</TabsTrigger>
               </TabsList>
 
-              {/* Decision Maker & Stakeholder Insights Tab */}
+              {/* Insights Tab */}
               <TabsContent value="insights" className="mt-6">
-                {/* Primary Decision Maker & Key Stakeholders Analysis */}
                 {personalityAnalysis && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
                         <User className="w-5 h-5" />
-                        <span>Decision Maker & Stakeholder Analysis - {selectedProspect.companyName}</span>
+                        <span>Stakeholder Analysis - {selectedProspect.companyName}</span>
                         <Badge variant="secondary">AI Analyzed</Badge>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Primary Decision Maker */}
+                      {/* Primary Decision Maker - Simplified */}
                       <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
@@ -505,18 +454,15 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 <h4 className="font-semibold text-amber-900">{personalityAnalysis.primary_contact.name}</h4>
                                 <p className="text-sm text-amber-700">{personalityAnalysis.primary_contact.role}</p>
                                 <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs">
-                                  Primary Decision Maker
+                                  Decision Maker
                                 </Badge>
                               </div>
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(personalityAnalysis.primary_contact.confidence * 100)}% confidence
-                          </Badge>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
-                          {/* Communication Style */}
+                          {/* Communication Style with Tooltip */}
                           <div>
                             <h5 className="text-sm font-medium mb-2">Communication Style</h5>
                             <div className="flex items-center space-x-2">
@@ -524,66 +470,46 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
                                 const Icon = style.icon
                                 return (
-                                  <>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
-                                          <Icon className="w-3 h-3 mr-1" />
-                                          {style.label}
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{style.description}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
+                                        <Icon className="w-3 h-3 mr-1" />
+                                        {style.label}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{style.description}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )
                               })()}
                             </div>
                           </div>
 
-                          {/* Personality Type */}
+                          {/* Personality Type - Simplified */}
                           <div>
-                            <h5 className="text-sm font-medium mb-2">Personality Type</h5>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                <Brain className="w-3 h-3 mr-1" />
-                                {personalityAnalysis.primary_contact.personality_type}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}
-                              </span>
-                            </div>
+                            <h5 className="text-sm font-medium mb-2">Personality</h5>
+                            <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                              <Brain className="w-3 h-3 mr-1" />
+                              {personalityAnalysis.primary_contact.personality_type}
+                            </Badge>
                           </div>
                         </div>
 
-                        {/* Key Traits */}
+                        {/* Key Traits - Condensed */}
                         <div>
                           <h5 className="text-sm font-medium mb-2">Key Traits</h5>
                           <div className="flex flex-wrap gap-1">
-                            {personalityAnalysis.primary_contact.key_traits.map((trait, index) => (
+                            {personalityAnalysis.primary_contact.key_traits.slice(0, 3).map((trait, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
                                 {trait}
                               </Badge>
                             ))}
                           </div>
                         </div>
-
-                        {/* Communication Preferences */}
-                        <div>
-                          <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
-                          <ul className="text-sm text-muted-foreground space-y-1">
-                            {personalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
-                              <li key={index} className="flex items-start space-x-2">
-                                <span className="text-primary mt-1">•</span>
-                                <span>{pref}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
                       </div>
 
-                      {/* Key Stakeholders */}
+                      {/* Key Stakeholders - Simplified */}
                       {personalityAnalysis.attendees.length > 0 && (
                         <div className="space-y-3">
                           <h4 className="font-medium flex items-center space-x-2">
@@ -601,81 +527,38 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                   <div>
                                     <h4 className="font-semibold">{attendee.name}</h4>
                                     <p className="text-sm text-muted-foreground">{attendee.role}</p>
-                                    <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                                      Key Stakeholder
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {Math.round(attendee.confidence * 100)}% confidence
-                                </Badge>
-                              </div>
-
-                              <div className="grid md:grid-cols-2 gap-4">
-                                {/* Communication Style */}
-                                <div>
-                                  <h5 className="text-sm font-medium mb-2">Communication Style</h5>
-                                  <div className="flex items-center space-x-2">
-                                    {(() => {
-                                      const style = communicationStyles[attendee.communication_style]
-                                      const Icon = style.icon
-                                      return (
-                                        <>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
-                                                <Icon className="w-3 h-3 mr-1" />
-                                                {style.label}
-                                              </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>{style.description}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </>
-                                      )
-                                    })()}
-                                  </div>
-                                </div>
-
-                                {/* Personality Type */}
-                                <div>
-                                  <h5 className="text-sm font-medium mb-2">Personality Type</h5>
-                                  <div className="flex items-center space-x-2">
-                                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                      <Brain className="w-3 h-3 mr-1" />
-                                      {attendee.personality_type}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      {personalityTypes[attendee.personality_type]?.label}
-                                    </span>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Key Traits */}
-                              <div>
-                                <h5 className="text-sm font-medium mb-2">Key Traits</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {attendee.key_traits.map((trait, traitIndex) => (
+                              <div className="flex items-center space-x-4">
+                                {/* Communication Style with Tooltip */}
+                                {(() => {
+                                  const style = communicationStyles[attendee.communication_style]
+                                  const Icon = style.icon
+                                  return (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
+                                          <Icon className="w-3 h-3 mr-1" />
+                                          {style.label}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{style.description}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )
+                                })()}
+
+                                {/* Key Traits - First 2 only */}
+                                <div className="flex gap-1">
+                                  {attendee.key_traits.slice(0, 2).map((trait, traitIndex) => (
                                     <Badge key={traitIndex} variant="secondary" className="text-xs">
                                       {trait}
                                     </Badge>
                                   ))}
                                 </div>
-                              </div>
-
-                              {/* Communication Preferences */}
-                              <div>
-                                <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
-                                <ul className="text-sm text-muted-foreground space-y-1">
-                                  {attendee.communication_preferences.map((pref, prefIndex) => (
-                                    <li key={prefIndex} className="flex items-start space-x-2">
-                                      <span className="text-primary mt-1">•</span>
-                                      <span>{pref}</span>
-                                    </li>
-                                  ))}
-                                </ul>
                               </div>
                             </div>
                           ))}
@@ -694,29 +577,27 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Mail className="w-5 h-5" />
-                        <span>Generated Email for {selectedProspect.companyName}</span>
+                        <span>Email for {selectedProspect.companyName}</span>
                         {selectedCount > 0 && (
-                          <Badge variant="secondary">{selectedCount} insights selected</Badge>
+                          <Badge variant="secondary">{selectedCount} insights</Badge>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          onClick={handleGenerateEmail}
-                          disabled={isGenerating || selectedCount === 0}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4 mr-1" />
-                              Generate Email
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <Button 
+                        onClick={handleGenerateEmail}
+                        disabled={isGenerating || selectedCount === 0}
+                      >
+                        {isGenerating ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-1" />
+                            Generate Email
+                          </>
+                        )}
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -780,41 +661,37 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                     ) : (
                       <div className="text-center py-12 text-muted-foreground">
                         <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p className="mb-2">No email generated yet for {selectedProspect.companyName}</p>
-                        <p className="text-sm">Select insights above and click "Generate Email" to create a personalized follow-up</p>
+                        <p className="mb-2">No email generated yet</p>
+                        <p className="text-sm">Select insights and click "Generate Email"</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
-                {/* Chat Interface for Refinement */}
+                {/* Chat Interface for Refinement - Streamlined */}
                 {generatedEmail && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
                         <Zap className="w-5 h-5" />
-                        <span>Refine Email for {selectedProspect.companyName}</span>
+                        <span>Refine Email</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Quick Prompts */}
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Quick Refinements</h4>
-                        <div className="grid md:grid-cols-2 gap-2">
-                          {quickPrompts.map((prompt, index) => (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSendPrompt(prompt)}
-                              disabled={isRefining}
-                              className="justify-start text-left h-auto py-2"
-                            >
-                              <ArrowRight className="w-3 h-3 mr-2 flex-shrink-0" />
-                              <span className="text-xs">{prompt}</span>
-                            </Button>
-                          ))}
-                        </div>
+                      {/* Quick Prompts - Condensed */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {quickPrompts.map((prompt, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSendPrompt(prompt)}
+                            disabled={isRefining}
+                            className="text-xs"
+                          >
+                            {prompt}
+                          </Button>
+                        ))}
                       </div>
 
                       {/* Chat Messages */}
@@ -848,7 +725,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         <Input
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Ask for specific changes... (e.g., 'Add more urgency' or 'Include pricing details')"
+                          placeholder="Ask for specific changes..."
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault()
