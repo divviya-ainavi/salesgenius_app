@@ -29,7 +29,8 @@ import {
   X,
   Mail,
   Crown,
-  Star
+  Star,
+  Info
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -524,19 +525,20 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
                                 const Icon = style.icon
                                 return (
-                                  <>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                      <Icon className="w-3 h-3 mr-1" />
+                                      {style.label}
+                                    </Badge>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
-                                          <Icon className="w-3 h-3 mr-1" />
-                                          {style.label}
-                                        </Badge>
+                                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <p>{style.description}</p>
                                       </TooltipContent>
                                     </Tooltip>
-                                  </>
+                                  </div>
                                 )
                               })()}
                             </div>
@@ -550,9 +552,19 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 <Brain className="w-3 h-3 mr-1" />
                                 {personalityAnalysis.primary_contact.personality_type}
                               </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}
-                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div>
+                                    <p className="font-medium">{personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}</p>
+                                    <p className="text-xs mt-1">
+                                      {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.traits.join(', ')}
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                         </div>
@@ -620,19 +632,20 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                       const style = communicationStyles[attendee.communication_style]
                                       const Icon = style.icon
                                       return (
-                                        <>
+                                        <div className="flex items-center space-x-2">
+                                          <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                            <Icon className="w-3 h-3 mr-1" />
+                                            {style.label}
+                                          </Badge>
                                           <Tooltip>
                                             <TooltipTrigger asChild>
-                                              <Badge variant="outline" className={cn("text-xs cursor-help", style.color)}>
-                                                <Icon className="w-3 h-3 mr-1" />
-                                                {style.label}
-                                              </Badge>
+                                              <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                               <p>{style.description}</p>
                                             </TooltipContent>
                                           </Tooltip>
-                                        </>
+                                        </div>
                                       )
                                     })()}
                                   </div>
@@ -646,9 +659,19 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                       <Brain className="w-3 h-3 mr-1" />
                                       {attendee.personality_type}
                                     </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      {personalityTypes[attendee.personality_type]?.label}
-                                    </span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <div>
+                                          <p className="font-medium">{personalityTypes[attendee.personality_type]?.label}</p>
+                                          <p className="text-xs mt-1">
+                                            {personalityTypes[attendee.personality_type]?.traits.join(', ')}
+                                          </p>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 </div>
                               </div>
