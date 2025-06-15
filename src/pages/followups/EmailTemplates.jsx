@@ -307,9 +307,11 @@ export const EmailTemplates = () => {
       const primaryContact = personalityAnalysis.primary_contact;
       const companyName = selectedProspect.companyName;
       
-      const email = `Subject: Following up on our ${companyName} automation discussion
-
-Hi ${primaryContact.name},
+      // Generate subject line separately
+      const subject = `Following up on our ${companyName} automation discussion`;
+      
+      // Generate email body without subject line
+      const emailBody = `Hi ${primaryContact.name},
 
 Thank you for taking the time to speak with me about ${companyName}'s sales automation needs. I was impressed by your ${primaryContact.key_traits[0].toLowerCase()} approach to scaling your operations.
 
@@ -329,10 +331,10 @@ Looking forward to helping ${companyName} achieve your ambitious growth targets.
 Best regards,
 [Your Name]
 
-P.S. The case study from a similar ${selectedProspect.dealValue} implementation shows excellent results - happy to share those specific metrics if helpful.`
+P.S. The case study from a similar ${selectedProspect.dealValue} implementation shows excellent results - happy to share those specific metrics if helpful.`;
 
-      setGeneratedEmail(email)
-      setEmailSubject(`Following up on our ${companyName} automation discussion`)
+      setEmailSubject(subject);
+      setGeneratedEmail(emailBody);
       toast.success('Personalized email generated successfully!')
       
     } catch (error) {
@@ -388,7 +390,12 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(generatedEmail)
-    toast.success('Email copied to clipboard')
+    toast.success('Email body copied to clipboard')
+  }
+
+  const handleCopySubject = () => {
+    navigator.clipboard.writeText(emailSubject)
+    toast.success('Subject line copied to clipboard')
   }
 
   const handlePushToHubSpot = async () => {
@@ -669,11 +676,22 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                   {/* Subject Line */}
                   <div>
                     <label className="text-sm font-medium mb-2 block">Subject Line</label>
-                    <Input
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                      placeholder="Enter email subject..."
-                    />
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={emailSubject}
+                        onChange={(e) => setEmailSubject(e.target.value)}
+                        placeholder="Enter email subject..."
+                        className="flex-1"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleCopySubject}
+                      >
+                        <Copy className="w-4 h-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Email Content */}
@@ -690,7 +708,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                   <div className="flex items-center space-x-2">
                     <Button onClick={handleCopyEmail} variant="outline">
                       <Copy className="w-4 h-4 mr-1" />
-                      Copy
+                      Copy Email
                     </Button>
                     <Button 
                       onClick={handlePushToHubSpot}
