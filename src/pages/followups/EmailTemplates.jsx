@@ -419,7 +419,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Email Templates</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Personalized Emails with AI Insights</h1>
         <p className="text-muted-foreground">
           Generate personalized follow-up emails based on prospect personality analysis and communication preferences.
         </p>
@@ -492,383 +492,396 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Primary Decision Maker & Key Stakeholders Analysis */}
-          {personalityAnalysis && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="w-5 h-5" />
-                  <span>Decision Maker & Stakeholder Analysis - {selectedProspect.companyName}</span>
-                  <Badge variant="secondary">AI Analyzed</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Primary Decision Maker */}
-                <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        checked={selectedInsights.some(item => item.id === 'primary_contact')}
-                        onCheckedChange={() => handleToggleInsight('primary_contact', 'personality')}
-                      />
-                      <div className="flex items-center space-x-2">
-                        <Crown className="w-4 h-4 text-amber-600" />
-                        <div>
-                          <h4 className="font-semibold text-amber-900">{personalityAnalysis.primary_contact.name}</h4>
-                          <p className="text-sm text-amber-700">{personalityAnalysis.primary_contact.role}</p>
-                          <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs">
-                            Primary Decision Maker
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(personalityAnalysis.primary_contact.confidence * 100)}% confidence
-                    </Badge>
-                  </div>
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="insights" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="insights">Decision Maker & Stakeholder Insights</TabsTrigger>
+              <TabsTrigger value="email">Email Generator</TabsTrigger>
+            </TabsList>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Communication Style */}
-                    <div>
-                      <h5 className="text-sm font-medium mb-2">Communication Style</h5>
-                      <div className="flex items-center space-x-2">
-                        {(() => {
-                          const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
-                          const Icon = style.icon
-                          return (
-                            <>
-                              <Badge variant="outline" className={cn("text-xs", style.color)}>
-                                <Icon className="w-3 h-3 mr-1" />
-                                {style.label}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">{style.description}</span>
-                            </>
-                          )
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Personality Type */}
-                    <div>
-                      <h5 className="text-sm font-medium mb-2">Personality Type</h5>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                          <Brain className="w-3 h-3 mr-1" />
-                          {personalityAnalysis.primary_contact.personality_type}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Key Traits */}
-                  <div>
-                    <h5 className="text-sm font-medium mb-2">Key Traits</h5>
-                    <div className="flex flex-wrap gap-1">
-                      {personalityAnalysis.primary_contact.key_traits.map((trait, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {trait}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Communication Preferences */}
-                  <div>
-                    <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      {personalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <span className="text-primary mt-1">•</span>
-                          <span>{pref}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Key Stakeholders */}
-                {personalityAnalysis.attendees.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium flex items-center space-x-2">
-                      <Star className="w-4 h-4 text-blue-600" />
-                      <span>Key Stakeholders</span>
-                    </h4>
-                    {personalityAnalysis.attendees.map((attendee, index) => (
-                      <div key={index} className="border border-border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={selectedInsights.some(item => item.id === `attendee_${index + 1}`)}
-                              onCheckedChange={() => handleToggleInsight(`attendee_${index + 1}`, 'attendee')}
-                            />
+            {/* Decision Maker & Stakeholder Insights Tab */}
+            <TabsContent value="insights" className="mt-6">
+              {/* Primary Decision Maker & Key Stakeholders Analysis */}
+              {personalityAnalysis && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="w-5 h-5" />
+                      <span>Decision Maker & Stakeholder Analysis - {selectedProspect.companyName}</span>
+                      <Badge variant="secondary">AI Analyzed</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Primary Decision Maker */}
+                    <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={selectedInsights.some(item => item.id === 'primary_contact')}
+                            onCheckedChange={() => handleToggleInsight('primary_contact', 'personality')}
+                          />
+                          <div className="flex items-center space-x-2">
+                            <Crown className="w-4 h-4 text-amber-600" />
                             <div>
-                              <h4 className="font-semibold">{attendee.name}</h4>
-                              <p className="text-sm text-muted-foreground">{attendee.role}</p>
-                              <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                                Key Stakeholder
+                              <h4 className="font-semibold text-amber-900">{personalityAnalysis.primary_contact.name}</h4>
+                              <p className="text-sm text-amber-700">{personalityAnalysis.primary_contact.role}</p>
+                              <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                                Primary Decision Maker
                               </Badge>
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(attendee.confidence * 100)}% confidence
-                          </Badge>
                         </div>
+                        <Badge variant="outline" className="text-xs">
+                          {Math.round(personalityAnalysis.primary_contact.confidence * 100)}% confidence
+                        </Badge>
+                      </div>
 
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {/* Communication Style */}
-                          <div>
-                            <h5 className="text-sm font-medium mb-2">Communication Style</h5>
-                            <div className="flex items-center space-x-2">
-                              {(() => {
-                                const style = communicationStyles[attendee.communication_style]
-                                const Icon = style.icon
-                                return (
-                                  <>
-                                    <Badge variant="outline" className={cn("text-xs", style.color)}>
-                                      <Icon className="w-3 h-3 mr-1" />
-                                      {style.label}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">{style.description}</span>
-                                  </>
-                                )
-                              })()}
-                            </div>
-                          </div>
-
-                          {/* Personality Type */}
-                          <div>
-                            <h5 className="text-sm font-medium mb-2">Personality Type</h5>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                <Brain className="w-3 h-3 mr-1" />
-                                {attendee.personality_type}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {personalityTypes[attendee.personality_type]?.label}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Key Traits */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {/* Communication Style */}
                         <div>
-                          <h5 className="text-sm font-medium mb-2">Key Traits</h5>
-                          <div className="flex flex-wrap gap-1">
-                            {attendee.key_traits.map((trait, traitIndex) => (
-                              <Badge key={traitIndex} variant="secondary" className="text-xs">
-                                {trait}
-                              </Badge>
-                            ))}
+                          <h5 className="text-sm font-medium mb-2">Communication Style</h5>
+                          <div className="flex items-center space-x-2">
+                            {(() => {
+                              const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
+                              const Icon = style.icon
+                              return (
+                                <>
+                                  <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                    <Icon className="w-3 h-3 mr-1" />
+                                    {style.label}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">{style.description}</span>
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
 
-                        {/* Communication Preferences */}
+                        {/* Personality Type */}
                         <div>
-                          <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
-                          <ul className="text-sm text-muted-foreground space-y-1">
-                            {attendee.communication_preferences.map((pref, prefIndex) => (
-                              <li key={prefIndex} className="flex items-start space-x-2">
-                                <span className="text-primary mt-1">•</span>
-                                <span>{pref}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          <h5 className="text-sm font-medium mb-2">Personality Type</h5>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                              <Brain className="w-3 h-3 mr-1" />
+                              {personalityAnalysis.primary_contact.personality_type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Email Generation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-5 h-5" />
-                  <span>Generated Email for {selectedProspect.companyName}</span>
-                  {selectedCount > 0 && (
-                    <Badge variant="secondary">{selectedCount} insights selected</Badge>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    onClick={handleGenerateEmail}
-                    disabled={isGenerating || selectedCount === 0}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Generate Email
-                      </>
+                      {/* Key Traits */}
+                      <div>
+                        <h5 className="text-sm font-medium mb-2">Key Traits</h5>
+                        <div className="flex flex-wrap gap-1">
+                          {personalityAnalysis.primary_contact.key_traits.map((trait, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {trait}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Communication Preferences */}
+                      <div>
+                        <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          {personalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
+                            <li key={index} className="flex items-start space-x-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span>{pref}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Key Stakeholders */}
+                    {personalityAnalysis.attendees.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-medium flex items-center space-x-2">
+                          <Star className="w-4 h-4 text-blue-600" />
+                          <span>Key Stakeholders</span>
+                        </h4>
+                        {personalityAnalysis.attendees.map((attendee, index) => (
+                          <div key={index} className="border border-border rounded-lg p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <Checkbox
+                                  checked={selectedInsights.some(item => item.id === `attendee_${index + 1}`)}
+                                  onCheckedChange={() => handleToggleInsight(`attendee_${index + 1}`, 'attendee')}
+                                />
+                                <div>
+                                  <h4 className="font-semibold">{attendee.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{attendee.role}</p>
+                                  <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                    Key Stakeholder
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {Math.round(attendee.confidence * 100)}% confidence
+                              </Badge>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              {/* Communication Style */}
+                              <div>
+                                <h5 className="text-sm font-medium mb-2">Communication Style</h5>
+                                <div className="flex items-center space-x-2">
+                                  {(() => {
+                                    const style = communicationStyles[attendee.communication_style]
+                                    const Icon = style.icon
+                                    return (
+                                      <>
+                                        <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                          <Icon className="w-3 h-3 mr-1" />
+                                          {style.label}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">{style.description}</span>
+                                      </>
+                                    )
+                                  })()}
+                                </div>
+                              </div>
+
+                              {/* Personality Type */}
+                              <div>
+                                <h5 className="text-sm font-medium mb-2">Personality Type</h5>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                                    <Brain className="w-3 h-3 mr-1" />
+                                    {attendee.personality_type}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {personalityTypes[attendee.personality_type]?.label}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Key Traits */}
+                            <div>
+                              <h5 className="text-sm font-medium mb-2">Key Traits</h5>
+                              <div className="flex flex-wrap gap-1">
+                                {attendee.key_traits.map((trait, traitIndex) => (
+                                  <Badge key={traitIndex} variant="secondary" className="text-xs">
+                                    {trait}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Communication Preferences */}
+                            <div>
+                              <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {attendee.communication_preferences.map((pref, prefIndex) => (
+                                  <li key={prefIndex} className="flex items-start space-x-2">
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {generatedEmail ? (
-                <>
-                  {/* Subject Line */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Subject Line</label>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Email Generator Tab */}
+            <TabsContent value="email" className="mt-6 space-y-6">
+              {/* Email Generation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="w-5 h-5" />
+                      <span>Generated Email for {selectedProspect.companyName}</span>
+                      {selectedCount > 0 && (
+                        <Badge variant="secondary">{selectedCount} insights selected</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        onClick={handleGenerateEmail}
+                        disabled={isGenerating || selectedCount === 0}
+                      >
+                        {isGenerating ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-1" />
+                            Generate Email
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {generatedEmail ? (
+                    <>
+                      {/* Subject Line */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Subject Line</label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            value={emailSubject}
+                            onChange={(e) => setEmailSubject(e.target.value)}
+                            placeholder="Enter email subject..."
+                            className="flex-1"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleCopySubject}
+                          >
+                            <Copy className="w-4 h-4 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Email Content */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Email Content</label>
+                        <Textarea
+                          value={generatedEmail}
+                          onChange={(e) => setGeneratedEmail(e.target.value)}
+                          className="min-h-96 font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2">
+                        <Button onClick={handleCopyEmail} variant="outline">
+                          <Copy className="w-4 h-4 mr-1" />
+                          Copy Email
+                        </Button>
+                        <Button 
+                          onClick={handlePushToHubSpot}
+                          disabled={pushStatus === 'pending'}
+                        >
+                          {pushStatus === 'pending' ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                              Pushing...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-1" />
+                              Push to HubSpot
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p className="mb-2">No email generated yet for {selectedProspect.companyName}</p>
+                      <p className="text-sm">Select insights above and click "Generate Email" to create a personalized follow-up</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Chat Interface for Refinement */}
+              {generatedEmail && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5" />
+                      <span>Refine Email for {selectedProspect.companyName}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Quick Prompts */}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Quick Refinements</h4>
+                      <div className="grid md:grid-cols-2 gap-2">
+                        {quickPrompts.map((prompt, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSendPrompt(prompt)}
+                            disabled={isRefining}
+                            className="justify-start text-left h-auto py-2"
+                          >
+                            <ArrowRight className="w-3 h-3 mr-2 flex-shrink-0" />
+                            <span className="text-xs">{prompt}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chat Messages */}
+                    {chatMessages.length > 0 && (
+                      <div className="border border-border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
+                        {chatMessages.map((message, index) => (
+                          <div
+                            key={index}
+                            className={cn(
+                              "flex",
+                              message.role === 'user' ? "justify-end" : "justify-start"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "max-w-xs px-3 py-2 rounded-lg text-sm",
+                                message.role === 'user'
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              )}
+                            >
+                              {message.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Chat Input */}
                     <div className="flex items-center space-x-2">
                       <Input
-                        value={emailSubject}
-                        onChange={(e) => setEmailSubject(e.target.value)}
-                        placeholder="Enter email subject..."
-                        className="flex-1"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask for specific changes... (e.g., 'Add more urgency' or 'Include pricing details')"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleSendPrompt(chatInput)
+                          }
+                        }}
+                        disabled={isRefining}
                       />
                       <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleCopySubject}
+                        onClick={() => handleSendPrompt(chatInput)}
+                        disabled={!chatInput.trim() || isRefining}
                       >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
+                        {isRefining ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
-                  </div>
-
-                  {/* Email Content */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Email Content</label>
-                    <Textarea
-                      value={generatedEmail}
-                      onChange={(e) => setGeneratedEmail(e.target.value)}
-                      className="min-h-96 font-mono text-sm"
-                    />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2">
-                    <Button onClick={handleCopyEmail} variant="outline">
-                      <Copy className="w-4 h-4 mr-1" />
-                      Copy Email
-                    </Button>
-                    <Button 
-                      onClick={handlePushToHubSpot}
-                      disabled={pushStatus === 'pending'}
-                    >
-                      {pushStatus === 'pending' ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                          Pushing...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-1" />
-                          Push to HubSpot
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No email generated yet for {selectedProspect.companyName}</p>
-                  <p className="text-sm">Select insights above and click "Generate Email" to create a personalized follow-up</p>
-                </div>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Chat Interface for Refinement */}
-          {generatedEmail && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5" />
-                  <span>Refine Email for {selectedProspect.companyName}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Quick Prompts */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Quick Refinements</h4>
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {quickPrompts.map((prompt, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSendPrompt(prompt)}
-                        disabled={isRefining}
-                        className="justify-start text-left h-auto py-2"
-                      >
-                        <ArrowRight className="w-3 h-3 mr-2 flex-shrink-0" />
-                        <span className="text-xs">{prompt}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Chat Messages */}
-                {chatMessages.length > 0 && (
-                  <div className="border border-border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
-                    {chatMessages.map((message, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "flex",
-                          message.role === 'user' ? "justify-end" : "justify-start"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "max-w-xs px-3 py-2 rounded-lg text-sm",
-                            message.role === 'user'
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          )}
-                        >
-                          {message.content}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Chat Input */}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask for specific changes... (e.g., 'Add more urgency' or 'Include pricing details')"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSendPrompt(chatInput)
-                      }
-                    }}
-                    disabled={isRefining}
-                  />
-                  <Button 
-                    onClick={() => handleSendPrompt(chatInput)}
-                    disabled={!chatInput.trim() || isRefining}
-                  >
-                    {isRefining ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
