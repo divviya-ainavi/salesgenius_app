@@ -26,7 +26,9 @@ import {
   Edit,
   Save,
   X,
-  Mail
+  Mail,
+  Crown,
+  Star
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -491,28 +493,34 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
 
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Decision Maker Analysis */}
+          {/* Primary Decision Maker & Key Stakeholders Analysis */}
           {personalityAnalysis && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <User className="w-5 h-5" />
-                  <span>Decision Maker Analysis - {selectedProspect.companyName}</span>
+                  <span>Decision Maker & Stakeholder Analysis - {selectedProspect.companyName}</span>
                   <Badge variant="secondary">AI Analyzed</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Primary Contact */}
-                <div className="border border-border rounded-lg p-4 space-y-3">
+              <CardContent className="space-y-6">
+                {/* Primary Decision Maker */}
+                <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Checkbox
                         checked={selectedInsights.some(item => item.id === 'primary_contact')}
                         onCheckedChange={() => handleToggleInsight('primary_contact', 'personality')}
                       />
-                      <div>
-                        <h4 className="font-semibold">{personalityAnalysis.primary_contact.name}</h4>
-                        <p className="text-sm text-muted-foreground">{personalityAnalysis.primary_contact.role}</p>
+                      <div className="flex items-center space-x-2">
+                        <Crown className="w-4 h-4 text-amber-600" />
+                        <div>
+                          <h4 className="font-semibold text-amber-900">{personalityAnalysis.primary_contact.name}</h4>
+                          <p className="text-sm text-amber-700">{personalityAnalysis.primary_contact.role}</p>
+                          <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                            Primary Decision Maker
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -582,10 +590,13 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                   </div>
                 </div>
 
-                {/* Call Attendees Analysis */}
+                {/* Key Stakeholders */}
                 {personalityAnalysis.attendees.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="font-medium">Key Stakeholders</h4>
+                    <h4 className="font-medium flex items-center space-x-2">
+                      <Star className="w-4 h-4 text-blue-600" />
+                      <span>Key Stakeholders</span>
+                    </h4>
                     {personalityAnalysis.attendees.map((attendee, index) => (
                       <div key={index} className="border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
@@ -597,6 +608,9 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                             <div>
                               <h4 className="font-semibold">{attendee.name}</h4>
                               <p className="text-sm text-muted-foreground">{attendee.role}</p>
+                              <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                Key Stakeholder
+                              </Badge>
                             </div>
                           </div>
                           <Badge variant="outline" className="text-xs">
@@ -605,31 +619,64 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
+                          {/* Communication Style */}
                           <div>
-                            <div className="flex items-center space-x-2 mb-2">
+                            <h5 className="text-sm font-medium mb-2">Communication Style</h5>
+                            <div className="flex items-center space-x-2">
                               {(() => {
                                 const style = communicationStyles[attendee.communication_style]
                                 const Icon = style.icon
                                 return (
-                                  <Badge variant="outline" className={cn("text-xs", style.color)}>
-                                    <Icon className="w-3 h-3 mr-1" />
-                                    {style.label}
-                                  </Badge>
+                                  <>
+                                    <Badge variant="outline" className={cn("text-xs", style.color)}>
+                                      <Icon className="w-3 h-3 mr-1" />
+                                      {style.label}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">{style.description}</span>
+                                  </>
                                 )
                               })()}
+                            </div>
+                          </div>
+
+                          {/* Personality Type */}
+                          <div>
+                            <h5 className="text-sm font-medium mb-2">Personality Type</h5>
+                            <div className="flex items-center space-x-2">
                               <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
                                 <Brain className="w-3 h-3 mr-1" />
                                 {attendee.personality_type}
                               </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {attendee.key_traits.map((trait, traitIndex) => (
-                                <Badge key={traitIndex} variant="secondary" className="text-xs">
-                                  {trait}
-                                </Badge>
-                              ))}
+                              <span className="text-xs text-muted-foreground">
+                                {personalityTypes[attendee.personality_type]?.label}
+                              </span>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Key Traits */}
+                        <div>
+                          <h5 className="text-sm font-medium mb-2">Key Traits</h5>
+                          <div className="flex flex-wrap gap-1">
+                            {attendee.key_traits.map((trait, traitIndex) => (
+                              <Badge key={traitIndex} variant="secondary" className="text-xs">
+                                {trait}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Communication Preferences */}
+                        <div>
+                          <h5 className="text-sm font-medium mb-2">Communication Preferences</h5>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {attendee.communication_preferences.map((pref, prefIndex) => (
+                              <li key={prefIndex} className="flex items-start space-x-2">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{pref}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
                     ))}
