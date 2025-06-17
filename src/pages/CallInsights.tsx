@@ -43,7 +43,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { CallInsightsViewer } from '@/components/followups/CallInsightsViewer';
 
 // Mock prospects data with cumulative insights
 const mockProspects = [
@@ -488,17 +487,7 @@ const CallInsights = () => {
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
       {/* AI Processed Insights */}
-      {showAiInsights && aiProcessedData && (
-        <CallInsightsViewer
-          insights={prepareAiInsightsData()}
-          onNavigateBack={handleNavigateBack}
-          onEditInsight={handleEditAiInsight}
-          onPushToHubSpot={handlePushToHubSpot}
-          showBackButton={true}
-          isEditable={true}
-          title={`AI Insights for ${selectedProspect?.companyName || 'Call'}`}
-        />
-      )}
+      
 
       {/* Prospect Selection */}
       {!showAiInsights && (
