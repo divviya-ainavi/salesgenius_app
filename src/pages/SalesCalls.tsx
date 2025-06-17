@@ -182,6 +182,8 @@ const SalesCalls = () => {
 
       if (!isPDF) {
         content = await file.text();
+        // Clean null characters that cause Unicode escape sequence errors
+        content = content.replace(/\u0000/g, '');
       } else {
         content = `PDF file: ${file.name} (${file.size} bytes)`;
       }
@@ -373,11 +375,19 @@ const SalesCalls = () => {
         // Store the processed data in the database
         const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, file.id);
         
+        // Get transcript content and clean null characters
+        let transcriptContentForDb = '';
+        if (fileBlob) {
+          transcriptContentForDb = await fileBlob.text();
+          // Clean null characters that cause Unicode escape sequence errors
+          transcriptContentForDb = transcriptContentForDb.replace(/\u0000/g, '');
+        }
+        
         // Create a call note entry
         const callNote = await dbHelpers.createCallNote(
           CURRENT_USER.id,
           `call-${Date.now()}`,
-          fileBlob ? await fileBlob.text() : '',
+          transcriptContentForDb,
           file.id,
           processingSession.id
         );
