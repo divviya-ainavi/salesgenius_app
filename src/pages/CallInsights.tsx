@@ -490,7 +490,10 @@ const CallInsights = () => {
       
 
       {/* Prospect Selection */}
-      {!showAiInsights && (
+      {
+        !showAiInsights 
+        &&
+        (
         <>
           <Card>
             <CardHeader>
