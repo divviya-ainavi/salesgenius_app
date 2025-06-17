@@ -201,8 +201,8 @@ const SalesCalls = () => {
       trackFileUpload(file.name, file.size, file.type, "completed");
       await loadUploadedFiles(); // Refresh the list
 
-      // Automatically process the file after upload
-      // await handleProcessFile(savedFile);
+      // Don't automatically process the file after upload
+      // User can manually process it from the recent uploads list
     } catch (error) {
       console.error("Error uploading file:", error);
       toast.error(`Failed to upload file: ${error.message}`);
@@ -444,6 +444,9 @@ const SalesCalls = () => {
           modifiedFields: processedData._modifiedFields || [],
         };
 
+        // Remove the processed file from the uploaded files list
+        setUploadedFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+
         // Navigate to Call Insights with the processed data
         navigate("/call-insights", {
           state: {
@@ -643,6 +646,7 @@ const SalesCalls = () => {
   const mockProcessedCalls = [
     {
       id: "proc_001",
+      call_id: "Call 3",
       callId: "Call 3",
       companyName: "Global Solutions Ltd",
       prospectName: "Emma Wilson",
@@ -661,6 +665,7 @@ const SalesCalls = () => {
     },
     {
       id: "proc_002",
+      call_id: "Call 4",
       callId: "Call 4",
       companyName: "Innovation Hub",
       prospectName: "David Brown",
