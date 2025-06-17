@@ -40,9 +40,8 @@ import {
   Hand,
   Brain,
   Info,
-  Phone,
-  Upload,
-  Loader2
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -284,6 +283,7 @@ const CallInsights = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedProspect, setSelectedProspect] = useState(null);
+  const [selectedProcessedCall, setSelectedProcessedCall] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [insights, setInsights] = useState([]);
   const [communicationStyles, setCommunicationStyles] = useState([]);
@@ -293,16 +293,13 @@ const CallInsights = () => {
   const [editContent, setEditContent] = useState('');
   const [aiProcessedData, setAiProcessedData] = useState(null);
   const [showAiInsights, setShowAiInsights] = useState(false);
-
-  // Past processed calls state
+  
+  // Processed calls state
   const [processedCalls, setProcessedCalls] = useState([]);
   const [isLoadingProcessedCalls, setIsLoadingProcessedCalls] = useState(false);
-  const [selectedProcessedCall, setSelectedProcessedCall] = useState(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   useEffect(() => {
-    // Load past processed calls
-    loadProcessedCalls();
-
     // Check if we have a selected call from navigation
     if (location.state?.selectedCall) {
       const call = location.state.selectedCall;
@@ -331,9 +328,8 @@ const CallInsights = () => {
       setSelectedProspect(prospect);
       loadProspectInsights(prospect.id);
     } else {
-      // Default to most recent prospect
-      setSelectedProspect(mockProspects[0]);
-      loadProspectInsights(mockProspects[0].id);
+      // Load processed calls when no specific call is selected
+      loadProcessedCalls();
     }
   }, [location.state]);
 
@@ -356,61 +352,16 @@ const CallInsights = () => {
           status: "processed",
           source: "upload",
           hasInsights: true,
-          transcript: session.uploaded_files.file_content || "Transcript not available",
           originalFilename: session.uploaded_files.filename,
           fileSize: session.uploaded_files.file_size,
           uploadDate: session.uploaded_files.upload_date,
           processingDate: session.processing_completed_at,
           summary: session.call_notes?.ai_summary || "No summary available",
-          fileUrl: session.uploaded_files.file_url,
-          contentType: session.uploaded_files.content_type,
-          storagePath: session.uploaded_files.storage_path,
+          insightsCount: session.content_references?.insights_ids?.length || 0,
+          stakeholdersCount: 2, // Mock data - would be calculated from actual insights
           // Additional metadata
           contentReferences: session.content_references,
           apiResponse: session.api_response,
-          // Mock insights data for now - in real app this would come from the database
-          salesInsights: [
-            {
-              id: `insight_${session.id}_1`,
-              type: 'pain_point',
-              content: 'Key pain points identified from call analysis',
-              relevance_score: 85,
-              is_selected: true,
-              source: 'AI Analysis',
-              timestamp: 'Call analysis',
-              trend: 'new'
-            },
-            {
-              id: `insight_${session.id}_2`,
-              type: 'buying_signal',
-              content: 'Positive buying signals detected in conversation',
-              relevance_score: 78,
-              is_selected: true,
-              source: 'AI Analysis',
-              timestamp: 'Call analysis',
-              trend: 'new'
-            }
-          ],
-          communicationStyles: [
-            {
-              id: `comm_${session.id}_1`,
-              stakeholder: session.uploaded_files.filename.replace(/\.[^/.]+$/, "").split('_')[0] || 'Primary Contact',
-              role: 'Decision Maker',
-              style: 'Visual',
-              confidence: 0.75,
-              evidence: 'Communication style analysis from transcript',
-              preferences: [
-                'Data-driven presentations',
-                'Visual demonstrations',
-                'Clear documentation'
-              ],
-              communication_tips: [
-                'Use visual aids',
-                'Provide clear data',
-                'Include charts and graphs'
-              ]
-            }
-          ]
         }));
 
       setProcessedCalls(processedCallsData);
@@ -445,18 +396,57 @@ const CallInsights = () => {
     }
   };
 
-  const handleProcessedCallSelect = (call) => {
-    setSelectedProcessedCall(call);
-    setInsights(call.salesInsights || []);
-    setCommunicationStyles(call.communicationStyles || []);
-    toast.success(`Loaded insights for ${call.companyName}`);
-  };
-
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
-    setSelectedProcessedCall(null); // Clear processed call selection
+    setSelectedProcessedCall(null);
     loadProspectInsights(prospect.id);
     toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
+
+  const handleProcessedCallSelect = (call) => {
+    setSelectedProcessedCall(call);
+    setSelectedProspect(null);
+    
+    // Load mock insights for the processed call
+    const mockInsights = [
+      {
+        id: 'processed_1',
+        type: 'buying_signal',
+        content: `Strong interest expressed during ${call.companyName} call. Budget discussions initiated and timeline confirmed.`,
+        relevance_score: 88,
+        is_selected: true,
+        source: 'AI Analysis',
+        timestamp: call.date,
+        trend: 'increasing'
+      },
+      {
+        id: 'processed_2',
+        type: 'pain_point',
+        content: `Current manual processes identified as major bottleneck. ${call.companyName} seeking automation solutions.`,
+        relevance_score: 85,
+        is_selected: true,
+        source: 'Call Analysis',
+        timestamp: call.date,
+        trend: 'stable'
+      }
+    ];
+
+    const mockCommStyles = [
+      {
+        id: 'comm_processed_1',
+        stakeholder: call.prospectName,
+        role: 'Decision Maker',
+        style: 'Visual',
+        confidence: 0.78,
+        evidence: 'Requested visual demonstrations and data presentations during the call.',
+        preferences: ['Visual presentations', 'Data charts', 'Dashboard demos'],
+        communication_tips: ['Use visual aids', 'Provide charts', 'Show concrete examples']
+      }
+    ];
+
+    setInsights(mockInsights);
+    setCommunicationStyles(mockCommStyles);
+    toast.success(`Loaded insights for ${call.companyName} processed call`);
   };
 
   const handleAddInsight = () => {
@@ -518,14 +508,9 @@ const CallInsights = () => {
     navigate('/calls');
   };
 
-  const handleEditAiInsight = (type, content) => {
-    // In a real app, this would update the database
-    toast.success(`${type} updated successfully`);
-  };
-
-  const handlePushToHubSpot = (type, content) => {
-    // In a real app, this would push to HubSpot
-    toast.success(`${type} pushed to HubSpot successfully`);
+  const handleRefreshProcessedCalls = () => {
+    loadProcessedCalls();
+    toast.success('Processed calls refreshed');
   };
 
   const filteredProspects = mockProspects.filter(prospect =>
@@ -559,7 +544,6 @@ const CallInsights = () => {
     }
   };
 
-  // Helper function to format dates
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -568,6 +552,25 @@ const CallInsights = () => {
       return 'Invalid Date';
     }
   };
+
+  // Navigation functions for horizontal scrolling
+  const canScrollLeft = currentCardIndex > 0;
+  const canScrollRight = currentCardIndex < Math.max(0, filteredProcessedCalls.length - 3);
+
+  const scrollLeft = () => {
+    if (canScrollLeft) {
+      setCurrentCardIndex(prev => prev - 1);
+    }
+  };
+
+  const scrollRight = () => {
+    if (canScrollRight) {
+      setCurrentCardIndex(prev => prev + 1);
+    }
+  };
+
+  // Get visible cards (3 at a time)
+  const visibleCards = filteredProcessedCalls.slice(currentCardIndex, currentCardIndex + 3);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -591,144 +594,278 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* Past Processed Calls Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Database className="w-5 h-5" />
-              <span>Past Processed Calls</span>
-              <Badge variant="secondary">{filteredProcessedCalls.length} calls</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search processed calls..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
+      {/* Past Processed Calls Section - Only show when no specific call/prospect is selected */}
+      {!selectedProspect && !selectedProcessedCall && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5" />
+                <span>Past Processed Calls</span>
+                <Badge variant="secondary">{filteredProcessedCalls.length} calls</Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={loadProcessedCalls} disabled={isLoadingProcessedCalls}>
-                {isLoadingProcessedCalls ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search processed calls..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-64"
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshProcessedCalls}>
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Refresh
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingProcessedCalls ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading processed calls...</p>
+              </div>
+            ) : filteredProcessedCalls.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2">No processed calls found</p>
+                <p className="text-sm">Process your first call transcript to see insights here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Horizontal Card Navigation */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={scrollLeft}
+                      disabled={!canScrollLeft}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Showing {currentCardIndex + 1}-{Math.min(currentCardIndex + 3, filteredProcessedCalls.length)} of {filteredProcessedCalls.length}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={scrollRight}
+                      disabled={!canScrollRight}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Horizontal Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {visibleCards.map((call) => (
+                    <Card
+                      key={call.id}
+                      className="cursor-pointer hover:shadow-md transition-all border-2 hover:border-primary/50"
+                      onClick={() => handleProcessedCallSelect(call)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-foreground mb-1">
+                              {call.companyName}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {call.prospectName}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
+                            Processed
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="space-y-3">
+                          {/* Call Details */}
+                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{call.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <FileText className="w-3 h-3" />
+                              <span>{call.originalFilename?.substring(0, 15)}...</span>
+                            </div>
+                          </div>
+
+                          {/* Processing Info */}
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Processed:</span> {formatDate(call.processingDate)}
+                          </div>
+
+                          {/* Insights Preview */}
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-1">
+                                <Sparkles className="w-3 h-3 text-blue-600" />
+                                <span>{call.insightsCount} insights</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Users className="w-3 h-3 text-green-600" />
+                                <span>{call.stakeholdersCount} stakeholders</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Summary Preview */}
+                          <div className="text-xs text-muted-foreground">
+                            <p className="line-clamp-2">
+                              {call.summary.substring(0, 100)}...
+                            </p>
+                          </div>
+
+                          {/* Action Button */}
+                          <Button size="sm" className="w-full mt-3">
+                            <Eye className="w-3 h-3 mr-1" />
+                            View Insights
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Show all cards indicator */}
+                {filteredProcessedCalls.length > 3 && (
+                  <div className="flex justify-center space-x-1 mt-4">
+                    {Array.from({ length: Math.ceil(filteredProcessedCalls.length / 3) }).map((_, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-colors",
+                          Math.floor(currentCardIndex / 3) === index
+                            ? "bg-primary"
+                            : "bg-muted-foreground/30"
+                        )}
+                      />
+                    ))}
+                  </div>
                 )}
-              </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Prospect Selection - Only show when no processed call is selected */}
+      {!selectedProcessedCall && !showAiInsights && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Prospect Selection</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search prospects by company or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingProcessedCalls ? (
-            <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-              <p className="text-muted-foreground">Loading processed calls...</p>
-            </div>
-          ) : filteredProcessedCalls.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-2">No processed calls found</p>
-              <p className="text-sm">Process your first call transcript to see insights here</p>
-            </div>
-          ) : (
+
+            {/* Prospect List */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProcessedCalls.map((call) => (
-                <Card
-                  key={call.id}
+              {filteredProspects.map((prospect) => (
+                <div
+                  key={prospect.id}
                   className={cn(
-                    "cursor-pointer transition-all hover:shadow-md border-2",
-                    selectedProcessedCall?.id === call.id
+                    "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                    selectedProspect?.id === prospect.id
                       ? "border-primary bg-primary/5 shadow-md"
                       : "border-border hover:border-primary/50"
                   )}
-                  onClick={() => handleProcessedCallSelect(call)}
+                  onClick={() => handleProspectSelect(prospect)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm mb-1">{call.companyName}</h3>
-                        <p className="text-xs text-muted-foreground">{call.prospectName}</p>
-                      </div>
-                      <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
-                        {call.status}
-                      </Badge>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-sm">{prospect.companyName}</h3>
+                      <p className="text-xs text-muted-foreground">{prospect.prospectName} • {prospect.title}</p>
                     </div>
+                    <Badge variant="outline" className={cn("text-xs", getStatusColor(prospect.status))}>
+                      {prospect.status}
+                    </Badge>
+                  </div>
 
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">Processed:</span>
-                        <span className="font-medium">{formatDate(call.processingDate)}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <FileText className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">File:</span>
-                        <span className="font-medium truncate">{call.originalFilename}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Sparkles className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">Insights:</span>
-                        <span className="font-medium">{call.salesInsights?.length || 0}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Users className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">Stakeholders:</span>
-                        <span className="font-medium">{call.communicationStyles?.length || 0}</span>
-                      </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Calls:</span>
+                      <span className="font-medium">{prospect.totalCalls}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deal Value:</span>
+                      <span className="font-medium">{prospect.dealValue}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Probability:</span>
+                      <span className="font-medium">{prospect.probability}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Engagement:</span>
+                      <span className="font-medium">{prospect.lastEngagement}</span>
+                    </div>
+                  </div>
 
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {call.summary}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Next:</span> {prospect.nextAction}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Show insights only when a processed call is selected */}
-      {selectedProcessedCall && (
-        <>
-          {/* Selected Call Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Eye className="w-5 h-5" />
-                <span>Viewing Insights for {selectedProcessedCall.companyName}</span>
-                <Badge variant="default" className="bg-blue-100 text-blue-800 border-blue-200">
-                  {selectedProcessedCall.originalFilename}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>Processed: {formatDate(selectedProcessedCall.processingDate)}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span>Size: {Math.round(selectedProcessedCall.fileSize / 1024)} KB</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-muted-foreground" />
-                  <span>Insights: {insights.length}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>Stakeholders: {communicationStyles.length}</span>
-                </div>
+      {/* Selected Call/Prospect Header */}
+      {(selectedProspect || selectedProcessedCall) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-5 h-5" />
+                <span>
+                  {selectedProcessedCall 
+                    ? `Insights for ${selectedProcessedCall.companyName} (Processed Call)`
+                    : `Insights for ${selectedProspect.companyName}`
+                  }
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedProspect(null);
+                  setSelectedProcessedCall(null);
+                  setInsights([]);
+                  setCommunicationStyles([]);
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to Selection
+              </Button>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      )}
 
-          {/* Sales Insights Section */}
+      {/* Sales Insights Section */}
+      {(selectedProspect || selectedProcessedCall) && (
+        <>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -889,7 +1026,7 @@ const CallInsights = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
-                  <p className="text-sm mb-4">Add your first insight about this processed call</p>
+                  <p className="text-sm mb-4">Add your first insight about this {selectedProcessedCall ? 'processed call' : 'prospect'}</p>
                   <Button variant="outline" size="sm" onClick={() => setIsAddingInsight(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     Add First Insight
@@ -973,390 +1110,59 @@ const CallInsights = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No communication styles detected yet</p>
-                  <p className="text-sm">Communication styles will be identified from the processed transcript</p>
+                  <p className="text-sm">Communication styles will be identified as you have more calls with this {selectedProcessedCall ? 'processed call' : 'prospect'}</p>
                 </div>
               )}
             </CardContent>
           </Card>
-        </>
-      )}
 
-      {/* Show prospect selector only when no processed call is selected */}
-      {!selectedProcessedCall && !showAiInsights && (
-        <>
-          {/* Prospect Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Building className="w-5 h-5" />
-                <span>Prospect Selection</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search prospects by company or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Prospect List */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProspects.map((prospect) => (
-                  <div
-                    key={prospect.id}
-                    className={cn(
-                      "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                      selectedProspect?.id === prospect.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : "border-border hover:border-primary/50"
-                    )}
-                    onClick={() => handleProspectSelect(prospect)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-sm">{prospect.companyName}</h3>
-                        <p className="text-xs text-muted-foreground">{prospect.prospectName} • {prospect.title}</p>
-                      </div>
-                      <Badge variant="outline" className={cn("text-xs", getStatusColor(prospect.status))}>
-                        {prospect.status}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Calls:</span>
-                        <span className="font-medium">{prospect.totalCalls}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Deal Value:</span>
-                        <span className="font-medium">{prospect.dealValue}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Probability:</span>
-                        <span className="font-medium">{prospect.probability}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Engagement:</span>
-                        <span className="font-medium">{prospect.lastEngagement}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium">Next:</span> {prospect.nextAction}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
+          {/* Cumulative Intelligence Section */}
           {selectedProspect && (
-            <>
-              {/* Sales Insights Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Sparkles className="w-5 h-5" />
-                      <span>Sales Insights</span>
-                      <Badge variant="secondary">{insights.length} insights</Badge>
-                    </div>
-                    <Button onClick={() => setIsAddingInsight(true)} disabled={isAddingInsight}>
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Insight
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Add New Insight */}
-                  {isAddingInsight && (
-                    <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <Select value={newInsight.type} onValueChange={(value) => setNewInsight(prev => ({ ...prev, type: value }))}>
-                          <SelectTrigger className="w-48">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(insightTypes).map(([key, config]) => (
-                              <SelectItem key={key} value={key}>
-                                <div className="flex items-center space-x-2">
-                                  <config.icon className="w-4 h-4" />
-                                  <span>{config.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <Textarea
-                        value={newInsight.content}
-                        onChange={(e) => setNewInsight(prev => ({ ...prev, content: e.target.value }))}
-                        placeholder="Enter your insight about this prospect..."
-                        className="min-h-20"
-                        autoFocus
-                      />
-
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" onClick={handleAddInsight}>
-                          <Save className="w-4 h-4 mr-1" />
-                          Save Insight
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setIsAddingInsight(false);
-                            setNewInsight({ content: '', type: 'user_insight' });
-                          }}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Insights List */}
-                  {insights.map((insight, index) => {
-                    const typeConfig = insightTypes[insight.type] || {
-                      icon: Lightbulb,
-                      label: "Unknown Type",
-                      color: "bg-gray-100 text-gray-800 border-gray-200"
-                    };
-                    const TypeIcon = typeConfig.icon;
-
-                    return (
-                      <div
-                        key={insight.id}
-                        className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Badge variant="outline" className={cn("text-xs", typeConfig.color)}>
-                              <TypeIcon className="w-3 h-3 mr-1" />
-                              {typeConfig.label}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              Score: {insight.relevance_score}
-                            </Badge>
-                            {getTrendIcon(insight.trend)}
-                            <span className="text-xs text-muted-foreground">
-                              {insight.source} • {insight.timestamp}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMoveInsight(insight.id, 'up')}
-                              disabled={index === 0}
-                            >
-                              <ChevronUp className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMoveInsight(insight.id, 'down')}
-                              disabled={index === insights.length - 1}
-                            >
-                              <ChevronDown className="w-4 h-4" />
-                            </Button>
-                            {editingId === insight.id ? (
-                              <div className="flex space-x-1">
-                                <Button variant="outline" size="sm" onClick={handleSaveEdit}>
-                                  <Save className="w-4 h-4" />
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditInsight(insight.id)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteInsight(insight.id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="ml-6">
-                          {editingId === insight.id ? (
-                            <Textarea
-                              value={editContent}
-                              onChange={(e) => setEditContent(e.target.value)}
-                              className="min-h-20"
-                            />
-                          ) : (
-                            <p className="text-sm leading-relaxed">{insight.content}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {insights.length === 0 && !isAddingInsight && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p className="mb-2">No insights available yet</p>
-                      <p className="text-sm mb-4">Add your first insight about this prospect</p>
-                      <Button variant="outline" size="sm" onClick={() => setIsAddingInsight(true)}>
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add First Insight
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Communication Styles Detected */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="w-5 h-5" />
-                    <span>Communication Styles Detected</span>
-                    <Badge variant="secondary">{communicationStyles.length} stakeholders</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {communicationStyles.length > 0 ? (
-                    <div className="space-y-6">
-                      {communicationStyles.map((stakeholder) => {
-                        const styleConfig = communicationStyleConfigs[stakeholder.style];
-                        const StyleIcon = styleConfig.icon;
-
-                        return (
-                          <div key={stakeholder.id} className="border rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-4">
-                              <div>
-                                <h3 className="font-semibold">{stakeholder.stakeholder}</h3>
-                                <p className="text-sm text-muted-foreground">{stakeholder.role}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Badge variant="outline" className={cn("text-xs", styleConfig.color)}>
-                                  <StyleIcon className="w-3 h-3 mr-1" />
-                                  {stakeholder.style}
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  {Math.round(stakeholder.confidence * 100)}% confidence
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <div className="space-y-4">
-                              <div>
-                                <h4 className="text-sm font-medium mb-2">Evidence</h4>
-                                <p className="text-sm text-muted-foreground">{stakeholder.evidence}</p>
-                              </div>
-
-                              <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                  <h4 className="text-sm font-medium mb-2">Preferences</h4>
-                                  <ul className="text-sm text-muted-foreground space-y-1">
-                                    {stakeholder.preferences.map((pref, index) => (
-                                      <li key={index} className="flex items-start space-x-2">
-                                        <span className="text-primary mt-1">•</span>
-                                        <span>{pref}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                <div>
-                                  <h4 className="text-sm font-medium mb-2">Communication Tips</h4>
-                                  <ul className="text-sm text-muted-foreground space-y-1">
-                                    {stakeholder.communication_tips.map((tip, index) => (
-                                      <li key={index} className="flex items-start space-x-2">
-                                        <span className="text-primary mt-1">•</span>
-                                        <span>{tip}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p className="mb-2">No communication styles detected yet</p>
-                      <p className="text-sm">Communication styles will be identified as you have more calls with this prospect</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Cumulative Intelligence Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Database className="w-5 h-5" />
-                    <span>Cumulative Intelligence</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-4 gap-4 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <ExternalLink className={cn("w-4 h-4", selectedProspect.dataSources.fireflies > 0 ? "text-blue-600" : "text-gray-400")} />
-                      <span className="text-sm">Fireflies Calls:</span>
-                      <Badge variant={selectedProspect.dataSources.fireflies > 0 ? "default" : "secondary"}>
-                        {selectedProspect.dataSources.fireflies}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Database className={cn("w-4 h-4", selectedProspect.dataSources.hubspot > 0 ? "text-orange-600" : "text-gray-400")} />
-                      <span className="text-sm">HubSpot Data:</span>
-                      <Badge variant={selectedProspect.dataSources.hubspot > 0 ? "default" : "secondary"}>
-                        {selectedProspect.dataSources.hubspot}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <FileText className={cn("w-4 h-4", selectedProspect.dataSources.presentations > 0 ? "text-purple-600" : "text-gray-400")} />
-                      <span className="text-sm">Presentations:</span>
-                      <Badge variant={selectedProspect.dataSources.presentations > 0 ? "default" : "secondary"}>
-                        {selectedProspect.dataSources.presentations}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <MessageSquare className={cn("w-4 h-4", selectedProspect.dataSources.emails > 0 ? "text-green-600" : "text-gray-400")} />
-                      <span className="text-sm">Email Threads:</span>
-                      <Badge variant={selectedProspect.dataSources.emails > 0 ? "default" : "secondary"}>
-                        {selectedProspect.dataSources.emails}
-                      </Badge>
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Database className="w-5 h-5" />
+                  <span>Cumulative Intelligence</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-4 gap-4 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <ExternalLink className={cn("w-4 h-4", selectedProspect.dataSources.fireflies > 0 ? "text-blue-600" : "text-gray-400")} />
+                    <span className="text-sm">Fireflies Calls:</span>
+                    <Badge variant={selectedProspect.dataSources.fireflies > 0 ? "default" : "secondary"}>
+                      {selectedProspect.dataSources.fireflies}
+                    </Badge>
                   </div>
-                  
-                  <p className="text-sm text-muted-foreground">
-                    These insights represent an amalgamation of data from all interactions with {selectedProspect.companyName}, 
-                    providing a comprehensive and evolving understanding of the prospect relationship.
-                  </p>
-                </CardContent>
-              </Card>
-            </>
+                  <div className="flex items-center space-x-2">
+                    <Database className={cn("w-4 h-4", selectedProspect.dataSources.hubspot > 0 ? "text-orange-600" : "text-gray-400")} />
+                    <span className="text-sm">HubSpot Data:</span>
+                    <Badge variant={selectedProspect.dataSources.hubspot > 0 ? "default" : "secondary"}>
+                      {selectedProspect.dataSources.hubspot}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FileText className={cn("w-4 h-4", selectedProspect.dataSources.presentations > 0 ? "text-purple-600" : "text-gray-400")} />
+                    <span className="text-sm">Presentations:</span>
+                    <Badge variant={selectedProspect.dataSources.presentations > 0 ? "default" : "secondary"}>
+                      {selectedProspect.dataSources.presentations}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MessageSquare className={cn("w-4 h-4", selectedProspect.dataSources.emails > 0 ? "text-green-600" : "text-gray-400")} />
+                    <span className="text-sm">Email Threads:</span>
+                    <Badge variant={selectedProspect.dataSources.emails > 0 ? "default" : "secondary"}>
+                      {selectedProspect.dataSources.emails}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  These insights represent an amalgamation of data from all interactions with {selectedProspect.companyName}, 
+                  providing a comprehensive and evolving understanding of the prospect relationship.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
