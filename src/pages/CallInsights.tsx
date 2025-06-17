@@ -314,6 +314,12 @@ const CallInsights = () => {
         }));
 
       setProcessedCalls(processedCallsData);
+      
+      // Auto-select the last processed call (most recent)
+      if (processedCallsData.length > 0) {
+        const lastProcessedCall = processedCallsData[0]; // First item is most recent due to ordering
+        handleProcessedCallSelect(lastProcessedCall);
+      }
     } catch (error) {
       console.error("Error loading processed calls:", error);
       toast.error("Failed to load processed calls");
@@ -540,223 +546,218 @@ const CallInsights = () => {
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
       {/* Prospect Selection - Load Past Processed Calls */}
-      {!selectedProspect && !selectedProcessedCall && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Building className="w-5 h-5" />
-                <span>Prospect Selection</span>
-                <Badge variant="secondary">{filteredProcessedCalls.length} processed calls</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Prospect Selection</span>
+              <Badge variant="secondary">{filteredProcessedCalls.length} processed calls</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search processed calls..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search processed calls..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-                <Button variant="outline" size="sm" onClick={handleRefreshProcessedCalls}>
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Refresh
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingProcessedCalls ? (
-              <div className="text-center py-8">
-                <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading processed calls...</p>
-              </div>
-            ) : filteredProcessedCalls.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-2">No processed calls found</p>
-                <p className="text-sm">Process your first call transcript to see insights here</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Horizontal Card Navigation - Only show if more than 3 cards */}
-                {filteredProcessedCalls.length > cardsPerPage && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={scrollLeft}
-                        disabled={!canScrollLeft}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Showing {currentCardIndex + 1}-{Math.min(currentCardIndex + cardsPerPage, filteredProcessedCalls.length)} of {filteredProcessedCalls.length}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={scrollRight}
-                        disabled={!canScrollRight}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Horizontal Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {visibleCards.map((call) => (
-                    <Card
-                      key={call.id}
-                      className="cursor-pointer hover:shadow-md transition-all border-2 hover:border-primary/50"
-                      onClick={() => handleProcessedCallSelect(call)}
+              <Button variant="outline" size="sm" onClick={handleRefreshProcessedCalls}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Refresh
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingProcessedCalls ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading processed calls...</p>
+            </div>
+          ) : filteredProcessedCalls.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="mb-2">No processed calls found</p>
+              <p className="text-sm">Process your first call transcript to see insights here</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Horizontal Card Navigation - Only show if more than 3 cards */}
+              {filteredProcessedCalls.length > cardsPerPage && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={scrollLeft}
+                      disabled={!canScrollLeft}
                     >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-foreground mb-1">
-                              {call.companyName || 'Unknown Company'}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {call.prospectName || 'Unknown Prospect'} • {call.title || 'Unknown Title'}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
-                            {call.status}
-                          </Badge>
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Showing {currentCardIndex + 1}-{Math.min(currentCardIndex + cardsPerPage, filteredProcessedCalls.length)} of {filteredProcessedCalls.length}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={scrollRight}
+                      disabled={!canScrollRight}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Horizontal Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {visibleCards.map((call) => (
+                  <Card
+                    key={call.id}
+                    className={cn(
+                      "cursor-pointer hover:shadow-md transition-all border-2",
+                      selectedProcessedCall?.id === call.id
+                        ? "border-primary bg-primary/5 shadow-md"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => handleProcessedCallSelect(call)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground mb-1">
+                            {call.companyName || 'Unknown Company'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {call.prospectName || 'Unknown Prospect'} • {call.title || 'Unknown Title'}
+                          </p>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-3">
-                          {/* Call Details with all specified fields */}
-                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                            <div className="flex items-center space-x-1">
-                              <Phone className="w-3 h-3" />
-                              <span>Calls: {call.totalCalls || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <DollarSign className="w-3 h-3" />
-                              <span>Value: {call.dealValue || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <TrendingUp className="w-3 h-3" />
-                              <span>Prob: {call.probability || 'N/A'}%</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{call.lastCallDate || 'N/A'}</span>
-                            </div>
+                        <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
+                          {call.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {/* Call Details with all specified fields */}
+                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <Phone className="w-3 h-3" />
+                            <span>Calls: {call.totalCalls || 'N/A'}</span>
                           </div>
-
-                          {/* Last Engagement */}
-                          <div className="text-xs text-muted-foreground">
-                            <span className="font-medium">Last Engagement:</span> {call.lastEngagement || 'N/A'}
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="w-3 h-3" />
+                            <span>Value: {call.dealValue || 'N/A'}</span>
                           </div>
-
-                          {/* Next Action */}
-                          <div className="text-xs text-muted-foreground">
-                            <span className="font-medium">Next:</span> {call.nextAction || 'N/A'}
+                          <div className="flex items-center space-x-1">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>Prob: {call.probability || 'N/A'}%</span>
                           </div>
-
-                          {/* Processing Info */}
-                          <div className="text-xs text-muted-foreground">
-                            <span className="font-medium">Processed:</span> {formatDate(call.processingDate)}
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{call.lastCallDate || 'N/A'}</span>
                           </div>
-
-                          {/* Insights Preview */}
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center space-x-2">
-                              <div className="flex items-center space-x-1">
-                                <Sparkles className="w-3 h-3 text-blue-600" />
-                                <span>{call.insightsCount || 0} insights</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users className="w-3 h-3 text-green-600" />
-                                <span>{call.stakeholdersCount || 0} stakeholders</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Summary Preview */}
-                          <div className="text-xs text-muted-foreground">
-                            <p className="line-clamp-2">
-                              {call.summary ? call.summary.substring(0, 100) + '...' : 'No summary available'}
-                            </p>
-                          </div>
-
-                          {/* Action Button */}
-                          <Button size="sm" className="w-full mt-3">
-                            <Eye className="w-3 h-3 mr-1" />
-                            View Insights
-                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+
+                        {/* Last Engagement */}
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Last Engagement:</span> {call.lastEngagement || 'N/A'}
+                        </div>
+
+                        {/* Next Action */}
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Next:</span> {call.nextAction || 'N/A'}
+                        </div>
+
+                        {/* Processing Info */}
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Processed:</span> {formatDate(call.processingDate)}
+                        </div>
+
+                        {/* Insights Preview */}
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
+                              <Sparkles className="w-3 h-3 text-blue-600" />
+                              <span>{call.insightsCount || 0} insights</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Users className="w-3 h-3 text-green-600" />
+                              <span>{call.stakeholdersCount || 0} stakeholders</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Summary Preview */}
+                        <div className="text-xs text-muted-foreground">
+                          <p className="line-clamp-2">
+                            {call.summary ? call.summary.substring(0, 100) + '...' : 'No summary available'}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Show pagination dots if more than 3 cards */}
+              {filteredProcessedCalls.length > cardsPerPage && (
+                <div className="flex justify-center space-x-1 mt-4">
+                  {Array.from({ length: Math.ceil(filteredProcessedCalls.length / cardsPerPage) }).map((_, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-colors cursor-pointer",
+                        Math.floor(currentCardIndex / cardsPerPage) === index
+                          ? "bg-primary"
+                          : "bg-muted-foreground/30"
+                      )}
+                      onClick={() => setCurrentCardIndex(index * cardsPerPage)}
+                    />
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                {/* Show pagination dots if more than 3 cards */}
-                {filteredProcessedCalls.length > cardsPerPage && (
-                  <div className="flex justify-center space-x-1 mt-4">
-                    {Array.from({ length: Math.ceil(filteredProcessedCalls.length / cardsPerPage) }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "w-2 h-2 rounded-full transition-colors cursor-pointer",
-                          Math.floor(currentCardIndex / cardsPerPage) === index
-                            ? "bg-primary"
-                            : "bg-muted-foreground/30"
-                        )}
-                        onClick={() => setCurrentCardIndex(index * cardsPerPage)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selected Call/Prospect Header */}
-      {(selectedProspect || selectedProcessedCall) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5" />
-                <span>
-                  {selectedProcessedCall 
-                    ? `Insights for ${selectedProcessedCall.companyName} (Processed Call)`
-                    : `Insights for ${selectedProspect.companyName}`
-                  }
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedProspect(null);
-                  setSelectedProcessedCall(null);
-                  setInsights([]);
-                  setCommunicationStyles([]);
-                }}
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back to Selection
-              </Button>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      )}
-
-      {/* Sales Insights Section */}
+      {/* Sales Insights Section - Only show when a call is selected */}
       {(selectedProspect || selectedProcessedCall) && (
         <>
+          {/* Selected Call/Prospect Header */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>
+                    {selectedProcessedCall 
+                      ? `Insights for ${selectedProcessedCall.companyName} (Processed Call)`
+                      : `Insights for ${selectedProspect.companyName}`
+                    }
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProspect(null);
+                    setSelectedProcessedCall(null);
+                    setInsights([]);
+                    setCommunicationStyles([]);
+                  }}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back to Selection
+                </Button>
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
