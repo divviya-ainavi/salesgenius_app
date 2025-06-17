@@ -399,6 +399,16 @@ export const ReviewInsights = ({
     (insight) => insight.type === "agreed_action"
   );
 
+  // Helper function to safely get insight type config
+  const getInsightTypeConfig = (type) => {
+    return insightTypes[type] || {
+      icon: Lightbulb,
+      label: "Unknown Type",
+      color: "bg-gray-100 text-gray-800 border-gray-200",
+      description: "Unknown insight type"
+    };
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
@@ -666,12 +676,7 @@ export const ReviewInsights = ({
             ? insights
             : insights.filter((insight) => insight.type !== "agreed_action")
           ).map((insight, index) => {
-            const typeConfig = insightTypes[insight.type] || {
-              icon: Lightbulb,
-              label: "Unknown Type",
-              color: "bg-gray-100 text-gray-800 border-gray-200",
-              description: "Unknown insight type",
-            };
+            const typeConfig = getInsightTypeConfig(insight.type);
             const TypeIcon = typeConfig.icon;
 
             return (

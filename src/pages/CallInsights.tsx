@@ -299,7 +299,7 @@ const CallInsights = () => {
       // Check if we have AI processed data
       if (location.state?.aiProcessedData) {
         setAiProcessedData(location.state.aiProcessedData);
-        setShowAiInsights(true);
+        setShowAiInsights(location.state.showAiInsights || false);
       }
       
       // Find matching prospect or create new one

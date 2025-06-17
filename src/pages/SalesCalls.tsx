@@ -95,6 +95,8 @@ const SalesCalls = () => {
     try {
       trackFeatureUsage("fireflies", "fetch_transcripts");
 
+      // Get transcripts from Fireflies service
+      // This will return mock data if the API is unavailable
       const transcripts = await firefliesService.getTranscripts({
         limit: 50,
       });
@@ -409,19 +411,25 @@ const SalesCalls = () => {
 
         toast.success("File processed successfully!");
 
-        // Create a mock call object with the processed data
+        // Validate and populate missing fields with dummy data
+        const processedData = validateAndPopulateData(data[0]);
+
+        // Create a processed call object with the processed data
         const processedCall = {
           id: file.id,
           callId: `Upload ${file.id.slice(-5)}`,
-          companyName: file.filename.replace(/\.[^/.]+$/, ""), // Remove file extension
-          prospectName: "AI Processed",
+          companyName: file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
+          prospectName: processedData.call_analysis_overview?.specific_user || "AI Processed",
           date: new Date().toISOString().split("T")[0],
           duration: "N/A",
           status: "processed",
           source: "upload",
           hasInsights: true,
-          transcript: fileBlob,
-          aiProcessedData: data[0], // Store the AI processed data
+          transcript: transcriptContentForDb,
+          aiProcessedData: processedData, // Store the validated and populated data
+          processingTimestamp: new Date().toISOString(),
+          originalFilename: file.filename,
+          modifiedFields: processedData._modifiedFields || [],
         };
 
         // Navigate to Call Insights with the processed data
@@ -429,7 +437,8 @@ const SalesCalls = () => {
           state: {
             selectedCall: processedCall,
             source: "upload",
-            aiProcessedData: data[0],
+            aiProcessedData: processedData,
+            showAiInsights: true, // Auto-show AI insights
           },
         });
       } else {
@@ -441,6 +450,123 @@ const SalesCalls = () => {
     } finally {
       setIsProcessingFileId(null);
     }
+  };
+
+  // Function to validate and populate missing fields with dummy data
+  const validateAndPopulateData = (data) => {
+    const modifiedFields = [];
+    const result = { ...data };
+
+    // Validate and populate call_summary
+    if (!result.call_summary) {
+      result.call_summary = "No summary available. This call transcript has been processed but no summary was generated.";
+      modifiedFields.push("call_summary");
+    }
+
+    // Validate and populate action_items
+    if (!result.action_items || !Array.isArray(result.action_items) || result.action_items.length === 0) {
+      result.action_items = [
+        {
+          task: "Review transcript for action items",
+          owner: CURRENT_USER.full_name || "Sales Manager",
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          priority: "medium"
+        }
+      ];
+      modifiedFields.push("action_items");
+    } else {
+      // Validate each action item
+      result.action_items = result.action_items.map(item => {
+        const validatedItem = { ...item };
+        if (!validatedItem.task) {
+          validatedItem.task = "Undefined task";
+          modifiedFields.push("action_items.task");
+        }
+        if (!validatedItem.owner) {
+          validatedItem.owner = CURRENT_USER.full_name || "Sales Manager";
+          modifiedFields.push("action_items.owner");
+        }
+        return validatedItem;
+      });
+    }
+
+    // Validate and populate follow_up_email
+    if (!result.follow_up_email) {
+      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${CURRENT_USER.full_name || "Sales Manager"}`;
+      modifiedFields.push("follow_up_email");
+    }
+
+    // Validate and populate deck_prompt
+    if (!result.deck_prompt) {
+      result.deck_prompt = "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
+      modifiedFields.push("deck_prompt");
+    }
+
+    // Validate and populate sales_insights
+    if (!result.sales_insights || !Array.isArray(result.sales_insights) || result.sales_insights.length === 0) {
+      result.sales_insights = [
+        {
+          id: "si-auto-1",
+          type: "user_insight",
+          content: "This is an automatically generated insight as no insights were found in the transcript.",
+          relevance_score: 75,
+          is_selected: true,
+          source: "System",
+          timestamp: "N/A",
+          trend: null
+        }
+      ];
+      modifiedFields.push("sales_insights");
+    }
+
+    // Validate and populate communication_styles
+    if (!result.communication_styles || !Array.isArray(result.communication_styles) || result.communication_styles.length === 0) {
+      result.communication_styles = [
+        {
+          id: "cs-auto-1",
+          stakeholder: "Unknown Participant",
+          role: "Prospect",
+          style: "visual",
+          confidence: 0.7,
+          evidence: "No specific evidence found in transcript.",
+          preferences: ["Visual presentations", "Data-driven discussions"],
+          communication_tips: ["Use visual aids", "Provide clear data points"]
+        }
+      ];
+      modifiedFields.push("communication_styles");
+    }
+
+    // Validate and populate call_analysis_overview
+    if (!result.call_analysis_overview) {
+      result.call_analysis_overview = {
+        specific_user: "Unknown Participant",
+        sentiment_score: 0.5,
+        key_points: ["Transcript processed successfully", "No specific key points identified"],
+        processing_status: "completed",
+        error_message: null
+      };
+      modifiedFields.push("call_analysis_overview");
+    } else {
+      // Validate specific fields in call_analysis_overview
+      if (!result.call_analysis_overview.specific_user) {
+        result.call_analysis_overview.specific_user = "Unknown Participant";
+        modifiedFields.push("call_analysis_overview.specific_user");
+      }
+      if (result.call_analysis_overview.sentiment_score === undefined || result.call_analysis_overview.sentiment_score === null) {
+        result.call_analysis_overview.sentiment_score = 0.5;
+        modifiedFields.push("call_analysis_overview.sentiment_score");
+      }
+    }
+
+    // Store the list of modified fields
+    result._modifiedFields = modifiedFields;
+    
+    // Log all modifications
+    if (modifiedFields.length > 0) {
+      console.log("Modified fields during validation:", modifiedFields);
+    }
+
+    return result;
   };
 
   const formatFileSize = (bytes) => {

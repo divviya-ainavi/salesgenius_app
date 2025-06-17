@@ -27,6 +27,7 @@ class FirefliesService {
           console.warn('Fireflies API unavailable, returning mock data for development');
           return this.getMockTranscripts();
         }
+        // Only throw if it's not a network error we can handle
         throw networkError;
       }
 
@@ -193,6 +194,7 @@ Next Steps:
           console.warn('Fireflies API unavailable, returning mock transcript detail');
           return this.getMockTranscriptDetail(transcriptId);
         }
+        // Only throw if it's not a network error we can handle
         throw networkError;
       }
 
@@ -252,6 +254,7 @@ Next Steps:
             updated_transcripts: 1,
           };
         }
+        // Only throw if it's not a network error we can handle
         throw networkError;
       }
 
