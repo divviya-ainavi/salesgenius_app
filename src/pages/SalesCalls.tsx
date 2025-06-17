@@ -185,21 +185,24 @@ const SalesCalls = () => {
       if (!isPDF) {
         content = await file.text();
         // Clean null characters that cause Unicode escape sequence errors
-        content = content.replace(/\u0000/g, '');
+        content = content.replace(/\u0000/g, "");
       } else {
         content = `PDF file: ${file.name} (${file.size} bytes)`;
       }
 
       // Save uploaded file to database with shareable link
-      const savedFile = await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
+      const savedFile = await dbHelpers.saveUploadedFile(
+        CURRENT_USER.id,
+        file,
+        content
+      );
 
       toast.success("File uploaded successfully!");
       trackFileUpload(file.name, file.size, file.type, "completed");
       await loadUploadedFiles(); // Refresh the list
-      
+
       // Automatically process the file after upload
-      await handleProcessFile(savedFile);
-      
+      // await handleProcessFile(savedFile);
     } catch (error) {
       console.error("Error uploading file:", error);
       toast.error(`Failed to upload file: ${error.message}`);
@@ -375,16 +378,22 @@ const SalesCalls = () => {
 
       if (data && data.length > 0) {
         // Store the processed data in the database
-        const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, file.id);
-        
+        const processingSession = await dbHelpers.createProcessingSession(
+          CURRENT_USER.id,
+          file.id
+        );
+
         // Get transcript content and clean null characters
-        let transcriptContentForDb = '';
+        let transcriptContentForDb = "";
         if (fileBlob) {
           transcriptContentForDb = await fileBlob.text();
           // Clean null characters that cause Unicode escape sequence errors
-          transcriptContentForDb = transcriptContentForDb.replace(/\u0000/g, '');
+          transcriptContentForDb = transcriptContentForDb.replace(
+            /\u0000/g,
+            ""
+          );
         }
-        
+
         // Create a call note entry
         const callNote = await dbHelpers.createCallNote(
           CURRENT_USER.id,
@@ -393,14 +402,14 @@ const SalesCalls = () => {
           file.id,
           processingSession.id
         );
-        
+
         // Update the processing session with the completed status and API response
         await dbHelpers.updateProcessingSession(processingSession.id, {
-          processing_status: 'completed',
+          processing_status: "completed",
           api_response: data[0],
-          call_notes_id: callNote.id
+          call_notes_id: callNote.id,
         });
-        
+
         // Create content entries from the API response
         const contentIds = await dbHelpers.createCompleteCallAnalysis(
           CURRENT_USER.id,
@@ -418,8 +427,11 @@ const SalesCalls = () => {
         const processedCall = {
           id: file.id,
           callId: `Upload ${file.id.slice(-5)}`,
-          companyName: file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
-          prospectName: processedData.call_analysis_overview?.specific_user || "AI Processed",
+          companyName:
+            file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
+          prospectName:
+            processedData.call_analysis_overview?.specific_user ||
+            "AI Processed",
           date: new Date().toISOString().split("T")[0],
           duration: "N/A",
           status: "processed",
@@ -459,24 +471,31 @@ const SalesCalls = () => {
 
     // Validate and populate call_summary
     if (!result.call_summary) {
-      result.call_summary = "No summary available. This call transcript has been processed but no summary was generated.";
+      result.call_summary =
+        "No summary available. This call transcript has been processed but no summary was generated.";
       modifiedFields.push("call_summary");
     }
 
     // Validate and populate action_items
-    if (!result.action_items || !Array.isArray(result.action_items) || result.action_items.length === 0) {
+    if (
+      !result.action_items ||
+      !Array.isArray(result.action_items) ||
+      result.action_items.length === 0
+    ) {
       result.action_items = [
         {
           task: "Review transcript for action items",
           owner: CURRENT_USER.full_name || "Sales Manager",
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: "medium"
-        }
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          priority: "medium",
+        },
       ];
       modifiedFields.push("action_items");
     } else {
       // Validate each action item
-      result.action_items = result.action_items.map(item => {
+      result.action_items = result.action_items.map((item) => {
         const validatedItem = { ...item };
         if (!validatedItem.task) {
           validatedItem.task = "Undefined task";
@@ -492,35 +511,47 @@ const SalesCalls = () => {
 
     // Validate and populate follow_up_email
     if (!result.follow_up_email) {
-      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${CURRENT_USER.full_name || "Sales Manager"}`;
+      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${
+        CURRENT_USER.full_name || "Sales Manager"
+      }`;
       modifiedFields.push("follow_up_email");
     }
 
     // Validate and populate deck_prompt
     if (!result.deck_prompt) {
-      result.deck_prompt = "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
+      result.deck_prompt =
+        "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
       modifiedFields.push("deck_prompt");
     }
 
     // Validate and populate sales_insights
-    if (!result.sales_insights || !Array.isArray(result.sales_insights) || result.sales_insights.length === 0) {
+    if (
+      !result.sales_insights ||
+      !Array.isArray(result.sales_insights) ||
+      result.sales_insights.length === 0
+    ) {
       result.sales_insights = [
         {
           id: "si-auto-1",
           type: "user_insight",
-          content: "This is an automatically generated insight as no insights were found in the transcript.",
+          content:
+            "This is an automatically generated insight as no insights were found in the transcript.",
           relevance_score: 75,
           is_selected: true,
           source: "System",
           timestamp: "N/A",
-          trend: null
-        }
+          trend: null,
+        },
       ];
       modifiedFields.push("sales_insights");
     }
 
     // Validate and populate communication_styles
-    if (!result.communication_styles || !Array.isArray(result.communication_styles) || result.communication_styles.length === 0) {
+    if (
+      !result.communication_styles ||
+      !Array.isArray(result.communication_styles) ||
+      result.communication_styles.length === 0
+    ) {
       result.communication_styles = [
         {
           id: "cs-auto-1",
@@ -530,8 +561,8 @@ const SalesCalls = () => {
           confidence: 0.7,
           evidence: "No specific evidence found in transcript.",
           preferences: ["Visual presentations", "Data-driven discussions"],
-          communication_tips: ["Use visual aids", "Provide clear data points"]
-        }
+          communication_tips: ["Use visual aids", "Provide clear data points"],
+        },
       ];
       modifiedFields.push("communication_styles");
     }
@@ -541,9 +572,12 @@ const SalesCalls = () => {
       result.call_analysis_overview = {
         specific_user: "Unknown Participant",
         sentiment_score: 0.5,
-        key_points: ["Transcript processed successfully", "No specific key points identified"],
+        key_points: [
+          "Transcript processed successfully",
+          "No specific key points identified",
+        ],
         processing_status: "completed",
-        error_message: null
+        error_message: null,
       };
       modifiedFields.push("call_analysis_overview");
     } else {
@@ -552,7 +586,10 @@ const SalesCalls = () => {
         result.call_analysis_overview.specific_user = "Unknown Participant";
         modifiedFields.push("call_analysis_overview.specific_user");
       }
-      if (result.call_analysis_overview.sentiment_score === undefined || result.call_analysis_overview.sentiment_score === null) {
+      if (
+        result.call_analysis_overview.sentiment_score === undefined ||
+        result.call_analysis_overview.sentiment_score === null
+      ) {
         result.call_analysis_overview.sentiment_score = 0.5;
         modifiedFields.push("call_analysis_overview.sentiment_score");
       }
@@ -560,7 +597,7 @@ const SalesCalls = () => {
 
     // Store the list of modified fields
     result._modifiedFields = modifiedFields;
-    
+
     // Log all modifications
     if (modifiedFields.length > 0) {
       console.log("Modified fields during validation:", modifiedFields);
