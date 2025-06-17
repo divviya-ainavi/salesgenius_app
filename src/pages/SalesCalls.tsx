@@ -1,61 +1,50 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrackedButton } from "@/components/ui/tracked-button";
-import {
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { TrackedButton } from '@/components/ui/tracked-button';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
   Upload,
   FileText,
-  Eye,
-  Download,
+  Phone,
+  ExternalLink,
+  RefreshCw,
   Search,
   Calendar,
-  User,
-  Building,
-  Phone,
   Clock,
-  Filter,
-  RefreshCw,
-  ExternalLink,
-  Play,
-  Pause,
-  Volume2,
-  FileIcon,
-  Plus,
-  ArrowRight,
+  Building,
+  User,
+  Eye,
+  Download,
   Copy,
-  AlertCircle,
+  ArrowRight,
   Loader2,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import { useAnalytics } from "@/hooks/useAnalytics";
-import firefliesService from "@/services/firefliesService";
+  AlertCircle,
+  Sparkles
+} from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { dbHelpers, aiAgents, CURRENT_USER } from '@/lib/supabase';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import firefliesService from '@/services/firefliesService';
+import jsPDF from 'jspdf';
 
 const SalesCalls = () => {
   const navigate = useNavigate();
-  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
-    useAnalytics();
-  const [activeTab, setActiveTab] = useState("upload");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCall, setSelectedCall] = useState(null);
-  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [modalContent, setModalContent] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const { trackButtonClick, trackFileUpload, trackFeatureUsage } = useAnalytics();
+
+  // File upload state
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isProcessingFileId, setIsProcessingFileId] = useState(null);
   const [processedCalls, setProcessedCalls] = useState([]);
@@ -72,14 +61,15 @@ const SalesCalls = () => {
     loadProcessedCalls();
     loadFirefliesTranscripts();
 
-    // Track page visit
-    trackFeatureUsage("sales_calls", "page_visit");
-  }, []);
+    // Set up periodic sync for Fireflies (every 5 minutes)
+    const syncInterval = setInterval(() => {
+      if (!isLoadingFireflies) {
+        loadFirefliesTranscripts();
+      }
+    }, 5 * 60 * 1000);
 
-  // Track tab changes
-  useEffect(() => {
-    trackFeatureUsage("sales_calls", "tab_change", { tab: activeTab });
-  }, [activeTab]);
+    return () => clearInterval(syncInterval);
+  }, []);
 
   const loadUploadedFiles = async () => {
     try {
@@ -116,6 +106,9 @@ const SalesCalls = () => {
           uploadDate: session.uploaded_files.upload_date,
           processingDate: session.processing_completed_at,
           summary: session.call_notes?.ai_summary || "No summary available",
+          fileUrl: session.uploaded_files.file_url,
+          contentType: session.uploaded_files.content_type,
+          storagePath: session.uploaded_files.storage_path,
           // Additional metadata
           contentReferences: session.content_references,
           apiResponse: session.api_response,
@@ -130,168 +123,147 @@ const SalesCalls = () => {
   const loadFirefliesTranscripts = async () => {
     setIsLoadingFireflies(true);
     setFirefliesError(null);
-
+    
     try {
-      trackFeatureUsage("fireflies", "fetch_transcripts");
-
-      // Get transcripts from Fireflies service
-      // This will return mock data if the API is unavailable
       const transcripts = await firefliesService.getTranscripts({
-        limit: 50,
+        limit: 20,
+        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // Last 30 days
       });
-
+      
       setFirefliesCalls(transcripts);
       setLastFirefliesSync(new Date());
-
-      trackFeatureUsage("fireflies", "fetch_transcripts_success", {
+      
+      trackFeatureUsage('fireflies_integration', 'sync_transcripts', {
         transcripts_count: transcripts.length,
       });
     } catch (error) {
-      console.error("Error loading Fireflies transcripts:", error);
+      console.error('Error loading Fireflies transcripts:', error);
       setFirefliesError(error.message);
-
-      trackFeatureUsage("fireflies", "fetch_transcripts_error", {
-        error: error.message,
-      });
-
-      // Show user-friendly error message
-      toast.error("Failed to load Fireflies transcripts. Please try again.");
     } finally {
       setIsLoadingFireflies(false);
     }
   };
 
   const handleSyncFireflies = async () => {
-    setIsLoadingFireflies(true);
-
-    try {
-      trackButtonClick("Sync Fireflies");
-
-      await firefliesService.syncTranscripts({
-        forceRefresh: true,
-      });
-
-      // Reload transcripts after sync
-      await loadFirefliesTranscripts();
-
-      toast.success("Fireflies transcripts synced successfully!");
-    } catch (error) {
-      console.error("Error syncing Fireflies:", error);
-      toast.error("Failed to sync Fireflies transcripts. Please try again.");
-    } finally {
-      setIsLoadingFireflies(false);
-    }
+    trackButtonClick('Sync Fireflies', { source: 'manual' });
+    await loadFirefliesTranscripts();
   };
 
-  // File upload handling
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('recent');
+
+  // Modal state
+  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState('');
+  const [currentCall, setCurrentCall] = useState(null);
+
+  // File upload handlers
   const onDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
+    for (const file of acceptedFiles) {
+      try {
+        trackFileUpload(file.name, file.size, file.type, 'started');
 
-    setIsUploading(true);
-    const file = acceptedFiles[0];
+        // Read file content for text files
+        let content = null;
+        if (file.type === 'text/plain' || file.type === 'text/vtt') {
+          content = await file.text();
+        }
 
-    try {
-      // Track file upload start
-      trackFileUpload(file.name, file.size, file.type, "started");
+        // Save file to database with content
+        const savedFile = await dbHelpers.saveUploadedFile(
+          CURRENT_USER.id,
+          file,
+          content
+        );
 
-      // Validate file type
-      const validTypes = ["text/plain", "text/vtt", "application/pdf"];
-      const validExtensions = [".txt", ".vtt", ".pdf"];
-      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
-
-      if (
-        !validTypes.includes(file.type) &&
-        !validExtensions.includes(fileExtension)
-      ) {
-        toast.error("Please upload only .txt, .vtt, or .pdf files");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
+        setUploadedFiles(prev => [savedFile, ...prev]);
+        trackFileUpload(file.name, file.size, file.type, 'completed');
+        toast.success(`${file.name} uploaded successfully`);
+      } catch (error) {
+        trackFileUpload(file.name, file.size, file.type, 'failed');
+        toast.error(`Failed to upload ${file.name}: ${error.message}`);
       }
-
-      if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
-        toast.error("File size must be less than 10MB");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
-      }
-
-      // For text files, read content for database storage
-      let content = "";
-      const isPDF =
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf");
-
-      if (!isPDF) {
-        content = await file.text();
-        // Clean null characters that cause Unicode escape sequence errors
-        content = content.replace(/\u0000/g, '');
-      } else {
-        content = `PDF file: ${file.name} (${file.size} bytes)`;
-      }
-
-      // Save uploaded file to database with shareable link
-      const savedFile = await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
-
-      toast.success("File uploaded successfully!");
-      trackFileUpload(file.name, file.size, file.type, "completed");
-      await loadUploadedFiles(); // Refresh the list
-      
-      // Automatically process the file after upload
-      await handleProcessFile(savedFile);
-      
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error(`Failed to upload file: ${error.message}`);
-      trackFileUpload(file.name, file.size, file.type, "failed");
-    } finally {
-      setIsUploading(false);
     }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "text/plain": [".txt"],
-      "text/vtt": [".vtt"],
-      "application/pdf": [".pdf"],
+      'text/plain': ['.txt'],
+      'text/vtt': ['.vtt'],
+      'application/pdf': ['.pdf'],
+      'audio/mpeg': ['.mp3'],
+      'audio/wav': ['.wav'],
+      'video/mp4': ['.mp4'],
     },
-    maxFiles: 1,
-    disabled: isUploading,
+    maxSize: 10 * 1024 * 1024, // 10MB
   });
 
-  const handleViewSummary = (call) => {
-    trackButtonClick("View Summary", {
+  // Modal handlers
+  const handleViewTranscript = async (call) => {
+    setCurrentCall(call);
+    setModalTitle(`Full Transcript - ${call.companyName}`);
+    
+    try {
+      // For processed calls, check if it's a PDF file
+      if (call.source === 'upload' && call.contentType === 'application/pdf') {
+        // For PDF files, show a message and provide download option
+        setModalContent(`PDF file: ${call.originalFilename} (${Math.round(call.fileSize / 1024)} KB)
+
+This is a PDF file that cannot be displayed as text. Please use the "Download PDF" button to view the original file, or the "PDF" button below to download it directly.
+
+File details:
+- Original filename: ${call.originalFilename}
+- File size: ${Math.round(call.fileSize / 1024)} KB
+- Upload date: ${formatDate(call.uploadDate)}
+- Processing date: ${formatDate(call.processingDate)}`);
+      } else {
+        // For text files or Fireflies calls, show the transcript content
+        setModalContent(call.transcript || 'Transcript not available');
+      }
+    } catch (error) {
+      console.error('Error loading transcript:', error);
+      setModalContent('Error loading transcript content');
+    }
+    
+    setShowTranscriptModal(true);
+    
+    trackButtonClick('View Transcript', {
       call_id: call.id,
       company: call.companyName,
+      source: call.source,
+      content_type: call.contentType || 'text'
     });
-    setModalTitle(`Call Summary - ${call.companyName}`);
-    setModalContent(call.firefliesSummary);
-    setShowSummaryModal(true);
   };
 
-  const handleViewTranscript = (call) => {
-    trackButtonClick("View Transcript", {
+  const handleViewSummary = (call) => {
+    setModalTitle(`Call Summary - ${call.companyName}`);
+    setModalContent(call.firefliesSummary || call.summary || 'Summary not available');
+    setShowSummaryModal(true);
+    
+    trackButtonClick('View Summary', {
       call_id: call.id,
       company: call.companyName,
+      source: call.source
     });
-    setModalTitle(`Full Transcript - ${call.companyName}`);
-    setModalContent(call.transcript);
-    setShowTranscriptModal(true);
   };
 
   const handleCopyTranscript = () => {
     navigator.clipboard.writeText(modalContent);
-    toast.success("Transcript copied to clipboard");
-    trackButtonClick("Copy Transcript");
+    toast.success('Transcript copied to clipboard');
+    trackButtonClick('Copy Transcript', { source: 'modal' });
   };
 
   const handleDownloadTranscriptPDF = (call) => {
     try {
       const doc = new jsPDF();
-
-      // Set up the document
+      
+      // Add title
       doc.setFontSize(16);
-      doc.text("Call Transcript", 20, 20);
+      doc.text('Call Transcript', 20, 20);
 
       doc.setFontSize(12);
       doc.text(`Company: ${call.companyName}`, 20, 35);
@@ -320,164 +292,152 @@ const SalesCalls = () => {
     }
   };
 
-  const handleDownloadTranscript = (call) => {
-    const blob = new Blob([call.transcript], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${call.companyName}_${call.callId}_transcript.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Transcript downloaded");
-    trackButtonClick("Download Transcript", {
-      call_id: call.id,
-      company: call.companyName,
-    });
+  const handleDownloadOriginalFile = async (call) => {
+    try {
+      if (call.fileUrl) {
+        // Create a temporary link to download the file
+        const link = document.createElement('a');
+        link.href = call.fileUrl;
+        link.download = call.originalFilename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success(`Downloading ${call.originalFilename}`);
+        trackButtonClick("Download Original File", { 
+          call_id: call.id,
+          filename: call.originalFilename,
+          content_type: call.contentType
+        });
+      } else {
+        toast.error("File URL not available");
+      }
+    } catch (error) {
+      console.error("Error downloading original file:", error);
+      toast.error("Failed to download file");
+    }
   };
 
-  const handleProcessCall = async (call, source = "fireflies") => {
-    trackButtonClick("Generate Insights", {
-      call_id: call.id,
-      company: call.companyName,
-      source: source,
-    });
-
-    trackFeatureUsage("call_processing", "start_processing", {
-      source: source,
-      company: call.companyName,
-    });
-
-    // Navigate to Call Insights page with the selected call data
-    navigate("/call-insights", {
-      state: {
-        selectedCall: call,
-        source: source,
-      },
-    });
-  };
-
-  const handleProcessFile = async (file) => {
-    if (!file) {
-      toast.error("Please select a file to process");
-      return;
+  // Process call handler
+  const handleProcessCall = async (call, source) => {
+    if (source === "upload") {
+      setIsProcessingFileId(call.id);
     }
 
-    setIsProcessingFileId(file.id);
-    trackButtonClick("Process File", {
-      file_id: file.id,
-      filename: file.filename,
-    });
-
     try {
-      // Fetch the file as a Blob from file_url
-      let fileBlob = null;
-      if (file.file_url) {
-        try {
-          const response = await fetch(file.file_url);
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch file: ${response.status} ${response.statusText}`
-            );
-          }
-          fileBlob = await response.blob();
-        } catch (fetchError) {
-          console.error("Error fetching file blob:", fetchError);
-          toast.error("Failed to fetch file for sending");
-          setIsProcessingFileId(null);
-          return;
-        }
-      }
+      trackFeatureUsage('ai_processing', 'process_call', {
+        source,
+        call_id: call.id,
+        company: call.companyName
+      });
 
-      if (!fileBlob) {
-        toast.error("No file available for sending");
-        setIsProcessingFileId(null);
+      let transcriptContent = '';
+      
+      if (source === "upload") {
+        // Get file content from database
+        const fileContent = await dbHelpers.getFileContent(call.id);
+        transcriptContent = fileContent || call.file_content || '';
+      } else if (source === "fireflies") {
+        transcriptContent = call.transcript || '';
+      } else if (source === "processed") {
+        // For processed calls, navigate directly to insights
+        navigate("/call-insights", {
+          state: {
+            selectedCall: call,
+            source: "processed",
+            viewMode: "insights",
+          },
+        });
         return;
       }
 
-      // Prepare FormData to send the file
-      const formData = new FormData();
-      formData.append("transcript", fileBlob, file.filename);
-      formData.append("user_id", CURRENT_USER.id);
-      formData.append("call_metadata", null);
-      formData.append("previous_interactions", null);
-
-      // Make API call to process the transcript file
-      const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/webhook/process-call-data-ai",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      if (!transcriptContent) {
+        toast.error("No transcript content available for processing");
+        return;
       }
 
-      const data = await response.json();
+      // Create processing session
+      const processingSession = await dbHelpers.createProcessingSession(
+        CURRENT_USER.id,
+        source === "upload" ? call.id : null
+      );
 
-      if (data && data.length > 0) {
-        // Store the processed data in the database
-        const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, file.id);
-        
-        // Get transcript content and clean null characters
-        let transcriptContentForDb = '';
-        if (fileBlob) {
-          transcriptContentForDb = await fileBlob.text();
-          // Clean null characters that cause Unicode escape sequence errors
-          transcriptContentForDb = transcriptContentForDb.replace(/\u0000/g, '');
-        }
-        
-        // Create a call note entry
+      // Call AI agent for processing
+      const aiResponse = await aiAgents.callFollowUpAgent(transcriptContent);
+
+      if (aiResponse.success) {
+        // Create call note
         const callNote = await dbHelpers.createCallNote(
           CURRENT_USER.id,
-          `call-${Date.now()}`,
-          transcriptContentForDb,
-          file.id,
+          call.callId || `${call.companyName}-${Date.now()}`,
+          transcriptContent,
+          source === "upload" ? call.id : null,
           processingSession.id
         );
-        
-        // Update the processing session with the completed status and API response
+
+        // Update call note with AI summary
+        await dbHelpers.updateCallNote(callNote.id, {
+          ai_summary: aiResponse.data.call_summary,
+          status: 'completed'
+        });
+
+        // Create related content
+        const contentIds = { callNotesId: callNote.id };
+
+        if (aiResponse.data.commitments && aiResponse.data.commitments.length > 0) {
+          const commitments = await dbHelpers.createCommitments(
+            callNote.id,
+            CURRENT_USER.id,
+            aiResponse.data.commitments,
+            processingSession.id
+          );
+          contentIds.commitmentsIds = commitments.map(c => c.id);
+        }
+
+        if (aiResponse.data.follow_up_email) {
+          const email = await dbHelpers.createFollowUpEmail(
+            callNote.id,
+            CURRENT_USER.id,
+            aiResponse.data.follow_up_email,
+            processingSession.id
+          );
+          contentIds.followUpEmailId = email.id;
+        }
+
+        if (aiResponse.data.deck_prompt) {
+          const deck = await dbHelpers.createDeckPrompt(
+            callNote.id,
+            CURRENT_USER.id,
+            aiResponse.data.deck_prompt,
+            processingSession.id
+          );
+          contentIds.deckPromptId = deck.id;
+        }
+
+        // Link content to session and mark as completed
+        await dbHelpers.linkContentToSession(processingSession.id, contentIds);
         await dbHelpers.updateProcessingSession(processingSession.id, {
           processing_status: 'completed',
-          api_response: data[0],
-          call_notes_id: callNote.id
+          api_response: aiResponse.data
         });
-        
-        // Create content entries from the API response
-        const contentIds = await dbHelpers.createCompleteCallAnalysis(
-          CURRENT_USER.id,
-          file.id,
-          processingSession.id,
-          data[0]
-        );
 
         // Mark the file as processed
-        await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
+        await dbHelpers.updateUploadedFile(call.id, { is_processed: true });
 
         toast.success("File processed successfully!");
 
-        // Validate and populate missing fields with dummy data
-        const processedData = validateAndPopulateData(data[0]);
-
-        // Create a processed call object with the processed data
-        const processedCall = {
-          id: file.id,
-          callId: `Upload ${file.id.slice(-5)}`,
-          companyName: file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
-          prospectName: processedData.call_analysis_overview?.specific_user || "AI Processed",
-          date: new Date().toISOString().split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          transcript: transcriptContentForDb,
-          aiProcessedData: processedData, // Store the validated and populated data
-          processingTimestamp: new Date().toISOString(),
-          originalFilename: file.filename,
-          modifiedFields: processedData._modifiedFields || [],
+        // Prepare data for navigation
+        const processedData = {
+          call_summary: aiResponse.data.call_summary,
+          action_items: aiResponse.data.commitments || [],
+          follow_up_email: aiResponse.data.follow_up_email,
+          deck_prompt: aiResponse.data.deck_prompt,
+          call_analysis_overview: {
+            specific_user: call.companyName,
+            sentiment_score: 0.8,
+          },
+          sales_insights: aiResponse.data.insights || [],
         };
 
         // Refresh the lists
@@ -487,166 +447,48 @@ const SalesCalls = () => {
         // Navigate to Call Insights with the processed data
         navigate("/call-insights", {
           state: {
-            selectedCall: processedCall,
-            source: "upload",
+            selectedCall: call,
             aiProcessedData: processedData,
-            showAiInsights: true, // Auto-show AI insights
+            showAiInsights: true,
           },
         });
       } else {
-        toast.error("No insights generated from the file");
+        throw new Error(aiResponse.error || "AI processing failed");
       }
     } catch (error) {
-      console.error("Error processing file:", error);
-      toast.error(`Failed to process file: ${error.message}`);
+      console.error("Error processing call:", error);
+      toast.error(`Failed to process call: ${error.message}`);
+      
+      // Update processing session with error
+      if (processingSession) {
+        await dbHelpers.updateProcessingSession(processingSession.id, {
+          processing_status: 'failed',
+          error_message: error.message
+        });
+      }
     } finally {
-      setIsProcessingFileId(null);
-    }
-  };
-
-  // Function to validate and populate missing fields with dummy data
-  const validateAndPopulateData = (data) => {
-    const modifiedFields = [];
-    const result = { ...data };
-
-    // Validate and populate call_summary
-    if (!result.call_summary) {
-      result.call_summary = "No summary available. This call transcript has been processed but no summary was generated.";
-      modifiedFields.push("call_summary");
-    }
-
-    // Validate and populate action_items
-    if (!result.action_items || !Array.isArray(result.action_items) || result.action_items.length === 0) {
-      result.action_items = [
-        {
-          task: "Review transcript for action items",
-          owner: CURRENT_USER.full_name || "Sales Manager",
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: "medium"
-        }
-      ];
-      modifiedFields.push("action_items");
-    } else {
-      // Validate each action item
-      result.action_items = result.action_items.map(item => {
-        const validatedItem = { ...item };
-        if (!validatedItem.task) {
-          validatedItem.task = "Undefined task";
-          modifiedFields.push("action_items.task");
-        }
-        if (!validatedItem.owner) {
-          validatedItem.owner = CURRENT_USER.full_name || "Sales Manager";
-          modifiedFields.push("action_items.owner");
-        }
-        return validatedItem;
-      });
-    }
-
-    // Validate and populate follow_up_email
-    if (!result.follow_up_email) {
-      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${CURRENT_USER.full_name || "Sales Manager"}`;
-      modifiedFields.push("follow_up_email");
-    }
-
-    // Validate and populate deck_prompt
-    if (!result.deck_prompt) {
-      result.deck_prompt = "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
-      modifiedFields.push("deck_prompt");
-    }
-
-    // Validate and populate sales_insights
-    if (!result.sales_insights || !Array.isArray(result.sales_insights) || result.sales_insights.length === 0) {
-      result.sales_insights = [
-        {
-          id: "si-auto-1",
-          type: "user_insight",
-          content: "This is an automatically generated insight as no insights were found in the transcript.",
-          relevance_score: 75,
-          is_selected: true,
-          source: "System",
-          timestamp: "N/A",
-          trend: null
-        }
-      ];
-      modifiedFields.push("sales_insights");
-    }
-
-    // Validate and populate communication_styles
-    if (!result.communication_styles || !Array.isArray(result.communication_styles) || result.communication_styles.length === 0) {
-      result.communication_styles = [
-        {
-          id: "cs-auto-1",
-          stakeholder: "Unknown Participant",
-          role: "Prospect",
-          style: "visual",
-          confidence: 0.7,
-          evidence: "No specific evidence found in transcript.",
-          preferences: ["Visual presentations", "Data-driven discussions"],
-          communication_tips: ["Use visual aids", "Provide clear data points"]
-        }
-      ];
-      modifiedFields.push("communication_styles");
-    }
-
-    // Validate and populate call_analysis_overview
-    if (!result.call_analysis_overview) {
-      result.call_analysis_overview = {
-        specific_user: "Unknown Participant",
-        sentiment_score: 0.5,
-        key_points: ["Transcript processed successfully", "No specific key points identified"],
-        processing_status: "completed",
-        error_message: null
-      };
-      modifiedFields.push("call_analysis_overview");
-    } else {
-      // Validate specific fields in call_analysis_overview
-      if (!result.call_analysis_overview.specific_user) {
-        result.call_analysis_overview.specific_user = "Unknown Participant";
-        modifiedFields.push("call_analysis_overview.specific_user");
-      }
-      if (result.call_analysis_overview.sentiment_score === undefined || result.call_analysis_overview.sentiment_score === null) {
-        result.call_analysis_overview.sentiment_score = 0.5;
-        modifiedFields.push("call_analysis_overview.sentiment_score");
+      if (source === "upload") {
+        setIsProcessingFileId(null);
       }
     }
-
-    // Store the list of modified fields
-    result._modifiedFields = modifiedFields;
-    
-    // Log all modifications
-    if (modifiedFields.length > 0) {
-      console.log("Modified fields during validation:", modifiedFields);
-    }
-
-    return result;
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
+  // Helper function to format dates
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getFileIcon = (fileType) => {
-    if (fileType?.includes("pdf")) {
-      return <FileIcon className="w-4 h-4 text-red-600" />;
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
     }
-    return <FileText className="w-4 h-4 text-blue-600" />;
   };
 
   // Filter functions
+  const filteredUploadedFiles = uploadedFiles.filter(
+    (file) =>
+      file.filename.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const filteredFirefliesCalls = firefliesCalls.filter(
     (call) =>
       call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -661,182 +503,131 @@ const SalesCalls = () => {
       call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredUploadedFiles = uploadedFiles.filter((file) =>
-    file.filename.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
-        <p className="text-muted-foreground">
-          Your starting point for call data. Upload transcripts, import from
-          Fireflies.ai, or select from past processed calls to generate
-          insights.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
+          <p className="text-muted-foreground">
+            Upload call transcripts, sync from Fireflies.ai, and generate AI-powered insights.
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search calls..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-64"
+            />
+          </div>
+          
+          <TrackedButton
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              loadUploadedFiles();
+              loadProcessedCalls();
+            }}
+            trackingName="Refresh Files"
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Refresh
+          </TrackedButton>
+        </div>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search by company, prospect, or call ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              trackingName="Filter Calls"
-            >
-              <Filter className="w-4 h-4 mr-1" />
-              Filter
-            </TrackedButton>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                loadUploadedFiles();
-                loadProcessedCalls();
-              }}
-              trackingName="Refresh Files"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Refresh
-            </TrackedButton>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Content Tabs */}
+      {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upload">Upload Transcript</TabsTrigger>
-          <TabsTrigger value="fireflies">Fireflies.ai Imports</TabsTrigger>
+          <TabsTrigger value="recent">Recent Uploads</TabsTrigger>
+          <TabsTrigger value="fireflies">Fireflies.ai</TabsTrigger>
           <TabsTrigger value="processed">Past Processed Calls</TabsTrigger>
         </TabsList>
 
-        {/* Upload Transcript Tab */}
-        <TabsContent value="upload" className="mt-6">
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Upload Area */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="w-5 h-5" />
-                  <span>Upload Call Transcript</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  {...getRootProps()}
-                  className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                    isDragActive
-                      ? "border-primary bg-primary/5"
-                      : "border-border",
-                    isUploading && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <input {...getInputProps()} />
+        {/* Recent Uploads Tab */}
+        <TabsContent value="recent" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Upload className="w-5 h-5" />
+                <span>Upload Call Transcripts</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* File Upload Area */}
+              <div
+                {...getRootProps()}
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                <input {...getInputProps()} />
+                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">
+                  {isDragActive ? "Drop files here" : "Upload call transcripts"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Drag and drop files or click to browse
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Supports: TXT, VTT, PDF, MP3, WAV, MP4 (max 10MB)
+                </p>
+              </div>
 
-                  <div className="space-y-4">
-                    <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                      {isUploading ? (
-                        <RefreshCw className="w-6 h-6 text-primary animate-spin" />
-                      ) : (
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-foreground mb-2">
-                        {isUploading
-                          ? "Uploading..."
-                          : "Drop your transcript here"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {isUploading
-                          ? "Please wait while we process your file"
-                          : "Drag and drop your .txt, .vtt, or .pdf file, or click to browse"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Supported formats: TXT, VTT, PDF (Max 10MB)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Uploads */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Uploads</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {filteredUploadedFiles.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="mb-2">No uploaded files yet</p>
-                    <p className="text-sm">
-                      Upload your first transcript to get started
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredUploadedFiles.slice(0, 5).map((file) => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getFileIcon(file.content_type)}
-                          <div>
-                            <h4 className="font-medium text-sm">
-                              {file.filename}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.file_size)} •{" "}
-                              {formatDate(file.upload_date)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <TrackedButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleProcessFile(file)}
-                            disabled={isProcessingFileId === file.id}
-                            trackingName="Process Uploaded File"
-                            trackingContext={{
-                              file_id: file.id,
-                              filename: file.filename,
-                            }}
-                          >
-                            {isProcessingFileId === file.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <ArrowRight className="w-4 h-4" />
-                            )}
-                          </TrackedButton>
+              {/* Uploaded Files List */}
+              {filteredUploadedFiles.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <h4 className="font-medium">Recent Uploads</h4>
+                  {filteredUploadedFiles.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between p-3 border border-border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-sm">{file.filename}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round(file.file_size / 1024)} KB • {formatDate(file.upload_date)}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <TrackedButton
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleProcessCall(file, "upload")}
+                          disabled={isProcessingFileId === file.id}
+                          trackingName="Process Uploaded File"
+                          trackingContext={{
+                            file_id: file.id,
+                            filename: file.filename,
+                          }}
+                        >
+                          {isProcessingFileId === file.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
+                        </TrackedButton>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Fireflies.ai Imports Tab */}
+        {/* Fireflies Tab */}
         <TabsContent value="fireflies" className="mt-6">
           <Card>
             <CardHeader>
@@ -993,7 +784,7 @@ const SalesCalls = () => {
                               company: call.companyName,
                             }}
                           >
-                            <ArrowRight className="w-4 h-4 mr-1" />
+                            <Sparkles className="w-4 h-4 mr-1" />
                             Generate Insights
                           </TrackedButton>
                         </div>
@@ -1092,7 +883,15 @@ const SalesCalls = () => {
                           <TrackedButton
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDownloadTranscriptPDF(call)}
+                            onClick={() => {
+                              // If it's a PDF file, download the original
+                              if (call.contentType === 'application/pdf') {
+                                handleDownloadOriginalFile(call);
+                              } else {
+                                // For text files, generate PDF from transcript
+                                handleDownloadTranscriptPDF(call);
+                              }
+                            }}
                             trackingName="Download Processed Transcript PDF"
                             trackingContext={{
                               call_id: call.id,
@@ -1147,17 +946,23 @@ const SalesCalls = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const doc = new jsPDF();
-                    doc.setFontSize(16);
-                    doc.text("Call Transcript", 20, 20);
-                    doc.setFontSize(12);
-                    doc.text(`Title: ${modalTitle}`, 20, 35);
-                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
-                    doc.setFontSize(10);
-                    const splitText = doc.splitTextToSize(modalContent, 170);
-                    doc.text(splitText, 20, 60);
-                    doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`);
-                    toast.success("PDF downloaded successfully");
+                    if (currentCall && currentCall.contentType === 'application/pdf') {
+                      // For PDF files, download the original
+                      handleDownloadOriginalFile(currentCall);
+                    } else {
+                      // For text content, generate PDF
+                      const doc = new jsPDF();
+                      doc.setFontSize(16);
+                      doc.text("Call Transcript", 20, 20);
+                      doc.setFontSize(12);
+                      doc.text(`Title: ${modalTitle}`, 20, 35);
+                      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+                      doc.setFontSize(10);
+                      const splitText = doc.splitTextToSize(modalContent, 170);
+                      doc.text(splitText, 20, 60);
+                      doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`);
+                      toast.success("PDF downloaded successfully");
+                    }
                   }}
                   trackingName="Download PDF from Modal"
                 >
@@ -1168,9 +973,31 @@ const SalesCalls = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-              {modalContent}
-            </pre>
+            {currentCall && currentCall.contentType === 'application/pdf' ? (
+              <div className="text-center py-8">
+                <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">PDF File Preview</h3>
+                <p className="text-muted-foreground mb-4">
+                  This is a PDF file that cannot be displayed as text in this modal.
+                </p>
+                <div className="space-y-2 text-sm text-muted-foreground mb-6">
+                  <p><strong>Filename:</strong> {currentCall.originalFilename}</p>
+                  <p><strong>Size:</strong> {Math.round(currentCall.fileSize / 1024)} KB</p>
+                  <p><strong>Upload Date:</strong> {formatDate(currentCall.uploadDate)}</p>
+                </div>
+                <TrackedButton
+                  onClick={() => handleDownloadOriginalFile(currentCall)}
+                  trackingName="Download PDF from Preview"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Original PDF
+                </TrackedButton>
+              </div>
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                {modalContent}
+              </pre>
+            )}
           </div>
         </DialogContent>
       </Dialog>
