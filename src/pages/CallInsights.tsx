@@ -39,10 +39,14 @@ import {
   Ear,
   Hand,
   Brain,
-  Info
+  Info,
+  Phone,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
 
 // Mock prospects data with cumulative insights
 const mockProspects = [
@@ -290,7 +294,15 @@ const CallInsights = () => {
   const [aiProcessedData, setAiProcessedData] = useState(null);
   const [showAiInsights, setShowAiInsights] = useState(false);
 
+  // Past processed calls state
+  const [processedCalls, setProcessedCalls] = useState([]);
+  const [isLoadingProcessedCalls, setIsLoadingProcessedCalls] = useState(false);
+  const [selectedProcessedCall, setSelectedProcessedCall] = useState(null);
+
   useEffect(() => {
+    // Load past processed calls
+    loadProcessedCalls();
+
     // Check if we have a selected call from navigation
     if (location.state?.selectedCall) {
       const call = location.state.selectedCall;
@@ -325,6 +337,91 @@ const CallInsights = () => {
     }
   }, [location.state]);
 
+  const loadProcessedCalls = async () => {
+    setIsLoadingProcessedCalls(true);
+    try {
+      // Get processing history with related data
+      const processingHistory = await dbHelpers.getProcessingHistory(CURRENT_USER.id, 20);
+      
+      // Transform processing history into processed calls format
+      const processedCallsData = processingHistory
+        .filter(session => session.processing_status === 'completed' && session.uploaded_files)
+        .map(session => ({
+          id: session.id,
+          callId: `Upload ${session.uploaded_files.filename}`,
+          companyName: session.uploaded_files.filename.replace(/\.[^/.]+$/, "") || "Unknown Company",
+          prospectName: session.call_notes?.ai_summary ? "AI Processed" : "Unknown Prospect",
+          date: new Date(session.processing_started_at).toISOString().split("T")[0],
+          duration: "N/A",
+          status: "processed",
+          source: "upload",
+          hasInsights: true,
+          transcript: session.uploaded_files.file_content || "Transcript not available",
+          originalFilename: session.uploaded_files.filename,
+          fileSize: session.uploaded_files.file_size,
+          uploadDate: session.uploaded_files.upload_date,
+          processingDate: session.processing_completed_at,
+          summary: session.call_notes?.ai_summary || "No summary available",
+          fileUrl: session.uploaded_files.file_url,
+          contentType: session.uploaded_files.content_type,
+          storagePath: session.uploaded_files.storage_path,
+          // Additional metadata
+          contentReferences: session.content_references,
+          apiResponse: session.api_response,
+          // Mock insights data for now - in real app this would come from the database
+          salesInsights: [
+            {
+              id: `insight_${session.id}_1`,
+              type: 'pain_point',
+              content: 'Key pain points identified from call analysis',
+              relevance_score: 85,
+              is_selected: true,
+              source: 'AI Analysis',
+              timestamp: 'Call analysis',
+              trend: 'new'
+            },
+            {
+              id: `insight_${session.id}_2`,
+              type: 'buying_signal',
+              content: 'Positive buying signals detected in conversation',
+              relevance_score: 78,
+              is_selected: true,
+              source: 'AI Analysis',
+              timestamp: 'Call analysis',
+              trend: 'new'
+            }
+          ],
+          communicationStyles: [
+            {
+              id: `comm_${session.id}_1`,
+              stakeholder: session.uploaded_files.filename.replace(/\.[^/.]+$/, "").split('_')[0] || 'Primary Contact',
+              role: 'Decision Maker',
+              style: 'Visual',
+              confidence: 0.75,
+              evidence: 'Communication style analysis from transcript',
+              preferences: [
+                'Data-driven presentations',
+                'Visual demonstrations',
+                'Clear documentation'
+              ],
+              communication_tips: [
+                'Use visual aids',
+                'Provide clear data',
+                'Include charts and graphs'
+              ]
+            }
+          ]
+        }));
+
+      setProcessedCalls(processedCallsData);
+    } catch (error) {
+      console.error("Error loading processed calls:", error);
+      toast.error("Failed to load processed calls");
+    } finally {
+      setIsLoadingProcessedCalls(false);
+    }
+  };
+
   const loadProspectInsights = (prospectId) => {
     const prospectInsights = mockCumulativeInsights[prospectId];
     if (prospectInsights) {
@@ -348,8 +445,16 @@ const CallInsights = () => {
     }
   };
 
+  const handleProcessedCallSelect = (call) => {
+    setSelectedProcessedCall(call);
+    setInsights(call.salesInsights || []);
+    setCommunicationStyles(call.communicationStyles || []);
+    toast.success(`Loaded insights for ${call.companyName}`);
+  };
+
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
+    setSelectedProcessedCall(null); // Clear processed call selection
     loadProspectInsights(prospect.id);
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
@@ -428,12 +533,19 @@ const CallInsights = () => {
     prospect.prospectName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredProcessedCalls = processedCalls.filter(call =>
+    call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'hot': return 'bg-red-100 text-red-800 border-red-200';
       case 'warm': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'cold': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'new': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'processed': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -447,21 +559,14 @@ const CallInsights = () => {
     }
   };
 
-  // Prepare data for CallInsightsViewer if we have AI processed data
-  const prepareAiInsightsData = () => {
-    if (!aiProcessedData) return null;
-    
-    return {
-      call_summary: aiProcessedData.call_summary,
-      follow_up_email: aiProcessedData.follow_up_email,
-      deck_prompt: aiProcessedData.deck_prompt,
-      callAnalysisData: {
-        specific_user: aiProcessedData.call_analysis_overview?.specific_user || 'Unknown',
-        sentiment_score: aiProcessedData.call_analysis_overview?.sentiment_score || 0.5,
-        action_items: aiProcessedData.action_items || []
-      },
-      reviewInsights: aiProcessedData.sales_insights || []
-    };
+  // Helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   return (
@@ -486,15 +591,400 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* AI Processed Insights */}
-      
+      {/* Past Processed Calls Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Database className="w-5 h-5" />
+              <span>Past Processed Calls</span>
+              <Badge variant="secondary">{filteredProcessedCalls.length} calls</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search processed calls..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={loadProcessedCalls} disabled={isLoadingProcessedCalls}>
+                {isLoadingProcessedCalls ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingProcessedCalls ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading processed calls...</p>
+            </div>
+          ) : filteredProcessedCalls.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="mb-2">No processed calls found</p>
+              <p className="text-sm">Process your first call transcript to see insights here</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProcessedCalls.map((call) => (
+                <Card
+                  key={call.id}
+                  className={cn(
+                    "cursor-pointer transition-all hover:shadow-md border-2",
+                    selectedProcessedCall?.id === call.id
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => handleProcessedCallSelect(call)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-sm mb-1">{call.companyName}</h3>
+                        <p className="text-xs text-muted-foreground">{call.prospectName}</p>
+                      </div>
+                      <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
+                        {call.status}
+                      </Badge>
+                    </div>
 
-      {/* Prospect Selection */}
-      {
-        !showAiInsights 
-        &&
-        (
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Processed:</span>
+                        <span className="font-medium">{formatDate(call.processingDate)}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">File:</span>
+                        <span className="font-medium truncate">{call.originalFilename}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Sparkles className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Insights:</span>
+                        <span className="font-medium">{call.salesInsights?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Stakeholders:</span>
+                        <span className="font-medium">{call.communicationStyles?.length || 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground truncate">
+                        {call.summary}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Show insights only when a processed call is selected */}
+      {selectedProcessedCall && (
         <>
+          {/* Selected Call Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Eye className="w-5 h-5" />
+                <span>Viewing Insights for {selectedProcessedCall.companyName}</span>
+                <Badge variant="default" className="bg-blue-100 text-blue-800 border-blue-200">
+                  {selectedProcessedCall.originalFilename}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span>Processed: {formatDate(selectedProcessedCall.processingDate)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span>Size: {Math.round(selectedProcessedCall.fileSize / 1024)} KB</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-muted-foreground" />
+                  <span>Insights: {insights.length}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span>Stakeholders: {communicationStyles.length}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sales Insights Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sales Insights</span>
+                  <Badge variant="secondary">{insights.length} insights</Badge>
+                </div>
+                <Button onClick={() => setIsAddingInsight(true)} disabled={isAddingInsight}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Insight
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Insight */}
+              {isAddingInsight && (
+                <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Select value={newInsight.type} onValueChange={(value) => setNewInsight(prev => ({ ...prev, type: value }))}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(insightTypes).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center space-x-2">
+                              <config.icon className="w-4 h-4" />
+                              <span>{config.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Textarea
+                    value={newInsight.content}
+                    onChange={(e) => setNewInsight(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Enter your insight about this prospect..."
+                    className="min-h-20"
+                    autoFocus
+                  />
+
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" onClick={handleAddInsight}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Insight
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingInsight(false);
+                        setNewInsight({ content: '', type: 'user_insight' });
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insights List */}
+              {insights.map((insight, index) => {
+                const typeConfig = insightTypes[insight.type] || {
+                  icon: Lightbulb,
+                  label: "Unknown Type",
+                  color: "bg-gray-100 text-gray-800 border-gray-200"
+                };
+                const TypeIcon = typeConfig.icon;
+
+                return (
+                  <div
+                    key={insight.id}
+                    className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline" className={cn("text-xs", typeConfig.color)}>
+                          <TypeIcon className="w-3 h-3 mr-1" />
+                          {typeConfig.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Score: {insight.relevance_score}
+                        </Badge>
+                        {getTrendIcon(insight.trend)}
+                        <span className="text-xs text-muted-foreground">
+                          {insight.source} • {insight.timestamp}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, 'up')}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, 'down')}
+                          disabled={index === insights.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        {editingId === insight.id ? (
+                          <div className="flex space-x-1">
+                            <Button variant="outline" size="sm" onClick={handleSaveEdit}>
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditInsight(insight.id)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteInsight(insight.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ml-6">
+                      {editingId === insight.id ? (
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-20"
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed">{insight.content}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {insights.length === 0 && !isAddingInsight && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No insights available yet</p>
+                  <p className="text-sm mb-4">Add your first insight about this processed call</p>
+                  <Button variant="outline" size="sm" onClick={() => setIsAddingInsight(true)}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add First Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Communication Styles Detected */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Communication Styles Detected</span>
+                <Badge variant="secondary">{communicationStyles.length} stakeholders</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles.map((stakeholder) => {
+                    const styleConfig = communicationStyleConfigs[stakeholder.style];
+                    const StyleIcon = styleConfig.icon;
+
+                    return (
+                      <div key={stakeholder.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold">{stakeholder.stakeholder}</h3>
+                            <p className="text-sm text-muted-foreground">{stakeholder.role}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className={cn("text-xs", styleConfig.color)}>
+                              <StyleIcon className="w-3 h-3 mr-1" />
+                              {stakeholder.style}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {Math.round(stakeholder.confidence * 100)}% confidence
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Evidence</h4>
+                            <p className="text-sm text-muted-foreground">{stakeholder.evidence}</p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Preferences</h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li key={index} className="flex items-start space-x-2">
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Communication Tips</h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map((tip, index) => (
+                                  <li key={index} className="flex items-start space-x-2">
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No communication styles detected yet</p>
+                  <p className="text-sm">Communication styles will be identified from the processed transcript</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Show prospect selector only when no processed call is selected */}
+      {!selectedProcessedCall && !showAiInsights && (
+        <>
+          {/* Prospect Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
