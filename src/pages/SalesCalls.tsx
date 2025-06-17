@@ -34,16 +34,10 @@ import {
   Copy,
   AlertCircle,
   Loader2,
-  CheckCircle,
-  Star,
-  MessageSquare,
-  Target,
-  Mail,
-  Presentation,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER, supabase } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
@@ -65,7 +59,6 @@ const SalesCalls = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isProcessingFileId, setIsProcessingFileId] = useState(null);
   const [processedCalls, setProcessedCalls] = useState([]);
-  const [isLoadingProcessedCalls, setIsLoadingProcessedCalls] = useState(false);
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -73,11 +66,11 @@ const SalesCalls = () => {
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
 
-  // Load uploaded files and Fireflies data on component mount
+  // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
     loadUploadedFiles();
-    loadFirefliesTranscripts();
     loadProcessedCalls();
+    loadFirefliesTranscripts();
 
     // Track page visit
     trackFeatureUsage("sales_calls", "page_visit");
@@ -90,99 +83,47 @@ const SalesCalls = () => {
 
   const loadUploadedFiles = async () => {
     try {
-      // Only fetch files that haven't been processed yet
-      const { data, error } = await supabase
-        .from('uploaded_files')
-        .select('*')
-        .eq('user_id', CURRENT_USER.id)
-        .eq('is_processed', false)
-        .order('upload_date', { ascending: false })
-        .limit(20);
-        
-      if (error) throw error;
-      
-      setUploadedFiles(data || []);
+      const files = await dbHelpers.getUploadedFiles(CURRENT_USER.id, 20);
+      // Only show unprocessed files in recent uploads
+      const unprocessedFiles = files.filter(file => !file.is_processed);
+      setUploadedFiles(unprocessedFiles);
     } catch (error) {
       console.error("Error loading uploaded files:", error);
     }
   };
 
   const loadProcessedCalls = async () => {
-    setIsLoadingProcessedCalls(true);
     try {
       // Get processing history with related data
-      const { data, error } = await supabase
-        .from('processing_history')
-        .select(`
-          *,
-          uploaded_files (
-            id,
-            filename,
-            file_type,
-            file_size,
-            upload_date,
-            content_type,
-            file_content,
-            file_url,
-            storage_path
-          ),
-          call_notes!processing_history_call_notes_id_fkey (
-            id,
-            call_id,
-            ai_summary,
-            edited_summary,
-            status,
-            created_at,
-            transcript_content
-          )
-        `)
-        .eq('user_id', CURRENT_USER.id)
-        .eq('processing_status', 'completed')
-        .order('processing_completed_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      // Transform the data to match our expected format
-      const transformedCalls = data.map(session => {
-        const file = session.uploaded_files;
-        const callNote = session.call_notes;
-        
-        return {
+      const processingHistory = await dbHelpers.getProcessingHistory(CURRENT_USER.id, 20);
+      
+      // Transform processing history into processed calls format
+      const processedCallsData = processingHistory
+        .filter(session => session.processing_status === 'completed' && session.uploaded_files)
+        .map(session => ({
           id: session.id,
-          call_id: callNote?.call_id || `Upload ${session.id.slice(-5)}`,
-          callId: callNote?.call_id || `Upload ${session.id.slice(-5)}`,
-          companyName: file?.filename?.replace(/\.[^/.]+$/, "") || "Unknown Company",
-          prospectName: session.api_response?.call_analysis_overview?.specific_user || "AI Processed",
-          date: session.processing_completed_at?.split('T')[0] || session.processing_started_at?.split('T')[0],
+          callId: `Upload ${session.uploaded_files.filename}`,
+          companyName: session.uploaded_files.filename.replace(/\.[^/.]+$/, "") || "Unknown Company",
+          prospectName: session.call_notes?.ai_summary ? "AI Processed" : "Unknown Prospect",
+          date: new Date(session.processing_started_at).toISOString().split("T")[0],
           duration: "N/A",
           status: "processed",
           source: "upload",
           hasInsights: true,
-          hasTranscript: !!callNote?.transcript_content,
-          hasSummary: !!callNote?.ai_summary,
-          transcript: callNote?.transcript_content || "Transcript not available",
-          summary: callNote?.ai_summary || callNote?.edited_summary || "Summary not available",
-          originalFilename: file?.filename,
-          fileSize: file?.file_size,
-          fileType: file?.file_type,
-          processingData: session.api_response,
-          processingSession: session,
-          // Extract insights and other data from api_response
-          actionItems: session.api_response?.action_items || [],
-          followUpEmail: session.api_response?.follow_up_email || "",
-          deckPrompt: session.api_response?.deck_prompt || "",
-          salesInsights: session.api_response?.sales_insights || [],
-          communicationStyles: session.api_response?.communication_styles || [],
-        };
-      });
+          transcript: session.uploaded_files.file_content || "Transcript not available",
+          originalFilename: session.uploaded_files.filename,
+          fileSize: session.uploaded_files.file_size,
+          uploadDate: session.uploaded_files.upload_date,
+          processingDate: session.processing_completed_at,
+          summary: session.call_notes?.ai_summary || "No summary available",
+          // Additional metadata
+          contentReferences: session.content_references,
+          apiResponse: session.api_response,
+        }));
 
-      setProcessedCalls(transformedCalls);
+      setProcessedCalls(processedCallsData);
     } catch (error) {
       console.error("Error loading processed calls:", error);
-      toast.error("Failed to load processed calls");
-    } finally {
-      setIsLoadingProcessedCalls(false);
     }
   };
 
@@ -283,24 +224,21 @@ const SalesCalls = () => {
       if (!isPDF) {
         content = await file.text();
         // Clean null characters that cause Unicode escape sequence errors
-        content = content.replace(/\u0000/g, "");
+        content = content.replace(/\u0000/g, '');
       } else {
         content = `PDF file: ${file.name} (${file.size} bytes)`;
       }
 
       // Save uploaded file to database with shareable link
-      const savedFile = await dbHelpers.saveUploadedFile(
-        CURRENT_USER.id,
-        file,
-        content
-      );
+      const savedFile = await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
 
       toast.success("File uploaded successfully!");
       trackFileUpload(file.name, file.size, file.type, "completed");
       await loadUploadedFiles(); // Refresh the list
-
-      // Don't automatically process the file after upload
-      // User can manually process it from the recent uploads list
+      
+      // Automatically process the file after upload
+      await handleProcessFile(savedFile);
+      
     } catch (error) {
       console.error("Error uploading file:", error);
       toast.error(`Failed to upload file: ${error.message}`);
@@ -327,7 +265,7 @@ const SalesCalls = () => {
       company: call.companyName,
     });
     setModalTitle(`Call Summary - ${call.companyName}`);
-    setModalContent(call.firefliesSummary || call.summary);
+    setModalContent(call.firefliesSummary);
     setShowSummaryModal(true);
   };
 
@@ -347,7 +285,7 @@ const SalesCalls = () => {
     trackButtonClick("Copy Transcript");
   };
 
-  const handleDownloadTranscriptPDF = () => {
+  const handleDownloadTranscriptPDF = (call) => {
     try {
       const doc = new jsPDF();
 
@@ -356,20 +294,26 @@ const SalesCalls = () => {
       doc.text("Call Transcript", 20, 20);
 
       doc.setFontSize(12);
-      doc.text(`Title: ${modalTitle}`, 20, 35);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+      doc.text(`Company: ${call.companyName}`, 20, 35);
+      doc.text(`Call ID: ${call.callId}`, 20, 45);
+      doc.text(`Date: ${call.date}`, 20, 55);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 65);
 
       // Add the transcript content
       doc.setFontSize(10);
-      const splitText = doc.splitTextToSize(modalContent, 170);
-      doc.text(splitText, 20, 60);
+      const splitText = doc.splitTextToSize(call.transcript, 170);
+      doc.text(splitText, 20, 80);
 
       // Save the PDF
-      doc.save(
-        `${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`
-      );
+      const filename = `${call.companyName}_${call.callId}_transcript.pdf`.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      doc.save(filename);
+      
       toast.success("PDF downloaded successfully");
-      trackButtonClick("Download PDF", { content_type: "transcript" });
+      trackButtonClick("Download PDF", { 
+        content_type: "transcript",
+        call_id: call.id,
+        company: call.companyName 
+      });
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF");
@@ -476,22 +420,16 @@ const SalesCalls = () => {
 
       if (data && data.length > 0) {
         // Store the processed data in the database
-        const processingSession = await dbHelpers.createProcessingSession(
-          CURRENT_USER.id,
-          file.id
-        );
-
+        const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, file.id);
+        
         // Get transcript content and clean null characters
-        let transcriptContentForDb = "";
+        let transcriptContentForDb = '';
         if (fileBlob) {
           transcriptContentForDb = await fileBlob.text();
           // Clean null characters that cause Unicode escape sequence errors
-          transcriptContentForDb = transcriptContentForDb.replace(
-            /\u0000/g,
-            ""
-          );
+          transcriptContentForDb = transcriptContentForDb.replace(/\u0000/g, '');
         }
-
+        
         // Create a call note entry
         const callNote = await dbHelpers.createCallNote(
           CURRENT_USER.id,
@@ -500,14 +438,14 @@ const SalesCalls = () => {
           file.id,
           processingSession.id
         );
-
+        
         // Update the processing session with the completed status and API response
         await dbHelpers.updateProcessingSession(processingSession.id, {
-          processing_status: "completed",
+          processing_status: 'completed',
           api_response: data[0],
-          call_notes_id: callNote.id,
+          call_notes_id: callNote.id
         });
-
+        
         // Create content entries from the API response
         const contentIds = await dbHelpers.createCompleteCallAnalysis(
           CURRENT_USER.id,
@@ -516,15 +454,8 @@ const SalesCalls = () => {
           data[0]
         );
 
-        // Update the file's is_processed field to true in the database
-        const { error: updateError } = await supabase
-          .from('uploaded_files')
-          .update({ is_processed: true })
-          .eq('id', file.id);
-          
-        if (updateError) {
-          console.error("Error updating file processed status:", updateError);
-        }
+        // Mark the file as processed
+        await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
 
         toast.success("File processed successfully!");
 
@@ -535,11 +466,8 @@ const SalesCalls = () => {
         const processedCall = {
           id: file.id,
           callId: `Upload ${file.id.slice(-5)}`,
-          companyName:
-            file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
-          prospectName:
-            processedData.call_analysis_overview?.specific_user ||
-            "AI Processed",
+          companyName: file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
+          prospectName: processedData.call_analysis_overview?.specific_user || "AI Processed",
           date: new Date().toISOString().split("T")[0],
           duration: "N/A",
           status: "processed",
@@ -552,10 +480,8 @@ const SalesCalls = () => {
           modifiedFields: processedData._modifiedFields || [],
         };
 
-        // Remove the processed file from the uploaded files list
-        setUploadedFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
-        
-        // Refresh the processed calls list
+        // Refresh the lists
+        await loadUploadedFiles();
         await loadProcessedCalls();
 
         // Navigate to Call Insights with the processed data
@@ -585,31 +511,24 @@ const SalesCalls = () => {
 
     // Validate and populate call_summary
     if (!result.call_summary) {
-      result.call_summary =
-        "No summary available. This call transcript has been processed but no summary was generated.";
+      result.call_summary = "No summary available. This call transcript has been processed but no summary was generated.";
       modifiedFields.push("call_summary");
     }
 
     // Validate and populate action_items
-    if (
-      !result.action_items ||
-      !Array.isArray(result.action_items) ||
-      result.action_items.length === 0
-    ) {
+    if (!result.action_items || !Array.isArray(result.action_items) || result.action_items.length === 0) {
       result.action_items = [
         {
           task: "Review transcript for action items",
           owner: CURRENT_USER.full_name || "Sales Manager",
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          priority: "medium",
-        },
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          priority: "medium"
+        }
       ];
       modifiedFields.push("action_items");
     } else {
       // Validate each action item
-      result.action_items = result.action_items.map((item) => {
+      result.action_items = result.action_items.map(item => {
         const validatedItem = { ...item };
         if (!validatedItem.task) {
           validatedItem.task = "Undefined task";
@@ -625,47 +544,35 @@ const SalesCalls = () => {
 
     // Validate and populate follow_up_email
     if (!result.follow_up_email) {
-      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${
-        CURRENT_USER.full_name || "Sales Manager"
-      }`;
+      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${CURRENT_USER.full_name || "Sales Manager"}`;
       modifiedFields.push("follow_up_email");
     }
 
     // Validate and populate deck_prompt
     if (!result.deck_prompt) {
-      result.deck_prompt =
-        "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
+      result.deck_prompt = "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
       modifiedFields.push("deck_prompt");
     }
 
     // Validate and populate sales_insights
-    if (
-      !result.sales_insights ||
-      !Array.isArray(result.sales_insights) ||
-      result.sales_insights.length === 0
-    ) {
+    if (!result.sales_insights || !Array.isArray(result.sales_insights) || result.sales_insights.length === 0) {
       result.sales_insights = [
         {
           id: "si-auto-1",
           type: "user_insight",
-          content:
-            "This is an automatically generated insight as no insights were found in the transcript.",
+          content: "This is an automatically generated insight as no insights were found in the transcript.",
           relevance_score: 75,
           is_selected: true,
           source: "System",
           timestamp: "N/A",
-          trend: null,
-        },
+          trend: null
+        }
       ];
       modifiedFields.push("sales_insights");
     }
 
     // Validate and populate communication_styles
-    if (
-      !result.communication_styles ||
-      !Array.isArray(result.communication_styles) ||
-      result.communication_styles.length === 0
-    ) {
+    if (!result.communication_styles || !Array.isArray(result.communication_styles) || result.communication_styles.length === 0) {
       result.communication_styles = [
         {
           id: "cs-auto-1",
@@ -675,8 +582,8 @@ const SalesCalls = () => {
           confidence: 0.7,
           evidence: "No specific evidence found in transcript.",
           preferences: ["Visual presentations", "Data-driven discussions"],
-          communication_tips: ["Use visual aids", "Provide clear data points"],
-        },
+          communication_tips: ["Use visual aids", "Provide clear data points"]
+        }
       ];
       modifiedFields.push("communication_styles");
     }
@@ -686,12 +593,9 @@ const SalesCalls = () => {
       result.call_analysis_overview = {
         specific_user: "Unknown Participant",
         sentiment_score: 0.5,
-        key_points: [
-          "Transcript processed successfully",
-          "No specific key points identified",
-        ],
+        key_points: ["Transcript processed successfully", "No specific key points identified"],
         processing_status: "completed",
-        error_message: null,
+        error_message: null
       };
       modifiedFields.push("call_analysis_overview");
     } else {
@@ -700,10 +604,7 @@ const SalesCalls = () => {
         result.call_analysis_overview.specific_user = "Unknown Participant";
         modifiedFields.push("call_analysis_overview.specific_user");
       }
-      if (
-        result.call_analysis_overview.sentiment_score === undefined ||
-        result.call_analysis_overview.sentiment_score === null
-      ) {
+      if (result.call_analysis_overview.sentiment_score === undefined || result.call_analysis_overview.sentiment_score === null) {
         result.call_analysis_overview.sentiment_score = 0.5;
         modifiedFields.push("call_analysis_overview.sentiment_score");
       }
@@ -711,7 +612,7 @@ const SalesCalls = () => {
 
     // Store the list of modified fields
     result._modifiedFields = modifiedFields;
-
+    
     // Log all modifications
     if (modifiedFields.length > 0) {
       console.log("Modified fields during validation:", modifiedFields);
@@ -756,8 +657,8 @@ const SalesCalls = () => {
   const filteredProcessedCalls = processedCalls.filter(
     (call) =>
       call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (call.prospectName && call.prospectName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (call.callId && call.callId.toLowerCase().includes(searchTerm.toLowerCase()))
+      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredUploadedFiles = uploadedFiles.filter((file) =>
@@ -920,13 +821,10 @@ const SalesCalls = () => {
                             }}
                           >
                             {isProcessingFileId === file.id ? (
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <ArrowRight className="w-3 h-3 mr-1" />
+                              <ArrowRight className="w-4 h-4" />
                             )}
-                            {isProcessingFileId === file.id
-                              ? "Processing..."
-                              : "Process"}
                           </TrackedButton>
                         </div>
                       </div>
@@ -945,68 +843,30 @@ const SalesCalls = () => {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <ExternalLink className="w-5 h-5" />
-                  <span>Fireflies.ai Imports</span>
-                  {isLoadingFireflies ? (
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center space-x-1"
-                    >
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Loading...</span>
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">
-                      {filteredFirefliesCalls.length} calls
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
+                  <span>Fireflies.ai Call Transcripts</span>
                   {lastFirefliesSync && (
-                    <span className="text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-xs">
                       Last sync: {lastFirefliesSync.toLocaleTimeString()}
-                    </span>
+                    </Badge>
                   )}
-                  <TrackedButton
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncFireflies}
-                    disabled={isLoadingFireflies}
-                    trackingName="Sync Fireflies"
-                  >
-                    {isLoadingFireflies ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                    )}
-                    Sync from Fireflies
-                  </TrackedButton>
                 </div>
+                <TrackedButton
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncFireflies}
+                  disabled={isLoadingFireflies}
+                  trackingName="Sync Fireflies"
+                >
+                  {isLoadingFireflies ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                  )}
+                  Sync Fireflies
+                </TrackedButton>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {firefliesError && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-red-900">
-                      Error loading Fireflies data
-                    </h4>
-                    <p className="text-sm text-red-700 mt-1">
-                      {firefliesError}
-                    </p>
-                    <TrackedButton
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={loadFirefliesTranscripts}
-                      trackingName="Retry Fireflies Load"
-                    >
-                      Try Again
-                    </TrackedButton>
-                  </div>
-                </div>
-              )}
-
               {isLoadingFireflies ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
@@ -1014,12 +874,29 @@ const SalesCalls = () => {
                     Loading Fireflies transcripts...
                   </p>
                 </div>
+              ) : firefliesError ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
+                  <p className="text-destructive mb-2">
+                    Failed to load Fireflies transcripts
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {firefliesError}
+                  </p>
+                  <TrackedButton
+                    variant="outline"
+                    onClick={loadFirefliesTranscripts}
+                    trackingName="Retry Fireflies Load"
+                  >
+                    Try Again
+                  </TrackedButton>
+                </div>
               ) : filteredFirefliesCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No Fireflies.ai calls found</p>
+                  <Phone className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No Fireflies transcripts found</p>
                   <p className="text-sm">
-                    Sync your Fireflies.ai account to import calls
+                    Connect your Fireflies.ai account to import call transcripts
                   </p>
                 </div>
               ) : (
@@ -1027,110 +904,99 @@ const SalesCalls = () => {
                   {filteredFirefliesCalls.map((call) => (
                     <div
                       key={call.id}
-                      className="border border-border rounded-lg p-4"
+                      className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold">{call.callId}</h3>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="font-semibold text-foreground">
+                              {call.companyName}
+                            </h3>
                             <Badge
                               variant={
-                                call.status === "failed"
-                                  ? "destructive"
-                                  : "outline"
+                                call.status === "completed"
+                                  ? "default"
+                                  : "secondary"
                               }
+                              className="text-xs"
                             >
                               {call.status}
                             </Badge>
-                            {call.status === "failed" && call.error && (
-                              <Badge variant="secondary" className="text-xs">
-                                {call.error}
-                              </Badge>
-                            )}
                           </div>
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Building className="w-3 h-3" />
-                                <span>Company: {call.companyName}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <User className="w-3 h-3" />
-                                <span>Prospect: {call.prospectName}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="w-3 h-3" />
-                                <span>Date: {call.date}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Clock className="w-3 h-3" />
-                                <span>Duration: {call.duration}</span>
-                              </div>
-                            </div>
-                          </div>
-                          {call.participants &&
-                            call.participants.length > 0 && (
-                              <div className="mt-2 text-xs text-muted-foreground">
-                                <span className="font-medium">
-                                  Participants:
-                                </span>{" "}
-                                {call.participants.slice(0, 3).join(", ")}
-                                {call.participants.length > 3 &&
-                                  ` +${call.participants.length - 3} more`}
-                              </div>
-                            )}
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {call.hasSummary && call.status !== "failed" && (
+                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center space-x-2">
+                              <User className="w-4 h-4" />
+                              <span>{call.prospectName}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-4 h-4" />
+                              <span>{call.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Clock className="w-4 h-4" />
+                              <span>{call.duration}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Building className="w-4 h-4" />
+                              <span>{call.callId}</span>
+                            </div>
+                          </div>
+
+                          {call.participants && call.participants.length > 0 && (
+                            <div className="text-xs text-muted-foreground mb-3">
+                              <span className="font-medium">Participants:</span>{" "}
+                              {call.participants.join(", ")}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-2 ml-4">
+                          {call.hasSummary && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewSummary(call)}
-                              trackingName="View Summary"
+                              trackingName="View Fireflies Summary"
                               trackingContext={{
                                 call_id: call.id,
                                 company: call.companyName,
                               }}
                             >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View Summary
+                              <Eye className="w-4 h-4 mr-1" />
+                              Summary
                             </TrackedButton>
                           )}
-                          {call.hasTranscript && call.status !== "failed" && (
+
+                          {call.hasTranscript && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewTranscript(call)}
-                              trackingName="View Transcript"
+                              trackingName="View Fireflies Transcript"
                               trackingContext={{
                                 call_id: call.id,
                                 company: call.companyName,
                               }}
                             >
-                              <FileText className="w-3 h-3 mr-1" />
-                              View Transcript
+                              <FileText className="w-4 h-4 mr-1" />
+                              Transcript
                             </TrackedButton>
                           )}
-                        </div>
-                        {call.status !== "failed" && (
+
                           <TrackedButton
                             onClick={() => handleProcessCall(call, "fireflies")}
-                            trackingName="Generate Insights"
+                            size="sm"
+                            trackingName="Process Fireflies Call"
                             trackingContext={{
                               call_id: call.id,
                               company: call.companyName,
-                              source: "fireflies",
                             }}
                           >
                             <ArrowRight className="w-4 h-4 mr-1" />
                             Generate Insights
                           </TrackedButton>
-                        )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1147,25 +1013,18 @@ const SalesCalls = () => {
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="w-5 h-5" />
                 <span>Past Processed Calls</span>
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="text-xs">
                   {filteredProcessedCalls.length} calls
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoadingProcessedCalls ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
-                    Loading processed calls...
-                  </p>
-                </div>
-              ) : filteredProcessedCalls.length === 0 ? (
+              {filteredProcessedCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No processed calls yet</p>
                   <p className="text-sm">
-                    Process your first call to see it here
+                    Upload and process your first transcript to see it here
                   </p>
                 </div>
               ) : (
@@ -1173,136 +1032,90 @@ const SalesCalls = () => {
                   {filteredProcessedCalls.map((call) => (
                     <div
                       key={call.id}
-                      className="border border-border rounded-lg p-4"
+                      className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold">{call.callId}</h3>
-                            <Badge variant="default">Processed</Badge>
-                            {call.hasInsights && (
-                              <Badge
-                                variant="outline"
-                                className="bg-green-100 text-green-800 border-green-200"
-                              >
-                                Insights Available
-                              </Badge>
-                            )}
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="font-semibold text-foreground">
+                              {call.companyName}
+                            </h3>
+                            <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200">
+                              Processed
+                            </Badge>
                           </div>
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Building className="w-3 h-3" />
-                                <span>Company: {call.companyName}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <User className="w-3 h-3" />
-                                <span>Prospect: {call.prospectName}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="w-3 h-3" />
-                                <span>Date: {call.date}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Clock className="w-3 h-3" />
-                                <span>Processed: {formatDate(call.processingSession?.processing_completed_at || call.date)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Generated Content Indicators */}
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {call.actionItems && call.actionItems.length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                {call.actionItems.length} Action Items
-                              </Badge>
-                            )}
-                            {call.salesInsights && call.salesInsights.length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                <Star className="w-3 h-3 mr-1" />
-                                {call.salesInsights.length} Insights
-                              </Badge>
-                            )}
-                            {call.followUpEmail && (
-                              <Badge variant="outline" className="text-xs">
-                                <Mail className="w-3 h-3 mr-1" />
-                                Email Template
-                              </Badge>
-                            )}
-                            {call.deckPrompt && (
-                              <Badge variant="outline" className="text-xs">
-                                <Presentation className="w-3 h-3 mr-1" />
-                                Deck Prompt
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {call.hasTranscript && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewTranscript(call)}
-                              trackingName="View Transcript"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <FileText className="w-3 h-3 mr-1" />
-                              View Transcript
-                            </TrackedButton>
-                          )}
-                          {call.hasTranscript && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadTranscriptPDF(call)}
-                              trackingName="Download PDF"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              Download PDF
-                            </TrackedButton>
+                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center space-x-2">
+                              <User className="w-4 h-4" />
+                              <span>{call.prospectName}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-4 h-4" />
+                              <span>{call.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <FileText className="w-4 h-4" />
+                              <span>{call.originalFilename}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Building className="w-4 h-4" />
+                              <span>{call.callId}</span>
+                            </div>
+                          </div>
+
+                          {call.processingDate && (
+                            <div className="text-xs text-muted-foreground mb-3">
+                              <span className="font-medium">Processed:</span>{" "}
+                              {formatDate(call.processingDate)}
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center space-x-2">
-                          {call.hasInsights && (
-                            <TrackedButton
-                              variant="default"
-                              onClick={() => {
-                                trackButtonClick("View Insights", {
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                });
-                                navigate("/call-insights", {
-                                  state: {
-                                    selectedCall: call,
-                                    source: call.source,
-                                    aiProcessedData: call.processingData,
-                                    showAiInsights: true,
-                                  },
-                                });
-                              }}
-                              trackingName="View Call Insights"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View Insights
-                            </TrackedButton>
-                          )}
+
+                        <div className="flex items-center space-x-2 ml-4">
+                          {/* View Transcript Button */}
+                          <TrackedButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewTranscript(call)}
+                            trackingName="View Processed Transcript"
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            View Transcript
+                          </TrackedButton>
+
+                          {/* Download PDF Button */}
+                          <TrackedButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadTranscriptPDF(call)}
+                            trackingName="Download Processed Transcript PDF"
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Download PDF
+                          </TrackedButton>
+
+                          {/* View Insights Button */}
+                          <TrackedButton
+                            onClick={() => handleProcessCall(call, "processed")}
+                            size="sm"
+                            trackingName="View Processed Call Insights"
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Insights
+                          </TrackedButton>
                         </div>
                       </div>
                     </div>
@@ -1313,34 +1126,6 @@ const SalesCalls = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Summary Modal */}
-      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{modalTitle}</span>
-              <TrackedButton
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(modalContent);
-                  toast.success("Summary copied to clipboard");
-                }}
-                trackingName="Copy Summary"
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                Copy Text
-              </TrackedButton>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-              {modalContent}
-            </pre>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Transcript Modal */}
       <Dialog open={showTranscriptModal} onOpenChange={setShowTranscriptModal}>
@@ -1353,19 +1138,31 @@ const SalesCalls = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleCopyTranscript}
-                  trackingName="Copy Transcript"
+                  trackingName="Copy Transcript from Modal"
                 >
                   <Copy className="w-4 h-4 mr-1" />
-                  Copy Text
+                  Copy
                 </TrackedButton>
                 <TrackedButton
                   variant="outline"
                   size="sm"
-                  onClick={handleDownloadTranscriptPDF}
-                  trackingName="Download Transcript PDF"
+                  onClick={() => {
+                    const doc = new jsPDF();
+                    doc.setFontSize(16);
+                    doc.text("Call Transcript", 20, 20);
+                    doc.setFontSize(12);
+                    doc.text(`Title: ${modalTitle}`, 20, 35);
+                    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
+                    doc.setFontSize(10);
+                    const splitText = doc.splitTextToSize(modalContent, 170);
+                    doc.text(splitText, 20, 60);
+                    doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`);
+                    toast.success("PDF downloaded successfully");
+                  }}
+                  trackingName="Download PDF from Modal"
                 >
                   <Download className="w-4 h-4 mr-1" />
-                  Download PDF
+                  PDF
                 </TrackedButton>
               </div>
             </DialogTitle>
@@ -1374,6 +1171,22 @@ const SalesCalls = () => {
             <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
               {modalContent}
             </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Summary Modal */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{modalTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            <div className="prose prose-sm max-w-none">
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                {modalContent}
+              </pre>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
