@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
@@ -81,8 +81,18 @@ const SalesCalls = () => {
 
   const loadUploadedFiles = async () => {
     try {
-      const files = await dbHelpers.getUploadedFiles(CURRENT_USER.id, 20);
-      setUploadedFiles(files);
+      // Only fetch files that haven't been processed yet
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .eq('user_id', CURRENT_USER.id)
+        .eq('is_processed', false)
+        .order('upload_date', { ascending: false })
+        .limit(20);
+        
+      if (error) throw error;
+      
+      setUploadedFiles(data || []);
     } catch (error) {
       console.error("Error loading uploaded files:", error);
     }
@@ -417,6 +427,16 @@ const SalesCalls = () => {
           processingSession.id,
           data[0]
         );
+
+        // Update the file's is_processed field to true in the database
+        const { error: updateError } = await supabase
+          .from('uploaded_files')
+          .update({ is_processed: true })
+          .eq('id', file.id);
+          
+        if (updateError) {
+          console.error("Error updating file processed status:", updateError);
+        }
 
         toast.success("File processed successfully!");
 
