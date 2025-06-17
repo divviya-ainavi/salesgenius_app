@@ -187,11 +187,15 @@ const SalesCalls = () => {
       }
 
       // Save uploaded file to database with shareable link
-      await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
+      const savedFile = await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
 
       toast.success("File uploaded successfully!");
       trackFileUpload(file.name, file.size, file.type, "completed");
       await loadUploadedFiles(); // Refresh the list
+      
+      // Automatically process the file after upload
+      await handleProcessFile(savedFile);
+      
     } catch (error) {
       console.error("Error uploading file:", error);
       toast.error(`Failed to upload file: ${error.message}`);
@@ -366,6 +370,35 @@ const SalesCalls = () => {
       const data = await response.json();
 
       if (data && data.length > 0) {
+        // Store the processed data in the database
+        const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, file.id);
+        
+        // Create a call note entry
+        const callNote = await dbHelpers.createCallNote(
+          CURRENT_USER.id,
+          `call-${Date.now()}`,
+          fileBlob ? await fileBlob.text() : '',
+          file.id,
+          processingSession.id
+        );
+        
+        // Update the processing session with the completed status and API response
+        await dbHelpers.updateProcessingSession(processingSession.id, {
+          processing_status: 'completed',
+          api_response: data[0],
+          call_notes_id: callNote.id
+        });
+        
+        // Create content entries from the API response
+        const contentIds = await dbHelpers.createCompleteCallAnalysis(
+          CURRENT_USER.id,
+          file.id,
+          processingSession.id,
+          data[0]
+        );
+
+        toast.success("File processed successfully!");
+
         // Create a mock call object with the processed data
         const processedCall = {
           id: file.id,
@@ -380,8 +413,6 @@ const SalesCalls = () => {
           transcript: fileBlob,
           aiProcessedData: data[0], // Store the AI processed data
         };
-
-        toast.success("File processed and sent successfully!");
 
         // Navigate to Call Insights with the processed data
         navigate("/call-insights", {

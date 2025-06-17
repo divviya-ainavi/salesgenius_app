@@ -406,14 +406,6 @@ Next Steps:
   // Calculate duration (placeholder - would need actual duration from API)
   calculateDuration(data) {
     // This is a placeholder - in reality, you'd get duration from the API
-    // For now, we'll estimate based on meeting type or use a default
-    // if (data.title && data.title.toLowerCase().includes('sync')) {
-    //   return '30 min';
-    // } else if (data.title && data.title.toLowerCase().includes('demo')) {
-    //   return '45 min';
-    // } else {
-    //   return '25 min'; // Default duration
-    // }
     return 'Unknown Duration';
   }
 
