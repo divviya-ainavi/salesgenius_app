@@ -5,26 +5,178 @@ import api from './api'
 import aiService from '@/services/aiService'
 import fileService from '@/services/fileService'
 import crmService from '@/services/crmService'
+import userManagementService from '@/services/userManagementService'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Predefined user IDs for development/testing (simulating hierarchy)
+// Updated user IDs and roles based on new schema
 export const DEMO_USERS = {
   SUPER_ADMIN: '00000000-0000-0000-0000-000000000001',
   ORG_ADMIN: '00000000-0000-0000-0000-000000000002', 
   SALES_MANAGER: '00000000-0000-0000-0000-000000000003' // Current logged-in user
 }
 
+export const DEMO_ROLES = {
+  SUPER_ADMIN: '00000000-0000-0000-0000-000000000001',
+  ORG_ADMIN: '00000000-0000-0000-0000-000000000002',
+  SALES_MANAGER: '00000000-0000-0000-0000-000000000003',
+  SALES_REP: '00000000-0000-0000-0000-000000000004',
+  USER: '00000000-0000-0000-0000-000000000005'
+}
+
+export const DEMO_ORGANIZATION = 'demo-org-001'
+
 // Current user context (Sales Manager for all operations)
 export const CURRENT_USER = {
   id: DEMO_USERS.SALES_MANAGER,
   email: 'sales.manager@company.com',
-  role: 'sales_manager',
-  name: 'Sarah Johnson',
-  organization_id: 'demo-org-001'
+  full_name: 'Sarah Johnson',
+  role_id: DEMO_ROLES.SALES_MANAGER,
+  role_key: 'sales_manager',
+  organization_id: DEMO_ORGANIZATION,
+  status: 'active',
+  timezone: 'America/New_York',
+  language: 'en'
+}
+
+// User management helper functions using the new service
+export const userHelpers = {
+  // Get user profile with role and organization info
+  async getUserProfile(userId) {
+    try {
+      const profile = await userManagementService.getProfileById(userId);
+      
+      // Enhance with role and organization data
+      if (profile.role_id) {
+        profile.role = await userManagementService.getRoleById(profile.role_id);
+      }
+      
+      if (profile.organization_id) {
+        profile.organization = await userManagementService.getOrganizationById(profile.organization_id);
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
+  },
+
+  // Get users in organization
+  async getOrganizationUsers(organizationId, limit = 50) {
+    try {
+      const users = await userManagementService.getUsersByOrganization(organizationId, { limit });
+      return users || [];
+    } catch (error) {
+      console.error('Error fetching organization users:', error);
+      throw error;
+    }
+  },
+
+  // Check if user has specific role
+  async userHasRole(userId, roleKey) {
+    try {
+      const profile = await userManagementService.getProfileById(userId);
+      if (!profile.role_id) return false;
+      
+      const role = await userManagementService.getRoleById(profile.role_id);
+      return role?.key === roleKey;
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      return false;
+    }
+  },
+
+  // Get user's role
+  async getUserRole(userId) {
+    try {
+      const profile = await userManagementService.getProfileById(userId);
+      if (!profile.role_id) return 'user';
+      
+      const role = await userManagementService.getRoleById(profile.role_id);
+      return role?.key || 'user';
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      return 'user';
+    }
+  },
+
+  // Get user's organization
+  async getUserOrganization(userId) {
+    try {
+      const profile = await userManagementService.getProfileById(userId);
+      return profile.organization_id || null;
+    } catch (error) {
+      console.error('Error getting user organization:', error);
+      return null;
+    }
+  },
+
+  // Update user profile
+  async updateUserProfile(userId, updates) {
+    try {
+      const updatedProfile = await userManagementService.updateProfile(userId, updates);
+      return updatedProfile;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  },
+
+  // Get all roles
+  async getRoles() {
+    try {
+      const roles = await userManagementService.getRoles({ is_assignable: true });
+      return roles || [];
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      throw error;
+    }
+  },
+
+  // Get organization info
+  async getOrganization(organizationId) {
+    try {
+      const organization = await userManagementService.getOrganizationById(organizationId);
+      return organization;
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      throw error;
+    }
+  },
+
+  // Create invitation
+  async createInvitation(email, organizationId, roleId, createdBy) {
+    try {
+      const invitation = await userManagementService.sendInvite({
+        email,
+        organizationId,
+        roleId,
+        invitedBy: createdBy
+      });
+      return invitation;
+    } catch (error) {
+      console.error('Error creating invitation:', error);
+      throw error;
+    }
+  },
+
+  // Get pending invitations
+  async getPendingInvitations(organizationId) {
+    try {
+      const invitations = await userManagementService.getInvites({ 
+        organizationId,
+        status: 'pending'
+      });
+      return invitations || [];
+    } catch (error) {
+      console.error('Error fetching pending invitations:', error);
+      throw error;
+    }
+  }
 }
 
 // API placeholder functions for AI agents - now using centralized API service
@@ -1057,4 +1209,4 @@ export const dbHelpers = {
 }
 
 // Export centralized services for easy access
-export { api, aiService, fileService, crmService }
+export { api, aiService, fileService, crmService, userManagementService }

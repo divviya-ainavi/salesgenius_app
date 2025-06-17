@@ -222,7 +222,17 @@ const makeRequest = async (endpoint, options = {}) => {
     
     if (contentType && contentType.includes('application/json')) {
       try {
-        data = await response.json();
+        // First read the response as text to check if it's empty
+        const responseText = await response.text();
+        
+        // Handle empty response body
+        if (!responseText || responseText.trim() === '') {
+          console.warn(`⚠️ Empty JSON response: ${method} ${url}`);
+          data = null; // or {} depending on your preference
+        } else {
+          // Parse the text as JSON
+          data = JSON.parse(responseText);
+        }
       } catch (jsonError) {
         // If JSON parsing fails, create error without trying to read response body again
         const error = new Error(`Failed to parse JSON response: ${jsonError.message}`);

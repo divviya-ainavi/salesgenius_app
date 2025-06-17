@@ -4,7 +4,8 @@ import { Sidebar } from './Sidebar'
 import { UserDropdown } from './UserDropdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bell } from 'lucide-react'
+import { Bell, Zap } from 'lucide-react'
+import { CURRENT_USER } from '@/lib/supabase'
 
 export const MainLayout = () => {
   const location = useLocation()
@@ -22,6 +23,16 @@ export const MainLayout = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* User Context Indicator */}
+          <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
+            <span>Logged in as:</span>
+            <span className="font-medium text-foreground">{CURRENT_USER.full_name}</span>
+            <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+              <Zap className="w-3 h-3 mr-1" />
+              {CURRENT_USER.role_key?.replace('_', ' ') || 'Sales Manager'}
+            </Badge>
+          </div>
+
           {/* HubSpot Connection Status */}
           <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
             HubSpot Connected

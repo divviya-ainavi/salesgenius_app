@@ -144,7 +144,7 @@ export const InsightCard = ({
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="px-6 py-5">
         {isEditing ? (
           <Textarea
             value={editedContent}
@@ -153,7 +153,7 @@ export const InsightCard = ({
             placeholder={`Edit ${title.toLowerCase()}...`}
           />
         ) : (
-          <div className="bg-muted rounded-lg p-4">
+          <div className="bg-muted rounded-lg p-5">
             <pre className="whitespace-pre-wrap text-sm text-foreground font-mono leading-relaxed">
               {content}
             </pre>

@@ -143,11 +143,13 @@ export const ProspectSelector = ({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-6 py-5">
         {/* Search */}
         <div className="relative">
+          <label htmlFor="prospect-search" className="sr-only">Search prospects by company or name</label>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
+            id="prospect-search"
             placeholder="Search prospects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -157,7 +159,7 @@ export const ProspectSelector = ({
 
         {/* Selected Prospect Details */}
         {selectedProspect && (
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-5 space-y-3">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold">{selectedProspect.companyName}</h3>

@@ -12,6 +12,35 @@ const API_ENDPOINTS = {
     RESET_PASSWORD: '/auth/reset-password',
   },
 
+  // User Management endpoints
+  USER_MANAGEMENT: {
+    // Roles
+    ROLES: '/roles',
+    ROLE_BY_ID: '/roles/:id',
+    ROLE_USERS: '/roles/:id/users',
+    
+    // User Status
+    USER_STATUS: '/user-status',
+    USER_STATUS_BY_KEY: '/user-status/:key',
+    
+    // Organizations
+    ORGANIZATIONS: '/organizations',
+    ORGANIZATION_BY_ID: '/organizations/:id',
+    ORGANIZATION_USERS: '/organizations/:id/users',
+    ORGANIZATION_STATS: '/organizations/:id/stats',
+    
+    // Profiles
+    PROFILES: '/profiles',
+    PROFILE_BY_ID: '/profiles/:id',
+    PROFILES_BULK: '/profiles/bulk',
+    
+    // Invites
+    INVITES: '/invites',
+    INVITE_BY_EMAIL: '/invites/:email',
+    INVITE_ACCEPT: '/invites/:email/accept',
+    INVITE_RESEND: '/invites/:email/resend',
+  },
+
   // AI Agent endpoints
   AI_AGENTS: {
     RESEARCH: '/ai/research-agent',
@@ -94,14 +123,6 @@ const API_ENDPOINTS = {
     USAGE: '/analytics/usage',
     REPORTS: '/analytics/reports',
     EXPORT: '/analytics/export',
-  },
-
-  // User management endpoints
-  USERS: {
-    PROFILE: '/users/profile',
-    SETTINGS: '/users/settings',
-    PREFERENCES: '/users/preferences',
-    ORGANIZATIONS: '/users/organizations',
   },
 
   // System endpoints

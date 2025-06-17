@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +18,72 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { User, UserCircle, Settings, LogOut } from 'lucide-react'
+import { User, UserCircle, Settings, LogOut, Building, Crown, Users, Shield } from 'lucide-react'
 import { toast } from 'sonner'
-import { CURRENT_USER } from '@/lib/supabase'
+import { CURRENT_USER, userHelpers } from '@/lib/supabase'
+
+const getRoleIcon = (roleKey) => {
+  switch (roleKey) {
+    case 'super_admin':
+      return Crown
+    case 'org_admin':
+      return Shield
+    case 'sales_manager':
+      return Users
+    default:
+      return User
+  }
+}
+
+const getRoleColor = (roleKey) => {
+  switch (roleKey) {
+    case 'super_admin':
+      return 'bg-purple-100 text-purple-800 border-purple-200'
+    case 'org_admin':
+      return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'sales_manager':
+      return 'bg-green-100 text-green-800 border-green-200'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
 
 export const UserDropdown = () => {
   const navigate = useNavigate()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  // Load user profile with role and organization info
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        // For demo purposes, we'll use the current user data
+        // In a real app, this would fetch from the database
+        const profile = {
+          ...CURRENT_USER,
+          role: {
+            key: 'sales_manager',
+            label: 'Sales Manager',
+            description: 'Sales team management and analytics access'
+          },
+          organization: {
+            name: 'Demo Sales Company',
+            industry: 'Technology'
+          }
+        }
+        setUserProfile(profile)
+      } catch (error) {
+        console.error('Error loading user profile:', error)
+        // Fallback to current user data
+        setUserProfile(CURRENT_USER)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUserProfile()
+  }, [])
 
   const handleProfileClick = () => {
     // Navigate to profile page (to be implemented)
@@ -51,6 +111,21 @@ export const UserDropdown = () => {
     setShowLogoutDialog(false)
   }
 
+  if (loading) {
+    return (
+      <Button 
+        variant="ghost" 
+        size="sm"
+        className="h-9 w-9 rounded-full"
+        disabled
+      >
+        <User className="w-4 h-4" />
+      </Button>
+    )
+  }
+
+  const RoleIcon = getRoleIcon(userProfile?.role?.key || 'user')
+
   return (
     <>
       <DropdownMenu>
@@ -66,21 +141,48 @@ export const UserDropdown = () => {
         </DropdownMenuTrigger>
         
         <DropdownMenuContent 
-          className="w-56 mr-4" 
+          className="w-72 mr-4" 
           align="end" 
           sideOffset={8}
           aria-label="User account menu"
         >
           {/* User Info Header */}
           <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{CURRENT_USER.name}</p>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium leading-none">
+                  {userProfile?.full_name || userProfile?.name || 'User'}
+                </p>
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${getRoleColor(userProfile?.role?.key || 'user')}`}
+                >
+                  <RoleIcon className="w-3 h-3 mr-1" />
+                  {userProfile?.role?.label || 'User'}
+                </Badge>
+              </div>
               <p className="text-xs leading-none text-muted-foreground">
-                {CURRENT_USER.email}
+                {userProfile?.email}
               </p>
-              <p className="text-xs leading-none text-muted-foreground capitalize">
-                {CURRENT_USER.role.replace('_', ' ')}
-              </p>
+              {userProfile?.organization && (
+                <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                  <Building className="w-3 h-3" />
+                  <span>{userProfile.organization.name}</span>
+                  {userProfile.organization.industry && (
+                    <span className="text-muted-foreground/70">
+                      • {userProfile.organization.industry}
+                    </span>
+                  )}
+                </div>
+              )}
+              {userProfile?.status && (
+                <Badge 
+                  variant={userProfile.status === 'active' ? 'default' : 'secondary'} 
+                  className="text-xs w-fit"
+                >
+                  {userProfile.status}
+                </Badge>
+              )}
             </div>
           </DropdownMenuLabel>
           

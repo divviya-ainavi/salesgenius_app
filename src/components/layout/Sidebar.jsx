@@ -9,9 +9,13 @@ import {
   CheckSquare,
   MessageSquare,
   Presentation,
-  Mail
+  Mail,
+  Settings,
+  Users,
+  Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CURRENT_USER } from '@/lib/supabase'
 
 const mainNavItems = [
   {
@@ -63,11 +67,29 @@ const mainNavItems = [
     href: '/analytics',
     icon: BarChart3,
     description: 'Performance metrics and insights'
+  },
+  {
+    title: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    description: 'Account and application settings'
+  }
+]
+
+// Admin navigation items - only shown to admin users
+const adminNavItems = [
+  {
+    title: 'User Management',
+    href: '/admin/users',
+    icon: Users,
+    description: 'Manage users, roles, and organizations',
+    requiredRoles: ['super_admin', 'org_admin']
   }
 ]
 
 export const Sidebar = () => {
   const location = useLocation()
+  const userRole = CURRENT_USER.role_key
 
   const isActiveRoute = (href) => {
     if (!href) return false // For non-clickable items
@@ -92,6 +114,14 @@ export const Sidebar = () => {
   const isFollowUpsSectionActive = () => {
     return location.pathname.startsWith('/follow-ups')
   }
+
+  // Filter admin items based on user role
+  const filteredAdminItems = adminNavItems.filter(item => {
+    if (!item.requiredRoles) return true
+    return item.requiredRoles.includes(userRole)
+  })
+
+  const hasAdminAccess = filteredAdminItems.length > 0
 
   return (
     <div className="w-64 bg-card border-r border-border flex flex-col">
@@ -149,6 +179,39 @@ export const Sidebar = () => {
             )}
           </div>
         ))}
+
+        {/* Admin Section - Only shown to users with admin roles */}
+        {hasAdminAccess && (
+          <>
+            <div className="pt-2 pb-2">
+              <div className="px-3 py-2">
+                <div className="h-px bg-border" />
+              </div>
+            </div>
+            
+            <div className="px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Administration
+              </p>
+            </div>
+            
+            {filteredAdminItems.map((item) => (
+              <NavLink
+                key={item.title}
+                to={item.href}
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActiveRoute(item.href)
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.title}</span>
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Footer */}

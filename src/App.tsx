@@ -12,6 +12,7 @@ import { SalesCalls } from "@/pages/SalesCalls";
 import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
+import UserManagementPage from "@/pages/admin/UserManagement";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
@@ -26,7 +27,7 @@ const App = () => {
     analytics.identify(CURRENT_USER.id, {
       email: CURRENT_USER.email,
       name: CURRENT_USER.name,
-      role: CURRENT_USER.role,
+      role: CURRENT_USER.role_key,
       organization_id: CURRENT_USER.organization_id,
     })
 
@@ -40,7 +41,7 @@ const App = () => {
     // Track app initialization
     analytics.track('app_initialized', {
       user_id: CURRENT_USER.id,
-      user_role: CURRENT_USER.role,
+      user_role: CURRENT_USER.role_key,
       timestamp: new Date().toISOString(),
     })
   }, [])
@@ -66,6 +67,9 @@ const App = () => {
               </Route>
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="admin">
+                <Route path="users" element={<UserManagementPage />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

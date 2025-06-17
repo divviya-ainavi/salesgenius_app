@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrackedButton } from '@/components/ui/tracked-button';
-import { 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrackedButton } from "@/components/ui/tracked-button";
+import {
   Upload,
   FileText,
   Eye,
@@ -28,30 +33,32 @@ import {
   ArrowRight,
   Copy,
   AlertCircle,
-  Loader2
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useDropzone } from 'react-dropzone';
-import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
-import { jsPDF } from 'jspdf';
-import { useAnalytics } from '@/hooks/useAnalytics';
-import firefliesService from '@/services/firefliesService';
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useDropzone } from "react-dropzone";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { jsPDF } from "jspdf";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import firefliesService from "@/services/firefliesService";
 
 const SalesCalls = () => {
   const navigate = useNavigate();
-  const { trackButtonClick, trackFeatureUsage, trackFileUpload } = useAnalytics();
-  const [activeTab, setActiveTab] = useState('upload');
-  const [searchTerm, setSearchTerm] = useState('');
+  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
+    useAnalytics();
+  const [activeTab, setActiveTab] = useState("upload");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedCall, setSelectedCall] = useState(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [modalContent, setModalContent] = useState('');
-  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  
+  const [isProcessingFileId, setIsProcessingFileId] = useState(null);
+
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
@@ -62,14 +69,14 @@ const SalesCalls = () => {
   useEffect(() => {
     loadUploadedFiles();
     loadFirefliesTranscripts();
-    
+
     // Track page visit
-    trackFeatureUsage('sales_calls', 'page_visit');
+    trackFeatureUsage("sales_calls", "page_visit");
   }, []);
 
   // Track tab changes
   useEffect(() => {
-    trackFeatureUsage('sales_calls', 'tab_change', { tab: activeTab });
+    trackFeatureUsage("sales_calls", "tab_change", { tab: activeTab });
   }, [activeTab]);
 
   const loadUploadedFiles = async () => {
@@ -77,38 +84,37 @@ const SalesCalls = () => {
       const files = await dbHelpers.getUploadedFiles(CURRENT_USER.id, 20);
       setUploadedFiles(files);
     } catch (error) {
-      console.error('Error loading uploaded files:', error);
+      console.error("Error loading uploaded files:", error);
     }
   };
 
   const loadFirefliesTranscripts = async () => {
     setIsLoadingFireflies(true);
     setFirefliesError(null);
-    
+
     try {
-      trackFeatureUsage('fireflies', 'fetch_transcripts');
-      
+      trackFeatureUsage("fireflies", "fetch_transcripts");
+
       const transcripts = await firefliesService.getTranscripts({
         limit: 50,
       });
-      
+
       setFirefliesCalls(transcripts);
       setLastFirefliesSync(new Date());
-      
-      trackFeatureUsage('fireflies', 'fetch_transcripts_success', {
+
+      trackFeatureUsage("fireflies", "fetch_transcripts_success", {
         transcripts_count: transcripts.length,
       });
-      
     } catch (error) {
-      console.error('Error loading Fireflies transcripts:', error);
+      console.error("Error loading Fireflies transcripts:", error);
       setFirefliesError(error.message);
-      
-      trackFeatureUsage('fireflies', 'fetch_transcripts_error', {
+
+      trackFeatureUsage("fireflies", "fetch_transcripts_error", {
         error: error.message,
       });
-      
+
       // Show user-friendly error message
-      toast.error('Failed to load Fireflies transcripts. Please try again.');
+      toast.error("Failed to load Fireflies transcripts. Please try again.");
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -116,22 +122,21 @@ const SalesCalls = () => {
 
   const handleSyncFireflies = async () => {
     setIsLoadingFireflies(true);
-    
+
     try {
-      trackButtonClick('Sync Fireflies');
-      
+      trackButtonClick("Sync Fireflies");
+
       await firefliesService.syncTranscripts({
         forceRefresh: true,
       });
-      
+
       // Reload transcripts after sync
       await loadFirefliesTranscripts();
-      
-      toast.success('Fireflies transcripts synced successfully!');
-      
+
+      toast.success("Fireflies transcripts synced successfully!");
     } catch (error) {
-      console.error('Error syncing Fireflies:', error);
-      toast.error('Failed to sync Fireflies transcripts. Please try again.');
+      console.error("Error syncing Fireflies:", error);
+      toast.error("Failed to sync Fireflies transcripts. Please try again.");
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -140,35 +145,41 @@ const SalesCalls = () => {
   // File upload handling
   const onDrop = async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
-    
+
     setIsUploading(true);
     const file = acceptedFiles[0];
-    
+
     try {
       // Track file upload start
-      trackFileUpload(file.name, file.size, file.type, 'started');
-      
+      trackFileUpload(file.name, file.size, file.type, "started");
+
       // Validate file type
-      const validTypes = ['text/plain', 'text/vtt', 'application/pdf'];
-      const validExtensions = ['.txt', '.vtt', '.pdf'];
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-      
-      if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
-        toast.error('Please upload only .txt, .vtt, or .pdf files');
-        trackFileUpload(file.name, file.size, file.type, 'failed');
+      const validTypes = ["text/plain", "text/vtt", "application/pdf"];
+      const validExtensions = [".txt", ".vtt", ".pdf"];
+      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+
+      if (
+        !validTypes.includes(file.type) &&
+        !validExtensions.includes(fileExtension)
+      ) {
+        toast.error("Please upload only .txt, .vtt, or .pdf files");
+        trackFileUpload(file.name, file.size, file.type, "failed");
         return;
       }
-      
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error('File size must be less than 10MB');
-        trackFileUpload(file.name, file.size, file.type, 'failed');
+
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        toast.error("File size must be less than 10MB");
+        trackFileUpload(file.name, file.size, file.type, "failed");
         return;
       }
 
       // For text files, read content for database storage
-      let content = '';
-      const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      
+      let content = "";
+      const isPDF =
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+
       if (!isPDF) {
         content = await file.text();
       } else {
@@ -177,15 +188,14 @@ const SalesCalls = () => {
 
       // Save uploaded file to database with shareable link
       await dbHelpers.saveUploadedFile(CURRENT_USER.id, file, content);
-      
-      toast.success('File uploaded successfully!');
-      trackFileUpload(file.name, file.size, file.type, 'completed');
+
+      toast.success("File uploaded successfully!");
+      trackFileUpload(file.name, file.size, file.type, "completed");
       await loadUploadedFiles(); // Refresh the list
-      
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       toast.error(`Failed to upload file: ${error.message}`);
-      trackFileUpload(file.name, file.size, file.type, 'failed');
+      trackFileUpload(file.name, file.size, file.type, "failed");
     } finally {
       setIsUploading(false);
     }
@@ -194,23 +204,29 @@ const SalesCalls = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'text/plain': ['.txt'],
-      'text/vtt': ['.vtt'],
-      'application/pdf': ['.pdf']
+      "text/plain": [".txt"],
+      "text/vtt": [".vtt"],
+      "application/pdf": [".pdf"],
     },
     maxFiles: 1,
-    disabled: isUploading
+    disabled: isUploading,
   });
 
   const handleViewSummary = (call) => {
-    trackButtonClick('View Summary', { call_id: call.id, company: call.companyName });
+    trackButtonClick("View Summary", {
+      call_id: call.id,
+      company: call.companyName,
+    });
     setModalTitle(`Call Summary - ${call.companyName}`);
     setModalContent(call.firefliesSummary);
     setShowSummaryModal(true);
   };
 
   const handleViewTranscript = (call) => {
-    trackButtonClick('View Transcript', { call_id: call.id, company: call.companyName });
+    trackButtonClick("View Transcript", {
+      call_id: call.id,
+      company: call.companyName,
+    });
     setModalTitle(`Full Transcript - ${call.companyName}`);
     setModalContent(call.transcript);
     setShowTranscriptModal(true);
@@ -218,115 +234,218 @@ const SalesCalls = () => {
 
   const handleCopyTranscript = () => {
     navigator.clipboard.writeText(modalContent);
-    toast.success('Transcript copied to clipboard');
-    trackButtonClick('Copy Transcript');
+    toast.success("Transcript copied to clipboard");
+    trackButtonClick("Copy Transcript");
   };
 
   const handleDownloadTranscriptPDF = () => {
     try {
       const doc = new jsPDF();
-      
+
       // Set up the document
       doc.setFontSize(16);
-      doc.text('Call Transcript', 20, 20);
-      
+      doc.text("Call Transcript", 20, 20);
+
       doc.setFontSize(12);
       doc.text(`Title: ${modalTitle}`, 20, 35);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
-      
+
       // Add the transcript content
       doc.setFontSize(10);
       const splitText = doc.splitTextToSize(modalContent, 170);
       doc.text(splitText, 20, 60);
-      
+
       // Save the PDF
-      doc.save(`${modalTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.pdf`);
-      toast.success('PDF downloaded successfully');
-      trackButtonClick('Download PDF', { content_type: 'transcript' });
+      doc.save(
+        `${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`
+      );
+      toast.success("PDF downloaded successfully");
+      trackButtonClick("Download PDF", { content_type: "transcript" });
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF');
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
     }
   };
 
   const handleDownloadTranscript = (call) => {
-    const blob = new Blob([call.transcript], { type: 'text/plain' });
+    const blob = new Blob([call.transcript], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${call.companyName}_${call.callId}_transcript.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Transcript downloaded');
-    trackButtonClick('Download Transcript', { call_id: call.id, company: call.companyName });
+    toast.success("Transcript downloaded");
+    trackButtonClick("Download Transcript", {
+      call_id: call.id,
+      company: call.companyName,
+    });
   };
 
-  const handleProcessCall = (call, source = 'fireflies') => {
-    trackButtonClick('Generate Insights', { 
-      call_id: call.id, 
-      company: call.companyName, 
-      source: source 
-    });
-    
-    trackFeatureUsage('call_processing', 'start_processing', {
+  const handleProcessCall = async (call, source = "fireflies") => {
+    trackButtonClick("Generate Insights", {
+      call_id: call.id,
+      company: call.companyName,
       source: source,
-      company: call.companyName
+    });
+
+    trackFeatureUsage("call_processing", "start_processing", {
+      source: source,
+      company: call.companyName,
     });
 
     // Navigate to Call Insights page with the selected call data
-    navigate('/call-insights', { 
-      state: { 
+    navigate("/call-insights", {
+      state: {
         selectedCall: call,
-        source: source
-      } 
+        source: source,
+      },
     });
   };
 
+  const handleProcessFile = async (file) => {
+    if (!file) {
+      toast.error("Please select a file to process");
+      return;
+    }
+
+    setIsProcessingFileId(file.id);
+    trackButtonClick("Process File", {
+      file_id: file.id,
+      filename: file.filename,
+    });
+
+    try {
+      // Fetch the file as a Blob from file_url
+      let fileBlob = null;
+      if (file.file_url) {
+        try {
+          const response = await fetch(file.file_url);
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch file: ${response.status} ${response.statusText}`
+            );
+          }
+          fileBlob = await response.blob();
+        } catch (fetchError) {
+          console.error("Error fetching file blob:", fetchError);
+          toast.error("Failed to fetch file for sending");
+          setIsProcessingFileId(null);
+          return;
+        }
+      }
+
+      if (!fileBlob) {
+        toast.error("No file available for sending");
+        setIsProcessingFileId(null);
+        return;
+      }
+
+      // Prepare FormData to send the file
+      const formData = new FormData();
+      formData.append("transcript", fileBlob, file.filename);
+      formData.append("user_id", CURRENT_USER.id);
+      formData.append("call_metadata", null);
+      formData.append("previous_interactions", null);
+
+      // Make API call to process the transcript file
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/webhook/process-call-data-ai",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        // Create a mock call object with the processed data
+        const processedCall = {
+          id: file.id,
+          callId: `Upload ${file.id.slice(-5)}`,
+          companyName: file.filename.replace(/\.[^/.]+$/, ""), // Remove file extension
+          prospectName: "AI Processed",
+          date: new Date().toISOString().split("T")[0],
+          duration: "N/A",
+          status: "processed",
+          source: "upload",
+          hasInsights: true,
+          transcript: fileBlob,
+          aiProcessedData: data[0], // Store the AI processed data
+        };
+
+        toast.success("File processed and sent successfully!");
+
+        // Navigate to Call Insights with the processed data
+        navigate("/call-insights", {
+          state: {
+            selectedCall: processedCall,
+            source: "upload",
+            aiProcessedData: data[0],
+          },
+        });
+      } else {
+        toast.error("No insights generated from the file");
+      }
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast.error(`Failed to process file: ${error.message}`);
+    } finally {
+      setIsProcessingFileId(null);
+    }
+  };
+
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getFileIcon = (fileType) => {
-    if (fileType?.includes('pdf')) {
+    if (fileType?.includes("pdf")) {
       return <FileIcon className="w-4 h-4 text-red-600" />;
     }
     return <FileText className="w-4 h-4 text-blue-600" />;
   };
 
   // Filter functions
-  const filteredFirefliesCalls = firefliesCalls.filter(call =>
-    call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredFirefliesCalls = firefliesCalls.filter(
+    (call) =>
+      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Mock processed calls (keeping existing functionality)
   const mockProcessedCalls = [
     {
-      id: 'proc_001',
-      callId: 'Call 3',
-      companyName: 'Global Solutions Ltd',
-      prospectName: 'Emma Wilson',
-      date: '2024-01-10',
-      duration: '35 min',
-      status: 'processed',
-      source: 'upload',
+      id: "proc_001",
+      callId: "Call 3",
+      companyName: "Global Solutions Ltd",
+      prospectName: "Emma Wilson",
+      date: "2024-01-10",
+      duration: "35 min",
+      status: "processed",
+      source: "upload",
       hasInsights: true,
       transcript: `[00:00] Emma Wilson: We're looking to scale our sales operations significantly this year...
 
@@ -334,31 +453,32 @@ const SalesCalls = () => {
 
 [02:15] Emma Wilson: We've just secured Series B funding and plan to double our sales team by Q3...
 
-[Continue with full transcript...]`
+[Continue with full transcript...]`,
     },
     {
-      id: 'proc_002',
-      callId: 'Call 4',
-      companyName: 'Innovation Hub',
-      prospectName: 'David Brown',
-      date: '2024-01-08',
-      duration: '50 min',
-      status: 'processed',
-      source: 'fireflies',
+      id: "proc_002",
+      callId: "Call 4",
+      companyName: "Innovation Hub",
+      prospectName: "David Brown",
+      date: "2024-01-08",
+      duration: "50 min",
+      status: "processed",
+      source: "fireflies",
       hasInsights: true,
       transcript: `[00:00] David Brown: Our current lead qualification process is completely manual and it's killing our productivity...
 
-[Continue with full transcript...]`
-    }
+[Continue with full transcript...]`,
+    },
   ];
 
-  const filteredProcessedCalls = mockProcessedCalls.filter(call =>
-    call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProcessedCalls = mockProcessedCalls.filter(
+    (call) =>
+      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredUploadedFiles = uploadedFiles.filter(file =>
+  const filteredUploadedFiles = uploadedFiles.filter((file) =>
     file.filename.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -368,7 +488,9 @@ const SalesCalls = () => {
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
         <p className="text-muted-foreground">
-          Your starting point for call data. Upload transcripts, import from Fireflies.ai, or select from past processed calls to generate insights.
+          Your starting point for call data. Upload transcripts, import from
+          Fireflies.ai, or select from past processed calls to generate
+          insights.
         </p>
       </div>
 
@@ -385,17 +507,17 @@ const SalesCalls = () => {
                 className="pl-10"
               />
             </div>
-            <TrackedButton 
-              variant="outline" 
+            <TrackedButton
+              variant="outline"
               size="sm"
               trackingName="Filter Calls"
             >
               <Filter className="w-4 h-4 mr-1" />
               Filter
             </TrackedButton>
-            <TrackedButton 
-              variant="outline" 
-              size="sm" 
+            <TrackedButton
+              variant="outline"
+              size="sm"
               onClick={loadUploadedFiles}
               trackingName="Refresh Files"
             >
@@ -430,12 +552,14 @@ const SalesCalls = () => {
                   {...getRootProps()}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                    isDragActive ? "border-primary bg-primary/5" : "border-border",
+                    isDragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-border",
                     isUploading && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <input {...getInputProps()} />
-                  
+
                   <div className="space-y-4">
                     <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center">
                       {isUploading ? (
@@ -444,16 +568,17 @@ const SalesCalls = () => {
                         <FileText className="w-6 h-6 text-muted-foreground" />
                       )}
                     </div>
-                    
+
                     <div>
                       <h3 className="font-medium text-foreground mb-2">
-                        {isUploading ? 'Uploading...' : 'Drop your transcript here'}
+                        {isUploading
+                          ? "Uploading..."
+                          : "Drop your transcript here"}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-2">
-                        {isUploading 
-                          ? 'Please wait while we process your file'
-                          : 'Drag and drop your .txt, .vtt, or .pdf file, or click to browse'
-                        }
+                        {isUploading
+                          ? "Please wait while we process your file"
+                          : "Drag and drop your .txt, .vtt, or .pdf file, or click to browse"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Supported formats: TXT, VTT, PDF (Max 10MB)
@@ -474,18 +599,26 @@ const SalesCalls = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p className="mb-2">No uploaded files yet</p>
-                    <p className="text-sm">Upload your first transcript to get started</p>
+                    <p className="text-sm">
+                      Upload your first transcript to get started
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {filteredUploadedFiles.slice(0, 5).map((file) => (
-                      <div key={file.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 border border-border rounded-lg"
+                      >
                         <div className="flex items-center space-x-3">
                           {getFileIcon(file.content_type)}
                           <div>
-                            <h4 className="font-medium text-sm">{file.filename}</h4>
+                            <h4 className="font-medium text-sm">
+                              {file.filename}
+                            </h4>
                             <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.file_size)} • {formatDate(file.upload_date)}
+                              {formatFileSize(file.file_size)} •{" "}
+                              {formatDate(file.upload_date)}
                             </p>
                           </div>
                         </div>
@@ -493,24 +626,22 @@ const SalesCalls = () => {
                           <TrackedButton
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              const mockCall = {
-                                id: file.id,
-                                callId: `Upload ${file.id.slice(-3)}`,
-                                companyName: 'Uploaded File',
-                                prospectName: 'Unknown',
-                                date: file.upload_date,
-                                duration: 'Unknown',
-                                transcript: file.file_content || 'Content not available for preview',
-                                source: 'upload'
-                              };
-                              handleProcessCall(mockCall, 'upload');
-                            }}
+                            onClick={() => handleProcessFile(file)}
+                            disabled={isProcessingFileId === file.id}
                             trackingName="Process Uploaded File"
-                            trackingContext={{ file_id: file.id, filename: file.filename }}
+                            trackingContext={{
+                              file_id: file.id,
+                              filename: file.filename,
+                            }}
                           >
-                            <ArrowRight className="w-3 h-3 mr-1" />
-                            Process
+                            {isProcessingFileId === file.id ? (
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            ) : (
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                            )}
+                            {isProcessingFileId === file.id
+                              ? "Processing..."
+                              : "Process"}
                           </TrackedButton>
                         </div>
                       </div>
@@ -531,12 +662,17 @@ const SalesCalls = () => {
                   <ExternalLink className="w-5 h-5" />
                   <span>Fireflies.ai Imports</span>
                   {isLoadingFireflies ? (
-                    <Badge variant="secondary" className="flex items-center space-x-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center space-x-1"
+                    >
                       <Loader2 className="w-3 h-3 animate-spin" />
                       <span>Loading...</span>
                     </Badge>
                   ) : (
-                    <Badge variant="secondary">{filteredFirefliesCalls.length} calls</Badge>
+                    <Badge variant="secondary">
+                      {filteredFirefliesCalls.length} calls
+                    </Badge>
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
@@ -545,8 +681,8 @@ const SalesCalls = () => {
                       Last sync: {lastFirefliesSync.toLocaleTimeString()}
                     </span>
                   )}
-                  <TrackedButton 
-                    variant="outline" 
+                  <TrackedButton
+                    variant="outline"
                     size="sm"
                     onClick={handleSyncFireflies}
                     disabled={isLoadingFireflies}
@@ -567,11 +703,15 @@ const SalesCalls = () => {
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
                   <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-red-900">Error loading Fireflies data</h4>
-                    <p className="text-sm text-red-700 mt-1">{firefliesError}</p>
-                    <TrackedButton 
-                      variant="outline" 
-                      size="sm" 
+                    <h4 className="font-medium text-red-900">
+                      Error loading Fireflies data
+                    </h4>
+                    <p className="text-sm text-red-700 mt-1">
+                      {firefliesError}
+                    </p>
+                    <TrackedButton
+                      variant="outline"
+                      size="sm"
                       className="mt-2"
                       onClick={loadFirefliesTranscripts}
                       trackingName="Retry Fireflies Load"
@@ -585,26 +725,39 @@ const SalesCalls = () => {
               {isLoadingFireflies ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-muted-foreground">Loading Fireflies transcripts...</p>
+                  <p className="text-muted-foreground">
+                    Loading Fireflies transcripts...
+                  </p>
                 </div>
               ) : filteredFirefliesCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No Fireflies.ai calls found</p>
-                  <p className="text-sm">Sync your Fireflies.ai account to import calls</p>
+                  <p className="text-sm">
+                    Sync your Fireflies.ai account to import calls
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {filteredFirefliesCalls.map((call) => (
-                    <div key={call.id} className="border border-border rounded-lg p-4">
+                    <div
+                      key={call.id}
+                      className="border border-border rounded-lg p-4"
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="font-semibold">{call.callId}</h3>
-                            <Badge variant={call.status === 'failed' ? 'destructive' : 'outline'}>
+                            <Badge
+                              variant={
+                                call.status === "failed"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                            >
                               {call.status}
                             </Badge>
-                            {call.status === 'failed' && call.error && (
+                            {call.status === "failed" && call.error && (
                               <Badge variant="secondary" className="text-xs">
                                 {call.error}
                               </Badge>
@@ -632,47 +785,62 @@ const SalesCalls = () => {
                               </div>
                             </div>
                           </div>
-                          {call.participants && call.participants.length > 0 && (
-                            <div className="mt-2 text-xs text-muted-foreground">
-                              <span className="font-medium">Participants:</span> {call.participants.slice(0, 3).join(', ')}
-                              {call.participants.length > 3 && ` +${call.participants.length - 3} more`}
-                            </div>
-                          )}
+                          {call.participants &&
+                            call.participants.length > 0 && (
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                <span className="font-medium">
+                                  Participants:
+                                </span>{" "}
+                                {call.participants.slice(0, 3).join(", ")}
+                                {call.participants.length > 3 &&
+                                  ` +${call.participants.length - 3} more`}
+                              </div>
+                            )}
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          {call.hasSummary && call.status !== 'failed' && (
+                          {call.hasSummary && call.status !== "failed" && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewSummary(call)}
                               trackingName="View Summary"
-                              trackingContext={{ call_id: call.id, company: call.companyName }}
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
                             >
                               <Eye className="w-3 h-3 mr-1" />
                               View Summary
                             </TrackedButton>
                           )}
-                          {call.hasTranscript && call.status !== 'failed' && (
+                          {call.hasTranscript && call.status !== "failed" && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewTranscript(call)}
                               trackingName="View Transcript"
-                              trackingContext={{ call_id: call.id, company: call.companyName }}
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
                             >
                               <FileText className="w-3 h-3 mr-1" />
                               View Transcript
                             </TrackedButton>
                           )}
                         </div>
-                        {call.status !== 'failed' && (
-                          <TrackedButton 
-                            onClick={() => handleProcessCall(call, 'fireflies')}
+                        {call.status !== "failed" && (
+                          <TrackedButton
+                            onClick={() => handleProcessCall(call, "fireflies")}
                             trackingName="Generate Insights"
-                            trackingContext={{ call_id: call.id, company: call.companyName, source: 'fireflies' }}
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                              source: "fireflies",
+                            }}
                           >
                             <ArrowRight className="w-4 h-4 mr-1" />
                             Generate Insights
@@ -694,7 +862,9 @@ const SalesCalls = () => {
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="w-5 h-5" />
                 <span>Past Processed Calls</span>
-                <Badge variant="secondary">{filteredProcessedCalls.length} calls</Badge>
+                <Badge variant="secondary">
+                  {filteredProcessedCalls.length} calls
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -702,19 +872,27 @@ const SalesCalls = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No processed calls yet</p>
-                  <p className="text-sm">Process your first call to see it here</p>
+                  <p className="text-sm">
+                    Process your first call to see it here
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {filteredProcessedCalls.map((call) => (
-                    <div key={call.id} className="border border-border rounded-lg p-4">
+                    <div
+                      key={call.id}
+                      className="border border-border rounded-lg p-4"
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="font-semibold">{call.callId}</h3>
                             <Badge variant="default">Processed</Badge>
                             {call.hasInsights && (
-                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-100 text-green-800 border-green-200"
+                              >
                                 Insights Available
                               </Badge>
                             )}
@@ -751,7 +929,10 @@ const SalesCalls = () => {
                             size="sm"
                             onClick={() => handleViewTranscript(call)}
                             trackingName="View Original Transcript"
-                            trackingContext={{ call_id: call.id, company: call.companyName }}
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                            }}
                           >
                             <FileText className="w-3 h-3 mr-1" />
                             View Original Transcript
@@ -761,7 +942,10 @@ const SalesCalls = () => {
                             size="sm"
                             onClick={() => handleDownloadTranscript(call)}
                             trackingName="Download Transcript PDF"
-                            trackingContext={{ call_id: call.id, company: call.companyName }}
+                            trackingContext={{
+                              call_id: call.id,
+                              company: call.companyName,
+                            }}
                           >
                             <Download className="w-3 h-3 mr-1" />
                             Download PDF
@@ -769,23 +953,26 @@ const SalesCalls = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           {call.hasInsights && (
-                            <TrackedButton 
+                            <TrackedButton
                               variant="outline"
                               onClick={() => {
-                                trackButtonClick('View Insights', { 
-                                  call_id: call.id, 
-                                  company: call.companyName 
+                                trackButtonClick("View Insights", {
+                                  call_id: call.id,
+                                  company: call.companyName,
                                 });
-                                navigate('/call-insights', { 
-                                  state: { 
+                                navigate("/call-insights", {
+                                  state: {
                                     selectedCall: call,
                                     source: call.source,
-                                    viewMode: 'insights'
-                                  } 
+                                    viewMode: "insights",
+                                  },
                                 });
                               }}
                               trackingName="View Call Insights"
-                              trackingContext={{ call_id: call.id, company: call.companyName }}
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View Insights
@@ -813,7 +1000,7 @@ const SalesCalls = () => {
                 size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(modalContent);
-                  toast.success('Summary copied to clipboard');
+                  toast.success("Summary copied to clipboard");
                 }}
                 trackingName="Copy Summary"
               >
