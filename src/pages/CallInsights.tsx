@@ -41,72 +41,13 @@ import {
   Brain,
   Info,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Phone,
+  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
-
-// Mock prospects data with cumulative insights
-const mockProspects = [
-  {
-    id: 'acme_corp',
-    companyName: 'Acme Corp',
-    prospectName: 'Sarah Johnson',
-    title: 'VP of Sales',
-    totalCalls: 4,
-    lastCallDate: '2024-01-15',
-    lastEngagement: '2 hours ago',
-    status: 'hot',
-    dealValue: '$120K',
-    probability: 85,
-    nextAction: 'Pilot program approval',
-    dataSources: {
-      fireflies: 3,
-      hubspot: 1,
-      presentations: 2,
-      emails: 5
-    }
-  },
-  {
-    id: 'techstart_inc',
-    companyName: 'TechStart Inc',
-    prospectName: 'John Smith',
-    title: 'CEO',
-    totalCalls: 2,
-    lastCallDate: '2024-01-14',
-    lastEngagement: '1 day ago',
-    status: 'warm',
-    dealValue: '$45K',
-    probability: 65,
-    nextAction: 'Technical demo',
-    dataSources: {
-      fireflies: 2,
-      hubspot: 1,
-      presentations: 1,
-      emails: 3
-    }
-  },
-  {
-    id: 'global_solutions',
-    companyName: 'Global Solutions Ltd',
-    prospectName: 'Emma Wilson',
-    title: 'Director of Operations',
-    totalCalls: 3,
-    lastCallDate: '2024-01-10',
-    lastEngagement: '5 days ago',
-    status: 'warm',
-    dealValue: '$85K',
-    probability: 70,
-    nextAction: 'Proposal review',
-    dataSources: {
-      fireflies: 2,
-      hubspot: 1,
-      presentations: 1,
-      emails: 4
-    }
-  }
-];
 
 // Mock cumulative insights for selected prospect
 const mockCumulativeInsights = {
@@ -310,19 +251,19 @@ const CallInsights = () => {
         setShowAiInsights(location.state.showAiInsights || false);
       }
       
-      // Find matching prospect or create new one
-      const prospect = mockProspects.find(p => p.companyName === call.companyName) || {
+      // Create prospect from call data
+      const prospect = {
         id: call.companyName.toLowerCase().replace(/\s+/g, '_'),
         companyName: call.companyName,
-        prospectName: call.prospectName,
-        title: 'Unknown',
+        prospectName: call.prospectName || 'Unknown Prospect',
+        title: call.title || 'Unknown Title',
         totalCalls: 1,
-        lastCallDate: call.date,
+        lastCallDate: call.date || new Date().toISOString().split('T')[0],
         lastEngagement: 'Just now',
-        status: 'new',
-        dealValue: 'TBD',
-        probability: 50,
-        nextAction: 'Initial follow-up',
+        status: 'processed',
+        dealValue: call.dealValue || 'TBD',
+        probability: call.probability || 50,
+        nextAction: call.nextAction || 'Initial follow-up',
         dataSources: { fireflies: 1, hubspot: 0, presentations: 0, emails: 0 }
       };
       setSelectedProspect(prospect);
@@ -347,6 +288,7 @@ const CallInsights = () => {
           callId: `Upload ${session.uploaded_files.filename}`,
           companyName: session.uploaded_files.filename.replace(/\.[^/.]+$/, "") || "Unknown Company",
           prospectName: session.call_notes?.ai_summary ? "AI Processed" : "Unknown Prospect",
+          title: "Unknown Title",
           date: new Date(session.processing_started_at).toISOString().split("T")[0],
           duration: "N/A",
           status: "processed",
@@ -359,6 +301,13 @@ const CallInsights = () => {
           summary: session.call_notes?.ai_summary || "No summary available",
           insightsCount: session.content_references?.insights_ids?.length || 0,
           stakeholdersCount: 2, // Mock data - would be calculated from actual insights
+          totalCalls: 1,
+          lastCallDate: new Date(session.processing_started_at).toISOString().split("T")[0],
+          lastEngagement: "Processed",
+          dealValue: "TBD",
+          probability: 50,
+          nextAction: "Review insights",
+          dataSources: { fireflies: 0, hubspot: 0, presentations: 0, emails: 0 },
           // Additional metadata
           contentReferences: session.content_references,
           apiResponse: session.api_response,
@@ -513,11 +462,6 @@ const CallInsights = () => {
     toast.success('Processed calls refreshed');
   };
 
-  const filteredProspects = mockProspects.filter(prospect =>
-    prospect.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prospect.prospectName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const filteredProcessedCalls = processedCalls.filter(call =>
     call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -554,8 +498,9 @@ const CallInsights = () => {
   };
 
   // Navigation functions for horizontal scrolling
+  const cardsPerPage = 3;
   const canScrollLeft = currentCardIndex > 0;
-  const canScrollRight = currentCardIndex < Math.max(0, filteredProcessedCalls.length - 3);
+  const canScrollRight = currentCardIndex < Math.max(0, filteredProcessedCalls.length - cardsPerPage);
 
   const scrollLeft = () => {
     if (canScrollLeft) {
@@ -570,7 +515,7 @@ const CallInsights = () => {
   };
 
   // Get visible cards (3 at a time)
-  const visibleCards = filteredProcessedCalls.slice(currentCardIndex, currentCardIndex + 3);
+  const visibleCards = filteredProcessedCalls.slice(currentCardIndex, currentCardIndex + cardsPerPage);
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -594,15 +539,15 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* Past Processed Calls Section - Only show when no specific call/prospect is selected */}
+      {/* Prospect Selection - Load Past Processed Calls */}
       {!selectedProspect && !selectedProcessedCall && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
-                <span>Past Processed Calls</span>
-                <Badge variant="secondary">{filteredProcessedCalls.length} calls</Badge>
+                <Building className="w-5 h-5" />
+                <span>Prospect Selection</span>
+                <Badge variant="secondary">{filteredProcessedCalls.length} processed calls</Badge>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="relative">
@@ -635,30 +580,32 @@ const CallInsights = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Horizontal Card Navigation */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={scrollLeft}
-                      disabled={!canScrollLeft}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Showing {currentCardIndex + 1}-{Math.min(currentCardIndex + 3, filteredProcessedCalls.length)} of {filteredProcessedCalls.length}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={scrollRight}
-                      disabled={!canScrollRight}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                {/* Horizontal Card Navigation - Only show if more than 3 cards */}
+                {filteredProcessedCalls.length > cardsPerPage && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={scrollLeft}
+                        disabled={!canScrollLeft}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Showing {currentCardIndex + 1}-{Math.min(currentCardIndex + cardsPerPage, filteredProcessedCalls.length)} of {filteredProcessedCalls.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={scrollRight}
+                        disabled={!canScrollRight}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Horizontal Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -672,29 +619,47 @@ const CallInsights = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h3 className="font-semibold text-foreground mb-1">
-                              {call.companyName}
+                              {call.companyName || 'Unknown Company'}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {call.prospectName}
+                              {call.prospectName || 'Unknown Prospect'} • {call.title || 'Unknown Title'}
                             </p>
                           </div>
                           <Badge variant="outline" className={cn("text-xs", getStatusColor(call.status))}>
-                            Processed
+                            {call.status}
                           </Badge>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="space-y-3">
-                          {/* Call Details */}
+                          {/* Call Details with all specified fields */}
                           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                             <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{call.date}</span>
+                              <Phone className="w-3 h-3" />
+                              <span>Calls: {call.totalCalls || 'N/A'}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <FileText className="w-3 h-3" />
-                              <span>{call.originalFilename?.substring(0, 15)}...</span>
+                              <DollarSign className="w-3 h-3" />
+                              <span>Value: {call.dealValue || 'N/A'}</span>
                             </div>
+                            <div className="flex items-center space-x-1">
+                              <TrendingUp className="w-3 h-3" />
+                              <span>Prob: {call.probability || 'N/A'}%</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{call.lastCallDate || 'N/A'}</span>
+                            </div>
+                          </div>
+
+                          {/* Last Engagement */}
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Last Engagement:</span> {call.lastEngagement || 'N/A'}
+                          </div>
+
+                          {/* Next Action */}
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Next:</span> {call.nextAction || 'N/A'}
                           </div>
 
                           {/* Processing Info */}
@@ -707,11 +672,11 @@ const CallInsights = () => {
                             <div className="flex items-center space-x-2">
                               <div className="flex items-center space-x-1">
                                 <Sparkles className="w-3 h-3 text-blue-600" />
-                                <span>{call.insightsCount} insights</span>
+                                <span>{call.insightsCount || 0} insights</span>
                               </div>
                               <div className="flex items-center space-x-1">
                                 <Users className="w-3 h-3 text-green-600" />
-                                <span>{call.stakeholdersCount} stakeholders</span>
+                                <span>{call.stakeholdersCount || 0} stakeholders</span>
                               </div>
                             </div>
                           </div>
@@ -719,7 +684,7 @@ const CallInsights = () => {
                           {/* Summary Preview */}
                           <div className="text-xs text-muted-foreground">
                             <p className="line-clamp-2">
-                              {call.summary.substring(0, 100)}...
+                              {call.summary ? call.summary.substring(0, 100) + '...' : 'No summary available'}
                             </p>
                           </div>
 
@@ -734,99 +699,25 @@ const CallInsights = () => {
                   ))}
                 </div>
 
-                {/* Show all cards indicator */}
-                {filteredProcessedCalls.length > 3 && (
+                {/* Show pagination dots if more than 3 cards */}
+                {filteredProcessedCalls.length > cardsPerPage && (
                   <div className="flex justify-center space-x-1 mt-4">
-                    {Array.from({ length: Math.ceil(filteredProcessedCalls.length / 3) }).map((_, index) => (
+                    {Array.from({ length: Math.ceil(filteredProcessedCalls.length / cardsPerPage) }).map((_, index) => (
                       <div
                         key={index}
                         className={cn(
-                          "w-2 h-2 rounded-full transition-colors",
-                          Math.floor(currentCardIndex / 3) === index
+                          "w-2 h-2 rounded-full transition-colors cursor-pointer",
+                          Math.floor(currentCardIndex / cardsPerPage) === index
                             ? "bg-primary"
                             : "bg-muted-foreground/30"
                         )}
+                        onClick={() => setCurrentCardIndex(index * cardsPerPage)}
                       />
                     ))}
                   </div>
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Prospect Selection - Only show when no processed call is selected */}
-      {!selectedProcessedCall && !showAiInsights && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building className="w-5 h-5" />
-              <span>Prospect Selection</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search prospects by company or name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Prospect List */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProspects.map((prospect) => (
-                <div
-                  key={prospect.id}
-                  className={cn(
-                    "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                    selectedProspect?.id === prospect.id
-                      ? "border-primary bg-primary/5 shadow-md"
-                      : "border-border hover:border-primary/50"
-                  )}
-                  onClick={() => handleProspectSelect(prospect)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-sm">{prospect.companyName}</h3>
-                      <p className="text-xs text-muted-foreground">{prospect.prospectName} • {prospect.title}</p>
-                    </div>
-                    <Badge variant="outline" className={cn("text-xs", getStatusColor(prospect.status))}>
-                      {prospect.status}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Calls:</span>
-                      <span className="font-medium">{prospect.totalCalls}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Deal Value:</span>
-                      <span className="font-medium">{prospect.dealValue}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Probability:</span>
-                      <span className="font-medium">{prospect.probability}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last Engagement:</span>
-                      <span className="font-medium">{prospect.lastEngagement}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium">Next:</span> {prospect.nextAction}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       )}
