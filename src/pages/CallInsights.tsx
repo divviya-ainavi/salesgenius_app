@@ -38,7 +38,8 @@ import {
   Filter,
   Ear,
   Hand,
-  Brain
+  Brain,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -643,7 +644,11 @@ const CallInsights = () => {
 
                   {/* Insights List */}
                   {insights.map((insight, index) => {
-                    const typeConfig = insightTypes[insight.type];
+                    const typeConfig = insightTypes[insight.type] || {
+                      icon: Lightbulb,
+                      label: "Unknown Type",
+                      color: "bg-gray-100 text-gray-800 border-gray-200"
+                    };
                     const TypeIcon = typeConfig.icon;
 
                     return (

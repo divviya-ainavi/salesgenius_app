@@ -44,8 +44,6 @@ class FirefliesService {
       analytics.track('fireflies_fetch_transcripts_failed', {
         error: error.message,
       });
-
-      console.error('Error fetching Fireflies transcripts:', error);
       
       // Return mock data if API is unavailable
       if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
@@ -53,6 +51,7 @@ class FirefliesService {
         return this.getMockTranscripts();
       }
       
+      console.error('Error fetching Fireflies transcripts:', error);
       throw error;
     }
   }
@@ -209,8 +208,6 @@ Next Steps:
         transcript_id: transcriptId,
         error: error.message,
       });
-
-      console.error('Error fetching Fireflies transcript detail:', error);
       
       // Return mock data if API is unavailable
       if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
@@ -218,6 +215,7 @@ Next Steps:
         return this.getMockTranscriptDetail(transcriptId);
       }
       
+      console.error('Error fetching Fireflies transcript detail:', error);
       throw error;
     }
   }
@@ -268,8 +266,6 @@ Next Steps:
       analytics.track('fireflies_sync_failed', {
         error: error.message,
       });
-
-      console.error('Error syncing Fireflies transcripts:', error);
       
       // Return mock sync result if API is unavailable
       if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
@@ -281,6 +277,7 @@ Next Steps:
         };
       }
       
+      console.error('Error syncing Fireflies transcripts:', error);
       throw error;
     }
   }
