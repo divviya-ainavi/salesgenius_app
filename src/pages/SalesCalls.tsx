@@ -1249,7 +1249,7 @@ const SalesCalls = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewTranscript(call)}
-                              trackingName="View Original Transcript"
+                              trackingName="View Transcript"
                               trackingContext={{
                                 call_id: call.id,
                                 company: call.companyName,
@@ -1259,34 +1259,19 @@ const SalesCalls = () => {
                               View Transcript
                             </TrackedButton>
                           )}
-                          {call.hasSummary && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewSummary(call)}
-                              trackingName="View Summary"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View Summary
-                            </TrackedButton>
-                          )}
                           {call.hasTranscript && (
                             <TrackedButton
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDownloadTranscript(call)}
-                              trackingName="Download Transcript"
+                              onClick={() => handleDownloadTranscriptPDF(call)}
+                              trackingName="Download PDF"
                               trackingContext={{
                                 call_id: call.id,
                                 company: call.companyName,
                               }}
                             >
                               <Download className="w-3 h-3 mr-1" />
-                              Download
+                              Download PDF
                             </TrackedButton>
                           )}
                         </div>
