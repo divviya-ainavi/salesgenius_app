@@ -404,6 +404,19 @@ const CallInsights = () => {
     toast.success(`Loaded insights for ${call.companyName} processed call`);
   };
 
+  const handleViewInsights = (call) => {
+    // This function will be called when the "View Insights" button is clicked
+    handleProcessedCallSelect(call);
+    
+    // Scroll to insights section
+    setTimeout(() => {
+      const insightsSection = document.getElementById('insights-section');
+      if (insightsSection) {
+        insightsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   const handleAddInsight = () => {
     if (!newInsight.content.trim()) return;
 
@@ -618,12 +631,11 @@ const CallInsights = () => {
                   <Card
                     key={call.id}
                     className={cn(
-                      "cursor-pointer hover:shadow-md transition-all border-2",
+                      "hover:shadow-md transition-all border-2",
                       selectedProcessedCall?.id === call.id
                         ? "border-primary bg-primary/5 shadow-md"
                         : "border-border hover:border-primary/50"
                     )}
-                    onClick={() => handleProcessedCallSelect(call)}
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
@@ -697,6 +709,18 @@ const CallInsights = () => {
                             {call.summary ? call.summary.substring(0, 100) + '...' : 'No summary available'}
                           </p>
                         </div>
+
+                        {/* View Insights Button */}
+                        <div className="pt-2 border-t border-border">
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleViewInsights(call)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Insights
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -727,7 +751,7 @@ const CallInsights = () => {
 
       {/* Sales Insights Section - Only show when a call is selected */}
       {(selectedProspect || selectedProcessedCall) && (
-        <>
+        <div id="insights-section">
           {/* Selected Call/Prospect Header */}
           <Card>
             <CardHeader>
@@ -1056,7 +1080,7 @@ const CallInsights = () => {
               </CardContent>
             </Card>
           )}
-        </>
+        </div>
       )}
     </div>
   );
