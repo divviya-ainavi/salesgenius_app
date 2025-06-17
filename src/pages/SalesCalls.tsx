@@ -34,6 +34,12 @@ import {
   Copy,
   AlertCircle,
   Loader2,
+  CheckCircle,
+  Star,
+  MessageSquare,
+  Target,
+  Mail,
+  Presentation,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
@@ -58,6 +64,8 @@ const SalesCalls = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isProcessingFileId, setIsProcessingFileId] = useState(null);
+  const [processedCalls, setProcessedCalls] = useState([]);
+  const [isLoadingProcessedCalls, setIsLoadingProcessedCalls] = useState(false);
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -69,6 +77,7 @@ const SalesCalls = () => {
   useEffect(() => {
     loadUploadedFiles();
     loadFirefliesTranscripts();
+    loadProcessedCalls();
 
     // Track page visit
     trackFeatureUsage("sales_calls", "page_visit");
@@ -95,6 +104,85 @@ const SalesCalls = () => {
       setUploadedFiles(data || []);
     } catch (error) {
       console.error("Error loading uploaded files:", error);
+    }
+  };
+
+  const loadProcessedCalls = async () => {
+    setIsLoadingProcessedCalls(true);
+    try {
+      // Get processing history with related data
+      const { data, error } = await supabase
+        .from('processing_history')
+        .select(`
+          *,
+          uploaded_files (
+            id,
+            filename,
+            file_type,
+            file_size,
+            upload_date,
+            content_type,
+            file_content,
+            file_url,
+            storage_path
+          ),
+          call_notes!processing_history_call_notes_id_fkey (
+            id,
+            call_id,
+            ai_summary,
+            edited_summary,
+            status,
+            created_at,
+            transcript_content
+          )
+        `)
+        .eq('user_id', CURRENT_USER.id)
+        .eq('processing_status', 'completed')
+        .order('processing_completed_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Transform the data to match our expected format
+      const transformedCalls = data.map(session => {
+        const file = session.uploaded_files;
+        const callNote = session.call_notes;
+        
+        return {
+          id: session.id,
+          call_id: callNote?.call_id || `Upload ${session.id.slice(-5)}`,
+          callId: callNote?.call_id || `Upload ${session.id.slice(-5)}`,
+          companyName: file?.filename?.replace(/\.[^/.]+$/, "") || "Unknown Company",
+          prospectName: session.api_response?.call_analysis_overview?.specific_user || "AI Processed",
+          date: session.processing_completed_at?.split('T')[0] || session.processing_started_at?.split('T')[0],
+          duration: "N/A",
+          status: "processed",
+          source: "upload",
+          hasInsights: true,
+          hasTranscript: !!callNote?.transcript_content,
+          hasSummary: !!callNote?.ai_summary,
+          transcript: callNote?.transcript_content || "Transcript not available",
+          summary: callNote?.ai_summary || callNote?.edited_summary || "Summary not available",
+          originalFilename: file?.filename,
+          fileSize: file?.file_size,
+          fileType: file?.file_type,
+          processingData: session.api_response,
+          processingSession: session,
+          // Extract insights and other data from api_response
+          actionItems: session.api_response?.action_items || [],
+          followUpEmail: session.api_response?.follow_up_email || "",
+          deckPrompt: session.api_response?.deck_prompt || "",
+          salesInsights: session.api_response?.sales_insights || [],
+          communicationStyles: session.api_response?.communication_styles || [],
+        };
+      });
+
+      setProcessedCalls(transformedCalls);
+    } catch (error) {
+      console.error("Error loading processed calls:", error);
+      toast.error("Failed to load processed calls");
+    } finally {
+      setIsLoadingProcessedCalls(false);
     }
   };
 
@@ -239,7 +327,7 @@ const SalesCalls = () => {
       company: call.companyName,
     });
     setModalTitle(`Call Summary - ${call.companyName}`);
-    setModalContent(call.firefliesSummary);
+    setModalContent(call.firefliesSummary || call.summary);
     setShowSummaryModal(true);
   };
 
@@ -466,6 +554,9 @@ const SalesCalls = () => {
 
         // Remove the processed file from the uploaded files list
         setUploadedFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+        
+        // Refresh the processed calls list
+        await loadProcessedCalls();
 
         // Navigate to Call Insights with the processed data
         navigate("/call-insights", {
@@ -662,49 +753,11 @@ const SalesCalls = () => {
       call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Mock processed calls (keeping existing functionality)
-  const mockProcessedCalls = [
-    {
-      id: "proc_001",
-      call_id: "Call 3",
-      callId: "Call 3",
-      companyName: "Global Solutions Ltd",
-      prospectName: "Emma Wilson",
-      date: "2024-01-10",
-      duration: "35 min",
-      status: "processed",
-      source: "upload",
-      hasInsights: true,
-      transcript: `[00:00] Emma Wilson: We're looking to scale our sales operations significantly this year...
-
-[02:00] Sales Rep: What's driving this need for scaling?
-
-[02:15] Emma Wilson: We've just secured Series B funding and plan to double our sales team by Q3...
-
-[Continue with full transcript...]`,
-    },
-    {
-      id: "proc_002",
-      call_id: "Call 4",
-      callId: "Call 4",
-      companyName: "Innovation Hub",
-      prospectName: "David Brown",
-      date: "2024-01-08",
-      duration: "50 min",
-      status: "processed",
-      source: "fireflies",
-      hasInsights: true,
-      transcript: `[00:00] David Brown: Our current lead qualification process is completely manual and it's killing our productivity...
-
-[Continue with full transcript...]`,
-    },
-  ];
-
-  const filteredProcessedCalls = mockProcessedCalls.filter(
+  const filteredProcessedCalls = processedCalls.filter(
     (call) =>
       call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+      (call.prospectName && call.prospectName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (call.callId && call.callId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const filteredUploadedFiles = uploadedFiles.filter((file) =>
@@ -747,7 +800,10 @@ const SalesCalls = () => {
             <TrackedButton
               variant="outline"
               size="sm"
-              onClick={loadUploadedFiles}
+              onClick={() => {
+                loadUploadedFiles();
+                loadProcessedCalls();
+              }}
               trackingName="Refresh Files"
             >
               <RefreshCw className="w-4 h-4 mr-1" />
@@ -1097,7 +1153,14 @@ const SalesCalls = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredProcessedCalls.length === 0 ? (
+              {isLoadingProcessedCalls ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                  <p className="text-muted-foreground">
+                    Loading processed calls...
+                  </p>
+                </div>
+              ) : filteredProcessedCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No processed calls yet</p>
@@ -1144,46 +1207,93 @@ const SalesCalls = () => {
                               </div>
                               <div className="flex items-center space-x-2">
                                 <Clock className="w-3 h-3" />
-                                <span>Duration: {call.duration}</span>
+                                <span>Processed: {formatDate(call.processingSession?.processing_completed_at || call.date)}</span>
                               </div>
                             </div>
+                          </div>
+                          
+                          {/* Generated Content Indicators */}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {call.actionItems && call.actionItems.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                {call.actionItems.length} Action Items
+                              </Badge>
+                            )}
+                            {call.salesInsights && call.salesInsights.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <Star className="w-3 h-3 mr-1" />
+                                {call.salesInsights.length} Insights
+                              </Badge>
+                            )}
+                            {call.followUpEmail && (
+                              <Badge variant="outline" className="text-xs">
+                                <Mail className="w-3 h-3 mr-1" />
+                                Email Template
+                              </Badge>
+                            )}
+                            {call.deckPrompt && (
+                              <Badge variant="outline" className="text-xs">
+                                <Presentation className="w-3 h-3 mr-1" />
+                                Deck Prompt
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <TrackedButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewTranscript(call)}
-                            trackingName="View Original Transcript"
-                            trackingContext={{
-                              call_id: call.id,
-                              company: call.companyName,
-                            }}
-                          >
-                            <FileText className="w-3 h-3 mr-1" />
-                            View Original Transcript
-                          </TrackedButton>
-                          <TrackedButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadTranscript(call)}
-                            trackingName="Download Transcript PDF"
-                            trackingContext={{
-                              call_id: call.id,
-                              company: call.companyName,
-                            }}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download PDF
-                          </TrackedButton>
+                          {call.hasTranscript && (
+                            <TrackedButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewTranscript(call)}
+                              trackingName="View Original Transcript"
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View Transcript
+                            </TrackedButton>
+                          )}
+                          {call.hasSummary && (
+                            <TrackedButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewSummary(call)}
+                              trackingName="View Summary"
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View Summary
+                            </TrackedButton>
+                          )}
+                          {call.hasTranscript && (
+                            <TrackedButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadTranscript(call)}
+                              trackingName="Download Transcript"
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Download
+                            </TrackedButton>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           {call.hasInsights && (
                             <TrackedButton
-                              variant="outline"
+                              variant="default"
                               onClick={() => {
                                 trackButtonClick("View Insights", {
                                   call_id: call.id,
@@ -1193,7 +1303,8 @@ const SalesCalls = () => {
                                   state: {
                                     selectedCall: call,
                                     source: call.source,
-                                    viewMode: "insights",
+                                    aiProcessedData: call.processingData,
+                                    showAiInsights: true,
                                   },
                                 });
                               }}
