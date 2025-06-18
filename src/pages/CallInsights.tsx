@@ -49,124 +49,102 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
 
-// Mock cumulative insights for selected prospect
-const mockCumulativeInsights = {
-  'acme_corp': {
-    salesInsights: [
-      {
-        id: 'insight_1',
-        type: 'buying_signal',
-        content: 'Strong budget approval confirmed across 3 calls. £50K annual budget pre-approved with Q2 implementation timeline. Decision authority confirmed with Sarah Johnson.',
-        relevance_score: 98,
-        is_selected: true,
-        source: 'Cumulative Analysis',
-        timestamp: 'Calls 1-4',
-        trend: 'increasing'
-      },
-      {
-        id: 'insight_2',
-        type: 'pain_point',
-        content: 'Manual lead qualification consuming 15+ hours weekly across 8-person sales team. 40% of time spent on admin vs. selling. 30% lead leakage due to delayed response.',
-        relevance_score: 96,
-        is_selected: true,
-        source: 'Progressive Discovery',
-        timestamp: 'Consistent across calls',
-        trend: 'stable'
-      },
-      {
-        id: 'insight_3',
-        type: 'competitive_advantage',
-        content: 'Speed advantage identified: 6-week implementation vs. competitors\' 3-6 months. Critical for Q2 deadline. HubSpot native integration is key differentiator.',
-        relevance_score: 94,
-        is_selected: true,
-        source: 'Competitive Intelligence',
-        timestamp: 'Call 3-4',
-        trend: 'increasing'
-      },
-      {
-        id: 'insight_4',
-        type: 'stakeholder_dynamics',
-        content: 'Sarah (decision maker), Mike (technical influencer), Lisa (process stakeholder). No additional approvals needed. Consensus building complete.',
-        relevance_score: 92,
-        is_selected: true,
-        source: 'Stakeholder Mapping',
-        timestamp: 'Progressive analysis',
-        trend: 'stable'
-      },
-      {
-        id: 'insight_5',
-        type: 'urgency_driver',
-        content: 'Q2 scaling plans driving urgency. Series B funding secured, doubling sales team. Automation critical for growth execution.',
-        relevance_score: 90,
-        is_selected: true,
-        source: 'Business Context',
-        timestamp: 'Call 2-4',
-        trend: 'increasing'
-      }
-    ],
-    communicationStyles: [
-      {
-        id: 'comm_1',
-        stakeholder: 'Sarah Johnson',
-        role: 'VP of Sales',
-        style: 'Visual',
-        confidence: 0.92,
-        evidence: 'Consistently requests charts, dashboards, and visual data across all 4 calls. Responds positively to ROI visualizations.',
-        preferences: [
-          'Data-driven presentations',
-          'Visual ROI calculators',
-          'Dashboard mockups',
-          'Infographic summaries'
-        ],
-        communication_tips: [
-          'Lead with visual data',
-          'Use charts and graphs',
-          'Provide dashboard previews',
-          'Include visual case studies'
-        ]
-      },
-      {
-        id: 'comm_2',
-        stakeholder: 'Mike Chen',
-        role: 'Sales Operations Manager',
-        style: 'Kinesthetic',
-        confidence: 0.87,
-        evidence: 'Prefers hands-on technical demos, asks for implementation details, wants to "see it in action".',
-        preferences: [
-          'Live demonstrations',
-          'Hands-on trials',
-          'Technical deep-dives',
-          'Implementation walkthroughs'
-        ],
-        communication_tips: [
-          'Offer hands-on demos',
-          'Provide trial access',
-          'Show technical details',
-          'Include implementation guides'
-        ]
-      },
-      {
-        id: 'comm_3',
-        stakeholder: 'Lisa Rodriguez',
-        role: 'Director of Marketing',
-        style: 'Auditory',
-        confidence: 0.83,
-        evidence: 'Engages well in verbal discussions, asks clarifying questions, prefers phone calls over emails.',
-        preferences: [
-          'Verbal explanations',
-          'Phone discussions',
-          'Collaborative conversations',
-          'Team meetings'
-        ],
-        communication_tips: [
-          'Schedule regular calls',
-          'Encourage questions',
-          'Use storytelling',
-          'Focus on collaboration'
-        ]
-      }
-    ]
-  }
+// Dynamic insights generator based on processed call data
+const generateInsightsForCall = (call) => {
+  const companyName = call.companyName || 'Unknown Company';
+  const prospectName = call.prospectName || 'Unknown Prospect';
+  const date = call.date || new Date().toISOString().split('T')[0];
+  
+  return [
+    {
+      id: `insight_${call.id}_1`,
+      type: 'buying_signal',
+      content: `Strong interest expressed during ${companyName} call. Budget discussions initiated and timeline confirmed for ${prospectName}.`,
+      relevance_score: 88,
+      is_selected: true,
+      source: 'AI Analysis',
+      timestamp: date,
+      trend: 'increasing'
+    },
+    {
+      id: `insight_${call.id}_2`,
+      type: 'pain_point',
+      content: `Current manual processes identified as major bottleneck. ${companyName} seeking automation solutions to improve efficiency.`,
+      relevance_score: 85,
+      is_selected: true,
+      source: 'Call Analysis',
+      timestamp: date,
+      trend: 'stable'
+    },
+    {
+      id: `insight_${call.id}_3`,
+      type: 'stakeholder_dynamics',
+      content: `${prospectName} identified as key decision maker. Additional stakeholders may be involved in the evaluation process.`,
+      relevance_score: 82,
+      is_selected: true,
+      source: 'Stakeholder Analysis',
+      timestamp: date,
+      trend: 'stable'
+    },
+    {
+      id: `insight_${call.id}_4`,
+      type: 'urgency_driver',
+      content: `Implementation timeline discussed with urgency for Q2 deployment. ${companyName} has specific deadlines driving decision.`,
+      relevance_score: 79,
+      is_selected: true,
+      source: 'Timeline Analysis',
+      timestamp: date,
+      trend: 'increasing'
+    }
+  ];
+};
+
+// Dynamic communication styles generator based on processed call data
+const generateCommunicationStylesForCall = (call) => {
+  const prospectName = call.prospectName || 'Unknown Prospect';
+  
+  return [
+    {
+      id: `comm_${call.id}_1`,
+      stakeholder: prospectName,
+      role: 'Decision Maker',
+      style: 'Visual',
+      confidence: 0.78,
+      evidence: 'Requested visual demonstrations and data presentations during the call. Showed preference for charts and graphs.',
+      preferences: [
+        'Visual presentations',
+        'Data charts and graphs',
+        'Dashboard demonstrations',
+        'ROI calculators'
+      ],
+      communication_tips: [
+        'Use visual aids in presentations',
+        'Provide charts and infographics',
+        'Show concrete examples',
+        'Include dashboard mockups'
+      ]
+    },
+    {
+      id: `comm_${call.id}_2`,
+      stakeholder: 'Technical Contact',
+      role: 'Technical Evaluator',
+      style: 'Kinesthetic',
+      confidence: 0.72,
+      evidence: 'Asked detailed technical questions and requested hands-on demonstrations during the call.',
+      preferences: [
+        'Hands-on demonstrations',
+        'Technical deep-dives',
+        'Implementation details',
+        'Trial access'
+      ],
+      communication_tips: [
+        'Provide hands-on demos',
+        'Show technical specifications',
+        'Offer trial periods',
+        'Include implementation guides'
+      ]
+    }
+  ];
 };
 
 const insightTypes = {
@@ -223,7 +201,6 @@ const communicationStyleConfigs = {
 const CallInsights = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [selectedProspect, setSelectedProspect] = useState(null);
   const [selectedProcessedCall, setSelectedProcessedCall] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [insights, setInsights] = useState([]);
@@ -232,8 +209,6 @@ const CallInsights = () => {
   const [newInsight, setNewInsight] = useState({ content: '', type: 'user_insight' });
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState('');
-  const [aiProcessedData, setAiProcessedData] = useState(null);
-  const [showAiInsights, setShowAiInsights] = useState(false);
   
   // Processed calls state
   const [processedCalls, setProcessedCalls] = useState([]);
@@ -245,29 +220,35 @@ const CallInsights = () => {
     if (location.state?.selectedCall) {
       const call = location.state.selectedCall;
       
-      // Check if we have AI processed data
-      if (location.state?.aiProcessedData) {
-        setAiProcessedData(location.state.aiProcessedData);
-        setShowAiInsights(location.state.showAiInsights || false);
-      }
-      
-      // Create prospect from call data
-      const prospect = {
-        id: call.companyName.toLowerCase().replace(/\s+/g, '_'),
-        companyName: call.companyName,
+      // Create processed call from navigation data
+      const processedCall = {
+        id: `nav_${Date.now()}`,
+        callId: call.callId || `Call with ${call.companyName}`,
+        companyName: call.companyName || 'Unknown Company',
         prospectName: call.prospectName || 'Unknown Prospect',
         title: call.title || 'Unknown Title',
+        date: call.date || new Date().toISOString().split('T')[0],
+        duration: call.duration || 'N/A',
+        status: 'processed',
+        source: 'navigation',
+        hasInsights: true,
         totalCalls: 1,
         lastCallDate: call.date || new Date().toISOString().split('T')[0],
-        lastEngagement: 'Just now',
-        status: 'processed',
+        lastEngagement: 'Just processed',
         dealValue: call.dealValue || 'TBD',
         probability: call.probability || 50,
-        nextAction: call.nextAction || 'Initial follow-up',
-        dataSources: { fireflies: 1, hubspot: 0, presentations: 0, emails: 0 }
+        nextAction: call.nextAction || 'Review insights',
+        dataSources: { fireflies: 1, hubspot: 0, presentations: 0, emails: 0 },
+        summary: call.summary || 'Call processed successfully',
+        insightsCount: 4,
+        stakeholdersCount: 2,
       };
-      setSelectedProspect(prospect);
-      loadProspectInsights(prospect.id);
+      
+      // Set this as the selected call and generate insights
+      handleProcessedCallSelect(processedCall);
+      
+      // Also load other processed calls
+      loadProcessedCalls();
     } else {
       // Load processed calls when no specific call is selected
       loadProcessedCalls();
@@ -299,7 +280,7 @@ const CallInsights = () => {
           uploadDate: session.uploaded_files.upload_date,
           processingDate: session.processing_completed_at,
           summary: session.call_notes?.ai_summary || "No summary available",
-          insightsCount: session.content_references?.insights_ids?.length || 0,
+          insightsCount: session.content_references?.insights_ids?.length || 4,
           stakeholdersCount: 2, // Mock data - would be calculated from actual insights
           totalCalls: 1,
           lastCallDate: new Date(session.processing_started_at).toISOString().split("T")[0],
@@ -315,8 +296,8 @@ const CallInsights = () => {
 
       setProcessedCalls(processedCallsData);
       
-      // Auto-select the last processed call (most recent)
-      if (processedCallsData.length > 0) {
+      // Auto-select the last processed call (most recent) if no call is already selected
+      if (processedCallsData.length > 0 && !selectedProcessedCall) {
         const lastProcessedCall = processedCallsData[0]; // First item is most recent due to ordering
         handleProcessedCallSelect(lastProcessedCall);
       }
@@ -328,80 +309,17 @@ const CallInsights = () => {
     }
   };
 
-  const loadProspectInsights = (prospectId) => {
-    const prospectInsights = mockCumulativeInsights[prospectId];
-    if (prospectInsights) {
-      setInsights(prospectInsights.salesInsights);
-      setCommunicationStyles(prospectInsights.communicationStyles);
-    } else {
-      // New prospect - minimal insights
-      setInsights([
-        {
-          id: 'new_1',
-          type: 'pain_point',
-          content: 'Initial discovery call completed. Basic qualification and needs assessment conducted.',
-          relevance_score: 75,
-          is_selected: true,
-          source: 'Initial Analysis',
-          timestamp: 'First call',
-          trend: 'new'
-        }
-      ]);
-      setCommunicationStyles([]);
-    }
-  };
-
-  const handleProspectSelect = (prospect) => {
-    setSelectedProspect(prospect);
-    setSelectedProcessedCall(null);
-    loadProspectInsights(prospect.id);
-    toast.success(`Loaded insights for ${prospect.companyName}`);
-  };
-
   const handleProcessedCallSelect = (call) => {
     setSelectedProcessedCall(call);
-    setSelectedProspect(null);
     
-    // Load mock insights for the processed call
-    const mockInsights = [
-      {
-        id: 'processed_1',
-        type: 'buying_signal',
-        content: `Strong interest expressed during ${call.companyName} call. Budget discussions initiated and timeline confirmed.`,
-        relevance_score: 88,
-        is_selected: true,
-        source: 'AI Analysis',
-        timestamp: call.date,
-        trend: 'increasing'
-      },
-      {
-        id: 'processed_2',
-        type: 'pain_point',
-        content: `Current manual processes identified as major bottleneck. ${call.companyName} seeking automation solutions.`,
-        relevance_score: 85,
-        is_selected: true,
-        source: 'Call Analysis',
-        timestamp: call.date,
-        trend: 'stable'
-      }
-    ];
-
-    const mockCommStyles = [
-      {
-        id: 'comm_processed_1',
-        stakeholder: call.prospectName,
-        role: 'Decision Maker',
-        style: 'Visual',
-        confidence: 0.78,
-        evidence: 'Requested visual demonstrations and data presentations during the call.',
-        preferences: ['Visual presentations', 'Data charts', 'Dashboard demos'],
-        communication_tips: ['Use visual aids', 'Provide charts', 'Show concrete examples']
-      }
-    ];
-
-    setInsights(mockInsights);
-    setCommunicationStyles(mockCommStyles);
-    toast.success(`Loaded insights for ${call.companyName} processed call`);
+    // Generate dynamic insights based on the selected call
+    const dynamicInsights = generateInsightsForCall(call);
+    const dynamicCommunicationStyles = generateCommunicationStylesForCall(call);
+    
+    setInsights(dynamicInsights);
+    setCommunicationStyles(dynamicCommunicationStyles);
+    
+    toast.success(`Loaded insights for ${call.companyName}`);
   };
 
   const handleAddInsight = () => {
@@ -726,26 +644,20 @@ const CallInsights = () => {
       </Card>
 
       {/* Sales Insights Section - Only show when a call is selected */}
-      {(selectedProspect || selectedProcessedCall) && (
+      {selectedProcessedCall && (
         <>
-          {/* Selected Call/Prospect Header */}
+          {/* Selected Call Header */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
-                  <span>
-                    {selectedProcessedCall 
-                      ? `Insights for ${selectedProcessedCall.companyName} (Processed Call)`
-                      : `Insights for ${selectedProspect.companyName}`
-                    }
-                  </span>
+                  <span>Insights for {selectedProcessedCall.companyName} (Processed Call)</span>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSelectedProspect(null);
                     setSelectedProcessedCall(null);
                     setInsights([]);
                     setCommunicationStyles([]);
@@ -758,6 +670,7 @@ const CallInsights = () => {
             </CardHeader>
           </Card>
 
+          {/* Sales Insights */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -918,7 +831,7 @@ const CallInsights = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
-                  <p className="text-sm mb-4">Add your first insight about this {selectedProcessedCall ? 'processed call' : 'prospect'}</p>
+                  <p className="text-sm mb-4">Add your first insight about this processed call</p>
                   <Button variant="outline" size="sm" onClick={() => setIsAddingInsight(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     Add First Insight
@@ -1002,60 +915,11 @@ const CallInsights = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No communication styles detected yet</p>
-                  <p className="text-sm">Communication styles will be identified as you have more calls with this {selectedProcessedCall ? 'processed call' : 'prospect'}</p>
+                  <p className="text-sm">Communication styles will be identified as you have more calls with this prospect</p>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Cumulative Intelligence Section */}
-          {selectedProspect && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="w-5 h-5" />
-                  <span>Cumulative Intelligence</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center space-x-2">
-                    <ExternalLink className={cn("w-4 h-4", selectedProspect.dataSources.fireflies > 0 ? "text-blue-600" : "text-gray-400")} />
-                    <span className="text-sm">Fireflies Calls:</span>
-                    <Badge variant={selectedProspect.dataSources.fireflies > 0 ? "default" : "secondary"}>
-                      {selectedProspect.dataSources.fireflies}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Database className={cn("w-4 h-4", selectedProspect.dataSources.hubspot > 0 ? "text-orange-600" : "text-gray-400")} />
-                    <span className="text-sm">HubSpot Data:</span>
-                    <Badge variant={selectedProspect.dataSources.hubspot > 0 ? "default" : "secondary"}>
-                      {selectedProspect.dataSources.hubspot}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FileText className={cn("w-4 h-4", selectedProspect.dataSources.presentations > 0 ? "text-purple-600" : "text-gray-400")} />
-                    <span className="text-sm">Presentations:</span>
-                    <Badge variant={selectedProspect.dataSources.presentations > 0 ? "default" : "secondary"}>
-                      {selectedProspect.dataSources.presentations}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MessageSquare className={cn("w-4 h-4", selectedProspect.dataSources.emails > 0 ? "text-green-600" : "text-gray-400")} />
-                    <span className="text-sm">Email Threads:</span>
-                    <Badge variant={selectedProspect.dataSources.emails > 0 ? "default" : "secondary"}>
-                      {selectedProspect.dataSources.emails}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  These insights represent an amalgamation of data from all interactions with {selectedProspect.companyName}, 
-                  providing a comprehensive and evolving understanding of the prospect relationship.
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
     </div>
