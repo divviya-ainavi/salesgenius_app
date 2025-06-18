@@ -57,9 +57,9 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 
 // Dynamic insights generator based on processed call data
 const generateInsightsForCall = (call) => {
-  const companyName = call.companyName || "Unknown Company";
-  const prospectName = call.prospectName || "Unknown Prospect";
-  const date = call.date || new Date().toISOString().split("T")[0];
+  // const companyName = call.companyName || "Unknown Company";
+  // const prospectName = call.prospectName || "Unknown Prospect";
+  const date = call?.date || new Date().toISOString().split("T")[0];
 
   return call?.map((x) => ({
     id: x.id,
@@ -275,11 +275,12 @@ const CallInsights = () => {
 
   const handleProcessedCallSelect = (call) => {
     setSelectedProcessedCall(call);
-    console.log(call, "check call");
+    console.log(call?.apiResponse?.sales_insights, "check call");
     // Generate dynamic insights based on the selected call
     const dynamicInsights = generateInsightsForCall(
       call?.apiResponse?.sales_insights
     );
+    console.log(dynamicInsights, "check dynamic insights");
     const dynamicCommunicationStyles = generateCommunicationStylesForCall(
       call,
       call?.apiResponse?.communication_styles
@@ -684,7 +685,7 @@ const CallInsights = () => {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>
-                    Insights for {selectedProcessedCall.companyName} (Processed
+                    Insights for {selectedProcessedCall?.companyName} (Processed
                     Call)
                   </span>
                 </div>
@@ -705,13 +706,14 @@ const CallInsights = () => {
           </Card>
 
           {/* Sales Insights */}
+          {console.log(insights, "check insights")}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>Sales Insights</span>
-                  <Badge variant="secondary">{insights.length} insights</Badge>
+                  <Badge variant="secondary">{insights?.length} insights</Badge>
                 </div>
                 <Button
                   onClick={() => setIsAddingInsight(true)}
@@ -783,8 +785,8 @@ const CallInsights = () => {
               )}
 
               {/* Insights List */}
-              {insights.map((insight, index) => {
-                const typeConfig = insightTypes[insight.type] || {
+              {insights?.map((insight, index) => {
+                const typeConfig = insightTypes[insight?.type] || {
                   icon: Lightbulb,
                   label: "Unknown Type",
                   color: "bg-gray-100 text-gray-800 border-gray-200",
@@ -879,7 +881,7 @@ const CallInsights = () => {
                         />
                       ) : (
                         <p className="text-sm leading-relaxed">
-                          {insight.content}
+                          {insight?.content}
                         </p>
                       )}
                     </div>
@@ -887,7 +889,7 @@ const CallInsights = () => {
                 );
               })}
 
-              {insights.length === 0 && !isAddingInsight && (
+              {insights?.length === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
@@ -914,12 +916,12 @@ const CallInsights = () => {
                 <Users className="w-5 h-5" />
                 <span>Communication Styles Detected</span>
                 <Badge variant="secondary">
-                  {communicationStyles.length} stakeholders
+                  {communicationStyles?.length} stakeholders
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {communicationStyles.length > 0 ? (
+              {communicationStyles?.length > 0 ? (
                 <div className="space-y-6">
                   {communicationStyles.map((stakeholder) => {
                     const styleConfig =
