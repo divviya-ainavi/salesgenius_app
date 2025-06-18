@@ -42,6 +42,43 @@ export const CURRENT_USER = {
   language: 'en'
 }
 
+// Initialize demo authentication
+let isAuthInitialized = false;
+
+const initializeDemoAuth = async () => {
+  if (isAuthInitialized) return;
+  
+  try {
+    // Check if we already have a session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      // Create a demo session by signing in with the demo user
+      // This uses the demo user credentials that should exist in your Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: CURRENT_USER.email,
+        password: 'demo-password-123' // This should match what's in your Supabase Auth
+      });
+
+      if (error) {
+        console.warn('Demo auth failed, using anonymous access:', error.message);
+        // If sign-in fails, we'll continue with anonymous access
+        // The RLS policies should handle the demo user ID specifically
+      } else {
+        console.log('Demo user authenticated successfully');
+      }
+    }
+    
+    isAuthInitialized = true;
+  } catch (error) {
+    console.warn('Error initializing demo auth:', error);
+    isAuthInitialized = true; // Mark as initialized even if failed to prevent retries
+  }
+};
+
+// Initialize demo auth when the module loads
+initializeDemoAuth();
+
 // User management helper functions using the new service
 export const userHelpers = {
   // Get user profile with role and organization info
@@ -272,6 +309,9 @@ export const dbHelpers = {
   // File management functions using centralized file service
   async saveUploadedFile(userId, file, content = null) {
     try {
+      // Ensure demo auth is initialized
+      await initializeDemoAuth();
+      
       // Use centralized file service
       return await fileService.uploadFile(file, {
         userId,
@@ -326,6 +366,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('uploaded_files')
         .select('*')
@@ -347,6 +389,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('uploaded_files')
         .select('*')
@@ -421,6 +465,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('uploaded_files')
         .update(updates)
@@ -448,6 +494,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const fileData = await this.getUploadedFile(fileId)
 
       if (fileData.storage_path) {
@@ -481,6 +529,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('processing_history')
         .insert({
@@ -511,6 +561,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const updateData = {
         ...updates,
         processing_completed_at: updates.processing_status === 'completed' ? new Date().toISOString() : undefined
@@ -544,6 +596,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('processing_history')
         .update({
@@ -579,6 +633,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('processing_history')
         .select(`
@@ -618,6 +674,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data: session, error } = await supabase
         .from('processing_history')
         .select(`
@@ -692,6 +750,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_notes')
         .insert({
@@ -726,6 +786,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_notes')
         .select('*')
@@ -746,6 +808,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_notes')
         .update(updates)
@@ -772,6 +836,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const commitmentRecords = commitments.map((commitment, index) => ({
         call_notes_id: callNotesId,
         user_id: userId,
@@ -810,6 +876,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_commitments')
         .update(updates)
@@ -836,6 +904,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('follow_up_emails')
         .insert({
@@ -868,6 +938,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('follow_up_emails')
         .update(updates)
@@ -894,6 +966,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('deck_prompts')
         .insert({
@@ -926,6 +1000,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('deck_prompts')
         .update(updates)
@@ -952,6 +1028,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const insightRecords = insights.map(insight => ({
         call_notes_id: callNotesId,
         user_id: userId,
@@ -990,6 +1068,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_insights')
         .update(updates)
@@ -1016,6 +1096,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('call_insights')
         .select('*')
@@ -1038,6 +1120,8 @@ export const dbHelpers = {
     const contentIds = {}
 
     try {
+      await initializeDemoAuth();
+      
       analytics.track('complete_call_analysis_started', {
         user_id: userId,
         file_id: fileId,
@@ -1090,9 +1174,12 @@ export const dbHelpers = {
 
       await this.linkContentToSession(processingSessionId, contentIds)
 
-      // ✅ Store full structured response in call_insights
+      // ✅ Store full structured response in call_insights with proper user_id
       await supabase.from('call_insights').insert([{
         call_notes_id: callNote.id,
+        user_id: userId, // Ensure user_id is set for RLS
+        insight_type: 'complete_analysis',
+        content: 'Complete call analysis data',
         company_details: analysisData.company_details,
         prospect_details: analysisData.prospect_details,
         call_summary: analysisData.call_summary,
@@ -1133,6 +1220,8 @@ export const dbHelpers = {
     const contentIds = {}
 
     try {
+      await initializeDemoAuth();
+      
       analytics.track('api_response_storage_started', {
         user_id: userId,
         file_id: fileId,
@@ -1327,6 +1416,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from(table)
         .update(updates)
@@ -1355,6 +1446,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       const { data, error } = await supabase
         .from('processing_history')
         .select('*')
@@ -1374,6 +1467,8 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
+      await initializeDemoAuth();
+      
       // Try using centralized CRM service first
       if (status === 'success') {
         // This would be called after a successful CRM push
