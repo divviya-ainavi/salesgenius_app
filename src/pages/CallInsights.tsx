@@ -50,44 +50,11 @@ import {
   ChevronRight,
   Phone,
   DollarSign,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-
-// Dynamic insights generator based on processed call data
-const generateInsightsForCall = (call) => {
-  // const companyName = call.companyName || "Unknown Company";
-  // const prospectName = call.prospectName || "Unknown Prospect";
-  const date = call?.date || new Date().toISOString().split("T")[0];
-
-  return call?.map((x) => ({
-    id: x.id,
-    type: x?.type,
-    content: x.content,
-    relevance_score: x.relevance_score,
-    is_selected: x.is_selected,
-    source: x.timestamp,
-    timestamp: date,
-    trend: call?.trend,
-  }));
-};
-
-// Dynamic communication styles generator based on processed call data
-const generateCommunicationStylesForCall = (call, communication) => {
-  const prospectName = call.prospectName || "Unknown Prospect";
-
-  return communication?.map((x) => ({
-    id: x.id,
-    stakeholder: prospectName,
-    role: x.role,
-    style: x.style,
-    confidence: x.confidence,
-    evidence: x.evidence,
-    preferences: x.preferences,
-    communication_tips: x.communication_tips,
-  }));
-};
 
 const insightTypes = {
   buying_signal: {
@@ -120,6 +87,11 @@ const insightTypes = {
     label: "Your Insight",
     color: "bg-yellow-100 text-yellow-800 border-yellow-200",
   },
+  communication_style: {
+    icon: MessageSquare,
+    label: "Communication Style",
+    color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  },
 };
 
 const communicationStyleConfigs = {
@@ -137,6 +109,21 @@ const communicationStyleConfigs = {
     icon: Hand,
     color: "bg-purple-100 text-purple-800 border-purple-200",
     description: "Prefers hands-on experiences and practical examples",
+  },
+  collaborative: {
+    icon: Users,
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    description: "Prefers collaborative discussions and team input",
+  },
+  directive: {
+    icon: Target,
+    color: "bg-red-100 text-red-800 border-red-200",
+    description: "Prefers clear direction and structured presentations",
+  },
+  analytical: {
+    icon: Brain,
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+    description: "Prefers data-driven insights and detailed analysis",
   },
 };
 
@@ -194,6 +181,9 @@ const CallInsights = () => {
 
       // Also load other processed calls
       loadProcessedCalls();
+    } else if (location.state?.processingSessionId) {
+      // Handle direct navigation with processing session ID
+      loadProcessedCallBySessionId(location.state.processingSessionId);
     } else {
       // Load processed calls when no specific call is selected
       loadProcessedCalls();
@@ -237,7 +227,7 @@ const CallInsights = () => {
           uploadDate: session.uploaded_files.upload_date,
           processingDate: session.processing_completed_at,
           summary: session.call_notes?.ai_summary || "No summary available",
-          insightsCount: session.content_references?.insights_ids?.length || 4,
+          insightsCount: session.content_references?.insights_ids?.length || 0,
           stakeholdersCount: 2, // Mock data - would be calculated from actual insights
           totalCalls: 1,
           lastCallDate: new Date(session.processing_started_at)
@@ -256,6 +246,7 @@ const CallInsights = () => {
           // Additional metadata
           contentReferences: session.content_references,
           apiResponse: session.api_response,
+          processingSessionId: session.id,
         }));
 
       setProcessedCalls(processedCallsData);
@@ -273,46 +264,135 @@ const CallInsights = () => {
     }
   };
 
-  const handleProcessedCallSelect = (call) => {
-    setSelectedProcessedCall(call);
-    console.log(call?.apiResponse?.sales_insights, "check call");
-    // Generate dynamic insights based on the selected call
-    const dynamicInsights = generateInsightsForCall(
-      call?.apiResponse?.sales_insights
-    );
-    console.log(dynamicInsights, "check dynamic insights");
-    const dynamicCommunicationStyles = generateCommunicationStylesForCall(
-      call,
-      call?.apiResponse?.communication_styles
-    );
+  const loadProcessedCallBySessionId = async (sessionId) => {
+    setIsLoadingProcessedCalls(true);
+    try {
+      const sessionDetails = await dbHelpers.getProcessingSessionDetails(sessionId);
+      
+      if (sessionDetails) {
+        const processedCall = {
+          id: sessionDetails.id,
+          callId: `Upload ${sessionDetails.uploaded_files.filename}`,
+          companyName: sessionDetails.uploaded_files.filename.replace(/\.[^/.]+$/, "") || "Unknown Company",
+          prospectName: sessionDetails.call_notes?.ai_summary ? "AI Processed" : "Unknown Prospect",
+          title: "Unknown Title",
+          date: new Date(sessionDetails.processing_started_at).toISOString().split("T")[0],
+          duration: "N/A",
+          status: "processed",
+          source: "upload",
+          hasInsights: true,
+          originalFilename: sessionDetails.uploaded_files.filename,
+          fileSize: sessionDetails.uploaded_files.file_size,
+          uploadDate: sessionDetails.uploaded_files.upload_date,
+          processingDate: sessionDetails.processing_completed_at,
+          summary: sessionDetails.call_notes?.ai_summary || "No summary available",
+          insightsCount: sessionDetails.content_references?.insights_ids?.length || 0,
+          stakeholdersCount: 2,
+          totalCalls: 1,
+          lastCallDate: new Date(sessionDetails.processing_started_at).toISOString().split("T")[0],
+          lastEngagement: "Processed",
+          dealValue: "TBD",
+          probability: 50,
+          nextAction: "Review insights",
+          dataSources: { fireflies: 0, hubspot: 0, presentations: 0, emails: 0 },
+          contentReferences: sessionDetails.content_references,
+          apiResponse: sessionDetails.api_response,
+          processingSessionId: sessionDetails.id,
+        };
 
-    setInsights(dynamicInsights);
-    setCommunicationStyles(dynamicCommunicationStyles);
-
-    toast.success(`Loaded insights for ${call.companyName}`);
+        // Load this specific call and its insights
+        await handleProcessedCallSelect(processedCall);
+        
+        // Also load other processed calls for the sidebar
+        await loadProcessedCalls();
+      }
+    } catch (error) {
+      console.error("Error loading processed call by session ID:", error);
+      toast.error("Failed to load processed call");
+      // Fallback to loading all processed calls
+      await loadProcessedCalls();
+    } finally {
+      setIsLoadingProcessedCalls(false);
+    }
   };
 
-  const handleAddInsight = () => {
-    if (!newInsight.content.trim()) return;
+  const handleProcessedCallSelect = async (call) => {
+    setSelectedProcessedCall(call);
+    
+    try {
+      // Load insights and communication styles from database
+      if (call.processingSessionId) {
+        const { salesInsights, communicationStyles: commStyles } = await dbHelpers.getInsightsForSession(call.processingSessionId);
+        
+        setInsights(salesInsights || []);
+        setCommunicationStyles(commStyles || []);
+        
+        toast.success(`Loaded ${salesInsights?.length || 0} insights and ${commStyles?.length || 0} communication styles for ${call.companyName}`);
+      } else {
+        // Fallback to API response data if available
+        const dynamicInsights = call?.apiResponse?.sales_insights || [];
+        const dynamicCommunicationStyles = call?.apiResponse?.communication_styles || [];
 
-    const insight = {
-      id: Date.now().toString(),
-      type: newInsight.type,
-      content: newInsight.content.trim(),
-      relevance_score: 85,
-      is_selected: true,
-      source: "User Input",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      trend: "new",
-    };
+        setInsights(dynamicInsights);
+        setCommunicationStyles(dynamicCommunicationStyles);
+        
+        toast.success(`Loaded insights for ${call.companyName}`);
+      }
+    } catch (error) {
+      console.error("Error loading insights for call:", error);
+      toast.error("Failed to load insights for this call");
+      
+      // Set empty arrays as fallback
+      setInsights([]);
+      setCommunicationStyles([]);
+    }
+  };
 
-    setInsights((prev) => [insight, ...prev]);
-    setNewInsight({ content: "", type: "user_insight" });
-    setIsAddingInsight(false);
-    toast.success("Insight added successfully");
+  const handleAddInsight = async () => {
+    if (!newInsight.content.trim() || !selectedProcessedCall) return;
+
+    try {
+      // Get the call notes ID from the selected call
+      const callNotesId = selectedProcessedCall.contentReferences?.call_notes_id;
+      
+      if (!callNotesId) {
+        toast.error("Cannot add insight: No call notes found");
+        return;
+      }
+
+      // Create new insight in database
+      const insightData = [{
+        type: newInsight.type,
+        content: newInsight.content.trim(),
+        relevance_score: 85,
+        is_selected: true,
+        source: "User Input",
+        timestamp: new Date().toISOString()
+      }];
+
+      const createdInsights = await dbHelpers.saveCallInsights(
+        callNotesId,
+        CURRENT_USER.id,
+        insightData,
+        selectedProcessedCall.processingSessionId
+      );
+
+      // Add to local state
+      const newInsightWithId = {
+        ...createdInsights[0],
+        id: createdInsights[0].id,
+        insight_type: newInsight.type,
+        trend: "new",
+      };
+
+      setInsights((prev) => [newInsightWithId, ...prev]);
+      setNewInsight({ content: "", type: "user_insight" });
+      setIsAddingInsight(false);
+      toast.success("Insight added successfully");
+    } catch (error) {
+      console.error("Error adding insight:", error);
+      toast.error("Failed to add insight");
+    }
   };
 
   const handleEditInsight = (insightId) => {
@@ -321,17 +401,28 @@ const CallInsights = () => {
     setEditContent(insight.content);
   };
 
-  const handleSaveEdit = () => {
-    setInsights((prev) =>
-      prev.map((insight) =>
-        insight.id === editingId
-          ? { ...insight, content: editContent }
-          : insight
-      )
-    );
-    setEditingId(null);
-    setEditContent("");
-    toast.success("Insight updated");
+  const handleSaveEdit = async () => {
+    try {
+      // Update insight in database
+      await dbHelpers.updateCallInsight(editingId, {
+        content: editContent
+      });
+
+      // Update local state
+      setInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === editingId
+            ? { ...insight, content: editContent }
+            : insight
+        )
+      );
+      setEditingId(null);
+      setEditContent("");
+      toast.success("Insight updated");
+    } catch (error) {
+      console.error("Error updating insight:", error);
+      toast.error("Failed to update insight");
+    }
   };
 
   const handleMoveInsight = (insightId, direction) => {
@@ -355,9 +446,18 @@ const CallInsights = () => {
     }
   };
 
-  const handleDeleteInsight = (insightId) => {
-    setInsights((prev) => prev.filter((insight) => insight.id !== insightId));
-    toast.success("Insight removed");
+  const handleDeleteInsight = async (insightId) => {
+    try {
+      // Delete from database
+      await dbHelpers.deleteCallInsight(insightId);
+
+      // Remove from local state
+      setInsights((prev) => prev.filter((insight) => insight.id !== insightId));
+      toast.success("Insight removed");
+    } catch (error) {
+      console.error("Error deleting insight:", error);
+      toast.error("Failed to delete insight");
+    }
   };
 
   const handleNavigateBack = () => {
@@ -367,6 +467,53 @@ const CallInsights = () => {
   const handleRefreshProcessedCalls = () => {
     loadProcessedCalls();
     toast.success("Processed calls refreshed");
+  };
+
+  const handleViewTranscript = async () => {
+    if (!selectedProcessedCall) return;
+
+    try {
+      // Get the file content from the uploaded file
+      const fileId = selectedProcessedCall.contentReferences?.file_id || 
+                   selectedProcessedCall.apiResponse?.file_id;
+      
+      if (fileId) {
+        const fileContent = await dbHelpers.getFileContent(fileId);
+        
+        if (fileContent) {
+          // Open transcript in a new window or modal
+          const newWindow = window.open('', '_blank');
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>Transcript - ${selectedProcessedCall.companyName}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+                  .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+                  .content { white-space: pre-wrap; }
+                </style>
+              </head>
+              <body>
+                <div class="header">
+                  <h1>Transcript: ${selectedProcessedCall.companyName}</h1>
+                  <p><strong>File:</strong> ${selectedProcessedCall.originalFilename}</p>
+                  <p><strong>Processed:</strong> ${selectedProcessedCall.processingDate}</p>
+                </div>
+                <div class="content">${fileContent}</div>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        } else {
+          toast.error("No transcript content available");
+        }
+      } else {
+        toast.error("No file associated with this call");
+      }
+    } catch (error) {
+      console.error("Error viewing transcript:", error);
+      toast.error("Failed to load transcript");
+    }
   };
 
   const filteredProcessedCalls = processedCalls.filter(
@@ -689,31 +836,40 @@ const CallInsights = () => {
                     Call)
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProcessedCall(null);
-                    setInsights([]);
-                    setCommunicationStyles([]);
-                  }}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" />
-                  Back to Selection
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleViewTranscript}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    View Transcript
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProcessedCall(null);
+                      setInsights([]);
+                      setCommunicationStyles([]);
+                    }}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    Back to Selection
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
           </Card>
 
           {/* Sales Insights */}
-          {console.log(insights, "check insights")}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>Sales Insights</span>
-                  <Badge variant="secondary">{insights?.length} insights</Badge>
+                  <Badge variant="secondary">{insights?.length || 0} insights</Badge>
                 </div>
                 <Button
                   onClick={() => setIsAddingInsight(true)}
@@ -786,7 +942,7 @@ const CallInsights = () => {
 
               {/* Insights List */}
               {insights?.map((insight, index) => {
-                const typeConfig = insightTypes[insight?.type] || {
+                const typeConfig = insightTypes[insight?.insight_type || insight?.type] || {
                   icon: Lightbulb,
                   label: "Unknown Type",
                   color: "bg-gray-100 text-gray-800 border-gray-200",
@@ -865,7 +1021,7 @@ const CallInsights = () => {
                               onClick={() => handleDeleteInsight(insight.id)}
                               className="text-destructive hover:text-destructive"
                             >
-                              <X className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </>
                         )}
@@ -916,21 +1072,24 @@ const CallInsights = () => {
                 <Users className="w-5 h-5" />
                 <span>Communication Styles Detected</span>
                 <Badge variant="secondary">
-                  {communicationStyles?.length} stakeholders
+                  {communicationStyles?.length || 0} stakeholders
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {communicationStyles?.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles.map((stakeholder) => {
-                    const styleConfig =
-                      communicationStyleConfigs[stakeholder?.style];
-                    // const StyleIcon = styleConfig.icon;
+                  {communicationStyles.map((stakeholder, index) => {
+                    const styleConfig = communicationStyleConfigs[stakeholder?.style] || {
+                      icon: MessageSquare,
+                      color: "bg-gray-100 text-gray-800 border-gray-200",
+                      description: "Unknown communication style"
+                    };
+                    const StyleIcon = styleConfig.icon;
 
                     return (
                       <div
-                        key={stakeholder.id}
+                        key={index}
                         className="border rounded-lg p-4"
                       >
                         <div className="flex items-start justify-between mb-4">
@@ -945,13 +1104,13 @@ const CallInsights = () => {
                           <div className="flex items-center space-x-2">
                             <Badge
                               variant="outline"
-                              // className={cn("text-xs", styleConfig.color)}
+                              className={cn("text-xs", styleConfig.color)}
                             >
-                              {/* <StyleIcon className="w-3 h-3 mr-1" /> */}
+                              <StyleIcon className="w-3 h-3 mr-1" />
                               {stakeholder.style}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {Math.round(stakeholder.confidence * 100)}%
+                              {Math.round((stakeholder.confidence || 0.5) * 100)}%
                               confidence
                             </Badge>
                           </div>
@@ -973,7 +1132,7 @@ const CallInsights = () => {
                                 Preferences
                               </h4>
                               <ul className="text-sm text-muted-foreground space-y-1">
-                                {stakeholder.preferences.map((pref, index) => (
+                                {(stakeholder.preferences || []).map((pref, index) => (
                                   <li
                                     key={index}
                                     className="flex items-start space-x-2"
@@ -990,7 +1149,7 @@ const CallInsights = () => {
                                 Communication Tips
                               </h4>
                               <ul className="text-sm text-muted-foreground space-y-1">
-                                {stakeholder.communication_tips.map(
+                                {(stakeholder.communication_tips || []).map(
                                   (tip, index) => (
                                     <li
                                       key={index}

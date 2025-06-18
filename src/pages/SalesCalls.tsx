@@ -1,197 +1,126 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrackedButton } from "@/components/ui/tracked-button";
-import {
-  Upload,
-  FileText,
-  Eye,
-  Download,
-  Search,
-  Calendar,
-  User,
-  Building,
-  Phone,
-  Clock,
-  Filter,
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Upload, 
+  FileText, 
+  Phone, 
+  Calendar, 
+  Clock, 
+  Users, 
+  TrendingUp,
+  Sparkles,
   RefreshCw,
   ExternalLink,
+  Search,
+  Filter,
+  Download,
   Play,
   Pause,
-  Volume2,
-  FileIcon,
-  Plus,
-  ArrowRight,
-  Copy,
+  Eye,
+  BarChart3,
+  Target,
+  CheckCircle,
   AlertCircle,
   Loader2,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import { useAnalytics } from "@/hooks/useAnalytics";
-import firefliesService from "@/services/firefliesService";
+  ArrowRight,
+  Building,
+  User,
+  MessageSquare,
+  FileAudio,
+  Video,
+  Mic,
+  Headphones,
+  Database,
+  Zap,
+  Brain,
+  Star,
+  ChevronRight,
+  Plus,
+  Settings,
+  Info
+} from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
+import firefliesService from '@/services/firefliesService';
+
+// Mock data for demonstration
+const mockFirefliesData = [
+  {
+    id: 'ff_001',
+    callId: 'Demo Call - TechCorp',
+    companyName: 'TechCorp Solutions',
+    prospectName: 'Sarah Johnson',
+    date: '2024-01-15',
+    duration: '45 min',
+    status: 'completed',
+    hasTranscript: true,
+    hasSummary: true,
+    participants: ['sarah.johnson@techcorp.com', 'mike.chen@techcorp.com'],
+    meeting_link: 'https://zoom.us/j/123456789',
+    organizer_email: 'sales@company.com',
+  },
+  {
+    id: 'ff_002',
+    callId: 'Follow-up Call - InnovateLabs',
+    companyName: 'InnovateLabs Inc',
+    prospectName: 'David Brown',
+    date: '2024-01-12',
+    duration: '30 min',
+    status: 'completed',
+    hasTranscript: true,
+    hasSummary: true,
+    participants: ['david.brown@innovatelabs.com'],
+    meeting_link: 'https://meet.google.com/abc-defg-hij',
+    organizer_email: 'sales@company.com',
+  }
+];
 
 const SalesCalls = () => {
   const navigate = useNavigate();
-  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
-    useAnalytics();
-  const [activeTab, setActiveTab] = useState("upload");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCall, setSelectedCall] = useState(null);
-  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [modalContent, setModalContent] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState('upload');
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isProcessingFileId, setIsProcessingFileId] = useState(null);
-  const [processedCalls, setProcessedCalls] = useState([]);
-  const [currentCall, setCurrentCall] = useState(null);
-
-  // Fireflies state
-  const [firefliesCalls, setFirefliesCalls] = useState([]);
+  const [firefliesData, setFirefliesData] = useState([]);
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
-  const [firefliesError, setFirefliesError] = useState(null);
-  const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState({});
 
-  // Load uploaded files, processed calls, and Fireflies data on component mount
+  // Load uploaded files on component mount
   useEffect(() => {
     loadUploadedFiles();
-    loadProcessedCalls();
-    loadFirefliesTranscripts();
-
-    // Track page visit
-    trackFeatureUsage("sales_calls", "page_visit");
+    loadFirefliesData();
   }, []);
-
-  // Track tab changes
-  useEffect(() => {
-    trackFeatureUsage("sales_calls", "tab_change", { tab: activeTab });
-  }, [activeTab]);
 
   const loadUploadedFiles = async () => {
     try {
       const files = await dbHelpers.getUploadedFiles(CURRENT_USER.id, 20);
-      // Only show unprocessed files in recent uploads
-      const unprocessedFiles = files.filter((file) => !file.is_processed);
-      setUploadedFiles(unprocessedFiles);
+      setUploadedFiles(files);
     } catch (error) {
-      console.error("Error loading uploaded files:", error);
+      console.error('Error loading uploaded files:', error);
+      toast.error('Failed to load uploaded files');
     }
   };
 
-  const loadProcessedCalls = async () => {
-    try {
-      // Get processing history with related data
-      const processingHistory = await dbHelpers.getProcessingHistory(
-        CURRENT_USER.id,
-        20
-      );
-
-      // Transform processing history into processed calls format
-      const processedCallsData = processingHistory
-        .filter(
-          (session) =>
-            session.processing_status === "completed" && session.uploaded_files
-        )
-        .map((session) => ({
-          id: session.id,
-          callId: `Upload ${session.uploaded_files.filename}`,
-          companyName:
-            session.uploaded_files.filename.replace(/\.[^/.]+$/, "") ||
-            "Unknown Company",
-          prospectName: session.call_notes?.ai_summary
-            ? "AI Processed"
-            : "Unknown Prospect",
-          date: new Date(session.processing_started_at)
-            .toISOString()
-            .split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          transcript:
-            session.uploaded_files.file_content || "Transcript not available",
-          originalFilename: session.uploaded_files.filename,
-          fileSize: session.uploaded_files.file_size,
-          uploadDate: session.uploaded_files.upload_date,
-          processingDate: session.processing_completed_at,
-          summary: session.call_notes?.ai_summary || "No summary available",
-          // Additional metadata
-          contentReferences: session.content_references,
-          apiResponse: session.api_response,
-        }));
-
-      setProcessedCalls(processedCallsData);
-    } catch (error) {
-      console.error("Error loading processed calls:", error);
-    }
-  };
-
-  const loadFirefliesTranscripts = async () => {
+  const loadFirefliesData = async () => {
     setIsLoadingFireflies(true);
-    setFirefliesError(null);
-
     try {
-      trackFeatureUsage("fireflies", "fetch_transcripts");
-
-      // Get transcripts from Fireflies service
-      // This will return mock data if the API is unavailable
-      const transcripts = await firefliesService.getTranscripts({
-        limit: 50,
-      });
-
-      setFirefliesCalls(transcripts);
-      setLastFirefliesSync(new Date());
-
-      trackFeatureUsage("fireflies", "fetch_transcripts_success", {
-        transcripts_count: transcripts.length,
-      });
+      const data = await firefliesService.getTranscripts();
+      setFirefliesData(data);
     } catch (error) {
-      console.error("Error loading Fireflies transcripts:", error);
-      setFirefliesError(error.message);
-
-      trackFeatureUsage("fireflies", "fetch_transcripts_error", {
-        error: error.message,
-      });
-
-      // Show user-friendly error message
-      toast.error("Failed to load Fireflies transcripts. Please try again.");
-    } finally {
-      setIsLoadingFireflies(false);
-    }
-  };
-
-  const handleSyncFireflies = async () => {
-    setIsLoadingFireflies(true);
-
-    try {
-      trackButtonClick("Sync Fireflies");
-
-      await firefliesService.syncTranscripts({
-        forceRefresh: true,
-      });
-
-      // Reload transcripts after sync
-      await loadFirefliesTranscripts();
-
-      toast.success("Fireflies transcripts synced successfully!");
-    } catch (error) {
-      console.error("Error syncing Fireflies:", error);
-      toast.error("Failed to sync Fireflies transcripts. Please try again.");
+      console.error('Error loading Fireflies data:', error);
+      // Use mock data as fallback
+      setFirefliesData(mockFirefliesData);
+      toast.info('Using demo Fireflies data');
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -199,1024 +128,612 @@ const SalesCalls = () => {
 
   // File upload handling
   const onDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
-
-    setIsUploading(true);
     const file = acceptedFiles[0];
+    if (!file) return;
 
     try {
-      // Track file upload start
-      trackFileUpload(file.name, file.size, file.type, "started");
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      setSelectedFile(file);
 
-      // Validate file type
-      const validTypes = ["text/plain", "text/vtt", "application/pdf"];
-      const validExtensions = [".txt", ".vtt", ".pdf"];
-      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setProcessingProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 500);
 
-      if (
-        !validTypes.includes(file.type) &&
-        !validExtensions.includes(fileExtension)
-      ) {
-        toast.error("Please upload only .txt, .vtt, or .pdf files");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
-      }
+      // Step 1: Upload file to database
+      toast.info('Uploading file...');
+      const uploadedFile = await dbHelpers.saveUploadedFile(CURRENT_USER.id, file);
+      
+      // Step 2: Create processing session
+      const processingSession = await dbHelpers.createProcessingSession(CURRENT_USER.id, uploadedFile.id);
+      
+      // Step 3: Simulate AI processing (replace with actual API call)
+      toast.info('Processing with AI...');
+      
+      // Mock API response - replace with actual API call
+      const mockApiResponse = {
+        "deck_prompt": "Create a slide outlining the integration process and objection handling strategies discussed in the meeting.",
+        "action_items": [
+          {
+            "task": "Resolve integration & compliance concerns",
+            "owner": null,
+            "deadline": null,
+            "priority": "high"
+          },
+          {
+            "task": "Clarify objection on licensing model",
+            "owner": null,
+            "deadline": null,
+            "priority": "high"
+          },
+          {
+            "task": "Complete proof-of-concept deployment",
+            "owner": null,
+            "deadline": null,
+            "priority": "high"
+          }
+        ],
+        "call_summary": "The meeting focused on discussing technical integration, addressing objections, and exploring setup processes. Participants shared frustrations regarding current workflows and the potential for automation to save time. Key concerns included scaling solutions across multiple sales pods and ensuring effective tagging of insights.",
+        "error_message": null,
+        "sales_insights": [
+          {
+            "id": "si-1",
+            "type": "pain_point",
+            "trend": null,
+            "source": "Call Transcript",
+            "content": "We've had some frustrations with our CRM and post-call documentation lately.",
+            "timestamp": "14:01:00",
+            "is_selected": true,
+            "relevance_score": 85
+          },
+          {
+            "id": "si-2",
+            "type": "buying_signal",
+            "trend": null,
+            "source": "Call Transcript",
+            "content": "That would save hours each week.",
+            "timestamp": "14:05:30",
+            "is_selected": true,
+            "relevance_score": 90
+          },
+          {
+            "id": "si-3",
+            "type": "user_insight",
+            "trend": null,
+            "source": "Call Transcript",
+            "content": "Can we restrict push rights by role?",
+            "timestamp": "14:15:00",
+            "is_selected": true,
+            "relevance_score": 80
+          }
+        ],
+        "company_details": [],
+        "follow_up_email": "Hi Rachel,\\n\\nThank you for the insightful discussion today on integration and objection handling. I appreciate your input regarding the potential benefits for your SDRs and the challenges you've faced with your current workflows. I will summarize our action items and send follow-ups shortly.\\n\\nBest,\\nJames",
+        "prospect_details": [
+          {
+            "name": "Rachel",
+            "title": "CIO",
+            "company": null
+          },
+          {
+            "name": "James",
+            "title": "AE",
+            "company": null
+          },
+          {
+            "name": "Derek",
+            "title": "SalesLead Solutions Engineer",
+            "company": null
+          }
+        ],
+        "processing_status": "completed",
+        "communication_styles": [
+          {
+            "id": "cs-1",
+            "role": "CIO",
+            "style": "collaborative",
+            "evidence": "That could really help our SDRs.",
+            "confidence": 0.85,
+            "preferences": [
+              "interactivity",
+              "problem-solving"
+            ],
+            "stakeholder": "Rachel",
+            "communication_tips": [
+              "Encourage questions",
+              "Provide clear examples"
+            ]
+          },
+          {
+            "id": "cs-2",
+            "role": "AE",
+            "style": "directive",
+            "evidence": "Let me show how SalesGenius handles that.",
+            "confidence": 0.8,
+            "preferences": [
+              "structured presentations",
+              "clear instructions"
+            ],
+            "stakeholder": "James",
+            "communication_tips": [
+              "Be concise",
+              "Summarize key points"
+            ]
+          },
+          {
+            "id": "cs-3",
+            "role": "SalesLead Solutions Engineer",
+            "style": "analytical",
+            "evidence": "Could this be scaled across 5 sales pods?",
+            "confidence": 0.75,
+            "preferences": [
+              "data-driven insights",
+              "detailed explanations"
+            ],
+            "stakeholder": "Derek",
+            "communication_tips": [
+              "Use metrics",
+              "Encourage feedback"
+            ]
+          }
+        ],
+        "call_analysis_overview": {
+          "key_points": [
+            "Discussion on technical integration",
+            "Concerns over current workflows",
+            "Potential to save time with automation"
+          ],
+          "error_message": null,
+          "specific_user": "Rachel",
+          "sentiment_score": 0.75,
+          "processing_status": "completed"
+        },
+        "extracted_transcript": `[00:00] Rachel: Hi everyone, thanks for joining today's call about our CRM integration needs.
 
-      if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
-        toast.error("File size must be less than 10MB");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
-      }
+[00:30] James: Thanks for having us, Rachel. I'm excited to show you how SalesGenius can help streamline your post-call documentation process.
 
-      // For text files, read content for database storage
-      let content = "";
-      const isPDF =
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf");
+[01:00] Derek: Before we dive in, could you tell us about your current workflow challenges?
 
-      if (!isPDF) {
-        content = await file.text();
-        // Clean null characters that cause Unicode escape sequence errors
-        content = content.replace(/\u0000/g, "");
-      } else {
-        content = `PDF file: ${file.name} (${file.size} bytes)`;
-      }
+[01:15] Rachel: We've had some frustrations with our CRM and post-call documentation lately. Our SDRs are spending way too much time on manual data entry.
 
-      // Save uploaded file to database with shareable link
-      const savedFile = await dbHelpers.saveUploadedFile(
+[02:00] James: That's exactly what we help solve. Let me show you our automated insights feature.
+
+[02:30] Rachel: That could really help our SDRs. How does the integration work with our existing systems?
+
+[03:00] Derek: Could this be scaled across 5 sales pods? We have different teams with different processes.
+
+[03:30] James: Absolutely. Let me show how SalesGenius handles that with role-based permissions.
+
+[04:00] Rachel: Can we restrict push rights by role? We need to maintain data governance.
+
+[04:30] James: Yes, that's built into our platform. You can set granular permissions for each role.
+
+[05:00] Rachel: That would save hours each week. What's the implementation timeline?
+
+[05:30] Derek: We'd need to complete a proof-of-concept deployment first to validate the integration.
+
+[06:00] James: I can help coordinate that. Let me also clarify any objections about our licensing model.
+
+[06:30] Rachel: We do have some concerns about compliance and how this integrates with our existing security protocols.
+
+[07:00] James: I'll make sure to resolve those integration & compliance concerns in our follow-up documentation.
+
+[End of transcript]`
+      };
+
+      // Step 4: Store API response in database
+      await dbHelpers.storeApiResponseData(
         CURRENT_USER.id,
-        file,
-        content
+        uploadedFile.id,
+        processingSession.id,
+        mockApiResponse
       );
 
-      toast.success("File uploaded successfully!");
-      trackFileUpload(file.name, file.size, file.type, "completed");
-      await loadUploadedFiles(); // Refresh the list
+      clearInterval(progressInterval);
+      setProcessingProgress(100);
 
-      // Automatically process the file after upload
-      await handleProcessFile(savedFile);
+      // Step 5: Update UI and navigate
+      await loadUploadedFiles();
+      toast.success('File processed successfully!');
+      
+      // Navigate to Call Insights with the processing session ID
+      setTimeout(() => {
+        navigate('/call-insights', {
+          state: {
+            processingSessionId: processingSession.id,
+            selectedCall: {
+              companyName: file.name.replace(/\.[^/.]+$/, ''),
+              prospectName: 'AI Processed',
+              callId: `Upload ${file.name}`,
+              date: new Date().toISOString().split('T')[0],
+              summary: mockApiResponse.call_summary
+            }
+          }
+        });
+      }, 1000);
+
     } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error(`Failed to upload file: ${error.message}`);
-      trackFileUpload(file.name, file.size, file.type, "failed");
+      console.error('Error processing file:', error);
+      toast.error('Failed to process file');
     } finally {
-      setIsUploading(false);
+      setIsProcessing(false);
+      setProcessingProgress(0);
+      setSelectedFile(null);
     }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "text/plain": [".txt"],
-      "text/vtt": [".vtt"],
-      "application/pdf": [".pdf"],
+      'text/plain': ['.txt'],
+      'text/vtt': ['.vtt'],
+      'application/pdf': ['.pdf'],
+      'audio/*': ['.mp3', '.wav', '.m4a'],
+      'video/*': ['.mp4', '.mov', '.avi']
     },
     maxFiles: 1,
-    disabled: isUploading,
+    disabled: isProcessing
   });
 
-  const handleViewSummary = (call) => {
-    trackButtonClick("View Summary", {
-      call_id: call.id,
-      company: call.companyName,
-    });
-    setModalTitle(`Call Summary - ${call.companyName}`);
-    setModalContent(call.firefliesSummary);
-    setShowSummaryModal(true);
-  };
-
-  // const handleViewTranscript = (call) => {
-  //   trackButtonClick("View Transcript", {
-  //     call_id: call.id,
-  //     company: call.companyName,
-  //   });
-  //   setModalTitle(`Full Transcript - ${call.companyName}`);
-  //   setModalContent(call.transcript);
-  //   setShowTranscriptModal(true);
-  // };
-
-  const handleViewTranscript = async (call) => {
-    setCurrentCall(call);
-    setModalTitle(`Full Transcript - ${call.companyName}`);
-
-    try {
-      // For processed calls, check if it's a PDF file
-      if (call.source === "upload" && call.contentType === "application/pdf") {
-        // For PDF files, show a message and provide download option
-        setModalContent(`PDF file: ${call.originalFilename} (${Math.round(
-          call.fileSize / 1024
-        )} KB)
-
-This is a PDF file that cannot be displayed as text. Please use the "Download PDF" button to view the original file, or the "PDF" button below to download it directly.
-
-File details:
-- Original filename: ${call.originalFilename}
-- File size: ${Math.round(call.fileSize / 1024)} KB
-- Upload date: ${formatDate(call.uploadDate)}
-- Processing date: ${formatDate(call.processingDate)}`);
-      } else {
-        // For text files or Fireflies calls, show the transcript content
-        setModalContent(call.transcript || "Transcript not available");
-      }
-    } catch (error) {
-      console.error("Error loading transcript:", error);
-      setModalContent("Error loading transcript content");
-    }
-
-    setShowTranscriptModal(true);
-
-    trackButtonClick("View Transcript", {
-      call_id: call.id,
-      company: call.companyName,
-      source: call.source,
-      content_type: call.contentType || "text",
-    });
-  };
-
-  const handleCopyTranscript = () => {
-    navigator.clipboard.writeText(modalContent);
-    toast.success("Transcript copied to clipboard");
-    trackButtonClick("Copy Transcript");
-  };
-
-  const handleDownloadTranscriptPDF = (call) => {
-    try {
-      const doc = new jsPDF();
-
-      // Set up the document
-      doc.setFontSize(16);
-      doc.text("Call Transcript", 20, 20);
-
-      doc.setFontSize(12);
-      doc.text(`Company: ${call.companyName}`, 20, 35);
-      doc.text(`Call ID: ${call.callId}`, 20, 45);
-      doc.text(`Date: ${call.date}`, 20, 55);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 65);
-
-      // Add the transcript content
-      doc.setFontSize(10);
-      const splitText = doc.splitTextToSize(call.transcript, 170);
-      doc.text(splitText, 20, 80);
-
-      // Save the PDF
-      const filename = `${call.companyName}_${call.callId}_transcript.pdf`
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-      doc.save(filename);
-
-      toast.success("PDF downloaded successfully");
-      trackButtonClick("Download PDF", {
-        content_type: "transcript",
-        call_id: call.id,
-        company: call.companyName,
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF");
-    }
-  };
-
-  const handleDownloadTranscript = (call) => {
-    const blob = new Blob([call.transcript], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${call.companyName}_${call.callId}_transcript.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Transcript downloaded");
-    trackButtonClick("Download Transcript", {
-      call_id: call.id,
-      company: call.companyName,
-    });
-  };
-
-  const handleProcessCall = async (call, source = "fireflies") => {
-    trackButtonClick("Generate Insights", {
-      call_id: call.id,
-      company: call.companyName,
-      source: source,
-    });
-
-    trackFeatureUsage("call_processing", "start_processing", {
-      source: source,
-      company: call.companyName,
-    });
-
-    // Navigate to Call Insights page with the selected call data
-    navigate("/call-insights", {
+  const handleFirefliesCallSelect = (call) => {
+    // Navigate to Call Insights with Fireflies call data
+    navigate('/call-insights', {
       state: {
-        selectedCall: call,
-        source: source,
-      },
+        selectedCall: {
+          companyName: call.companyName,
+          prospectName: call.prospectName,
+          callId: call.callId,
+          date: call.date,
+          duration: call.duration,
+          summary: call.firefliesSummary || 'Fireflies call summary'
+        }
+      }
     });
   };
 
-  const handleProcessFile = async (file) => {
-    if (!file) {
-      toast.error("Please select a file to process");
-      return;
-    }
-
-    setIsProcessingFileId(file.id);
-    trackButtonClick("Process File", {
-      file_id: file.id,
-      filename: file.filename,
+  const handleViewInsights = (file) => {
+    // Navigate to Call Insights with the file's processing session
+    navigate('/call-insights', {
+      state: {
+        processingSessionId: file.processing_session_id,
+        selectedCall: {
+          companyName: file.filename.replace(/\.[^/.]+$/, ''),
+          prospectName: 'AI Processed',
+          callId: `Upload ${file.filename}`,
+          date: new Date(file.upload_date).toISOString().split('T')[0],
+          summary: 'Processed file insights'
+        }
+      }
     });
-
-    try {
-      // Fetch the file as a Blob from file_url
-      let fileBlob = null;
-      if (file.file_url) {
-        try {
-          const response = await fetch(file.file_url);
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch file: ${response.status} ${response.statusText}`
-            );
-          }
-          fileBlob = await response.blob();
-        } catch (fetchError) {
-          console.error("Error fetching file blob:", fetchError);
-          toast.error("Failed to fetch file for sending");
-          setIsProcessingFileId(null);
-          return;
-        }
-      }
-
-      if (!fileBlob) {
-        toast.error("No file available for sending");
-        setIsProcessingFileId(null);
-        return;
-      }
-
-      // Prepare FormData to send the file
-      const formData = new FormData();
-      formData.append("transcript", fileBlob, file.filename);
-      formData.append("user_id", CURRENT_USER.id);
-      formData.append("call_metadata", null);
-      formData.append("previous_interactions", null);
-
-      // Make API call to process the transcript file
-      const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/webhook/process-call-data-ai",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        // Store the processed data in the database
-        const processingSession = await dbHelpers.createProcessingSession(
-          CURRENT_USER.id,
-          file.id
-        );
-
-        // Get transcript content and clean null characters
-        let transcriptContentForDb = "";
-        if (fileBlob) {
-          transcriptContentForDb = await fileBlob.text();
-          // Clean null characters that cause Unicode escape sequence errors
-          transcriptContentForDb = transcriptContentForDb.replace(
-            /\u0000/g,
-            ""
-          );
-        }
-
-        // Create a call note entry
-        const callNote = await dbHelpers.createCallNote(
-          CURRENT_USER.id,
-          `call-${Date.now()}`,
-          transcriptContentForDb,
-          file.id,
-          processingSession.id
-        );
-
-        // Update the processing session with the completed status and API response
-        await dbHelpers.updateProcessingSession(processingSession.id, {
-          processing_status: "completed",
-          api_response: data[0],
-          call_notes_id: callNote.id,
-        });
-
-        // Create content entries from the API response
-        const contentIds = await dbHelpers.createCompleteCallAnalysis(
-          CURRENT_USER.id,
-          file.id,
-          processingSession.id,
-          data[0]
-        );
-
-        // Mark the file as processed
-        await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
-
-        toast.success("File processed successfully!");
-
-        // Validate and populate missing fields with dummy data
-        const processedData = validateAndPopulateData(data[0]);
-
-        // Create a processed call object with the processed data
-        const processedCall = {
-          id: file.id,
-          callId: `Upload ${file.id.slice(-5)}`,
-          companyName:
-            file.filename.replace(/\.[^/.]+$/, "") || "Unknown Company", // Remove file extension
-          prospectName:
-            processedData.call_analysis_overview?.specific_user ||
-            "AI Processed",
-          date: new Date().toISOString().split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          transcript: transcriptContentForDb,
-          aiProcessedData: processedData, // Store the validated and populated data
-          processingTimestamp: new Date().toISOString(),
-          originalFilename: file.filename,
-          modifiedFields: processedData._modifiedFields || [],
-        };
-
-        // Refresh the lists
-        await loadUploadedFiles();
-        await loadProcessedCalls();
-
-        // Navigate to Call Insights with the processed data
-        navigate("/call-insights", {
-          state: {
-            selectedCall: processedCall,
-            source: "upload",
-            aiProcessedData: processedData,
-            showAiInsights: true, // Auto-show AI insights
-          },
-        });
-      } else {
-        toast.error("No insights generated from the file");
-      }
-    } catch (error) {
-      console.error("Error processing file:", error);
-      toast.error(`Failed to process file: ${error.message}`);
-    } finally {
-      setIsProcessingFileId(null);
-    }
   };
 
-  // Function to validate and populate missing fields with dummy data
-  const validateAndPopulateData = (data) => {
-    const modifiedFields = [];
-    const result = { ...data };
+  const filteredFiles = uploadedFiles.filter(file =>
+    file.filename.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    // Validate and populate call_summary
-    if (!result.call_summary) {
-      result.call_summary =
-        "No summary available. This call transcript has been processed but no summary was generated.";
-      modifiedFields.push("call_summary");
-    }
+  const filteredFirefliesData = firefliesData.filter(call =>
+    call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    // Validate and populate action_items
-    if (
-      !result.action_items ||
-      !Array.isArray(result.action_items) ||
-      result.action_items.length === 0
-    ) {
-      result.action_items = [
-        {
-          task: "Review transcript for action items",
-          owner: CURRENT_USER.full_name || "Sales Manager",
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          priority: "medium",
-        },
-      ];
-      modifiedFields.push("action_items");
-    } else {
-      // Validate each action item
-      result.action_items = result.action_items.map((item) => {
-        const validatedItem = { ...item };
-        if (!validatedItem.task) {
-          validatedItem.task = "Undefined task";
-          modifiedFields.push("action_items.task");
-        }
-        if (!validatedItem.owner) {
-          validatedItem.owner = CURRENT_USER.full_name || "Sales Manager";
-          modifiedFields.push("action_items.owner");
-        }
-        return validatedItem;
-      });
-    }
-
-    // Validate and populate follow_up_email
-    if (!result.follow_up_email) {
-      result.follow_up_email = `Subject: Follow-Up on Our Recent Discussion\n\nHello,\n\nThank you for taking the time to speak with me. I wanted to follow up on our conversation and provide any additional information you might need.\n\nBest regards,\n${
-        CURRENT_USER.full_name || "Sales Manager"
-      }`;
-      modifiedFields.push("follow_up_email");
-    }
-
-    // Validate and populate deck_prompt
-    if (!result.deck_prompt) {
-      result.deck_prompt =
-        "Create a presentation that summarizes the key points from our discussion, focusing on the customer's needs and how our solution addresses them.";
-      modifiedFields.push("deck_prompt");
-    }
-
-    // Validate and populate sales_insights
-    if (
-      !result.sales_insights ||
-      !Array.isArray(result.sales_insights) ||
-      result.sales_insights.length === 0
-    ) {
-      result.sales_insights = [
-        {
-          id: "si-auto-1",
-          type: "user_insight",
-          content:
-            "This is an automatically generated insight as no insights were found in the transcript.",
-          relevance_score: 75,
-          is_selected: true,
-          source: "System",
-          timestamp: "N/A",
-          trend: null,
-        },
-      ];
-      modifiedFields.push("sales_insights");
-    }
-
-    // Validate and populate communication_styles
-    if (
-      !result.communication_styles ||
-      !Array.isArray(result.communication_styles) ||
-      result.communication_styles.length === 0
-    ) {
-      result.communication_styles = [
-        {
-          id: "cs-auto-1",
-          stakeholder: "Unknown Participant",
-          role: "Prospect",
-          style: "visual",
-          confidence: 0.7,
-          evidence: "No specific evidence found in transcript.",
-          preferences: ["Visual presentations", "Data-driven discussions"],
-          communication_tips: ["Use visual aids", "Provide clear data points"],
-        },
-      ];
-      modifiedFields.push("communication_styles");
-    }
-
-    // Validate and populate call_analysis_overview
-    if (!result.call_analysis_overview) {
-      result.call_analysis_overview = {
-        specific_user: "Unknown Participant",
-        sentiment_score: 0.5,
-        key_points: [
-          "Transcript processed successfully",
-          "No specific key points identified",
-        ],
-        processing_status: "completed",
-        error_message: null,
-      };
-      modifiedFields.push("call_analysis_overview");
-    } else {
-      // Validate specific fields in call_analysis_overview
-      if (!result.call_analysis_overview.specific_user) {
-        result.call_analysis_overview.specific_user = "Unknown Participant";
-        modifiedFields.push("call_analysis_overview.specific_user");
-      }
-      if (
-        result.call_analysis_overview.sentiment_score === undefined ||
-        result.call_analysis_overview.sentiment_score === null
-      ) {
-        result.call_analysis_overview.sentiment_score = 0.5;
-        modifiedFields.push("call_analysis_overview.sentiment_score");
-      }
-    }
-
-    // Store the list of modified fields
-    result._modifiedFields = modifiedFields;
-
-    // Log all modifications
-    if (modifiedFields.length > 0) {
-      console.log("Modified fields during validation:", modifiedFields);
-    }
-
-    return result;
+  const getFileIcon = (fileType) => {
+    if (fileType.includes('audio')) return FileAudio;
+    if (fileType.includes('video')) return Video;
+    if (fileType.includes('pdf')) return FileText;
+    return FileText;
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(dateString).toLocaleDateString();
   };
-
-  const getFileIcon = (fileType) => {
-    if (fileType?.includes("pdf")) {
-      return <FileIcon className="w-4 h-4 text-red-600" />;
-    }
-    return <FileText className="w-4 h-4 text-blue-600" />;
-  };
-
-  // Filter functions
-  const filteredFirefliesCalls = firefliesCalls.filter(
-    (call) =>
-      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredProcessedCalls = processedCalls.filter(
-    (call) =>
-      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredUploadedFiles = uploadedFiles.filter((file) =>
-    file.filename.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
-        <p className="text-muted-foreground">
-          Your starting point for call data. Upload transcripts, import from
-          Fireflies.ai, or select from past processed calls to generate
-          insights.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
+          <p className="text-muted-foreground">
+            Upload call transcripts or sync from Fireflies.ai to generate AI-powered insights and follow-up content.
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" onClick={loadFirefliesData}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Sync Fireflies
+          </Button>
+          <Button variant="outline">
+            <Settings className="w-4 h-4 mr-1" />
+            Settings
+          </Button>
+        </div>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search by company, prospect, or call ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Processing Status */}
+      {isProcessing && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-primary mb-2">
+                  Processing {selectedFile?.name}
+                </h3>
+                <Progress value={processingProgress} className="mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {processingProgress < 30 && "Uploading file..."}
+                  {processingProgress >= 30 && processingProgress < 60 && "Extracting transcript..."}
+                  {processingProgress >= 60 && processingProgress < 90 && "Analyzing with AI..."}
+                  {processingProgress >= 90 && "Finalizing insights..."}
+                </p>
+              </div>
             </div>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              trackingName="Filter Calls"
-            >
-              <Filter className="w-4 h-4 mr-1" />
-              Filter
-            </TrackedButton>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                loadUploadedFiles();
-                loadProcessedCalls();
-              }}
-              trackingName="Refresh Files"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Refresh
-            </TrackedButton>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upload">Upload Transcript</TabsTrigger>
-          <TabsTrigger value="fireflies">Fireflies.ai Imports</TabsTrigger>
-          <TabsTrigger value="processed">Past Processed Calls</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="upload">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Transcripts
+          </TabsTrigger>
+          <TabsTrigger value="fireflies">
+            <Database className="w-4 h-4 mr-2" />
+            Fireflies.ai Sync
+          </TabsTrigger>
         </TabsList>
 
-        {/* Upload Transcript Tab */}
+        {/* Upload Tab */}
         <TabsContent value="upload" className="mt-6">
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-3 gap-6">
             {/* Upload Area */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="w-5 h-5" />
-                  <span>Upload Call Transcript</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  {...getRootProps()}
-                  className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                    isDragActive
-                      ? "border-primary bg-primary/5"
-                      : "border-border",
-                    isUploading && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <input {...getInputProps()} />
-
-                  <div className="space-y-4">
-                    <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                      {isUploading ? (
-                        <RefreshCw className="w-6 h-6 text-primary animate-spin" />
-                      ) : (
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-foreground mb-2">
-                        {isUploading
-                          ? "Uploading..."
-                          : "Drop your transcript here"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {isUploading
-                          ? "Please wait while we process your file"
-                          : "Drag and drop your .txt, .vtt, or .pdf file, or click to browse"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Supported formats: TXT, VTT, PDF (Max 10MB)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Uploads */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Uploads</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {filteredUploadedFiles.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="mb-2">No uploaded files yet</p>
-                    <p className="text-sm">
-                      Upload your first transcript to get started
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredUploadedFiles.slice(0, 5).map((file) => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getFileIcon(file.content_type)}
-                          <div>
-                            <h4 className="font-medium text-sm">
-                              {file.filename}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.file_size)} •{" "}
-                              {formatDate(file.upload_date)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <TrackedButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleProcessFile(file)}
-                            disabled={isProcessingFileId === file.id}
-                            trackingName="Process Uploaded File"
-                            trackingContext={{
-                              file_id: file.id,
-                              filename: file.filename,
-                            }}
-                          >
-                            {isProcessingFileId === file.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <ArrowRight className="w-4 h-4" />
-                            )}
-                          </TrackedButton>
-                        </div>
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Upload className="w-5 h-5" />
+                    <span>Upload Call Transcript</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                      isDragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                      isProcessing && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <input {...getInputProps()} />
+                    <div className="space-y-4">
+                      <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-primary" />
                       </div>
-                    ))}
+                      
+                      {isDragActive ? (
+                        <p className="text-primary font-medium">Drop the file here...</p>
+                      ) : (
+                        <div>
+                          <p className="font-medium mb-2">
+                            {isProcessing ? "Processing..." : "Drop your transcript file here"}
+                          </p>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            or click to browse
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="text-xs text-muted-foreground">
+                        <p>Supported formats:</p>
+                        <p>TXT, VTT, PDF, MP3, WAV, MP4</p>
+                        <p>Max file size: 10MB</p>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {/* Upload Tips */}
+                  <div className="mt-6 space-y-3">
+                    <h4 className="font-medium text-sm">Upload Tips:</h4>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-start space-x-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span>Text files (.txt, .vtt) process fastest</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span>Audio/video files are transcribed automatically</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <CheckCircle className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span>PDFs are analyzed for call content</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Uploaded Files List */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="w-5 h-5" />
+                      <span>Uploaded Files</span>
+                      <Badge variant="secondary">{filteredFiles.length}</Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Search files..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-64"
+                        />
+                      </div>
+                      <Button variant="outline" size="sm" onClick={loadUploadedFiles}>
+                        <RefreshCw className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {filteredFiles.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p className="mb-2">No files uploaded yet</p>
+                      <p className="text-sm">Upload your first call transcript to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredFiles.map((file) => {
+                        const FileIcon = getFileIcon(file.file_type);
+                        
+                        return (
+                          <div key={file.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <FileIcon className="w-5 h-5 text-muted-foreground" />
+                                <div>
+                                  <h4 className="font-medium">{file.filename}</h4>
+                                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                    <span>{formatFileSize(file.file_size)}</span>
+                                    <span>{formatDate(file.upload_date)}</span>
+                                    <Badge variant={file.is_processed ? "default" : "secondary"} className="text-xs">
+                                      {file.is_processed ? "Processed" : "Pending"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                {file.is_processed && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewInsights(file)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    View Insights
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => dbHelpers.openFile(file.id)}
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
-        {/* Fireflies.ai Imports Tab */}
+        {/* Fireflies Tab */}
         <TabsContent value="fireflies" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <ExternalLink className="w-5 h-5" />
-                  <span>Fireflies.ai Call Transcripts</span>
-                  {lastFirefliesSync && (
-                    <Badge variant="outline" className="text-xs">
-                      Last sync: {lastFirefliesSync.toLocaleTimeString()}
-                    </Badge>
-                  )}
+                  <Database className="w-5 h-5" />
+                  <span>Fireflies.ai Integration</span>
+                  <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                    Connected
+                  </Badge>
                 </div>
-                <TrackedButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSyncFireflies}
-                  disabled={isLoadingFireflies}
-                  trackingName="Sync Fireflies"
-                >
-                  {isLoadingFireflies ? (
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                  )}
-                  Sync Fireflies
-                </TrackedButton>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search calls..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={loadFirefliesData} disabled={isLoadingFireflies}>
+                    {isLoadingFireflies ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingFireflies ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
-                    Loading Fireflies transcripts...
-                  </p>
+                  <p className="text-muted-foreground">Loading Fireflies data...</p>
                 </div>
-              ) : firefliesError ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
-                  <p className="text-destructive mb-2">
-                    Failed to load Fireflies transcripts
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {firefliesError}
-                  </p>
-                  <TrackedButton
-                    variant="outline"
-                    onClick={loadFirefliesTranscripts}
-                    trackingName="Retry Fireflies Load"
-                  >
-                    Try Again
-                  </TrackedButton>
-                </div>
-              ) : filteredFirefliesCalls.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Phone className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No Fireflies transcripts found</p>
-                  <p className="text-sm">
-                    Connect your Fireflies.ai account to import call transcripts
-                  </p>
+              ) : filteredFirefliesData.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No Fireflies calls found</p>
+                  <p className="text-sm">Connect your Fireflies account to sync call recordings</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredFirefliesCalls.map((call) => (
-                    <div
-                      key={call.id}
-                      className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-foreground">
-                              {call.companyName}
-                            </h3>
-                            <Badge
-                              variant={
-                                call.status === "completed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {call.status}
-                            </Badge>
+                <div className="space-y-3">
+                  {filteredFirefliesData.map((call) => (
+                    <div key={call.id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow cursor-pointer"
+                         onClick={() => handleFirefliesCallSelect(call)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Phone className="w-5 h-5 text-blue-600" />
                           </div>
-
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4" />
+                          <div>
+                            <h4 className="font-medium">{call.callId}</h4>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <span>{call.companyName}</span>
                               <span>{call.prospectName}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>{call.date}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Clock className="w-4 h-4" />
                               <span>{call.duration}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Building className="w-4 h-4" />
-                              <span>{call.callId}</span>
+                              <span>{formatDate(call.date)}</span>
                             </div>
                           </div>
-
-                          {call.participants &&
-                            call.participants.length > 0 && (
-                              <div className="text-xs text-muted-foreground mb-3">
-                                <span className="font-medium">
-                                  Participants:
-                                </span>{" "}
-                                {call.participants.join(", ")}
-                              </div>
-                            )}
                         </div>
-
-                        <div className="flex items-center space-x-2 ml-4">
-                          {call.hasSummary && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewSummary(call)}
-                              trackingName="View Fireflies Summary"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Summary
-                            </TrackedButton>
-                          )}
-
-                          {call.hasTranscript && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewTranscript(call)}
-                              trackingName="View Fireflies Transcript"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <FileText className="w-4 h-4 mr-1" />
-                              Transcript
-                            </TrackedButton>
-                          )}
-
-                          <TrackedButton
-                            onClick={() => handleProcessCall(call, "fireflies")}
-                            size="sm"
-                            trackingName="Process Fireflies Call"
-                            trackingContext={{
-                              call_id: call.id,
-                              company: call.companyName,
-                            }}
-                          >
+                        
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="default" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                            <Headphones className="w-3 h-3 mr-1" />
+                            Fireflies
+                          </Badge>
+                          <Button variant="outline" size="sm">
                             <ArrowRight className="w-4 h-4 mr-1" />
-                            Generate Insights
-                          </TrackedButton>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Past Processed Calls Tab */}
-        <TabsContent value="processed" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
-                <span>Past Processed Calls</span>
-                <Badge variant="secondary" className="text-xs">
-                  {filteredProcessedCalls.length} calls
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {filteredProcessedCalls.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No processed calls yet</p>
-                  <p className="text-sm">
-                    Upload and process your first transcript to see it here
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredProcessedCalls.map((call) => (
-                    <div
-                      key={call.id}
-                      className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-foreground">
-                              {call.companyName}
-                            </h3>
-                            <Badge
-                              variant="default"
-                              className="text-xs bg-green-100 text-green-800 border-green-200"
-                            >
-                              Processed
-                            </Badge>
-                          </div>
-
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4" />
-                              <span>{call.prospectName}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>{call.date}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <FileText className="w-4 h-4" />
-                              <span>{call.originalFilename}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Building className="w-4 h-4" />
-                              <span>{call.callId}</span>
-                            </div>
-                          </div>
-
-                          {call.processingDate && (
-                            <div className="text-xs text-muted-foreground mb-3">
-                              <span className="font-medium">Processed:</span>{" "}
-                              {formatDate(call.processingDate)}
-                            </div>
-                          )}
-                          <div className="flex justify-between space-x-2">
-                            {/* View Transcript Button */}
-                            <div className="space-x-2">
-                              <TrackedButton
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewTranscript(call)}
-                                trackingName="View Processed Transcript"
-                                trackingContext={{
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                }}
-                              >
-                                <FileText className="w-4 h-4 mr-1" />
-                                View Transcript
-                              </TrackedButton>
-
-                              {/* Download PDF Button */}
-                              <TrackedButton
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  handleDownloadTranscriptPDF(call)
-                                }
-                                trackingName="Download Processed Transcript PDF"
-                                trackingContext={{
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                }}
-                              >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download PDF
-                              </TrackedButton>
-                            </div>
-                            {/* View Insights Button */}
-                            <TrackedButton
-                              onClick={() =>
-                                handleProcessCall(call, "processed")
-                              }
-                              size="sm"
-                              trackingName="View Processed Call Insights"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View Insights
-                            </TrackedButton>
-                          </div>
+                            Process
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -1228,116 +745,52 @@ File details:
         </TabsContent>
       </Tabs>
 
-      <Dialog open={showTranscriptModal} onOpenChange={setShowTranscriptModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{modalTitle}</span>
-              <div className="flex items-center space-x-2">
-                <TrackedButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyTranscript}
-                  trackingName="Copy Transcript from Modal"
-                >
-                  <Copy className="w-4 h-4 mr-1" />
-                  Copy
-                </TrackedButton>
-                <TrackedButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (
-                      currentCall &&
-                      currentCall.contentType === "application/pdf"
-                    ) {
-                      // For PDF files, download the original
-                      handleDownloadOriginalFile(currentCall);
-                    } else {
-                      // For text content, generate PDF
-                      const doc = new jsPDF();
-                      doc.setFontSize(16);
-                      doc.text("Call Transcript", 20, 20);
-                      doc.setFontSize(12);
-                      doc.text(`Title: ${modalTitle}`, 20, 35);
-                      doc.text(
-                        `Generated: ${new Date().toLocaleDateString()}`,
-                        20,
-                        45
-                      );
-                      doc.setFontSize(10);
-                      const splitText = doc.splitTextToSize(modalContent, 170);
-                      doc.text(splitText, 20, 60);
-                      doc.save(
-                        `${modalTitle
-                          .replace(/[^a-z0-9]/gi, "_")
-                          .toLowerCase()}_transcript.pdf`
-                      );
-                      toast.success("PDF downloaded successfully");
-                    }
-                  }}
-                  trackingName="Download PDF from Modal"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  PDF
-                </TrackedButton>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            {currentCall && currentCall.contentType === "application/pdf" ? (
-              <div className="text-center py-8">
-                <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">PDF File Preview</h3>
-                <p className="text-muted-foreground mb-4">
-                  This is a PDF file that cannot be displayed as text in this
-                  modal.
-                </p>
-                <div className="space-y-2 text-sm text-muted-foreground mb-6">
-                  <p>
-                    <strong>Filename:</strong> {currentCall.originalFilename}
-                  </p>
-                  <p>
-                    <strong>Size:</strong>{" "}
-                    {Math.round(currentCall.fileSize / 1024)} KB
-                  </p>
-                  <p>
-                    <strong>Upload Date:</strong>{" "}
-                    {formatDate(currentCall.uploadDate)}
-                  </p>
-                </div>
-                <TrackedButton
-                  onClick={() => handleDownloadOriginalFile(currentCall)}
-                  trackingName="Download PDF from Preview"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Original PDF
-                </TrackedButton>
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                {modalContent}
-              </pre>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Summary Modal */}
-      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{modalTitle}</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-96 overflow-y-auto">
-            <div className="prose prose-sm max-w-none">
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-                {modalContent}
-              </pre>
+      {/* Quick Stats */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Total Files</span>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <p className="text-2xl font-bold mt-1">{uploadedFiles.length}</p>
+            <p className="text-xs text-muted-foreground">uploaded this month</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Brain className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Processed</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{uploadedFiles.filter(f => f.is_processed).length}</p>
+            <p className="text-xs text-muted-foreground">with AI insights</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Database className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Fireflies Calls</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{firefliesData.length}</p>
+            <p className="text-xs text-muted-foreground">available to sync</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Insights Generated</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{uploadedFiles.filter(f => f.is_processed).length * 3}</p>
+            <p className="text-xs text-muted-foreground">actionable insights</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
