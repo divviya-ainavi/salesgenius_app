@@ -1123,6 +1123,180 @@ export const dbHelpers = {
     }
   },
 
+  // NEW: Store API Response Data in Database Tables
+  async storeApiResponseData(userId, fileId, processingSessionId, apiResponse) {
+    const startTime = Date.now()
+    const contentIds = {}
+
+    try {
+      analytics.track('api_response_storage_started', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        response_keys: Object.keys(apiResponse)
+      })
+
+      // 1. Create Call Note with AI Summary
+      let callNote = null
+      if (apiResponse.call_summary || apiResponse.call_analysis_overview) {
+        const callId = `processed-${Date.now()}`
+        const transcriptContent = apiResponse.transcript || 'Processed from uploaded file'
+        
+        callNote = await this.createCallNote(
+          userId,
+          callId,
+          transcriptContent,
+          fileId,
+          processingSessionId
+        )
+        contentIds.callNotesId = callNote.id
+
+        // Update with AI summary
+        if (apiResponse.call_summary) {
+          await this.updateCallNote(callNote.id, {
+            ai_summary: apiResponse.call_summary,
+            status: 'completed'
+          })
+        }
+      }
+
+      // 2. Store Action Items/Commitments
+      if (apiResponse.action_items && apiResponse.action_items.length > 0 && callNote) {
+        const commitments = await this.createCommitments(
+          callNote.id,
+          userId,
+          apiResponse.action_items.map(item => ({
+            task: item.task,
+            owner: item.owner,
+            deadline: item.deadline,
+            priority: item.priority || 'medium'
+          })),
+          processingSessionId
+        )
+        contentIds.commitmentsIds = commitments.map(c => c.id)
+      }
+
+      // 3. Store Follow-up Email
+      if (apiResponse.follow_up_email && callNote) {
+        const email = await this.createFollowUpEmail(
+          callNote.id,
+          userId,
+          apiResponse.follow_up_email,
+          processingSessionId
+        )
+        contentIds.followUpEmailId = email.id
+      }
+
+      // 4. Store Deck Prompt
+      if (apiResponse.deck_prompt && callNote) {
+        const deck = await this.createDeckPrompt(
+          callNote.id,
+          userId,
+          apiResponse.deck_prompt,
+          processingSessionId
+        )
+        contentIds.deckPromptId = deck.id
+      }
+
+      // 5. Store Sales Insights
+      if (apiResponse.sales_insights && apiResponse.sales_insights.length > 0 && callNote) {
+        const insights = await this.saveCallInsights(
+          callNote.id,
+          userId,
+          apiResponse.sales_insights.map(insight => ({
+            type: insight.type,
+            content: insight.content,
+            relevance_score: insight.relevance_score || 50,
+            is_selected: insight.is_selected !== false,
+            source: insight.source || 'AI Analysis',
+            timestamp: insight.timestamp || new Date().toISOString()
+          })),
+          processingSessionId
+        )
+        contentIds.insightsIds = insights.map(i => i.id)
+      }
+
+      // 6. Store Communication Styles as Special Insights
+      if (apiResponse.communication_styles && apiResponse.communication_styles.length > 0 && callNote) {
+        const communicationInsights = await this.saveCallInsights(
+          callNote.id,
+          userId,
+          apiResponse.communication_styles.map(style => ({
+            type: 'communication_style',
+            content: JSON.stringify({
+              stakeholder: style.stakeholder,
+              role: style.role,
+              style: style.style,
+              confidence: style.confidence,
+              evidence: style.evidence,
+              preferences: style.preferences,
+              communication_tips: style.communication_tips
+            }),
+            relevance_score: Math.round((style.confidence || 0.5) * 100),
+            is_selected: true,
+            source: 'Communication Analysis',
+            timestamp: new Date().toISOString()
+          })),
+          processingSessionId
+        )
+        
+        // Add communication style insights to the insights array
+        if (!contentIds.insightsIds) contentIds.insightsIds = []
+        contentIds.insightsIds.push(...communicationInsights.map(i => i.id))
+      }
+
+      // 7. Update Processing Session with Content References and API Response
+      await this.updateProcessingSession(processingSessionId, {
+        processing_status: 'completed',
+        api_response: apiResponse,
+        call_notes_id: contentIds.callNotesId,
+        content_references: {
+          call_notes_id: contentIds.callNotesId,
+          commitments_ids: contentIds.commitmentsIds || [],
+          follow_up_email_id: contentIds.followUpEmailId,
+          deck_prompt_id: contentIds.deckPromptId,
+          insights_ids: contentIds.insightsIds || []
+        }
+      })
+
+      // 8. Mark File as Processed
+      if (fileId) {
+        await this.updateUploadedFile(fileId, {
+          is_processed: true
+        })
+      }
+
+      analytics.track('api_response_storage_completed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        content_types_created: Object.keys(contentIds).filter(key => contentIds[key]),
+        total_insights: contentIds.insightsIds?.length || 0,
+        total_commitments: contentIds.commitmentsIds?.length || 0,
+        duration_ms: Date.now() - startTime
+      })
+
+      return {
+        success: true,
+        contentIds,
+        processingSessionId,
+        callNotesId: contentIds.callNotesId
+      }
+
+    } catch (error) {
+      analytics.track('api_response_storage_failed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        error: error.message,
+        duration_ms: Date.now() - startTime
+      })
+
+      console.error('Error storing API response data:', error)
+      throw error
+    }
+  },
+
   // Update any content and automatically sync across all references
   async updateContentById(contentType, contentId, updates) {
     let table
