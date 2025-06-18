@@ -553,10 +553,7 @@ export const dbHelpers = {
             commitments_ids: contentIds.commitmentsIds || [],
             follow_up_email_id: contentIds.followUpEmailId,
             deck_prompt_id: contentIds.deckPromptId,
-            insights_ids: contentIds.insightsIds || [],
-            company_details_ids: contentIds.companyDetailsIds || [],
-            prospect_details_ids: contentIds.prospectDetailsIds || [],
-            communication_styles_ids: contentIds.communicationStylesIds || []
+            insights_ids: contentIds.insightsIds || []
           }
         })
         .eq('id', sessionId)
@@ -1015,29 +1012,6 @@ export const dbHelpers = {
     }
   },
 
-  async deleteCallInsight(id) {
-    const startTime = Date.now()
-
-    try {
-      const { error } = await supabase
-        .from('call_insights')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-
-      analytics.track('call_insight_deleted', {
-        insight_id: id
-      })
-      analytics.trackApiResponse('/api/delete-insight', 'DELETE', 200, Date.now() - startTime)
-
-      return true
-    } catch (error) {
-      analytics.trackApiResponse('/api/delete-insight', 'DELETE', 500, Date.now() - startTime, error.message)
-      throw error
-    }
-  },
-
   async getCallInsights(callNotesId, userId) {
     const startTime = Date.now()
 
@@ -1059,7 +1033,97 @@ export const dbHelpers = {
     }
   },
 
-  // NEW: Comprehensive API Response Storage Function
+  // Comprehensive content creation with automatic linking
+  async createCompleteCallAnalysis(userId, fileId, processingSessionId, analysisData) {
+    const contentIds = {}
+
+    try {
+      analytics.track('complete_call_analysis_started', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId
+      })
+
+      const callNote = await this.createCallNote(
+        userId,
+        `call-${Date.now()}`,
+        analysisData.transcript || '',
+        fileId,
+        processingSessionId
+      )
+      contentIds.callNotesId = callNote.id
+
+      if (analysisData.call_summary) {
+        await this.updateCallNote(callNote.id, {
+          ai_summary: analysisData.call_summary,
+          status: 'completed'
+        })
+      }
+
+      if (analysisData.action_items && analysisData.action_items.length > 0) {
+        const commitments = await this.createCommitments(
+          callNote.id,
+          userId,
+          analysisData.action_items,
+          processingSessionId
+        )
+        contentIds.commitmentsIds = commitments.map(c => c.id)
+      }
+
+      if (analysisData.follow_up_email) {
+        const email = await this.createFollowUpEmail(
+          callNote.id,
+          userId,
+          analysisData.follow_up_email,
+          processingSessionId
+        )
+        contentIds.followUpEmailId = email.id
+      }
+
+      if (analysisData.deck_prompt) {
+        const deck = await this.createDeckPrompt(
+          callNote.id,
+          userId,
+          analysisData.deck_prompt,
+          processingSessionId
+        )
+        contentIds.deckPromptId = deck.id
+      }
+
+      if (analysisData.insights && analysisData.insights.length > 0) {
+        const insights = await this.saveCallInsights(
+          callNote.id,
+          userId,
+          analysisData.insights,
+          processingSessionId
+        )
+        contentIds.insightsIds = insights.map(i => i.id)
+      }
+
+      await this.linkContentToSession(processingSessionId, contentIds)
+
+      analytics.track('complete_call_analysis_completed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        content_types_created: Object.keys(contentIds).filter(key => contentIds[key])
+      })
+
+      return contentIds
+    } catch (error) {
+      analytics.track('complete_call_analysis_failed', {
+        user_id: userId,
+        file_id: fileId,
+        processing_session_id: processingSessionId,
+        error: error.message
+      })
+
+      console.error('Error creating complete call analysis:', error)
+      throw error
+    }
+  },
+
+  // NEW: Store API Response Data in Database Tables
   async storeApiResponseData(userId, fileId, processingSessionId, apiResponse) {
     const startTime = Date.now()
     const contentIds = {}
@@ -1072,19 +1136,11 @@ export const dbHelpers = {
         response_keys: Object.keys(apiResponse)
       })
 
-      // 1. Store extracted transcript in uploaded_files table
-      if (apiResponse.extracted_transcript) {
-        await this.updateUploadedFile(fileId, {
-          file_content: apiResponse.extracted_transcript,
-          is_processed: true
-        })
-      }
-
-      // 2. Create Call Note with AI Summary
+      // 1. Create Call Note with AI Summary
       let callNote = null
-      if (apiResponse.call_summary) {
+      if (apiResponse.call_summary || apiResponse.call_analysis_overview) {
         const callId = `processed-${Date.now()}`
-        const transcriptContent = apiResponse.extracted_transcript || 'Processed from uploaded file'
+        const transcriptContent = apiResponse.transcript || 'Processed from uploaded file'
         
         callNote = await this.createCallNote(
           userId,
@@ -1096,13 +1152,15 @@ export const dbHelpers = {
         contentIds.callNotesId = callNote.id
 
         // Update with AI summary
-        await this.updateCallNote(callNote.id, {
-          ai_summary: apiResponse.call_summary,
-          status: 'completed'
-        })
+        if (apiResponse.call_summary) {
+          await this.updateCallNote(callNote.id, {
+            ai_summary: apiResponse.call_summary,
+            status: 'completed'
+          })
+        }
       }
 
-      // 3. Store Action Items/Commitments
+      // 2. Store Action Items/Commitments
       if (apiResponse.action_items && apiResponse.action_items.length > 0 && callNote) {
         const commitments = await this.createCommitments(
           callNote.id,
@@ -1118,7 +1176,7 @@ export const dbHelpers = {
         contentIds.commitmentsIds = commitments.map(c => c.id)
       }
 
-      // 4. Store Follow-up Email
+      // 3. Store Follow-up Email
       if (apiResponse.follow_up_email && callNote) {
         const email = await this.createFollowUpEmail(
           callNote.id,
@@ -1129,7 +1187,7 @@ export const dbHelpers = {
         contentIds.followUpEmailId = email.id
       }
 
-      // 5. Store Deck Prompt
+      // 4. Store Deck Prompt
       if (apiResponse.deck_prompt && callNote) {
         const deck = await this.createDeckPrompt(
           callNote.id,
@@ -1140,7 +1198,7 @@ export const dbHelpers = {
         contentIds.deckPromptId = deck.id
       }
 
-      // 6. Store Sales Insights
+      // 5. Store Sales Insights
       if (apiResponse.sales_insights && apiResponse.sales_insights.length > 0 && callNote) {
         const insights = await this.saveCallInsights(
           callNote.id,
@@ -1158,7 +1216,7 @@ export const dbHelpers = {
         contentIds.insightsIds = insights.map(i => i.id)
       }
 
-      // 7. Store Communication Styles as Special Insights
+      // 6. Store Communication Styles as Special Insights
       if (apiResponse.communication_styles && apiResponse.communication_styles.length > 0 && callNote) {
         const communicationInsights = await this.saveCallInsights(
           callNote.id,
@@ -1185,24 +1243,9 @@ export const dbHelpers = {
         // Add communication style insights to the insights array
         if (!contentIds.insightsIds) contentIds.insightsIds = []
         contentIds.insightsIds.push(...communicationInsights.map(i => i.id))
-        contentIds.communicationStylesIds = communicationInsights.map(i => i.id)
       }
 
-      // 8. Store Company Details (if any)
-      if (apiResponse.company_details && apiResponse.company_details.length > 0) {
-        // Store as JSON in call_notes or create separate table if needed
-        // For now, we'll store in the API response
-        contentIds.companyDetailsIds = []
-      }
-
-      // 9. Store Prospect Details (if any)
-      if (apiResponse.prospect_details && apiResponse.prospect_details.length > 0) {
-        // Store as JSON in call_notes or create separate table if needed
-        // For now, we'll store in the API response
-        contentIds.prospectDetailsIds = []
-      }
-
-      // 10. Update Processing Session with Content References and API Response
+      // 7. Update Processing Session with Content References and API Response
       await this.updateProcessingSession(processingSessionId, {
         processing_status: 'completed',
         api_response: apiResponse,
@@ -1212,14 +1255,11 @@ export const dbHelpers = {
           commitments_ids: contentIds.commitmentsIds || [],
           follow_up_email_id: contentIds.followUpEmailId,
           deck_prompt_id: contentIds.deckPromptId,
-          insights_ids: contentIds.insightsIds || [],
-          company_details_ids: contentIds.companyDetailsIds || [],
-          prospect_details_ids: contentIds.prospectDetailsIds || [],
-          communication_styles_ids: contentIds.communicationStylesIds || []
+          insights_ids: contentIds.insightsIds || []
         }
       })
 
-      // 11. Mark File as Processed
+      // 8. Mark File as Processed
       if (fileId) {
         await this.updateUploadedFile(fileId, {
           is_processed: true
@@ -1253,56 +1293,6 @@ export const dbHelpers = {
       })
 
       console.error('Error storing API response data:', error)
-      throw error
-    }
-  },
-
-  // Get insights and communication styles for a specific processing session
-  async getInsightsForSession(sessionId) {
-    try {
-      const session = await this.getProcessingSessionDetails(sessionId)
-      const contentRefs = session.content_references || {}
-      
-      let salesInsights = []
-      let communicationStyles = []
-      
-      if (contentRefs.insights_ids && contentRefs.insights_ids.length > 0) {
-        const { data: insightsData } = await supabase
-          .from('call_insights')
-          .select('*')
-          .in('id', contentRefs.insights_ids)
-          .order('relevance_score', { ascending: false })
-        
-        if (insightsData) {
-          // Separate sales insights from communication styles
-          salesInsights = insightsData.filter(insight => insight.insight_type !== 'communication_style')
-          
-          const commStyleInsights = insightsData.filter(insight => insight.insight_type === 'communication_style')
-          communicationStyles = commStyleInsights.map(insight => {
-            try {
-              return JSON.parse(insight.content)
-            } catch {
-              return {
-                stakeholder: 'Unknown',
-                role: 'Unknown',
-                style: 'Unknown',
-                confidence: 0.5,
-                evidence: insight.content,
-                preferences: [],
-                communication_tips: []
-              }
-            }
-          })
-        }
-      }
-      
-      return {
-        salesInsights,
-        communicationStyles,
-        session
-      }
-    } catch (error) {
-      console.error('Error getting insights for session:', error)
       throw error
     }
   },
