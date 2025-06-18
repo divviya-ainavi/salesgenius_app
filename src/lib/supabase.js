@@ -1060,47 +1060,51 @@ export const dbHelpers = {
         })
       }
 
-      if (analysisData.action_items && analysisData.action_items.length > 0) {
+      if (analysisData.action_items?.length) {
         const commitments = await this.createCommitments(
-          callNote.id,
-          userId,
-          analysisData.action_items,
-          processingSessionId
+          callNote.id, userId, analysisData.action_items, processingSessionId
         )
         contentIds.commitmentsIds = commitments.map(c => c.id)
       }
 
       if (analysisData.follow_up_email) {
         const email = await this.createFollowUpEmail(
-          callNote.id,
-          userId,
-          analysisData.follow_up_email,
-          processingSessionId
+          callNote.id, userId, analysisData.follow_up_email, processingSessionId
         )
         contentIds.followUpEmailId = email.id
       }
 
       if (analysisData.deck_prompt) {
         const deck = await this.createDeckPrompt(
-          callNote.id,
-          userId,
-          analysisData.deck_prompt,
-          processingSessionId
+          callNote.id, userId, analysisData.deck_prompt, processingSessionId
         )
         contentIds.deckPromptId = deck.id
       }
 
-      if (analysisData.insights && analysisData.insights.length > 0) {
+      if (analysisData.sales_insights?.length) {
         const insights = await this.saveCallInsights(
-          callNote.id,
-          userId,
-          analysisData.insights,
-          processingSessionId
+          callNote.id, userId, analysisData.sales_insights, processingSessionId
         )
         contentIds.insightsIds = insights.map(i => i.id)
       }
 
       await this.linkContentToSession(processingSessionId, contentIds)
+
+      // ✅ Store full structured response in call_insights
+      await supabase.from('call_insights').insert([{
+        call_notes_id: callNote.id,
+        company_details: analysisData.company_details,
+        prospect_details: analysisData.prospect_details,
+        call_summary: analysisData.call_summary,
+        action_items: analysisData.action_items,
+        sales_insights: analysisData.sales_insights,
+        communication_styles: analysisData.communication_styles,
+        call_analysis_overview: analysisData.call_analysis_overview,
+        processing_status: analysisData.processing_status,
+        error_message: analysisData.error_message,
+        extracted_transcript: analysisData.extracted_transcript,
+        processing_session_id: processingSessionId
+      }]).select().single();
 
       analytics.track('complete_call_analysis_completed', {
         user_id: userId,
@@ -1141,7 +1145,7 @@ export const dbHelpers = {
       if (apiResponse.call_summary || apiResponse.call_analysis_overview) {
         const callId = `processed-${Date.now()}`
         const transcriptContent = apiResponse.transcript || 'Processed from uploaded file'
-        
+
         callNote = await this.createCallNote(
           userId,
           callId,
@@ -1239,7 +1243,7 @@ export const dbHelpers = {
           })),
           processingSessionId
         )
-        
+
         // Add communication style insights to the insights array
         if (!contentIds.insightsIds) contentIds.insightsIds = []
         contentIds.insightsIds.push(...communicationInsights.map(i => i.id))
