@@ -15,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Updated user IDs and roles based on new schema
 export const DEMO_USERS = {
   SUPER_ADMIN: '00000000-0000-0000-0000-000000000001',
-  ORG_ADMIN: '00000000-0000-0000-0000-000000000002', 
+  ORG_ADMIN: '00000000-0000-0000-0000-000000000002',
   SALES_MANAGER: '00000000-0000-0000-0000-000000000003' // Current logged-in user
 }
 
@@ -48,16 +48,16 @@ export const userHelpers = {
   async getUserProfile(userId) {
     try {
       const profile = await userManagementService.getProfileById(userId);
-      
+
       // Enhance with role and organization data
       if (profile.role_id) {
         profile.role = await userManagementService.getRoleById(profile.role_id);
       }
-      
+
       if (profile.organization_id) {
         profile.organization = await userManagementService.getOrganizationById(profile.organization_id);
       }
-      
+
       return profile;
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -81,7 +81,7 @@ export const userHelpers = {
     try {
       const profile = await userManagementService.getProfileById(userId);
       if (!profile.role_id) return false;
-      
+
       const role = await userManagementService.getRoleById(profile.role_id);
       return role?.key === roleKey;
     } catch (error) {
@@ -95,7 +95,7 @@ export const userHelpers = {
     try {
       const profile = await userManagementService.getProfileById(userId);
       if (!profile.role_id) return 'user';
-      
+
       const role = await userManagementService.getRoleById(profile.role_id);
       return role?.key || 'user';
     } catch (error) {
@@ -167,7 +167,7 @@ export const userHelpers = {
   // Get pending invitations
   async getPendingInvitations(organizationId) {
     try {
-      const invitations = await userManagementService.getInvites({ 
+      const invitations = await userManagementService.getInvites({
         organizationId,
         status: 'pending'
       });
@@ -188,7 +188,7 @@ export const aiAgents = {
       return await aiService.callResearchAgent(data);
     } catch (error) {
       console.error('Research Agent Error:', error);
-      
+
       // Fallback to mock data for development
       return {
         success: true,
@@ -207,7 +207,7 @@ export const aiAgents = {
       return await aiService.callFollowUpAgent(transcriptData);
     } catch (error) {
       console.error('Follow Up Agent Error:', error);
-      
+
       // Fallback to mock data for development
       return {
         success: true,
@@ -282,15 +282,15 @@ export const dbHelpers = {
       });
     } catch (error) {
       console.error('Error saving uploaded file:', error);
-      
+
       // Fallback to direct Supabase for development
       const startTime = Date.now()
-      
+
       try {
         analytics.trackFileUpload(file.name, file.size, file.type, 'started')
 
         const uploadResult = await fileStorage.uploadFile(file, userId)
-        
+
         const fileData = {
           user_id: userId,
           filename: uploadResult.fileName,
@@ -324,7 +324,7 @@ export const dbHelpers = {
 
   async getUploadedFiles(userId, limit = 10) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('uploaded_files')
@@ -345,7 +345,7 @@ export const dbHelpers = {
 
   async getUploadedFile(fileId) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('uploaded_files')
@@ -367,24 +367,24 @@ export const dbHelpers = {
   async getFileContent(fileId) {
     try {
       const fileData = await this.getUploadedFile(fileId)
-      
+
       if (fileData.file_content) {
         return fileData.file_content
       }
-      
+
       if (fileData.file_url) {
         const content = await fileStorage.downloadFileContent(fileData.file_url)
-        
+
         if (content) {
           await supabase
             .from('uploaded_files')
             .update({ file_content: content })
             .eq('id', fileId)
         }
-        
+
         return content
       }
-      
+
       throw new Error('No file content or URL available')
     } catch (error) {
       console.error('Error getting file content:', error)
@@ -396,7 +396,7 @@ export const dbHelpers = {
   async openFile(fileId) {
     try {
       const fileData = await this.getUploadedFile(fileId)
-      
+
       if (fileData.file_url) {
         analytics.track('file_accessed', {
           file_id: fileId,
@@ -408,7 +408,7 @@ export const dbHelpers = {
         window.open(fileData.file_url, '_blank', 'noopener,noreferrer')
         return true
       }
-      
+
       throw new Error('No shareable URL available for this file')
     } catch (error) {
       console.error('Error opening file:', error)
@@ -416,17 +416,44 @@ export const dbHelpers = {
     }
   },
 
+  // Update uploaded file metadata/content
+  async updateUploadedFile(fileId, updates) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .update(updates)
+        .eq('id', fileId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('uploaded_file_updated', {
+        file_id: fileId,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
   // Delete file and clean up storage
   async deleteUploadedFile(fileId) {
     const startTime = Date.now()
-    
+
     try {
       const fileData = await this.getUploadedFile(fileId)
-      
+
       if (fileData.storage_path) {
         await fileStorage.deleteFile(fileData.storage_path)
       }
-      
+
       const { error } = await supabase
         .from('uploaded_files')
         .delete()
@@ -452,7 +479,7 @@ export const dbHelpers = {
   // Processing session management with normalized references
   async createProcessingSession(userId, fileId) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('processing_history')
@@ -482,7 +509,7 @@ export const dbHelpers = {
 
   async updateProcessingSession(sessionId, updates) {
     const startTime = Date.now()
-    
+
     try {
       const updateData = {
         ...updates,
@@ -515,7 +542,7 @@ export const dbHelpers = {
   // Link content IDs to processing session
   async linkContentToSession(sessionId, contentIds) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('processing_history')
@@ -550,7 +577,7 @@ export const dbHelpers = {
 
   async getProcessingHistory(userId, limit = 20) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('processing_history')
@@ -589,7 +616,7 @@ export const dbHelpers = {
 
   async getProcessingSessionDetails(sessionId) {
     const startTime = Date.now()
-    
+
     try {
       const { data: session, error } = await supabase
         .from('processing_history')
@@ -604,7 +631,7 @@ export const dbHelpers = {
       if (error) throw error
 
       const contentRefs = session.content_references || {}
-      
+
       let commitments = []
       if (contentRefs.commitments_ids && contentRefs.commitments_ids.length > 0) {
         const { data: commitmentsData } = await supabase
@@ -663,7 +690,7 @@ export const dbHelpers = {
   // Content creation functions that return IDs for linking
   async createCallNote(userId, callId, transcriptContent, fileId = null, processingSessionId = null) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_notes')
@@ -697,7 +724,7 @@ export const dbHelpers = {
 
   async getCallNote(id) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_notes')
@@ -717,7 +744,7 @@ export const dbHelpers = {
 
   async updateCallNote(id, updates) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_notes')
@@ -743,7 +770,7 @@ export const dbHelpers = {
 
   async createCommitments(callNotesId, userId, commitments, processingSessionId = null) {
     const startTime = Date.now()
-    
+
     try {
       const commitmentRecords = commitments.map((commitment, index) => ({
         call_notes_id: callNotesId,
@@ -781,7 +808,7 @@ export const dbHelpers = {
 
   async updateCommitment(id, updates) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_commitments')
@@ -807,7 +834,7 @@ export const dbHelpers = {
 
   async createFollowUpEmail(callNotesId, userId, emailContent, processingSessionId = null) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('follow_up_emails')
@@ -839,7 +866,7 @@ export const dbHelpers = {
 
   async updateFollowUpEmail(id, updates) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('follow_up_emails')
@@ -865,7 +892,7 @@ export const dbHelpers = {
 
   async createDeckPrompt(callNotesId, userId, promptContent, processingSessionId = null) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('deck_prompts')
@@ -897,7 +924,7 @@ export const dbHelpers = {
 
   async updateDeckPrompt(id, updates) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('deck_prompts')
@@ -923,7 +950,7 @@ export const dbHelpers = {
 
   async saveCallInsights(callNotesId, userId, insights, processingSessionId = null) {
     const startTime = Date.now()
-    
+
     try {
       const insightRecords = insights.map(insight => ({
         call_notes_id: callNotesId,
@@ -961,7 +988,7 @@ export const dbHelpers = {
 
   async updateCallInsight(id, updates) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_insights')
@@ -987,7 +1014,7 @@ export const dbHelpers = {
 
   async getCallInsights(callNotesId, userId) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('call_insights')
@@ -1090,7 +1117,7 @@ export const dbHelpers = {
         processing_session_id: processingSessionId,
         error: error.message
       })
-      
+
       console.error('Error creating complete call analysis:', error)
       throw error
     }
@@ -1120,7 +1147,7 @@ export const dbHelpers = {
     }
 
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from(table)
@@ -1148,7 +1175,7 @@ export const dbHelpers = {
   // Get all processing sessions that reference a specific content item
   async getSessionsReferencingContent(contentType, contentId) {
     const startTime = Date.now()
-    
+
     try {
       const { data, error } = await supabase
         .from('processing_history')
@@ -1167,7 +1194,7 @@ export const dbHelpers = {
 
   async logPushAction(userId, contentType, contentId, status, errorMessage = null, hubspotId = null) {
     const startTime = Date.now()
-    
+
     try {
       // Try using centralized CRM service first
       if (status === 'success') {
