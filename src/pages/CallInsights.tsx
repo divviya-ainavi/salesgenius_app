@@ -13,6 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   ArrowLeft,
   Sparkles,
   TrendingUp,
@@ -45,6 +50,7 @@ import {
   Ear,
   Hand,
   Brain,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -192,6 +198,20 @@ const mockCumulativeInsights = {
           "Provide dashboard previews",
           "Include visual case studies",
         ],
+        personality_type: {
+          type: "Architect (Dc)",
+          key: "D",
+          traits: [
+            "Seeks autonomy and efficiency",
+            "Pushes for practical improvements",
+            "Challenges unproductive ideas"
+          ]
+        },
+        modality: {
+          type: "Visual",
+          icon: "Eye",
+          guidance: "Incorporate charts & visuals in your messages"
+        }
       },
       {
         id: "comm_2",
@@ -213,6 +233,20 @@ const mockCumulativeInsights = {
           "Show technical details",
           "Include implementation guides",
         ],
+        personality_type: {
+          type: "Implementer (Sc)",
+          key: "S",
+          traits: [
+            "Values stability and process",
+            "Prefers step-by-step guidance",
+            "Focuses on practical execution"
+          ]
+        },
+        modality: {
+          type: "Kinesthetic",
+          icon: "Hand",
+          guidance: "Focus on actionable steps & experiences"
+        }
       },
       {
         id: "comm_3",
@@ -234,8 +268,46 @@ const mockCumulativeInsights = {
           "Use storytelling",
           "Focus on collaboration",
         ],
+        personality_type: null, // Example of no data available
+        modality: {
+          type: "Auditory",
+          icon: "Ear",
+          guidance: "Use clear, concise language"
+        }
       },
     ],
+    howToEngageSummary: {
+      "General Communication": [
+        "State purpose first, avoid small-talk",
+        "Be clear and concise",
+        "Express confidence in recommendations",
+        "Focus on efficiency and results"
+      ],
+      "Meeting & Demo Tactics": [
+        "Be direct with next steps",
+        "Address pain points immediately",
+        "Focus on value over features",
+        "Keep meetings brief and structured"
+      ],
+      "Email & Follow-up Style": [
+        "State purpose in the first sentence",
+        "Avoid small-talk in written communication",
+        "Provide clear deadlines",
+        "Ask yes/no questions about status"
+      ],
+      "Negotiation & Pricing Strategy": [
+        "Focus on efficiency and cost-effectiveness",
+        "Be transparent about benefits and limitations",
+        "Articulate clear ROI goals",
+        "Present options with clear recommendations"
+      ],
+      "Driving Action": [
+        "Propose specific times but allow modifications",
+        "Ask for agenda proposals",
+        "Set clear expectations for next steps",
+        "Follow up with action item summaries"
+      ]
+    }
   },
 };
 
@@ -290,6 +362,21 @@ const communicationStyleConfigs = {
   },
 };
 
+// Personality type icons mapping
+const personalityTypeIcons = {
+  D: Brain,
+  I: MessageSquare,
+  S: Users,
+  C: BarChart3,
+};
+
+// Communication modality icons mapping
+const communicationModalityIcons = {
+  Visual: Eye,
+  Auditory: Ear,
+  Kinesthetic: Hand,
+};
+
 const CallInsights = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -297,6 +384,7 @@ const CallInsights = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [insights, setInsights] = useState([]);
   const [communicationStyles, setCommunicationStyles] = useState([]);
+  const [howToEngageSummary, setHowToEngageSummary] = useState(null);
   const [isAddingInsight, setIsAddingInsight] = useState(false);
   const [newInsight, setNewInsight] = useState({
     content: "",
@@ -391,6 +479,11 @@ const CallInsights = () => {
   const loadProspectInsights = (insightData) => {
     setInsights(insightData.sales_insights || []);
     setCommunicationStyles(insightData.communication_styles || []);
+    
+    // Load mock data for demonstration - in real app this would come from the database
+    if (insightData.id && mockCumulativeInsights.acme_corp) {
+      setHowToEngageSummary(mockCumulativeInsights.acme_corp.howToEngageSummary);
+    }
   };
 
   const handleProspectSelect = (prospect) => {
@@ -1027,12 +1120,12 @@ const CallInsights = () => {
             </CardContent>
           </Card>
 
-          {/* Communication Styles Detected */}
+          {/* Communication Styles Detected with Behavioral Insights */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Communication Styles Detected</span>
+                <span>Prospect Behavioral & Communication Insights</span>
                 <Badge variant="secondary">
                   {communicationStyles.length} stakeholders
                 </Badge>
@@ -1044,7 +1137,12 @@ const CallInsights = () => {
                   {communicationStyles.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
-                    // const StyleIcon = styleConfig.icon;
+                    const PersonalityIcon = stakeholder.personality_type 
+                      ? personalityTypeIcons[stakeholder.personality_type.key] 
+                      : null;
+                    const ModalityIcon = stakeholder.modality 
+                      ? communicationModalityIcons[stakeholder.modality.type] 
+                      : null;
 
                     return (
                       <div
@@ -1052,9 +1150,12 @@ const CallInsights = () => {
                         className="border rounded-lg p-4"
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="font-semibold">
-                              {stakeholder.stakeholder}
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                              <span>{stakeholder.stakeholder}</span>
+                              {PersonalityIcon && (
+                                <PersonalityIcon className="w-4 h-4 text-primary" />
+                              )}
                             </h3>
                             <p className="text-sm text-muted-foreground">
                               {stakeholder.role}
@@ -1063,9 +1164,8 @@ const CallInsights = () => {
                           <div className="flex items-center space-x-2">
                             <Badge
                               variant="outline"
-                              // className={cn("text-xs", styleConfig.color)}
+                              className={cn("text-xs", styleConfig?.color)}
                             >
-                              {/* <StyleIcon className="w-3 h-3 mr-1" /> */}
                               {stakeholder.style}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
@@ -1076,6 +1176,56 @@ const CallInsights = () => {
                         </div>
 
                         <div className="space-y-4">
+                          {/* Personality Type Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              <Brain className="w-4 h-4" />
+                              <span>Personality Type</span>
+                            </h4>
+                            {stakeholder.personality_type ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.personality_type.type}
+                                </p>
+                                <ul className="text-sm text-muted-foreground space-y-1">
+                                  {stakeholder.personality_type.traits.map((trait, index) => (
+                                    <li key={index} className="flex items-start space-x-2">
+                                      <span className="text-primary mt-1">•</span>
+                                      <span>{trait}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Personality Type: Data not available
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Communication Modality Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              {ModalityIcon && <ModalityIcon className="w-4 h-4" />}
+                              <span>Preferred Communication Modality</span>
+                            </h4>
+                            {stakeholder.modality ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.modality.type}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stakeholder.modality.guidance}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Communication Modality: Data not available
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Evidence Section */}
                           <div>
                             <h4 className="text-sm font-medium mb-2">
                               Evidence
@@ -1141,6 +1291,50 @@ const CallInsights = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Consolidated "How To Engage" Summary */}
+          {howToEngageSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Consolidated "How To Engage" Summary</span>
+                  <Badge variant="default">Strategic Guide</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(howToEngageSummary).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(howToEngageSummary).map(([category, tips]) => (
+                      <Collapsible key={category} defaultOpen={true}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <h4 className="font-medium text-sm">{category}</h4>
+                          <ChevronRight className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 ml-3">
+                          <ul className="space-y-2">
+                            {tips.map((tip, index) => (
+                              <li key={index} className="flex items-start space-x-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">
+                      Comprehensive Engagement Strategy: Insufficient data for a tailored summary.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Cumulative Intelligence Section */}
           <Card>
