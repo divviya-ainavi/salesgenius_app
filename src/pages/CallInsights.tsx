@@ -204,14 +204,14 @@ const mockCumulativeInsights = {
           traits: [
             "Seeks autonomy and efficiency",
             "Pushes for practical improvements",
-            "Challenges unproductive ideas"
-          ]
+            "Challenges unproductive ideas",
+          ],
         },
         modality: {
           type: "Visual",
           icon: "Eye",
-          guidance: "Incorporate charts & visuals in your messages"
-        }
+          guidance: "Incorporate charts & visuals in your messages",
+        },
       },
       {
         id: "comm_2",
@@ -239,14 +239,14 @@ const mockCumulativeInsights = {
           traits: [
             "Values stability and process",
             "Prefers step-by-step guidance",
-            "Focuses on practical execution"
-          ]
+            "Focuses on practical execution",
+          ],
         },
         modality: {
           type: "Kinesthetic",
           icon: "Hand",
-          guidance: "Focus on actionable steps & experiences"
-        }
+          guidance: "Focus on actionable steps & experiences",
+        },
       },
       {
         id: "comm_3",
@@ -272,8 +272,8 @@ const mockCumulativeInsights = {
         modality: {
           type: "Auditory",
           icon: "Ear",
-          guidance: "Use clear, concise language"
-        }
+          guidance: "Use clear, concise language",
+        },
       },
     ],
     howToEngageSummary: {
@@ -281,33 +281,33 @@ const mockCumulativeInsights = {
         "State purpose first, avoid small-talk",
         "Be clear and concise",
         "Express confidence in recommendations",
-        "Focus on efficiency and results"
+        "Focus on efficiency and results",
       ],
       "Meeting & Demo Tactics": [
         "Be direct with next steps",
         "Address pain points immediately",
         "Focus on value over features",
-        "Keep meetings brief and structured"
+        "Keep meetings brief and structured",
       ],
       "Email & Follow-up Style": [
         "State purpose in the first sentence",
         "Avoid small-talk in written communication",
         "Provide clear deadlines",
-        "Ask yes/no questions about status"
+        "Ask yes/no questions about status",
       ],
       "Negotiation & Pricing Strategy": [
         "Focus on efficiency and cost-effectiveness",
         "Be transparent about benefits and limitations",
         "Articulate clear ROI goals",
-        "Present options with clear recommendations"
+        "Present options with clear recommendations",
       ],
       "Driving Action": [
         "Propose specific times but allow modifications",
         "Ask for agenda proposals",
         "Set clear expectations for next steps",
-        "Follow up with action item summaries"
-      ]
-    }
+        "Follow up with action item summaries",
+      ],
+    },
   },
 };
 
@@ -393,7 +393,7 @@ const CallInsights = () => {
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [allInsights, setAllInsights] = useState([]);
-  
+
   // Company name editing state
   const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
   const [editingCompanyName, setEditingCompanyName] = useState("");
@@ -479,10 +479,12 @@ const CallInsights = () => {
   const loadProspectInsights = (insightData) => {
     setInsights(insightData.sales_insights || []);
     setCommunicationStyles(insightData.communication_styles || []);
-    
+
     // Load mock data for demonstration - in real app this would come from the database
     if (insightData.id && mockCumulativeInsights.acme_corp) {
-      setHowToEngageSummary(mockCumulativeInsights.acme_corp.howToEngageSummary);
+      setHowToEngageSummary(
+        mockCumulativeInsights.acme_corp.howToEngageSummary
+      );
     }
   };
 
@@ -876,7 +878,9 @@ const CallInsights = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-muted-foreground">Company Name:</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Company Name:
+                </span>
                 {isEditingCompanyName ? (
                   <div className="flex items-center space-x-2 flex-1">
                     <Input
@@ -886,8 +890,8 @@ const CallInsights = () => {
                       placeholder="Enter company name"
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveCompanyName();
-                        if (e.key === 'Escape') handleCancelEditCompanyName();
+                        if (e.key === "Enter") handleSaveCompanyName();
+                        if (e.key === "Escape") handleCancelEditCompanyName();
                       }}
                     />
                     <Button
@@ -907,7 +911,9 @@ const CallInsights = () => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2 flex-1">
-                    <span className="text-lg font-semibold">{selectedProspect.companyName}</span>
+                    <span className="text-lg font-semibold">
+                      {selectedProspect.companyName}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1137,11 +1143,11 @@ const CallInsights = () => {
                   {communicationStyles.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
-                    const PersonalityIcon = stakeholder.personality_type 
-                      ? personalityTypeIcons[stakeholder.personality_type.key] 
+                    const PersonalityIcon = stakeholder.personality_type
+                      ? personalityTypeIcons[stakeholder.personality_type.key]
                       : null;
-                    const ModalityIcon = stakeholder.modality 
-                      ? communicationModalityIcons[stakeholder.modality.type] 
+                    const ModalityIcon = stakeholder.modality
+                      ? communicationModalityIcons[stakeholder.modality.type]
                       : null;
 
                     return (
@@ -1188,12 +1194,19 @@ const CallInsights = () => {
                                   {stakeholder.personality_type.type}
                                 </p>
                                 <ul className="text-sm text-muted-foreground space-y-1">
-                                  {stakeholder.personality_type.traits.map((trait, index) => (
-                                    <li key={index} className="flex items-start space-x-2">
-                                      <span className="text-primary mt-1">•</span>
-                                      <span>{trait}</span>
-                                    </li>
-                                  ))}
+                                  {stakeholder.personality_type.traits.map(
+                                    (trait, index) => (
+                                      <li
+                                        key={index}
+                                        className="flex items-start space-x-2"
+                                      >
+                                        <span className="text-primary mt-1">
+                                          •
+                                        </span>
+                                        <span>{trait}</span>
+                                      </li>
+                                    )
+                                  )}
                                 </ul>
                               </div>
                             ) : (
@@ -1206,7 +1219,9 @@ const CallInsights = () => {
                           {/* Communication Modality Section */}
                           <div className="bg-muted/50 rounded-lg p-3">
                             <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
-                              {ModalityIcon && <ModalityIcon className="w-4 h-4" />}
+                              {ModalityIcon && (
+                                <ModalityIcon className="w-4 h-4" />
+                              )}
                               <span>Preferred Communication Modality</span>
                             </h4>
                             {stakeholder.modality ? (
@@ -1293,7 +1308,7 @@ const CallInsights = () => {
           </Card>
 
           {/* Consolidated "How To Engage" Summary */}
-          {howToEngageSummary && (
+          {/* {howToEngageSummary && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1334,7 +1349,7 @@ const CallInsights = () => {
                 )}
               </CardContent>
             </Card>
-          )}
+          )} */}
 
           {/* Cumulative Intelligence Section */}
           <Card>

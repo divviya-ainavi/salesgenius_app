@@ -1485,6 +1485,16 @@ action_items
     if (error) throw error;
     return data;
   },
+  async getUploadedFileById(fileId) {
+    const { data, error } = await supabase
+      .from('uploaded_files')
+      .select('*')
+      .eq('id', fileId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
 
   async savePresentationPrompt({ prompt, prospectId }) {
     const { data, error } = await supabase

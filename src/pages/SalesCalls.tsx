@@ -120,6 +120,7 @@ const SalesCalls = () => {
             call_analysis_overview: insight.call_analysis_overview,
           },
           uploaded_file_id: insight.uploaded_file_id,
+          type: insight.type || "file_upload",
         }))
       );
     } catch (error) {
@@ -363,21 +364,50 @@ const SalesCalls = () => {
     }
   };
 
-  const handleDownloadTranscript = (call) => {
-    const blob = new Blob([call.transcript], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${call.companyName}_${call.callId}_transcript.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Transcript downloaded");
-    trackButtonClick("Download Transcript", {
-      call_id: call.id,
-      company: call.companyName,
-    });
+  const handleDownloadTranscript = async (call) => {
+    try {
+      if (!call.uploaded_file_id) {
+        toast.error("No uploaded file associated with this call.");
+        return;
+      }
+
+      // Fetch the uploaded file metadata from Supabase
+      const uploadedFile = await dbHelpers.getUploadedFileById(
+        call.uploaded_file_id
+      );
+
+      if (!uploadedFile || !uploadedFile.file_url) {
+        toast.error("Unable to fetch file URL.");
+        return;
+      }
+
+      const response = await fetch(uploadedFile.file_url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        uploadedFile.filename || `${call.companyName}_${call.callId}.pdf`; // fallback name
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Transcript file downloaded.");
+      trackButtonClick("Download Original File", {
+        call_id: call.id,
+        uploaded_file_id: call.uploaded_file_id,
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download transcript file.");
+    }
   };
 
   const handleProcessCall = async (call, source = "fireflies") => {
@@ -1114,7 +1144,14 @@ const SalesCalls = () => {
                           <TrackedButton
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewTranscript(call)}
+                            disabled={
+                              call.type == "fireflies" &&
+                              getFirefliestranscript &&
+                              processingFirefliesId == call?.id
+                            }
+                            onClick={() =>
+                              handleViewTranscript(call, "fireflies")
+                            }
                             trackingName="View Original Transcript"
                             trackingContext={{
                               call_id: call.id,
