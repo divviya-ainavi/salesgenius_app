@@ -269,6 +269,126 @@ Best regards,
 
 // Database helper functions with centralized API integration
 export const dbHelpers = {
+  // HubSpot Credentials Management
+  async getUserHubSpotCredentials(userId) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('user_hubspot_credentials')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error
+      }
+
+      analytics.trackApiResponse('/api/get-hubspot-credentials', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-hubspot-credentials', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  async saveUserHubSpotCredentials(userId, credentials) {
+    const startTime = Date.now()
+
+    try {
+      // First, deactivate any existing credentials
+      await supabase
+        .from('user_hubspot_credentials')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+
+      // Insert new credentials
+      const { data, error } = await supabase
+        .from('user_hubspot_credentials')
+        .insert({
+          user_id: userId,
+          client_id: credentials.client_id,
+          client_secret: credentials.client_secret,
+          access_token: credentials.access_token,
+          refresh_token: credentials.refresh_token,
+          expires_at: credentials.expires_at,
+          scope: credentials.scope,
+          hub_domain: credentials.hub_domain,
+          hub_id: credentials.hub_id,
+          is_active: true
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('hubspot_credentials_saved', {
+        user_id: userId,
+        hub_id: credentials.hub_id
+      })
+      analytics.trackApiResponse('/api/save-hubspot-credentials', 'POST', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/save-hubspot-credentials', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  async updateUserHubSpotTokens(userId, tokens) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('user_hubspot_credentials')
+        .update({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_at: tokens.expires_at
+        })
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('hubspot_tokens_updated', {
+        user_id: userId
+      })
+      analytics.trackApiResponse('/api/update-hubspot-tokens', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-hubspot-tokens', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  async deleteUserHubSpotCredentials(userId) {
+    const startTime = Date.now()
+
+    try {
+      const { error } = await supabase
+        .from('user_hubspot_credentials')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      analytics.track('hubspot_credentials_deleted', {
+        user_id: userId
+      })
+      analytics.trackApiResponse('/api/delete-hubspot-credentials', 'DELETE', 200, Date.now() - startTime)
+
+      return true
+    } catch (error) {
+      analytics.trackApiResponse('/api/delete-hubspot-credentials', 'DELETE', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
   // File management functions using centralized file service
   async saveUploadedFile(userId, file, content = null) {
     try {
@@ -375,10 +495,10 @@ export const dbHelpers = {
 
       if (error) throw error
 
-      analytics.trackApiResponse('/api/get-uploaded-file-by-id', 'GET', 200, Date.now() - startTime)
+      analytics.trackApiResponse('/api/get-file-by-id', 'GET', 200, Date.now() - startTime)
       return data
     } catch (error) {
-      analytics.trackApiResponse('/api/get-uploaded-file-by-id', 'GET', 500, Date.now() - startTime, error.message)
+      analytics.trackApiResponse('/api/get-file-by-id', 'GET', 500, Date.now() - startTime, error.message)
       throw error
     }
   },
