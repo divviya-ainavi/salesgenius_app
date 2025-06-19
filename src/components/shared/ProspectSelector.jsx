@@ -213,13 +213,13 @@ export const ProspectSelector = ({
                   {selectedProspect.dealValue}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
+              {/* <div className="flex items-center space-x-2">
                 <TrendingUp className="w-3 h-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Probability:</span>
                 <span className="font-medium">
                   {selectedProspect.probability}%
                 </span>
-              </div>
+              </div> */}
               <div className="flex items-center space-x-2">
                 <User className="w-3 h-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Stakeholders:</span>

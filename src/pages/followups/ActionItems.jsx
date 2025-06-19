@@ -1,123 +1,133 @@
-import React, { useState, useEffect } from 'react'
-import { CommitmentsCard } from '@/components/followups/CommitmentsCard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ProspectSelector } from '@/components/shared/ProspectSelector'
-import { Calendar, Clock, User, CheckSquare, Target, TrendingUp } from 'lucide-react'
-import { toast } from 'sonner'
-import { dbHelpers, CURRENT_USER } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
+import React, { useState, useEffect } from "react";
+import { CommitmentsCard } from "@/components/followups/CommitmentsCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ProspectSelector } from "@/components/shared/ProspectSelector";
+import {
+  Calendar,
+  Clock,
+  User,
+  CheckSquare,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import { toast } from "sonner";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 // Mock data for action items based on selected prospect
 const getActionItemsForProspect = (prospectId) => {
   const actionItemsData = {
-    'acme_corp': [
-      { 
-        id: '1', 
-        commitment_text: 'Send product demo video by Friday', 
-        is_selected: true, 
+    acme_corp: [
+      {
+        id: "1",
+        commitment_text: "Send product demo video by Friday",
+        is_selected: true,
         is_pushed: false,
-        owner: 'Sarah Johnson',
-        deadline: '2024-01-19',
-        priority: 'high',
-        source: 'Call 4 - Pilot Discussion'
+        owner: "Sarah Johnson",
+        deadline: "2024-01-19",
+        priority: "high",
+        source: "Call 4 - Pilot Discussion",
       },
-      { 
-        id: '2', 
-        commitment_text: 'Schedule technical deep-dive with Mike\'s team next week', 
-        is_selected: true, 
+      {
+        id: "2",
+        commitment_text:
+          "Schedule technical deep-dive with Mike's team next week",
+        is_selected: true,
         is_pushed: true,
-        owner: 'Mike Chen',
-        deadline: '2024-01-22',
-        priority: 'high',
-        source: 'Call 3 - Technical Requirements'
+        owner: "Mike Chen",
+        deadline: "2024-01-22",
+        priority: "high",
+        source: "Call 3 - Technical Requirements",
       },
-      { 
-        id: '3', 
-        commitment_text: 'Prepare custom pricing proposal for Q2 implementation', 
-        is_selected: false, 
+      {
+        id: "3",
+        commitment_text:
+          "Prepare custom pricing proposal for Q2 implementation",
+        is_selected: false,
         is_pushed: false,
-        owner: 'Sales Team',
-        deadline: '2024-01-25',
-        priority: 'medium',
-        source: 'Call 4 - Budget Discussion'
+        owner: "Sales Team",
+        deadline: "2024-01-25",
+        priority: "medium",
+        source: "Call 4 - Budget Discussion",
       },
-      { 
-        id: '4', 
-        commitment_text: 'Provide HubSpot integration documentation', 
-        is_selected: true, 
+      {
+        id: "4",
+        commitment_text: "Provide HubSpot integration documentation",
+        is_selected: true,
         is_pushed: false,
-        owner: 'Technical Team',
-        deadline: '2024-01-20',
-        priority: 'high',
-        source: 'Call 2 - Integration Requirements'
-      }
+        owner: "Technical Team",
+        deadline: "2024-01-20",
+        priority: "high",
+        source: "Call 2 - Integration Requirements",
+      },
     ],
-    'techstart_inc': [
-      { 
-        id: '5', 
-        commitment_text: 'Review integration requirements with CTO', 
-        is_selected: true, 
+    techstart_inc: [
+      {
+        id: "5",
+        commitment_text: "Review integration requirements with CTO",
+        is_selected: true,
         is_pushed: true,
-        owner: 'Emma Wilson',
-        deadline: '2024-01-18',
-        priority: 'high',
-        source: 'Call 2 - Technical Review'
+        owner: "Emma Wilson",
+        deadline: "2024-01-18",
+        priority: "high",
+        source: "Call 2 - Technical Review",
       },
-      { 
-        id: '6', 
-        commitment_text: 'Connect with their development team for API discussion', 
-        is_selected: true, 
+      {
+        id: "6",
+        commitment_text:
+          "Connect with their development team for API discussion",
+        is_selected: true,
         is_pushed: false,
-        owner: 'John Smith',
-        deadline: '2024-01-21',
-        priority: 'medium',
-        source: 'Call 1 - Initial Discovery'
+        owner: "John Smith",
+        deadline: "2024-01-21",
+        priority: "medium",
+        source: "Call 1 - Initial Discovery",
       },
-      { 
-        id: '7', 
-        commitment_text: 'Prepare startup-specific pricing model', 
-        is_selected: true, 
+      {
+        id: "7",
+        commitment_text: "Prepare startup-specific pricing model",
+        is_selected: true,
         is_pushed: false,
-        owner: 'Sales Team',
-        deadline: '2024-01-23',
-        priority: 'medium',
-        source: 'Call 2 - Budget Constraints'
-      }
+        owner: "Sales Team",
+        deadline: "2024-01-23",
+        priority: "medium",
+        source: "Call 2 - Budget Constraints",
+      },
     ],
-    'global_solutions': [
-      { 
-        id: '8', 
-        commitment_text: 'Schedule process optimization workshop', 
-        is_selected: true, 
+    global_solutions: [
+      {
+        id: "8",
+        commitment_text: "Schedule process optimization workshop",
+        is_selected: true,
         is_pushed: false,
-        owner: 'Emma Wilson',
-        deadline: '2024-01-24',
-        priority: 'high',
-        source: 'Call 3 - Process Review'
+        owner: "Emma Wilson",
+        deadline: "2024-01-24",
+        priority: "high",
+        source: "Call 3 - Process Review",
       },
-      { 
-        id: '9', 
-        commitment_text: 'Provide enterprise security documentation', 
-        is_selected: true, 
+      {
+        id: "9",
+        commitment_text: "Provide enterprise security documentation",
+        is_selected: true,
         is_pushed: true,
-        owner: 'David Brown',
-        deadline: '2024-01-20',
-        priority: 'high',
-        source: 'Call 2 - Security Requirements'
+        owner: "David Brown",
+        deadline: "2024-01-20",
+        priority: "high",
+        source: "Call 2 - Security Requirements",
       },
-      { 
-        id: '10', 
-        commitment_text: 'Create implementation timeline for Q2', 
-        is_selected: false, 
+      {
+        id: "10",
+        commitment_text: "Create implementation timeline for Q2",
+        is_selected: false,
         is_pushed: false,
-        owner: 'Project Team',
-        deadline: '2024-01-26',
-        priority: 'low',
-        source: 'Call 1 - Timeline Discussion'
-      }
-    ]
+        owner: "Project Team",
+        deadline: "2024-01-26",
+        priority: "low",
+        source: "Call 1 - Timeline Discussion",
+      },
+    ],
   };
 
   return actionItemsData[prospectId] || [];
@@ -126,124 +136,202 @@ const getActionItemsForProspect = (prospectId) => {
 // Mock prospects data
 const mockProspects = [
   {
-    id: 'acme_corp',
-    companyName: 'Acme Corp',
-    prospectName: 'Sarah Johnson',
-    title: 'VP of Sales',
-    status: 'hot',
-    dealValue: '$120K',
+    id: "acme_corp",
+    companyName: "Acme Corp",
+    prospectName: "Sarah Johnson",
+    title: "VP of Sales",
+    status: "hot",
+    dealValue: "$120K",
     probability: 85,
-    nextAction: 'Pilot program approval',
+    nextAction: "Pilot program approval",
     stakeholders: [
-      { name: 'Sarah Johnson', role: 'VP Sales', style: 'Visual' },
-      { name: 'Mike Chen', role: 'Sales Ops', style: 'Kinesthetic' },
-      { name: 'Lisa Rodriguez', role: 'Marketing Dir', style: 'Auditory' }
-    ]
+      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
+      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
+      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
+    ],
   },
   {
-    id: 'techstart_inc',
-    companyName: 'TechStart Inc',
-    prospectName: 'John Smith',
-    title: 'CEO',
-    status: 'warm',
-    dealValue: '$45K',
+    id: "techstart_inc",
+    companyName: "TechStart Inc",
+    prospectName: "John Smith",
+    title: "CEO",
+    status: "warm",
+    dealValue: "$45K",
     probability: 65,
-    nextAction: 'Technical demo',
+    nextAction: "Technical demo",
     stakeholders: [
-      { name: 'John Smith', role: 'CEO', style: 'Visual' },
-      { name: 'Emma Wilson', role: 'CTO', style: 'Kinesthetic' }
-    ]
+      { name: "John Smith", role: "CEO", style: "Visual" },
+      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
+    ],
   },
   {
-    id: 'global_solutions',
-    companyName: 'Global Solutions Ltd',
-    prospectName: 'Emma Wilson',
-    title: 'Director of Operations',
-    status: 'warm',
-    dealValue: '$85K',
+    id: "global_solutions",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    title: "Director of Operations",
+    status: "warm",
+    dealValue: "$85K",
     probability: 70,
-    nextAction: 'Proposal review',
+    nextAction: "Proposal review",
     stakeholders: [
-      { name: 'Emma Wilson', role: 'Director Operations', style: 'Auditory' },
-      { name: 'David Brown', role: 'IT Manager', style: 'Kinesthetic' }
-    ]
-  }
+      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
+      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
+    ],
+  },
 ];
 
 export const ActionItems = () => {
-  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0])
-  const [commitments, setCommitments] = useState([])
-  const [pushStatus, setPushStatus] = useState('draft')
-
+  const [selectedProspect, setSelectedProspect] = useState([]);
+  const [commitments, setCommitments] = useState([]);
+  const [pushStatus, setPushStatus] = useState("draft");
+  const [prospects, setProspects] = useState([]);
+  console.log(selectedProspect, "selectedProspect");
   // Use predefined Sales Manager user
-  const userId = CURRENT_USER.id
+  const userId = CURRENT_USER.id;
 
   // Load action items when prospect changes
+
   useEffect(() => {
-    if (selectedProspect) {
-      const prospectCommitments = getActionItemsForProspect(selectedProspect.id);
+    const fetchProspects = async () => {
+      try {
+        const insights = await dbHelpers.getEmailProspectInsights(
+          CURRENT_USER.id
+        );
+        console.log("Fetched email insights:", insights);
+        const enrichedProspects = insights.map((insight) => ({
+          id: insight.id,
+          companyName: insight.company_details?.name || "Unknown Company",
+          prospectName:
+            (insight.prospect_details || []).map((p) => p.name).join(", ") ||
+            "Unknown",
+          title:
+            (insight.prospect_details || []).map((p) => p.title).join(", ") ||
+            "Unknown",
+          prospect_details: insight.prospect_details || [],
+          status: "new",
+          dealValue: "TBD",
+          probability: 50,
+          nextAction: "Initial follow-up",
+          created_at: insight.created_at,
+          sales_insights: insight.sales_insights || [],
+          fullInsight: insight,
+          call_summary: insight.call_summary,
+          action_items: insight.action_items || [],
+        }));
+
+        setProspects(enrichedProspects);
+        if (enrichedProspects.length > 0)
+          setSelectedProspect(enrichedProspects[0]);
+      } catch (err) {
+        console.error("Failed to load email insights:", err);
+        toast.error("Could not fetch email insights");
+      }
+    };
+
+    fetchProspects();
+  }, []);
+
+  useEffect(() => {
+    if (selectedProspect?.action_items?.length) {
+      console.log("if called", selectedProspect.action_items);
+      const prospectCommitments = selectedProspect.action_items.map(
+        (item, index) => ({
+          id: `${selectedProspect.id}-${index}`,
+          commitment_text: item.task || item.commitment_text || "Untitled Task",
+          is_selected: true,
+          is_pushed: false || item.is_pushed,
+          owner: item.owner || "Unassigned",
+          deadline: item.deadline || null,
+          priority: item.priority || "medium",
+          // source: selectedProspect.call_summary || "Call Summary",
+        })
+      );
+
       setCommitments(prospectCommitments);
-      setPushStatus('draft');
-      toast.success(`Loaded action items for ${selectedProspect.companyName}`);
+      setPushStatus("draft");
+      toast.success(
+        `Loaded ${prospectCommitments.length} action items for ${selectedProspect.companyName}`
+      );
+    } else {
+      setCommitments([]);
     }
   }, [selectedProspect]);
+  console.log(commitments, "commitments");
+  // useEffect(() => {
+  //   if (selectedProspect) {
+  //     const prospectCommitments = getActionItemsForProspect(
+  //       selectedProspect.id
+  //     );
+  //     setCommitments(prospectCommitments);
+  //     setPushStatus("draft");
+  //     toast.success(`Loaded action items for ${selectedProspect.companyName}`);
+  //   }
+  // }, [selectedProspect]);
 
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
   };
 
   const handleUpdateCommitments = (updatedCommitments) => {
-    setCommitments(updatedCommitments)
+    setCommitments(updatedCommitments);
     // In real app, save to database
-    toast.success(`Commitments updated for ${selectedProspect.companyName}`)
-  }
+    toast.success(`Commitments updated for ${selectedProspect.companyName}`);
+  };
 
   const handlePushCommitments = async (selectedCommitments) => {
-    setPushStatus('pending')
-    
+    setPushStatus("pending");
+
     try {
       // Simulate API call to HubSpot
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Log each commitment push
       for (const commitment of selectedCommitments) {
         await dbHelpers.logPushAction(
           userId,
-          'commitment',
+          "commitment",
           commitment.id,
-          'success',
+          "success",
           null,
           `hubspot-task-${Date.now()}`
-        )
+        );
       }
-      
+
       // Update local state
-      const updatedCommitments = commitments.map(item => 
-        selectedCommitments.find(selected => selected.id === item.id)
+      const updatedCommitments = commitments.map((item) =>
+        selectedCommitments.find((selected) => selected.id === item.id)
           ? { ...item, is_pushed: true }
           : item
-      )
-      setCommitments(updatedCommitments)
-      
-      setPushStatus('success')
-      toast.success(`${selectedCommitments.length} commitments for ${selectedProspect.companyName} pushed to HubSpot as tasks`)
-    } catch (error) {
-      setPushStatus('error')
-      toast.error('Failed to push commitments to HubSpot')
-    }
-  }
+      );
+      setCommitments(updatedCommitments);
 
-  const totalCommitments = commitments.length
-  const selectedCount = commitments.filter(c => c.is_selected).length
-  const pushedCount = commitments.filter(c => c.is_pushed).length
-  const highPriorityCount = commitments.filter(c => c.priority === 'high').length
+      setPushStatus("success");
+      toast.success(
+        `${selectedCommitments.length} commitments for ${selectedProspect.companyName} pushed to HubSpot as tasks`
+      );
+    } catch (error) {
+      setPushStatus("error");
+      toast.error("Failed to push commitments to HubSpot");
+    }
+  };
+
+  const totalCommitments = commitments.length;
+  const selectedCount = commitments.filter((c) => c.is_selected).length;
+  const pushedCount = commitments.filter((c) => c.is_pushed).length;
+  const highPriorityCount = commitments.filter(
+    (c) => c.priority === "high"
+  ).length;
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case "high":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "low":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -251,9 +339,12 @@ export const ActionItems = () => {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Action Items & Commitments</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Action Items & Commitments
+        </h1>
         <p className="text-muted-foreground">
-          Manage and track commitments made during sales calls. Push selected items to HubSpot as tasks.
+          Manage and track commitments made during sales calls. Push selected
+          items to HubSpot as tasks.
         </p>
       </div>
 
@@ -266,21 +357,25 @@ export const ActionItems = () => {
               <span className="text-sm text-muted-foreground">Total Items</span>
             </div>
             <p className="text-2xl font-bold mt-1">{totalCommitments}</p>
-            <p className="text-xs text-muted-foreground">for {selectedProspect.companyName}</p>
+            <p className="text-xs text-muted-foreground">
+              for {selectedProspect.companyName}
+            </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Target className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">High Priority</span>
+              <span className="text-sm text-muted-foreground">
+                High Priority
+              </span>
             </div>
             <p className="text-2xl font-bold mt-1">{highPriorityCount}</p>
             <p className="text-xs text-muted-foreground">urgent actions</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -291,7 +386,7 @@ export const ActionItems = () => {
             <p className="text-xs text-muted-foreground">ready to push</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -299,7 +394,10 @@ export const ActionItems = () => {
               <span className="text-sm text-muted-foreground">Completion</span>
             </div>
             <p className="text-2xl font-bold mt-1">
-              {totalCommitments > 0 ? Math.round((pushedCount / totalCommitments) * 100) : 0}%
+              {totalCommitments > 0
+                ? Math.round((pushedCount / totalCommitments) * 100)
+                : 0}
+              %
             </p>
             <p className="text-xs text-muted-foreground">pushed to HubSpot</p>
           </CardContent>
@@ -312,8 +410,9 @@ export const ActionItems = () => {
           <ProspectSelector
             selectedProspect={selectedProspect}
             onProspectSelect={handleProspectSelect}
-            compact={true}
-            showStakeholders={false}
+            compact={false}
+            showStakeholders={true}
+            prospectList={prospects} // filtered from call_insights
           />
 
           {/* Action Items Summary */}
@@ -324,31 +423,52 @@ export const ActionItems = () => {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Next Action:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Next Action:
+                  </span>
                   <Badge variant="default" className="text-xs">
                     {selectedProspect.nextAction}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Deal Value:</span>
-                  <span className="text-sm font-medium">{selectedProspect.dealValue}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Deal Value:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {selectedProspect.dealValue}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Probability:</span>
-                  <span className="text-sm font-medium">{selectedProspect.probability}%</span>
-                </div>
+                {/* <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Probability:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {selectedProspect.probability}%
+                  </span>
+                </div> */}
               </div>
 
               {/* Priority Breakdown */}
               <div className="pt-3 border-t border-border">
                 <h4 className="text-sm font-medium mb-2">Priority Breakdown</h4>
                 <div className="space-y-2">
-                  {['high', 'medium', 'low'].map(priority => {
-                    const count = commitments.filter(c => c.priority === priority).length;
+                  {["high", "medium", "low"].map((priority) => {
+                    const count = commitments.filter(
+                      (c) => c.priority === priority
+                    ).length;
                     return (
-                      <div key={priority} className="flex items-center justify-between text-sm">
+                      <div
+                        key={priority}
+                        className="flex items-center justify-between text-sm"
+                      >
                         <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className={cn("text-xs", getPriorityColor(priority))}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              getPriorityColor(priority)
+                            )}
+                          >
                             {priority}
                           </Badge>
                         </div>
@@ -396,14 +516,18 @@ export const ActionItems = () => {
                   {selectedCount} selected
                 </Badge>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <Button 
-                  onClick={() => handlePushCommitments(commitments.filter(item => item.is_selected))}
-                  disabled={pushStatus === 'pending' || selectedCount === 0}
+                <Button
+                  onClick={() =>
+                    handlePushCommitments(
+                      commitments.filter((item) => item.is_selected)
+                    )
+                  }
+                  disabled={pushStatus === "pending" || selectedCount === 0}
                   size="sm"
                 >
-                  {pushStatus === 'pending' ? (
+                  {pushStatus === "pending" ? (
                     <>
                       <Clock className="w-4 h-4 mr-1 animate-spin" />
                       Pushing...
@@ -414,43 +538,60 @@ export const ActionItems = () => {
                 </Button>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-3">
               {/* Enhanced Items List */}
               {commitments.map((item) => (
-                <div key={item.id} className="flex items-start space-x-3 p-4 border border-border rounded-lg">
+                <div
+                  key={item.id}
+                  className="flex items-start space-x-3 p-4 border border-border rounded-lg"
+                >
                   <input
                     type="checkbox"
                     checked={item.is_selected}
                     onChange={() => {
-                      const updatedCommitments = commitments.map(c =>
-                        c.id === item.id ? { ...c, is_selected: !c.is_selected } : c
+                      const updatedCommitments = commitments.map((c) =>
+                        c.id === item.id
+                          ? { ...c, is_selected: !c.is_selected }
+                          : c
                       );
                       handleUpdateCommitments(updatedCommitments);
                     }}
                     className="mt-1"
                   />
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
-                      <p className={cn(
-                        "text-sm leading-relaxed",
-                        !item.is_selected && "text-muted-foreground line-through"
-                      )}>
+                      <p
+                        className={cn(
+                          "text-sm leading-relaxed",
+                          !item.is_selected &&
+                            "text-muted-foreground line-through"
+                        )}
+                      >
                         {item.commitment_text}
                       </p>
                       <div className="flex items-center space-x-2 ml-2">
-                        <Badge variant="outline" className={cn("text-xs", getPriorityColor(item.priority))}>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs",
+                            getPriorityColor(item.priority)
+                          )}
+                        >
                           {item.priority}
                         </Badge>
                         {item.is_pushed && (
-                          <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200">
+                          <Badge
+                            variant="default"
+                            className="text-xs bg-green-100 text-green-800 border-green-200"
+                          >
                             Pushed
                           </Badge>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <User className="w-3 h-3" />
@@ -461,10 +602,10 @@ export const ActionItems = () => {
                         <span>Due: {item.deadline}</span>
                       </div>
                     </div>
-                    
-                    <div className="mt-2 text-xs text-muted-foreground">
+
+                    {/* <div className="mt-2 text-xs text-muted-foreground">
                       <span className="font-medium">Source:</span> {item.source}
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))}
@@ -473,8 +614,13 @@ export const ActionItems = () => {
               {commitments.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No action items for {selectedProspect.companyName}</p>
-                  <p className="text-sm">Action items will appear here after processing calls with this prospect</p>
+                  <p className="mb-2">
+                    No action items for {selectedProspect.companyName}
+                  </p>
+                  <p className="text-sm">
+                    Action items will appear here after processing calls with
+                    this prospect
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -482,5 +628,5 @@ export const ActionItems = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

@@ -1476,7 +1476,8 @@ export const dbHelpers = {
       call_summary,
       extracted_transcript,
 email_template_id,
-presentation_prompt_id
+presentation_prompt_id,
+action_items
     `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
