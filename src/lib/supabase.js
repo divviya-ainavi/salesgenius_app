@@ -363,6 +363,26 @@ export const dbHelpers = {
     }
   },
 
+  async getUploadedFileById(fileId) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .eq('id', fileId)
+        .single()
+
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-uploaded-file-by-id', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-uploaded-file-by-id', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
   // Get file content from shareable URL
   async getFileContent(fileId) {
     try {
@@ -1481,16 +1501,6 @@ action_items
     `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
-  },
-  async getUploadedFileById(fileId) {
-    const { data, error } = await supabase
-      .from('uploaded_files')
-      .select('*')
-      .eq('id', fileId)
-      .single();
 
     if (error) throw error;
     return data;
