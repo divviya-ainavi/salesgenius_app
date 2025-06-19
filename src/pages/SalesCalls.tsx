@@ -66,6 +66,9 @@ const SalesCalls = () => {
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
+  const [getFirefliessummary, setGetFirefliessummary] = useState(null);
+  const [getFirefliestranscript, setGetFirefliestranscript] = useState(null);
+  const [processingFirefliesId, setProcessingFirefliesId] = useState(null);
 
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
@@ -256,34 +259,73 @@ const SalesCalls = () => {
     disabled: isUploading,
   });
 
-  const handleViewSummary = async (call) => {
-    try {
-      const data = await firefliesService.getTranscriptById(call.id);
-      setModalTitle(`Summary - ${data.data.title}`);
+  const handleViewSummary = async (call, type) => {
+    if (type === "fireflies") {
+      setGetFirefliessummary(true);
+      setProcessingFirefliesId(call.id);
+      try {
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: call.id }),
+          }
+        );
+        const json = await response.json();
+        const shortSummary = json[0]?.data?.summary?.short_summary;
+        setModalTitle(`Summary - ${json[0]?.data?.title || call.callId}`);
+        setModalContent(shortSummary || "No summary available");
+        setGetFirefliessummary(false);
+      } catch (err) {
+        setGetFirefliessummary(false);
+        toast.error("Failed to load summary from Fireflies");
+        return;
+      }
+    } else {
+      setModalTitle(`Summary - ${call.callId}`);
       setModalContent(
-        data.data.summary?.short_summary || "No summary available"
+        call.aiProcessedData?.call_summary || "No summary available"
       );
-      setShowSummaryModal(true);
-    } catch (err) {
-      toast.error("Failed to load summary");
     }
+
+    setShowSummaryModal(true);
   };
 
-  const handleViewTranscript = async (call) => {
-    try {
-      const data = await firefliesService.getTranscriptById(call.id);
-      const sentences = data.data.sentences || [];
-      const transcriptText = sentences
-        .map(
-          (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
-        )
-        .join("\n\n");
-      setModalTitle(`Transcript - ${data.data.title}`);
-      setModalContent(transcriptText);
-      setShowTranscriptModal(true);
-    } catch (err) {
-      toast.error("Failed to load transcript");
+  const handleViewTranscript = async (call, type) => {
+    if (type === "fireflies") {
+      setGetFirefliestranscript(true);
+      setProcessingFirefliesId(call.id);
+      try {
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: call.id }),
+          }
+        );
+        const json = await response.json();
+        const sentences = json[0]?.data?.sentences || [];
+        const transcriptText = sentences
+          .map(
+            (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
+          )
+          .join("\n\n");
+        setModalTitle(`Transcript - ${json[0]?.data?.title || call.callId}`);
+        setModalContent(transcriptText);
+        setGetFirefliestranscript(false);
+      } catch (err) {
+        toast.error("Failed to load transcript from Fireflies");
+        setGetFirefliestranscript(false);
+        return;
+      }
+    } else {
+      setModalTitle(`Transcript - ${call.callId}`);
+      setModalContent(call.transcript || "No transcript available");
     }
+
+    setShowTranscriptModal(true);
   };
 
   const handleCopyTranscript = () => {
@@ -367,13 +409,16 @@ const SalesCalls = () => {
     }
 
     setIsProcessing(true);
-    if (source != "fireflies") {
-      setProcessingFileId(file.id);
-      trackButtonClick("Process File", {
+    // if (source != "fireflies") {
+    setProcessingFileId(file.id);
+    trackButtonClick(
+      source == "fireflies" ? "Process Fireflies" : "Process File",
+      {
         file_id: file.id,
         filename: file.filename,
-      });
-    }
+      }
+    );
+    // }
     try {
       // Get file blob from URL
 
@@ -411,7 +456,7 @@ const SalesCalls = () => {
         formData.append("call_metadata", null);
         formData.append("previous_interactions", null);
       } else {
-        formData.append("id", file.id);
+        formData.append("transcript_id", file.id);
       }
 
       // Make API call to process the transcript file
@@ -428,7 +473,15 @@ const SalesCalls = () => {
       }
 
       const data = await response.json();
-      await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
+      // Determine file type and set data accordingly
+      const isFireflies = source === "fireflies";
+
+      if (isFireflies) {
+        await dbHelpers.updateFirefliesFile(file.id, { is_processed: true });
+      } else {
+        await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
+      }
+
       if (data && data.length > 0) {
         const processedData = data[0];
 
@@ -449,12 +502,25 @@ const SalesCalls = () => {
           error_message: processedData.error_message,
           extracted_transcript: file.file_content,
         };
-
+        console.log(
+          {
+            uploaded_file_id: isFireflies ? null : file.id,
+            fireflies_id: isFireflies ? file.id : null,
+            type: isFireflies ? "fireflies" : "file_upload",
+          },
+          isFireflies,
+          "check data 470"
+        );
         // Save to call_insights table
         const savedInsight = await dbHelpers.createCallInsight(
           CURRENT_USER.id,
-          file.id,
-          insightData
+          null, // No uploaded_file_id for fireflies
+          {
+            ...insightData,
+            uploaded_file_id: isFireflies ? null : file.id,
+            fireflies_id: isFireflies ? file.id : null,
+            type: isFireflies ? "fireflies" : "file_upload",
+          }
         );
 
         // Create a processed call object with the data
@@ -870,49 +936,101 @@ const SalesCalls = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          {call.hasSummary && call.status !== "failed" && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewSummary(call)}
-                              trackingName="View Summary"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View Summary
-                            </TrackedButton>
-                          )}
-                          {call.hasTranscript && call.status !== "failed" && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewTranscript(call)}
-                              trackingName="View Transcript"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <FileText className="w-3 h-3 mr-1" />
-                              View Transcript
-                            </TrackedButton>
-                          )}
+                          {
+                            // call.hasSummary &&
+                            call.status !== "failed" && (
+                              <TrackedButton
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  getFirefliessummary &&
+                                  processingFirefliesId == call?.id
+                                }
+                                onClick={() =>
+                                  handleViewSummary(call, "fireflies")
+                                }
+                                trackingName="View Summary"
+                                trackingContext={{
+                                  call_id: call.id,
+                                  company: call.companyName,
+                                }}
+                              >
+                                {getFirefliessummary &&
+                                processingFirefliesId == call?.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />{" "}
+                                    Getting Summary ...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    View Summary
+                                  </>
+                                )}
+                              </TrackedButton>
+                            )
+                          }
+                          {
+                            // call.hasTranscript &&
+                            call.status !== "failed" && (
+                              <TrackedButton
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  getFirefliestranscript &&
+                                  processingFirefliesId == call?.id
+                                }
+                                onClick={() =>
+                                  handleViewTranscript(call, "fireflies")
+                                }
+                                trackingName="View Transcript"
+                                trackingContext={{
+                                  call_id: call.id,
+                                  company: call.companyName,
+                                }}
+                              >
+                                {getFirefliestranscript &&
+                                processingFirefliesId == call?.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />{" "}
+                                    Getting transcript ...
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText className="w-3 h-3 mr-1" />
+                                    View Transcript
+                                  </>
+                                )}
+                              </TrackedButton>
+                            )
+                          }
                         </div>
+                        {console.log(
+                          processingFileId,
+                          call?.id,
+                          call,
+                          "check call data"
+                        )}
                         {call.status !== "failed" && (
                           <TrackedButton
                             onClick={() => handleProcessFile(call, "fireflies")}
+                            disabled={isProcessing}
                             trackingName="Generate Insights"
                             trackingContext={{
-                              call_id: call.id,
+                              call_id: call?.id,
                               company: call.companyName,
                               source: "fireflies",
                             }}
                           >
-                            <ArrowRight className="w-4 h-4 mr-1" />
-                            Generate Insights
+                            {isProcessing && processingFileId === call?.id ? (
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            ) : (
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                            )}
+                            {/* <ArrowRight className="w-4 h-4 mr-1" /> */}
+                            {isProcessing && processingFileId === call?.id
+                              ? "Generating Insights..."
+                              : "Generate Insights"}
                           </TrackedButton>
                         )}
                       </div>
@@ -1006,19 +1124,22 @@ const SalesCalls = () => {
                             <FileText className="w-3 h-3 mr-1" />
                             View Original Transcript
                           </TrackedButton>
-                          <TrackedButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadTranscript(call)}
-                            trackingName="Download Transcript PDF"
-                            trackingContext={{
-                              call_id: call.id,
-                              company: call.companyName,
-                            }}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download PDF
-                          </TrackedButton>
+                          {console.log("check type", call)}
+                          {call.type !== "fireflies" && (
+                            <TrackedButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadTranscript(call)}
+                              trackingName="Download Transcript PDF"
+                              trackingContext={{
+                                call_id: call.id,
+                                company: call.companyName,
+                              }}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Download PDF
+                            </TrackedButton>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           {call.hasInsights && (

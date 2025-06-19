@@ -1191,6 +1191,33 @@ export const dbHelpers = {
     }
   },
 
+  async updateFirefliesFile(fileId, updates) {
+    const startTime = Date.now();
+
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .update(updates)
+        .eq('fireflies_id', fileId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      analytics.track('fireflies_file_updated', {
+        file_id: fileId,
+        updated_fields: Object.keys(updates),
+      });
+
+      analytics.trackApiResponse('/api/update-fireflies-file', 'PUT', 200, Date.now() - startTime);
+
+      return data;
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-fireflies-file', 'PUT', 500, Date.now() - startTime, error.message);
+      throw error;
+    }
+  },
+
   async logPushAction(userId, contentType, contentId, status, errorMessage = null, hubspotId = null) {
     const startTime = Date.now()
 
@@ -1318,7 +1345,9 @@ export const dbHelpers = {
         .from("call_insights")
         .insert({
           user_id: userId,
-          uploaded_file_id: fileId,
+          uploaded_file_id: insightData.uploaded_file_id || null,
+          fireflies_id: insightData.fireflies_id || null,
+          type: insightData.type || null,
           company_id: companyId,
           company_details: insightData.company_details || null,
           prospect_details: insightData.prospect_details || null,
@@ -1334,6 +1363,8 @@ export const dbHelpers = {
         })
         .select()
         .single();
+
+
 
       if (error) {
         console.error("Call insight insert error:", error.message);
