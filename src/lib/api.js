@@ -2,7 +2,7 @@ import { analytics } from './analytics';
 
 // API Configuration
 const API_CONFIG = {
-  baseURL: 'https://salesgenius.ainavi.co.uk/webhook/',
+  baseURL: 'https://salesgenius.ainavi.co.uk/n8n/webhook/',
   timeout: 30000, // 30 seconds
   retries: 3,
   retryDelay: 1000, // 1 second
@@ -15,7 +15,7 @@ class TokenManager {
     this.refreshToken = null;
     this.tokenKey = 'salesgenius_auth_token';
     this.refreshTokenKey = 'salesgenius_refresh_token';
-    
+
     // Load token from localStorage on initialization
     this.loadTokenFromStorage();
   }
@@ -23,7 +23,7 @@ class TokenManager {
   setToken(token, refreshToken = null) {
     this.token = token;
     this.refreshToken = refreshToken;
-    
+
     // Persist to localStorage
     if (token) {
       localStorage.setItem(this.tokenKey, token);
@@ -66,11 +66,11 @@ const tokenManager = new TokenManager();
 // Request interceptor to add authentication headers
 const addAuthHeaders = (headers = {}) => {
   const token = tokenManager.getToken();
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   return headers;
 };
 
@@ -156,7 +156,7 @@ const retryRequest = async (requestFn, retries = API_CONFIG.retries) => {
       // Calculate delay with exponential backoff
       const delay = API_CONFIG.retryDelay * Math.pow(2, attempt);
       console.warn(`Request failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`, error.message);
-      
+
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -206,11 +206,11 @@ const makeRequest = async (endpoint, options = {}) => {
   try {
     const response = await retryRequest(async () => {
       const res = await fetch(url, requestConfig);
-      
+
       if (!res.ok) {
         throw await handleResponseError(res, endpoint, method);
       }
-      
+
       return res;
     });
 
@@ -219,12 +219,12 @@ const makeRequest = async (endpoint, options = {}) => {
     // Parse response with improved error handling
     let data;
     const contentType = response.headers.get('content-type');
-    
+
     if (contentType && contentType.includes('application/json')) {
       try {
         // First read the response as text to check if it's empty
         const responseText = await response.text();
-        
+
         // Handle empty response body
         if (!responseText || responseText.trim() === '') {
           console.warn(`⚠️ Empty JSON response: ${method} ${url}`);
@@ -240,12 +240,12 @@ const makeRequest = async (endpoint, options = {}) => {
         error.endpoint = endpoint;
         error.method = method;
         error.status = response.status;
-        
+
         console.error(`❌ JSON Parse Error: ${method} ${url}`, {
           originalError: jsonError.message,
           responseHeaders: Object.fromEntries(response.headers.entries())
         });
-        
+
         throw error;
       }
     } else {
@@ -266,15 +266,15 @@ const makeRequest = async (endpoint, options = {}) => {
 
   } catch (error) {
     const duration = Date.now() - startTime;
-    
+
     console.error(`❌ API Error: ${method} ${url} (${duration}ms)`, error);
 
     // Track failed API response
     analytics.trackApiResponse(
-      endpoint, 
-      method, 
-      error.status || 0, 
-      duration, 
+      endpoint,
+      method,
+      error.status || 0,
+      duration,
       error.message
     );
 
@@ -290,7 +290,7 @@ const api = {
     getToken: () => tokenManager.getToken(),
     clearToken: () => tokenManager.clearToken(),
     isAuthenticated: () => tokenManager.isAuthenticated(),
-    
+
     // Login method
     login: async (credentials) => {
       const response = await api.post('/auth/login', credentials);
@@ -328,7 +328,7 @@ const api = {
   // HTTP methods
   get: async (endpoint, params = {}, options = {}) => {
     const url = new URL(endpoint, API_CONFIG.baseURL);
-    
+
     // Add query parameters
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== null) {
@@ -377,7 +377,7 @@ const api = {
   upload: async (endpoint, file, additionalData = {}, onProgress = null) => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // Add additional form data
     Object.keys(additionalData).forEach(key => {
       formData.append(key, additionalData[key]);

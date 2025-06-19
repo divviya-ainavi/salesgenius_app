@@ -45,48 +45,198 @@ import {
   Ear,
   Hand,
   Brain,
-  Info,
-  ChevronLeft,
-  ChevronRight,
-  Phone,
-  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 
-// Dynamic insights generator based on processed call data
-const generateInsightsForCall = (call) => {
-  // const companyName = call.companyName || "Unknown Company";
-  // const prospectName = call.prospectName || "Unknown Prospect";
-  const date = call?.date || new Date().toISOString().split("T")[0];
+// Mock prospects data with cumulative insights
+const mockProspects = [
+  {
+    id: "acme_corp",
+    companyName: "Acme Corp",
+    prospectName: "Sarah Johnson",
+    title: "VP of Sales",
+    totalCalls: 4,
+    lastCallDate: "2024-01-15",
+    lastEngagement: "2 hours ago",
+    status: "hot",
+    dealValue: "$120K",
+    probability: 85,
+    nextAction: "Pilot program approval",
+    dataSources: {
+      fireflies: 3,
+      hubspot: 1,
+      presentations: 2,
+      emails: 5,
+    },
+  },
+  {
+    id: "techstart_inc",
+    companyName: "TechStart Inc",
+    prospectName: "John Smith",
+    title: "CEO",
+    totalCalls: 2,
+    lastCallDate: "2024-01-14",
+    lastEngagement: "1 day ago",
+    status: "warm",
+    dealValue: "$45K",
+    probability: 65,
+    nextAction: "Technical demo",
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 3,
+    },
+  },
+  {
+    id: "global_solutions",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    title: "Director of Operations",
+    totalCalls: 3,
+    lastCallDate: "2024-01-10",
+    lastEngagement: "5 days ago",
+    status: "warm",
+    dealValue: "$85K",
+    probability: 70,
+    nextAction: "Proposal review",
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 4,
+    },
+  },
+];
 
-  return call?.map((x) => ({
-    id: x.id,
-    type: x?.type,
-    content: x.content,
-    relevance_score: x.relevance_score,
-    is_selected: x.is_selected,
-    source: x.timestamp,
-    timestamp: date,
-    trend: call?.trend,
-  }));
-};
-
-// Dynamic communication styles generator based on processed call data
-const generateCommunicationStylesForCall = (call, communication) => {
-  const prospectName = call.prospectName || "Unknown Prospect";
-
-  return communication?.map((x) => ({
-    id: x.id,
-    stakeholder: prospectName,
-    role: x.role,
-    style: x.style,
-    confidence: x.confidence,
-    evidence: x.evidence,
-    preferences: x.preferences,
-    communication_tips: x.communication_tips,
-  }));
+// Mock cumulative insights for selected prospect
+const mockCumulativeInsights = {
+  acme_corp: {
+    salesInsights: [
+      {
+        id: "insight_1",
+        type: "buying_signal",
+        content:
+          "Strong budget approval confirmed across 3 calls. £50K annual budget pre-approved with Q2 implementation timeline. Decision authority confirmed with Sarah Johnson.",
+        relevance_score: 98,
+        is_selected: true,
+        source: "Cumulative Analysis",
+        timestamp: "Calls 1-4",
+        trend: "increasing",
+      },
+      {
+        id: "insight_2",
+        type: "pain_point",
+        content:
+          "Manual lead qualification consuming 15+ hours weekly across 8-person sales team. 40% of time spent on admin vs. selling. 30% lead leakage due to delayed response.",
+        relevance_score: 96,
+        is_selected: true,
+        source: "Progressive Discovery",
+        timestamp: "Consistent across calls",
+        trend: "stable",
+      },
+      {
+        id: "insight_3",
+        type: "competitive_advantage",
+        content:
+          "Speed advantage identified: 6-week implementation vs. competitors' 3-6 months. Critical for Q2 deadline. HubSpot native integration is key differentiator.",
+        relevance_score: 94,
+        is_selected: true,
+        source: "Competitive Intelligence",
+        timestamp: "Call 3-4",
+        trend: "increasing",
+      },
+      {
+        id: "insight_4",
+        type: "stakeholder_dynamics",
+        content:
+          "Sarah (decision maker), Mike (technical influencer), Lisa (process stakeholder). No additional approvals needed. Consensus building complete.",
+        relevance_score: 92,
+        is_selected: true,
+        source: "Stakeholder Mapping",
+        timestamp: "Progressive analysis",
+        trend: "stable",
+      },
+      {
+        id: "insight_5",
+        type: "urgency_driver",
+        content:
+          "Q2 scaling plans driving urgency. Series B funding secured, doubling sales team. Automation critical for growth execution.",
+        relevance_score: 90,
+        is_selected: true,
+        source: "Business Context",
+        timestamp: "Call 2-4",
+        trend: "increasing",
+      },
+    ],
+    communicationStyles: [
+      {
+        id: "comm_1",
+        stakeholder: "Sarah Johnson",
+        role: "VP of Sales",
+        style: "Visual",
+        confidence: 0.92,
+        evidence:
+          "Consistently requests charts, dashboards, and visual data across all 4 calls. Responds positively to ROI visualizations.",
+        preferences: [
+          "Data-driven presentations",
+          "Visual ROI calculators",
+          "Dashboard mockups",
+          "Infographic summaries",
+        ],
+        communication_tips: [
+          "Lead with visual data",
+          "Use charts and graphs",
+          "Provide dashboard previews",
+          "Include visual case studies",
+        ],
+      },
+      {
+        id: "comm_2",
+        stakeholder: "Mike Chen",
+        role: "Sales Operations Manager",
+        style: "Kinesthetic",
+        confidence: 0.87,
+        evidence:
+          'Prefers hands-on technical demos, asks for implementation details, wants to "see it in action".',
+        preferences: [
+          "Live demonstrations",
+          "Hands-on trials",
+          "Technical deep-dives",
+          "Implementation walkthroughs",
+        ],
+        communication_tips: [
+          "Offer hands-on demos",
+          "Provide trial access",
+          "Show technical details",
+          "Include implementation guides",
+        ],
+      },
+      {
+        id: "comm_3",
+        stakeholder: "Lisa Rodriguez",
+        role: "Director of Marketing",
+        style: "Auditory",
+        confidence: 0.83,
+        evidence:
+          "Engages well in verbal discussions, asks clarifying questions, prefers phone calls over emails.",
+        preferences: [
+          "Verbal explanations",
+          "Phone discussions",
+          "Collaborative conversations",
+          "Team meetings",
+        ],
+        communication_tips: [
+          "Schedule regular calls",
+          "Encourage questions",
+          "Use storytelling",
+          "Focus on collaboration",
+        ],
+      },
+    ],
+  },
 };
 
 const insightTypes = {
@@ -143,7 +293,7 @@ const communicationStyleConfigs = {
 const CallInsights = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [selectedProcessedCall, setSelectedProcessedCall] = useState(null);
+  const [selectedProspect, setSelectedProspect] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [insights, setInsights] = useState([]);
   const [communicationStyles, setCommunicationStyles] = useState([]);
@@ -154,165 +304,191 @@ const CallInsights = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
-
-  // Processed calls state
-  const [processedCalls, setProcessedCalls] = useState([]);
-  const [isLoadingProcessedCalls, setIsLoadingProcessedCalls] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [allInsights, setAllInsights] = useState([]);
+  
+  // Company name editing state
+  const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
+  const [editingCompanyName, setEditingCompanyName] = useState("");
 
   useEffect(() => {
-    // Check if we have a selected call from navigation
-    if (location.state?.selectedCall) {
-      const call = location.state.selectedCall;
+    const fetchInsightsAndSetProspect = async () => {
+      try {
+        let insights = await dbHelpers.getUserCallInsights(CURRENT_USER.id);
 
-      // Create processed call from navigation data
-      const processedCall = {
-        id: `nav_${Date.now()}`,
-        callId: call.callId || `Call with ${call.companyName}`,
-        companyName: call.companyName || "Unknown Company",
-        prospectName: call.prospectName || "Unknown Prospect",
-        title: call.title || "Unknown Title",
-        date: call.date || new Date().toISOString().split("T")[0],
-        duration: call.duration || "N/A",
-        status: "processed",
-        source: "navigation",
-        hasInsights: true,
-        totalCalls: 1,
-        lastCallDate: call.date || new Date().toISOString().split("T")[0],
-        lastEngagement: "Just processed",
-        dealValue: call.dealValue || "TBD",
-        probability: call.probability || 50,
-        nextAction: call.nextAction || "Review insights",
-        dataSources: { fireflies: 1, hubspot: 0, presentations: 0, emails: 0 },
-        summary: call.summary || "Call processed successfully",
-        insightsCount: 4,
-        stakeholdersCount: 2,
-      };
+        // Sort insights by created_at descending
+        insights = insights.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
 
-      // Set this as the selected call and generate insights
-      handleProcessedCallSelect(processedCall);
+        setAllInsights(insights);
 
-      // Also load other processed calls
-      loadProcessedCalls();
-    } else {
-      // Load processed calls when no specific call is selected
-      loadProcessedCalls();
-    }
-  }, [location.state]);
+        let defaultInsight;
 
-  const loadProcessedCalls = async () => {
-    setIsLoadingProcessedCalls(true);
-    try {
-      // Get processing history with related data
-      const processingHistory = await dbHelpers.getProcessingHistory(
-        CURRENT_USER.id,
-        20
-      );
+        if (location.state?.selectedCall) {
+          const selectedCall = location.state.selectedCall;
+          defaultInsight = insights.find(
+            (insight) => insight.id === selectedCall.id
+          );
+        }
 
-      // Transform processing history into processed calls format
-      const processedCallsData = processingHistory
-        .filter(
-          (session) =>
-            session.processing_status === "completed" && session.uploaded_files
-        )
-        .map((session) => ({
-          id: session.id,
-          callId: `Upload ${session.uploaded_files.filename}`,
-          companyName:
-            session.uploaded_files.filename.replace(/\.[^/.]+$/, "") ||
-            "Unknown Company",
-          prospectName: session.call_notes?.ai_summary
-            ? "AI Processed"
-            : "Unknown Prospect",
-          title: "Unknown Title",
-          date: new Date(session.processing_started_at)
-            .toISOString()
-            .split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          originalFilename: session.uploaded_files.filename,
-          fileSize: session.uploaded_files.file_size,
-          uploadDate: session.uploaded_files.upload_date,
-          processingDate: session.processing_completed_at,
-          summary: session.call_notes?.ai_summary || "No summary available",
-          insightsCount: session.content_references?.insights_ids?.length || 4,
-          stakeholdersCount: 2, // Mock data - would be calculated from actual insights
-          totalCalls: 1,
-          lastCallDate: new Date(session.processing_started_at)
-            .toISOString()
-            .split("T")[0],
-          lastEngagement: "Processed",
-          dealValue: "TBD",
-          probability: 50,
-          nextAction: "Review insights",
-          dataSources: {
-            fireflies: 0,
-            hubspot: 0,
-            presentations: 0,
-            emails: 0,
-          },
-          // Additional metadata
-          contentReferences: session.content_references,
-          apiResponse: session.api_response,
-        }));
+        if (!defaultInsight && insights.length > 0) {
+          defaultInsight = insights[0]; // most recent
+        }
 
-      setProcessedCalls(processedCallsData);
+        if (defaultInsight) {
+          const companyName =
+            defaultInsight.company_details?.name || "Unknown Company";
 
-      // Auto-select the last processed call (most recent) if no call is already selected
-      if (processedCallsData.length > 0 && !selectedProcessedCall) {
-        const lastProcessedCall = processedCallsData[0]; // First item is most recent due to ordering
-        handleProcessedCallSelect(lastProcessedCall);
+          const prospect = {
+            id: defaultInsight.id,
+            companyName,
+            prospectName:
+              (defaultInsight.prospect_details || [])
+                .map((p) => p.name)
+                .join(", ") || "Unknown",
+            title:
+              (defaultInsight.prospect_details || [])
+                .map((p) => p.title)
+                .join(", ") || "Unknown",
+            totalCalls: 1,
+            lastCallDate: defaultInsight.created_at,
+            lastEngagement: "Just now",
+            status: "new",
+            dealValue: "TBD",
+            probability: 50,
+            nextAction: "Initial follow-up",
+            dataSources: {
+              fireflies: 1,
+              hubspot: 0,
+              presentations: 0,
+              emails: 0,
+            },
+            fullInsight: defaultInsight,
+          };
+
+          setSelectedProspect(prospect);
+          loadProspectInsights(defaultInsight);
+        } else {
+          toast.info("No call insights found yet.");
+        }
+      } catch (error) {
+        console.error("Failed to fetch call insights", error);
+        toast.error("Error loading call insight data");
       }
-    } catch (error) {
-      console.error("Error loading processed calls:", error);
-      toast.error("Failed to load processed calls");
-    } finally {
-      setIsLoadingProcessedCalls(false);
-    }
-  };
-
-  const handleProcessedCallSelect = (call) => {
-    setSelectedProcessedCall(call);
-    console.log(call?.apiResponse?.sales_insights, "check call");
-    // Generate dynamic insights based on the selected call
-    const dynamicInsights = generateInsightsForCall(
-      call?.apiResponse?.sales_insights
-    );
-    console.log(dynamicInsights, "check dynamic insights");
-    const dynamicCommunicationStyles = generateCommunicationStylesForCall(
-      call,
-      call?.apiResponse?.communication_styles
-    );
-
-    setInsights(dynamicInsights);
-    setCommunicationStyles(dynamicCommunicationStyles);
-
-    toast.success(`Loaded insights for ${call.companyName}`);
-  };
-
-  const handleAddInsight = () => {
-    if (!newInsight.content.trim()) return;
-
-    const insight = {
-      id: Date.now().toString(),
-      type: newInsight.type,
-      content: newInsight.content.trim(),
-      relevance_score: 85,
-      is_selected: true,
-      source: "User Input",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      trend: "new",
     };
 
-    setInsights((prev) => [insight, ...prev]);
-    setNewInsight({ content: "", type: "user_insight" });
-    setIsAddingInsight(false);
-    toast.success("Insight added successfully");
+    fetchInsightsAndSetProspect();
+  }, [location.state]);
+
+  const updateAllInsightsEntry = (updatedInsight) => {
+    setAllInsights((prev) =>
+      prev.map((insight) =>
+        insight.id === updatedInsight.id ? updatedInsight : insight
+      )
+    );
+  };
+
+  const loadProspectInsights = (insightData) => {
+    setInsights(insightData.sales_insights || []);
+    setCommunicationStyles(insightData.communication_styles || []);
+  };
+
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+    loadProspectInsights(prospect.fullInsight);
+    toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
+
+  const handleEditCompanyName = () => {
+    setIsEditingCompanyName(true);
+    setEditingCompanyName(selectedProspect.companyName);
+  };
+
+  const handleSaveCompanyName = async () => {
+    if (!editingCompanyName.trim()) {
+      toast.error("Company name cannot be empty");
+      return;
+    }
+
+    try {
+      // Update the company_details in the call_insights table
+      const updatedCompanyDetails = {
+        ...selectedProspect.fullInsight.company_details,
+        name: editingCompanyName.trim(),
+      };
+
+      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+        company_details: updatedCompanyDetails,
+      });
+
+      // Update local state
+      setSelectedProspect((prev) => ({
+        ...prev,
+        companyName: editingCompanyName.trim(),
+        fullInsight: {
+          ...prev.fullInsight,
+          company_details: updatedCompanyDetails,
+        },
+      }));
+
+      // Update allInsights array
+      updateAllInsightsEntry(updated);
+
+      setIsEditingCompanyName(false);
+      setEditingCompanyName("");
+      toast.success("Company name updated successfully");
+    } catch (error) {
+      console.error("Error updating company name:", error);
+      toast.error("Failed to update company name");
+    }
+  };
+
+  const handleCancelEditCompanyName = () => {
+    setIsEditingCompanyName(false);
+    setEditingCompanyName("");
+  };
+
+  const handleAddInsight = async () => {
+    if (!newInsight.content.trim()) return;
+
+    try {
+      const newEntry = {
+        id: Date.now().toString(),
+        type: newInsight.type,
+        content: newInsight.content.trim(),
+        relevance_score: 85,
+        is_selected: true,
+        source: "User Input",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        trend: "new",
+      };
+
+      const updatedSalesInsights = [newEntry, ...insights];
+      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+        sales_insights: updatedSalesInsights,
+      });
+
+      setInsights(updated.sales_insights);
+      setNewInsight({ content: "", type: "user_insight" });
+      setIsAddingInsight(false);
+
+      // ✅ Update memory
+      setSelectedProspect((prev) => ({
+        ...prev,
+        fullInsight: {
+          ...prev.fullInsight,
+          sales_insights: updated.sales_insights,
+        },
+      }));
+      updateAllInsightsEntry(updated); // ✅ persist to allInsights
+
+      toast.success("Insight added successfully");
+    } catch (error) {
+      toast.error("Failed to add insight");
+    }
   };
 
   const handleEditInsight = (insightId) => {
@@ -321,23 +497,38 @@ const CallInsights = () => {
     setEditContent(insight.content);
   };
 
-  const handleSaveEdit = () => {
-    setInsights((prev) =>
-      prev.map((insight) =>
+  const handleSaveEdit = async () => {
+    try {
+      const updatedList = insights.map((insight) =>
         insight.id === editingId
           ? { ...insight, content: editContent }
           : insight
-      )
-    );
-    setEditingId(null);
-    setEditContent("");
-    toast.success("Insight updated");
+      );
+
+      const payload = {
+        sales_insights: updatedList,
+      };
+
+      const updated = await dbHelpers.updateCallInsight(
+        selectedProspect.id,
+        payload
+      );
+      setInsights(updated.sales_insights);
+
+      setEditingId(null);
+      setEditContent("");
+      updateAllInsightsEntry(updated);
+      toast.success("Insight updated");
+    } catch (error) {
+      toast.error("Failed to update insight");
+    }
   };
 
-  const handleMoveInsight = (insightId, direction) => {
+  const handleMoveInsight = async (insightId, direction) => {
     const currentIndex = insights.findIndex(
       (insight) => insight.id === insightId
     );
+
     if (
       (direction === "up" && currentIndex > 0) ||
       (direction === "down" && currentIndex < insights.length - 1)
@@ -345,35 +536,63 @@ const CallInsights = () => {
       const newInsights = [...insights];
       const targetIndex =
         direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      // Swap
       [newInsights[currentIndex], newInsights[targetIndex]] = [
         newInsights[targetIndex],
         newInsights[currentIndex],
       ];
 
-      setInsights(newInsights);
-      toast.success("Insight priority updated");
+      try {
+        const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+          sales_insights: newInsights,
+        });
+
+        setInsights(updated.sales_insights);
+
+        // ✅ Update memory too
+        setSelectedProspect((prev) => ({
+          ...prev,
+          fullInsight: {
+            ...prev.fullInsight,
+            sales_insights: updated.sales_insights,
+          },
+        }));
+        updateAllInsightsEntry(updated);
+        toast.success("Insight priority updated");
+      } catch (error) {
+        toast.error("Failed to update priority");
+      }
     }
   };
 
-  const handleDeleteInsight = (insightId) => {
-    setInsights((prev) => prev.filter((insight) => insight.id !== insightId));
-    toast.success("Insight removed");
+  const handleDeleteInsight = async (insightId) => {
+    try {
+      const filtered = insights.filter((i) => i.id !== insightId);
+
+      const payload = {
+        sales_insights: filtered,
+      };
+
+      const updated = await dbHelpers.updateCallInsight(
+        selectedProspect.id,
+        payload
+      );
+      setInsights(updated.sales_insights);
+      updateAllInsightsEntry(updated);
+      toast.success("Insight removed");
+    } catch (error) {
+      toast.error("Failed to delete insight");
+    }
   };
 
-  const handleNavigateBack = () => {
-    navigate("/calls");
-  };
-
-  const handleRefreshProcessedCalls = () => {
-    loadProcessedCalls();
-    toast.success("Processed calls refreshed");
-  };
-
-  const filteredProcessedCalls = processedCalls.filter(
-    (call) =>
-      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
+  console.log(allInsights, mockProspects, "check insights and prospects");
+  const filteredProspects = allInsights?.filter(
+    (prospect) =>
+      prospect?.company_details?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      prospect?.prospectName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status) => {
@@ -386,8 +605,6 @@ const CallInsights = () => {
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "new":
         return "bg-gray-100 text-gray-800 border-gray-200";
-      case "processed":
-        return "bg-green-100 text-green-800 border-green-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -406,40 +623,6 @@ const CallInsights = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch {
-      return "Invalid Date";
-    }
-  };
-
-  // Navigation functions for horizontal scrolling
-  const cardsPerPage = 3;
-  const canScrollLeft = currentCardIndex > 0;
-  const canScrollRight =
-    currentCardIndex <
-    Math.max(0, filteredProcessedCalls.length - cardsPerPage);
-
-  const scrollLeft = () => {
-    if (canScrollLeft) {
-      setCurrentCardIndex((prev) => prev - 1);
-    }
-  };
-
-  const scrollRight = () => {
-    if (canScrollRight) {
-      setCurrentCardIndex((prev) => prev + 1);
-    }
-  };
-
-  // Get visible cards (3 at a time)
-  const visibleCards = filteredProcessedCalls.slice(
-    currentCardIndex,
-    currentCardIndex + cardsPerPage
-  );
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -455,7 +638,11 @@ const CallInsights = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleNavigateBack}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/calls")}
+          >
             <ArrowLeft className="w-4 h-4 mr-1" />
             Sales Calls
           </Button>
@@ -465,255 +652,190 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* Prospect Selection - Load Past Processed Calls */}
+      {/* Prospect Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Building className="w-5 h-5" />
-              <span>Prospect Selection</span>
-              <Badge variant="secondary">
-                {filteredProcessedCalls.length} processed calls
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search processed calls..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshProcessedCalls}
-              >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Refresh
-              </Button>
-            </div>
+          <CardTitle className="flex items-center space-x-2">
+            <Building className="w-5 h-5" />
+            <span>Prospect Selection</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {isLoadingProcessedCalls ? (
-            <div className="text-center py-8">
-              <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Loading processed calls...
-              </p>
-            </div>
-          ) : filteredProcessedCalls.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-2">No processed calls found</p>
-              <p className="text-sm">
-                Process your first call transcript to see insights here
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Horizontal Card Navigation - Only show if more than 3 cards */}
-              {filteredProcessedCalls.length > cardsPerPage && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={scrollLeft}
-                      disabled={!canScrollLeft}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Showing {currentCardIndex + 1}-
-                      {Math.min(
-                        currentCardIndex + cardsPerPage,
-                        filteredProcessedCalls.length
-                      )}{" "}
-                      of {filteredProcessedCalls.length}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={scrollRight}
-                      disabled={!canScrollRight}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search prospects by company or name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-              {/* Horizontal Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleCards.map((call) => (
-                  <Card
-                    key={call.id}
+          {/* Prospect List */}
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory scroll-smooth">
+              {filteredProspects.map((prospect) => {
+                const companyName =
+                  prospect.company_details?.name || "Unknown Company";
+                const prospectNames =
+                  prospect.prospect_details
+                    ?.map((p) => p.name)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const titles =
+                  prospect.prospect_details
+                    ?.map((p) => p.title)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const totalCalls = 1;
+                const dealValue = "TBD";
+                const probability = 50;
+                const lastEngagement = new Date(
+                  prospect.created_at
+                ).toLocaleDateString();
+                const status = "new";
+
+                return (
+                  <div
+                    key={prospect.id}
                     className={cn(
-                      "cursor-pointer hover:shadow-md transition-all border-2",
-                      selectedProcessedCall?.id === call.id
+                      "min-w-[300px] max-w-[300px] snap-start shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                      selectedProspect?.id === prospect.id
                         ? "border-primary bg-primary/5 shadow-md"
                         : "border-border hover:border-primary/50"
                     )}
-                    onClick={() => handleProcessedCallSelect(call)}
+                    onClick={() =>
+                      handleProspectSelect({
+                        id: prospect.id,
+                        companyName,
+                        prospectNames,
+                        titles,
+                        totalCalls,
+                        lastCallDate: prospect.created_at,
+                        lastEngagement,
+                        status,
+                        dealValue,
+                        probability,
+                        nextAction: "Initial follow-up",
+                        dataSources: {
+                          fireflies: 1,
+                          hubspot: 0,
+                          presentations: 0,
+                          emails: 0,
+                        },
+                        fullInsight: prospect,
+                      })
+                    }
                   >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground mb-1">
-                            {call.companyName || "Unknown Company"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {call.prospectName || "Unknown Prospect"} •{" "}
-                            {call.title || "Unknown Title"}
-                          </p>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", getStatusColor(call.status))}
-                        >
-                          {call.status}
-                        </Badge>
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-sm">{companyName}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {prospectNames}
+                        </p>
                       </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {/* Call Details with all specified fields */}
-                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-3 h-3" />
-                            <span>Calls: {call.totalCalls || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="w-3 h-3" />
-                            <span>Value: {call.dealValue || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <TrendingUp className="w-3 h-3" />
-                            <span>Prob: {call.probability || "N/A"}%</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-3 h-3" />
-                            <span>{call.lastCallDate || "N/A"}</span>
-                          </div>
-                        </div>
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs", getStatusColor(status))}
+                      >
+                        {status}
+                      </Badge>
+                    </div>
 
-                        {/* Last Engagement */}
-                        <div className="text-xs text-muted-foreground">
-                          <span className="font-medium">Last Engagement:</span>{" "}
-                          {call.lastEngagement || "N/A"}
-                        </div>
-
-                        {/* Next Action */}
-                        <div className="text-xs text-muted-foreground">
-                          <span className="font-medium">Next:</span>{" "}
-                          {call.nextAction || "N/A"}
-                        </div>
-
-                        {/* Processing Info */}
-                        <div className="text-xs text-muted-foreground">
-                          <span className="font-medium">Processed:</span>{" "}
-                          {formatDate(call.processingDate)}
-                        </div>
-
-                        {/* Insights Preview */}
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex items-center space-x-1">
-                              <Sparkles className="w-3 h-3 text-blue-600" />
-                              <span>{call.insightsCount || 0} insights</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-3 h-3 text-green-600" />
-                              <span>
-                                {call.stakeholdersCount || 0} stakeholders
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Summary Preview */}
-                        <div className="text-xs text-muted-foreground">
-                          <p className="line-clamp-2">
-                            {call.summary
-                              ? call.summary.substring(0, 100) + "..."
-                              : "No summary available"}
-                          </p>
-                        </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Calls:</span>
+                        <span className="font-medium">{totalCalls}</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Show pagination dots if more than 3 cards */}
-              {filteredProcessedCalls.length > cardsPerPage && (
-                <div className="flex justify-center space-x-1 mt-4">
-                  {Array.from({
-                    length: Math.ceil(
-                      filteredProcessedCalls.length / cardsPerPage
-                    ),
-                  }).map((_, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "w-2 h-2 rounded-full transition-colors cursor-pointer",
-                        Math.floor(currentCardIndex / cardsPerPage) === index
-                          ? "bg-primary"
-                          : "bg-muted-foreground/30"
-                      )}
-                      onClick={() => setCurrentCardIndex(index * cardsPerPage)}
-                    />
-                  ))}
-                </div>
-              )}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Deal Value:
+                        </span>
+                        <span className="font-medium">{dealValue}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Last Engagement:
+                        </span>
+                        <span className="font-medium">{lastEngagement}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Sales Insights Section - Only show when a call is selected */}
-      {selectedProcessedCall && (
+      {selectedProspect && (
         <>
-          {/* Selected Call Header */}
+          {/* Company Name Section with Edit Capability */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>
-                    Insights for {selectedProcessedCall?.companyName} (Processed
-                    Call)
-                  </span>
+                  <Building className="w-5 h-5" />
+                  <span>Company Information</span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProcessedCall(null);
-                    setInsights([]);
-                    setCommunicationStyles([]);
-                  }}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1" />
-                  Back to Selection
-                </Button>
               </CardTitle>
             </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-muted-foreground">Company Name:</span>
+                {isEditingCompanyName ? (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Input
+                      value={editingCompanyName}
+                      onChange={(e) => setEditingCompanyName(e.target.value)}
+                      className="flex-1"
+                      placeholder="Enter company name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveCompanyName();
+                        if (e.key === 'Escape') handleCancelEditCompanyName();
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyName}
+                      disabled={!editingCompanyName.trim()}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEditCompanyName}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <span className="text-lg font-semibold">{selectedProspect.companyName}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditCompanyName}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
           </Card>
 
-          {/* Sales Insights */}
-          {console.log(insights, "check insights")}
+          {/* Sales Insights Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>Sales Insights</span>
-                  <Badge variant="secondary">{insights?.length} insights</Badge>
+                  <Badge variant="secondary">{insights.length} insights</Badge>
                 </div>
                 <Button
                   onClick={() => setIsAddingInsight(true)}
@@ -785,12 +907,8 @@ const CallInsights = () => {
               )}
 
               {/* Insights List */}
-              {insights?.map((insight, index) => {
-                const typeConfig = insightTypes[insight?.type] || {
-                  icon: Lightbulb,
-                  label: "Unknown Type",
-                  color: "bg-gray-100 text-gray-800 border-gray-200",
-                };
+              {insights.map((insight, index) => {
+                const typeConfig = insightTypes[insight.type];
                 const TypeIcon = typeConfig.icon;
 
                 return (
@@ -881,7 +999,7 @@ const CallInsights = () => {
                         />
                       ) : (
                         <p className="text-sm leading-relaxed">
-                          {insight?.content}
+                          {insight.content}
                         </p>
                       )}
                     </div>
@@ -889,12 +1007,12 @@ const CallInsights = () => {
                 );
               })}
 
-              {insights?.length === 0 && !isAddingInsight && (
+              {insights.length === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
                   <p className="text-sm mb-4">
-                    Add your first insight about this processed call
+                    Add your first insight about this prospect
                   </p>
                   <Button
                     variant="outline"
@@ -916,16 +1034,16 @@ const CallInsights = () => {
                 <Users className="w-5 h-5" />
                 <span>Communication Styles Detected</span>
                 <Badge variant="secondary">
-                  {communicationStyles?.length} stakeholders
+                  {communicationStyles.length} stakeholders
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {communicationStyles?.length > 0 ? (
+              {communicationStyles.length > 0 ? (
                 <div className="space-y-6">
                   {communicationStyles.map((stakeholder) => {
                     const styleConfig =
-                      communicationStyleConfigs[stakeholder?.style];
+                      communicationStyleConfigs[stakeholder.style];
                     // const StyleIcon = styleConfig.icon;
 
                     return (
@@ -1021,6 +1139,107 @@ const CallInsights = () => {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Cumulative Intelligence Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.fireflies > 0
+                        ? "text-blue-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Fireflies Calls:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.fireflies > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.fireflies}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.presentations > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Presentations:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.presentations > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.presentations}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Email Threads:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                These insights represent an amalgamation of data from all
+                interactions with {selectedProspect.companyName}, providing a
+                comprehensive and evolving understanding of the prospect
+                relationship.
+              </p>
             </CardContent>
           </Card>
         </>

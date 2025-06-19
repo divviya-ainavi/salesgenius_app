@@ -18,22 +18,22 @@ const API_ENDPOINTS = {
     ROLES: '/roles',
     ROLE_BY_ID: '/roles/:id',
     ROLE_USERS: '/roles/:id/users',
-    
+
     // User Status
     USER_STATUS: '/user-status',
     USER_STATUS_BY_KEY: '/user-status/:key',
-    
+
     // Organizations
     ORGANIZATIONS: '/organizations',
     ORGANIZATION_BY_ID: '/organizations/:id',
     ORGANIZATION_USERS: '/organizations/:id/users',
     ORGANIZATION_STATS: '/organizations/:id/stats',
-    
+
     // Profiles
     PROFILES: '/profiles',
     PROFILE_BY_ID: '/profiles/:id',
     PROFILES_BULK: '/profiles/bulk',
-    
+
     // Invites
     INVITES: '/invites',
     INVITE_BY_EMAIL: '/invites/:email',
@@ -76,6 +76,7 @@ const API_ENDPOINTS = {
     GET_TRANSCRIPTS: '/get-fireflies-transcripts',
     GET_TRANSCRIPT_DETAIL: '/get-fireflies-transcript',
     SYNC_TRANSCRIPTS: '/get-fireflies-transcripts',
+    GETTRANSCRIPT_BYID: '/get-fireflies-transcripts-byid'
   },
 
   // Prospect management endpoints

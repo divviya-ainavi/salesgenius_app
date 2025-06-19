@@ -101,3 +101,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add this in your global CSS file (e.g., styles/globals.css) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

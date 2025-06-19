@@ -1,21 +1,30 @@
-import React, { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ProspectSelector } from '@/components/shared/ProspectSelector'
-import { 
-  Eye, 
-  Ear, 
-  Hand, 
-  Brain, 
-  Heart, 
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ProspectSelector } from "@/components/shared/ProspectSelector";
+import {
+  Eye,
+  Ear,
+  Hand,
+  Brain,
+  Heart,
   Zap,
   Send,
   Copy,
@@ -35,15 +44,17 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
-  Users
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import api from "../../lib/api";
 
 // Mock personality analysis data based on selected prospect
 const getPersonalityAnalysis = (prospectId) => {
   const analysisData = {
-    'acme_corp': {
+    acme_corp: {
       primary_contact: {
         name: "Sarah Johnson",
         role: "VP of Sales",
@@ -53,14 +64,14 @@ const getPersonalityAnalysis = (prospectId) => {
         key_traits: ["Direct", "Results-oriented", "Strategic thinker"],
         communication_preferences: [
           "Prefers visual data and charts",
-          "Values efficiency and quick decisions", 
-          "Responds well to ROI-focused messaging"
-        ]
+          "Values efficiency and quick decisions",
+          "Responds well to ROI-focused messaging",
+        ],
       },
       attendees: [
         {
           name: "Mike Chen",
-          role: "Sales Operations Manager", 
+          role: "Sales Operations Manager",
           communication_style: "kinesthetic",
           personality_type: "ISTJ",
           confidence: 0.78,
@@ -68,25 +79,25 @@ const getPersonalityAnalysis = (prospectId) => {
           communication_preferences: [
             "Prefers hands-on demonstrations",
             "Values detailed implementation plans",
-            "Needs concrete examples and case studies"
-          ]
+            "Needs concrete examples and case studies",
+          ],
         },
         {
           name: "Lisa Rodriguez",
           role: "Director of Marketing",
-          communication_style: "auditory", 
+          communication_style: "auditory",
           personality_type: "ENFP",
           confidence: 0.72,
           key_traits: ["Creative", "Collaborative", "Enthusiastic"],
           communication_preferences: [
             "Enjoys verbal discussions and calls",
             "Values team collaboration features",
-            "Responds to emotional and inspirational messaging"
-          ]
-        }
-      ]
+            "Responds to emotional and inspirational messaging",
+          ],
+        },
+      ],
     },
-    'techstart_inc': {
+    techstart_inc: {
       primary_contact: {
         name: "John Smith",
         role: "CEO",
@@ -97,8 +108,8 @@ const getPersonalityAnalysis = (prospectId) => {
         communication_preferences: [
           "Prefers data-driven presentations",
           "Values long-term strategic thinking",
-          "Responds to innovation and efficiency"
-        ]
+          "Responds to innovation and efficiency",
+        ],
       },
       attendees: [
         {
@@ -111,12 +122,12 @@ const getPersonalityAnalysis = (prospectId) => {
           communication_preferences: [
             "Prefers technical demonstrations",
             "Values hands-on testing",
-            "Needs detailed technical specifications"
-          ]
-        }
-      ]
+            "Needs detailed technical specifications",
+          ],
+        },
+      ],
     },
-    'global_solutions': {
+    global_solutions: {
       primary_contact: {
         name: "Emma Wilson",
         role: "Director of Operations",
@@ -127,8 +138,8 @@ const getPersonalityAnalysis = (prospectId) => {
         communication_preferences: [
           "Prefers verbal communication",
           "Values team consensus",
-          "Responds to relationship-building"
-        ]
+          "Responds to relationship-building",
+        ],
       },
       attendees: [
         {
@@ -141,25 +152,27 @@ const getPersonalityAnalysis = (prospectId) => {
           communication_preferences: [
             "Prefers step-by-step processes",
             "Values practical implementation",
-            "Needs comprehensive documentation"
-          ]
-        }
-      ]
-    }
+            "Needs comprehensive documentation",
+          ],
+        },
+      ],
+    },
   };
 
-  return analysisData[prospectId] || {
-    primary_contact: {
-      name: "Unknown Contact",
-      role: "Unknown Role",
-      communication_style: "visual",
-      personality_type: "UNKNOWN",
-      confidence: 0.5,
-      key_traits: ["To be determined"],
-      communication_preferences: ["Analysis pending"]
-    },
-    attendees: []
-  };
+  return (
+    analysisData[prospectId] || {
+      primary_contact: {
+        name: "Unknown Contact",
+        role: "Unknown Role",
+        communication_style: "visual",
+        personality_type: "UNKNOWN",
+        confidence: 0.5,
+        key_traits: ["To be determined"],
+        communication_preferences: ["Analysis pending"],
+      },
+      attendees: [],
+    }
+  );
 };
 
 const communicationStyles = {
@@ -167,126 +180,201 @@ const communicationStyles = {
     icon: Eye,
     label: "Visual",
     color: "bg-blue-100 text-blue-800 border-blue-200",
-    description: "Prefers charts, graphs, and visual demonstrations"
+    description: "Prefers charts, graphs, and visual demonstrations",
   },
   auditory: {
-    icon: Ear, 
+    icon: Ear,
     label: "Auditory",
     color: "bg-green-100 text-green-800 border-green-200",
-    description: "Learns through listening and verbal communication"
+    description: "Learns through listening and verbal communication",
   },
   kinesthetic: {
     icon: Hand,
-    label: "Kinesthetic", 
+    label: "Kinesthetic",
     color: "bg-purple-100 text-purple-800 border-purple-200",
-    description: "Prefers hands-on experiences and practical examples"
-  }
-}
+    description: "Prefers hands-on experiences and practical examples",
+  },
+};
 
 const personalityTypes = {
-  ENTJ: { label: "The Commander", traits: ["Natural leader", "Strategic", "Decisive"] },
-  ISTJ: { label: "The Logistician", traits: ["Practical", "Fact-minded", "Reliable"] },
-  ENFP: { label: "The Campaigner", traits: ["Enthusiastic", "Creative", "Sociable"] },
-  INTJ: { label: "The Architect", traits: ["Imaginative", "Strategic", "Independent"] },
-  ISTP: { label: "The Virtuoso", traits: ["Practical", "Experimental", "Adaptable"] },
+  ENTJ: {
+    label: "The Commander",
+    traits: ["Natural leader", "Strategic", "Decisive"],
+  },
+  ISTJ: {
+    label: "The Logistician",
+    traits: ["Practical", "Fact-minded", "Reliable"],
+  },
+  ENFP: {
+    label: "The Campaigner",
+    traits: ["Enthusiastic", "Creative", "Sociable"],
+  },
+  INTJ: {
+    label: "The Architect",
+    traits: ["Imaginative", "Strategic", "Independent"],
+  },
+  ISTP: {
+    label: "The Virtuoso",
+    traits: ["Practical", "Experimental", "Adaptable"],
+  },
   ESFJ: { label: "The Consul", traits: ["Caring", "Social", "Popular"] },
-  UNKNOWN: { label: "Analysis Pending", traits: ["To be determined"] }
-}
+  UNKNOWN: { label: "Analysis Pending", traits: ["To be determined"] },
+};
 
 const quickPrompts = [
   "Make it more concise and direct",
-  "Add more technical details", 
+  "Add more technical details",
   "Include specific ROI metrics",
   "Make it more personal and warm",
   "Add urgency and next steps",
   "Focus on competitive advantages",
   "Include social proof and testimonials",
-  "Emphasize integration capabilities"
-]
+  "Emphasize integration capabilities",
+];
 
 // Mock prospects data
 const mockProspects = [
   {
-    id: 'acme_corp',
-    companyName: 'Acme Corp',
-    prospectName: 'Sarah Johnson',
-    title: 'VP of Sales',
-    status: 'hot',
-    dealValue: '$120K',
+    id: "acme_corp",
+    companyName: "Acme Corp",
+    prospectName: "Sarah Johnson",
+    title: "VP of Sales",
+    status: "hot",
+    dealValue: "$120K",
     probability: 85,
-    nextAction: 'Pilot program approval',
+    nextAction: "Pilot program approval",
     stakeholders: [
-      { name: 'Sarah Johnson', role: 'VP Sales', style: 'Visual' },
-      { name: 'Mike Chen', role: 'Sales Ops', style: 'Kinesthetic' },
-      { name: 'Lisa Rodriguez', role: 'Marketing Dir', style: 'Auditory' }
-    ]
+      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
+      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
+      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
+    ],
   },
   {
-    id: 'techstart_inc',
-    companyName: 'TechStart Inc',
-    prospectName: 'John Smith',
-    title: 'CEO',
-    status: 'warm',
-    dealValue: '$45K',
+    id: "techstart_inc",
+    companyName: "TechStart Inc",
+    prospectName: "John Smith",
+    title: "CEO",
+    status: "warm",
+    dealValue: "$45K",
     probability: 65,
-    nextAction: 'Technical demo',
+    nextAction: "Technical demo",
     stakeholders: [
-      { name: 'John Smith', role: 'CEO', style: 'Visual' },
-      { name: 'Emma Wilson', role: 'CTO', style: 'Kinesthetic' }
-    ]
+      { name: "John Smith", role: "CEO", style: "Visual" },
+      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
+    ],
   },
   {
-    id: 'global_solutions',
-    companyName: 'Global Solutions Ltd',
-    prospectName: 'Emma Wilson',
-    title: 'Director of Operations',
-    status: 'warm',
-    dealValue: '$85K',
+    id: "global_solutions",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    title: "Director of Operations",
+    status: "warm",
+    dealValue: "$85K",
     probability: 70,
-    nextAction: 'Proposal review',
+    nextAction: "Proposal review",
     stakeholders: [
-      { name: 'Emma Wilson', role: 'Director Operations', style: 'Auditory' },
-      { name: 'David Brown', role: 'IT Manager', style: 'Kinesthetic' }
-    ]
-  }
+      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
+      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
+    ],
+  },
 ];
 
 export const EmailTemplates = () => {
-  const location = useLocation()
-  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0])
-  const [personalityAnalysis, setPersonalityAnalysis] = useState(null)
-  const [selectedRecipients, setSelectedRecipients] = useState([])
-  const [generatedEmail, setGeneratedEmail] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [chatMessages, setChatMessages] = useState([])
-  const [chatInput, setChatInput] = useState('')
-  const [isRefining, setIsRefining] = useState(false)
-  const [emailSubject, setEmailSubject] = useState('')
-  const [pushStatus, setPushStatus] = useState('draft')
-  const [activeTab, setActiveTab] = useState('insights')
-  const [recipientSidebarOpen, setRecipientSidebarOpen] = useState(false)
+  const location = useLocation();
+  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0]);
+  const [personalityAnalysis, setPersonalityAnalysis] = useState(null);
+  const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [generatedEmail, setGeneratedEmail] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isRefining, setIsRefining] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [pushStatus, setPushStatus] = useState("draft");
+  const [activeTab, setActiveTab] = useState("insights");
+  const [recipientSidebarOpen, setRecipientSidebarOpen] = useState(false);
 
   // Collapsible states - all collapsed by default
-  const [primaryTraitsOpen, setPrimaryTraitsOpen] = useState(false)
-  const [primaryPrefsOpen, setPrimaryPrefsOpen] = useState(false)
-  const [attendeeTraitsOpen, setAttendeeTraitsOpen] = useState({})
-  const [attendeePrefsOpen, setAttendeePrefsOpen] = useState({})
+  const [primaryTraitsOpen, setPrimaryTraitsOpen] = useState(false);
+  const [primaryPrefsOpen, setPrimaryPrefsOpen] = useState(false);
+  const [attendeeTraitsOpen, setAttendeeTraitsOpen] = useState({});
+  const [attendeePrefsOpen, setAttendeePrefsOpen] = useState({});
+  const [prospects, setProspects] = useState([]);
+  const [emailTemplate, setEmailTemplate] = useState(null);
+
+  useEffect(() => {
+    const fetchProspects = async () => {
+      try {
+        const insights = await dbHelpers.getEmailProspectInsights(
+          CURRENT_USER.id
+        );
+        console.log("Fetched email insights:", insights);
+        const enrichedProspects = insights.map((insight) => ({
+          id: insight.id,
+          companyName: insight.company_details?.name || "Unknown Company",
+          prospectName:
+            (insight.prospect_details || []).map((p) => p.name).join(", ") ||
+            "Unknown",
+          title:
+            (insight.prospect_details || []).map((p) => p.title).join(", ") ||
+            "Unknown",
+          prospect_details: insight.prospect_details || [],
+          status: "new",
+          dealValue: "TBD",
+          probability: 50,
+          nextAction: "Initial follow-up",
+          created_at: insight.created_at,
+          sales_insights: insight.sales_insights || [],
+          communication_styles: insight.communication_styles || [],
+          fullInsight: insight,
+          call_summary: insight.call_summary,
+          extracted_transcript: insight.extracted_transcript,
+          email_template_id: insight.email_template_id || null,
+        }));
+
+        setProspects(enrichedProspects);
+        if (enrichedProspects.length > 0)
+          setSelectedProspect(enrichedProspects[0]);
+      } catch (err) {
+        console.error("Failed to load email insights:", err);
+        toast.error("Could not fetch email insights");
+      }
+    };
+
+    fetchProspects();
+  }, []);
+
+  useEffect(() => {
+    if (selectedProspect.email_template_id) {
+      setIsGenerating(true);
+      dbHelpers
+        .getEmailTemplateById(selectedProspect.email_template_id)
+        .then((template) => {
+          setEmailTemplate(template);
+          setEmailSubject(template.subject || "");
+          setGeneratedEmail(template.body || "");
+        })
+        .finally(() => setIsGenerating(false));
+    }
+  }, [selectedProspect.email_template_id]);
 
   // Check for selected call from navigation
   useEffect(() => {
     if (location.state?.selectedCall) {
       const call = location.state.selectedCall;
       // Find matching prospect or create new one
-      const prospect = mockProspects.find(p => p.companyName === call.companyName) || {
-        id: call.companyName.toLowerCase().replace(/\s+/g, '_'),
+      const prospect = mockProspects.find(
+        (p) => p.companyName === call.companyName
+      ) || {
+        id: call.companyName.toLowerCase().replace(/\s+/g, "_"),
         companyName: call.companyName,
         prospectName: call.prospectName,
-        title: 'Unknown',
-        status: 'new',
-        dealValue: 'TBD',
+        title: "Unknown",
+        status: "new",
+        dealValue: "TBD",
         probability: 50,
-        nextAction: 'Initial follow-up',
-        stakeholders: []
+        nextAction: "Initial follow-up",
+        stakeholders: [],
       };
       setSelectedProspect(prospect);
     }
@@ -295,43 +383,37 @@ export const EmailTemplates = () => {
   // Load personality analysis when prospect changes
   useEffect(() => {
     if (selectedProspect) {
-      const analysis = getPersonalityAnalysis(selectedProspect.id);
-      setPersonalityAnalysis(analysis);
-      
-      // Auto-select ALL insights (primary contact + all attendees)
-      const allInsights = [
-        { id: 'primary_contact', type: 'personality', selected: true }
-      ];
-      
-      // Add all attendees to insights
-      analysis.attendees.forEach((_, index) => {
-        allInsights.push({ id: `attendee_${index}`, type: 'attendee', selected: true });
+      const primary = selectedProspect.communication_styles?.[0] || {};
+      const others = selectedProspect.communication_styles?.slice(1) || [];
+
+      setPersonalityAnalysis({
+        primary_contact: {
+          name: primary.stakeholder || "Unknown",
+          role: primary.role || "Unknown",
+          communication_style: primary.style?.toLowerCase() || "visual",
+          personality_type: primary.personality_type || "UNKNOWN",
+          confidence: primary.confidence || 0.5,
+          key_traits: primary.key_traits || ["To be determined"],
+          communication_preferences: primary.preferences || ["Pending"],
+        },
+        attendees: others.map((p) => ({
+          name: p.stakeholder,
+          role: p.role,
+          communication_style: p.style?.toLowerCase(),
+          personality_type: p.personality_type || "UNKNOWN",
+          confidence: p.confidence || 0.5,
+          key_traits: p.key_traits || ["To be determined"],
+          communication_preferences: p.preferences || ["Pending"],
+        })),
       });
-      
-      // Auto-select primary contact and first attendee as recipients
-      const defaultRecipients = ['primary_contact'];
-      if (analysis.attendees.length > 0) {
-        defaultRecipients.push('attendee_0');
-      }
-      setSelectedRecipients(defaultRecipients);
-      
-      // Clear previous email content
-      setGeneratedEmail('');
-      setEmailSubject('');
+
+      const defaultRecipients = ["primary_contact"];
+      if (others.length > 0) defaultRecipients.push("attendee_0");
+      setSelectedRecipients([]);
+      setGeneratedEmail("");
+      setEmailSubject("");
       setChatMessages([]);
-      setPushStatus('draft');
-      
-      // Initialize collapsible states for new prospect (all collapsed)
-      const newAttendeeTraitsOpen = {};
-      const newAttendeePrefsOpen = {};
-      analysis.attendees.forEach((_, index) => {
-        newAttendeeTraitsOpen[index] = false;
-        newAttendeePrefsOpen[index] = false;
-      });
-      setAttendeeTraitsOpen(newAttendeeTraitsOpen);
-      setAttendeePrefsOpen(newAttendeePrefsOpen);
-      
-      toast.success(`Loaded analysis for ${selectedProspect.companyName}`);
+      setPushStatus("draft");
     }
   }, [selectedProspect]);
 
@@ -340,10 +422,10 @@ export const EmailTemplates = () => {
     if (generatedEmail && selectedRecipients.length > 0) {
       // Only clear if we have an existing email and selections have changed
       // This prevents clearing on initial load
-      setGeneratedEmail('');
-      setEmailSubject('');
+      setGeneratedEmail("");
+      setEmailSubject("");
       setChatMessages([]);
-      setPushStatus('draft');
+      setPushStatus("draft");
     }
   }, [selectedRecipients]);
 
@@ -352,202 +434,186 @@ export const EmailTemplates = () => {
   };
 
   const handleToggleRecipient = (recipientId) => {
-    setSelectedRecipients(prev => {
+    setSelectedRecipients((prev) => {
       if (prev.includes(recipientId)) {
-        return prev.filter(id => id !== recipientId)
+        return prev.filter((id) => id !== recipientId);
       } else {
-        return [...prev, recipientId]
+        return [...prev, recipientId];
       }
-    })
-  }
+    });
+  };
 
   const getSelectedRecipientsData = () => {
     if (!personalityAnalysis) return [];
-    
+
     const recipients = [];
-    
-    if (selectedRecipients.includes('primary_contact')) {
+
+    if (selectedRecipients.includes("primary_contact")) {
       recipients.push({
-        id: 'primary_contact',
+        id: "primary_contact",
         ...personalityAnalysis.primary_contact,
-        isPrimary: true
+        isPrimary: true,
       });
     }
-    
-    selectedRecipients.forEach(recipientId => {
-      if (recipientId.startsWith('attendee_')) {
-        const index = parseInt(recipientId.split('_')[1]);
+
+    selectedRecipients.forEach((recipientId) => {
+      if (recipientId.startsWith("attendee_")) {
+        const index = parseInt(recipientId.split("_")[1]);
         if (personalityAnalysis.attendees[index]) {
           recipients.push({
             id: recipientId,
             ...personalityAnalysis.attendees[index],
-            isPrimary: false
+            isPrimary: false,
           });
         }
       }
     });
-    
+
     return recipients;
-  }
+  };
 
   const handleGenerateEmail = async () => {
-    if (selectedRecipients.length === 0) {
-      toast.error('Please select at least one recipient')
-      return
-    }
-
-    setIsGenerating(true)
-    
+    setIsGenerating(true);
     try {
-      // Simulate AI email generation based on selected prospect and recipients
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      const recipients = getSelectedRecipientsData();
-      const primaryRecipient = recipients.find(r => r.isPrimary) || recipients[0];
-      const companyName = selectedProspect.companyName;
-      
-      // Generate subject line
-      const subject = `Following up on our ${companyName} automation discussion`;
-      
-      // Generate personalized email based on selected recipients
-      const recipientNames = recipients.map(r => r.name).join(' and ');
-      const recipientGreeting = recipients.length === 1 ? 
-        `Hi ${recipients[0].name},` : 
-        `Hi ${recipientNames},`;
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcript: callInsight.extracted_transcript,
+          }),
+        }
+      );
 
-      // Adapt content based on communication styles
-      const visualRecipients = recipients.filter(r => r.communication_style === 'visual');
-      const auditoryRecipients = recipients.filter(r => r.communication_style === 'auditory');
-      const kinestheticRecipients = recipients.filter(r => r.communication_style === 'kinesthetic');
+      const { output } = (await response.json())[0];
 
-      let styleAdaptation = '';
-      if (visualRecipients.length > 0) {
-        styleAdaptation += 'I\'ve prepared visual ROI charts and dashboard mockups that clearly demonstrate the impact. ';
-      }
-      if (auditoryRecipients.length > 0) {
-        styleAdaptation += 'I\'d love to schedule a call to discuss the details and answer any questions. ';
-      }
-      if (kinestheticRecipients.length > 0) {
-        styleAdaptation += 'I can arrange a hands-on demonstration where you can test the features yourself. ';
-      }
+      const subject = output.subject || output.Subject || "Follow-Up";
+      const body = output.body || output.Body || JSON.stringify(output);
 
-      const emailBody = `${recipientGreeting}
+      const newEmail = await dbHelpers.createEmailTemplate(subject, body);
+      await dbHelpers.linkEmailTemplateToCallInsight(
+        callInsight.id,
+        newEmail.id
+      );
 
-Thank you for taking the time to speak with me about ${companyName}'s sales automation needs. I was impressed by your ${primaryRecipient.key_traits[0].toLowerCase()} approach to scaling your operations.
-
-Based on our conversation and your team's communication preferences, I've prepared a comprehensive analysis that shows how our solution can deliver the results you're targeting for ${companyName}.
-
-${styleAdaptation}
-
-Key next steps aligned with your ${selectedProspect.nextAction.toLowerCase()}:
-• Technical demonstration tailored to your team's needs
-• ROI analysis specific to ${companyName}'s current metrics  
-• Implementation timeline for your target deployment
-
-${recipients.length > 1 ? `For the team (${recipients.map(r => r.name).join(', ')}), I've included materials that address each of your specific requirements discussed during our call.` : ''}
-
-Looking forward to helping ${companyName} achieve your ambitious growth targets.
-
-Best regards,
-[Your Name]
-
-P.S. The case study from a similar ${selectedProspect.dealValue} implementation shows excellent results - happy to share those specific metrics if helpful.`;
-
-      setEmailSubject(subject);
-      setGeneratedEmail(emailBody);
-      
-      // Auto-switch to email tab after successful generation
-      setActiveTab('generator');
-      console.log('Generated email:', { subject, body: emailBody });
-      
-      toast.success('Personalized email generated successfully!')
-      
+      // Set local state
+      setEmailTemplate(newEmail);
+      setGeneratedEmail(newEmail.body);
+      setEmailSubject(newEmail.subject);
     } catch (error) {
-      toast.error('Failed to generate email')
+      console.error("Email generation error:", error);
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   const handleSendPrompt = async (prompt) => {
-    if (!prompt.trim() || !generatedEmail) return
-    
-    setIsRefining(true)
-    setChatInput('')
-    
-    // Add user message
-    const userMessage = { role: 'user', content: prompt, timestamp: new Date() }
-    setChatMessages(prev => [...prev, userMessage])
-    
+    if (!prompt.trim() || !generatedEmail || !emailTemplate?.id) return;
+
+    setIsRefining(true);
+    setChatInput("");
+
+    // Add user message to chat
+    const userMessage = {
+      role: "user",
+      content: prompt,
+      timestamp: new Date(),
+    };
+    setChatMessages((prev) => [...prev, userMessage]);
+
     try {
-      // Simulate AI refinement
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      let refinedEmail = generatedEmail
-      
-      // Simple refinement logic based on prompt and prospect context
-      if (prompt.toLowerCase().includes('concise')) {
-        refinedEmail = generatedEmail.replace(/\. [A-Z]/g, '.\n\n').slice(0, Math.floor(generatedEmail.length * 0.7)) + '\n\nBest regards,\n[Your Name]'
-      } else if (prompt.toLowerCase().includes('technical')) {
-        refinedEmail = generatedEmail + `\n\nTechnical specifications for ${selectedProspect.companyName}:\n• API integration capabilities\n• Real-time data synchronization\n• Advanced security protocols\n• Scalable cloud infrastructure`
-      } else if (prompt.toLowerCase().includes('roi')) {
-        refinedEmail = generatedEmail.replace('results you\'re targeting', `results you're targeting (projected ${selectedProspect.dealValue} annual value)`)
-      }
-      
-      setGeneratedEmail(refinedEmail)
-      
-      // Add AI response
-      const aiMessage = { 
-        role: 'assistant', 
-        content: `I've updated the email for ${selectedProspect.companyName} based on your request. The changes focus on ${prompt.toLowerCase()} while maintaining personalization for the selected recipients.`, 
-        timestamp: new Date() 
-      }
-      setChatMessages(prev => [...prev, aiMessage])
-      
-      toast.success('Email refined successfully!')
-      
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-email",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            current_email_content: generatedEmail,
+            email_subject: emailSubject,
+            refinement_prompt: prompt,
+          }),
+        }
+      );
+
+      const {
+        refined_email_content,
+        refined_email_subject,
+        ai_response_message,
+      } = (await response.json())[0];
+      const refinedSubject = refined_email_subject || emailSubject;
+      const refinedBody = refined_email_content || generatedEmail;
+
+      // Update in Supabase
+      const updated = await dbHelpers.updateEmailTemplate(
+        emailTemplate.id,
+        refinedSubject,
+        refinedBody
+      );
+
+      // Reflect in UI
+      setGeneratedEmail(updated.body);
+      setEmailSubject(updated.subject);
+      setEmailTemplate(updated);
+
+      // Add assistant message
+      const aiMessage = {
+        role: "assistant",
+        content: `Refined email using prompt: "${prompt}". Changes have been saved.`,
+        timestamp: new Date(),
+      };
+      setChatMessages((prev) => [...prev, aiMessage]);
+
+      toast.success("Email refined and updated successfully!");
     } catch (error) {
-      toast.error('Failed to refine email')
+      console.error("Error refining email:", error);
+      toast.error("Failed to refine and update the email");
     } finally {
-      setIsRefining(false)
+      setIsRefining(false);
     }
-  }
+  };
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(generatedEmail)
-    toast.success('Email body copied to clipboard')
-  }
+    navigator.clipboard.writeText(generatedEmail);
+    toast.success("Email body copied to clipboard");
+  };
 
   const handleCopySubject = () => {
-    navigator.clipboard.writeText(emailSubject)
-    toast.success('Subject line copied to clipboard')
-  }
+    navigator.clipboard.writeText(emailSubject);
+    toast.success("Subject line copied to clipboard");
+  };
 
   const handlePushToHubSpot = async () => {
-    setPushStatus('pending')
-    
+    setPushStatus("pending");
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setPushStatus('success')
-      toast.success(`Email template for ${selectedProspect.companyName} saved to HubSpot!`)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setPushStatus("success");
+      toast.success(
+        `Email template for ${selectedProspect.companyName} saved to HubSpot!`
+      );
     } catch (error) {
-      setPushStatus('error')
-      toast.error('Failed to push to HubSpot')
+      setPushStatus("error");
+      toast.error("Failed to push to HubSpot");
     }
-  }
+  };
 
   // Calculate total insights count (all insights are automatically included)
-  const selectedCount = personalityAnalysis ? 
-    1 + personalityAnalysis.attendees.length : 0;
+  const selectedCount = personalityAnalysis
+    ? 1 + personalityAnalysis.attendees.length
+    : 0;
 
   return (
     <TooltipProvider>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Personalized Emails with AI Insights</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Personalized Emails with AI Insights
+          </h1>
           <p className="text-muted-foreground">
-            Generate personalized follow-up emails based on prospect personality analysis and communication preferences.
+            Generate personalized follow-up emails based on prospect personality
+            analysis and communication preferences.
           </p>
         </div>
 
@@ -559,6 +625,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
               onProspectSelect={handleProspectSelect}
               compact={false}
               showStakeholders={true}
+              prospectList={prospects} // filtered from call_insights
             />
           </div>
 
@@ -566,10 +633,12 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="insights">Prospect Profile & Insights</TabsTrigger>
+                <TabsTrigger value="insights">
+                  Prospect Profile & Insights
+                </TabsTrigger>
                 <TabsTrigger value="generator">Email Generator</TabsTrigger>
               </TabsList>
-
+              {console.log("Selected Prospect:", selectedProspect)}
               {/* Insights Tab */}
               <TabsContent value="insights" className="mt-6">
                 {personalityAnalysis && (
@@ -578,7 +647,10 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <User className="w-5 h-5" />
-                          <span>Personalization Insights for {selectedProspect.companyName}</span>
+                          <span>
+                            Personalization Insights for{" "}
+                            {selectedProspect.companyName}
+                          </span>
                           <Badge variant="secondary">AI Analyzed</Badge>
                         </div>
                       </CardTitle>
@@ -590,53 +662,81 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                           <div className="flex items-center space-x-3">
                             <Crown className="w-4 h-4 text-amber-600" />
                             <div>
-                              <h4 className="font-semibold text-amber-900">{personalityAnalysis.primary_contact.name}</h4>
-                              <p className="text-sm text-amber-700">{personalityAnalysis.primary_contact.role}</p>
-                              <Badge variant="outline" className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                              <h4 className="font-semibold text-amber-900">
+                                {personalityAnalysis.primary_contact.name}
+                              </h4>
+                              <p className="text-sm text-amber-700">
+                                {personalityAnalysis.primary_contact.role}
+                              </p>
+                              <Badge
+                                variant="outline"
+                                className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs"
+                              >
                                 Primary Decision Maker
                               </Badge>
                             </div>
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {Math.round(personalityAnalysis.primary_contact.confidence * 100)}% confidence
+                            {Math.round(
+                              personalityAnalysis.primary_contact.confidence *
+                                100
+                            )}
+                            % confidence
                           </Badge>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
                           {/* Communication Style */}
                           <div>
-                            <h5 className="text-sm font-medium mb-2">Communication Style</h5>
+                            <h5 className="text-sm font-medium mb-2">
+                              Communication Style
+                            </h5>
                             <div className="flex items-center space-x-2">
                               {(() => {
-                                const style = communicationStyles[personalityAnalysis.primary_contact.communication_style]
-                                const Icon = style.icon
+                                const style =
+                                  communicationStyles[
+                                    personalityAnalysis.primary_contact
+                                      .communication_style
+                                  ];
+                                // const Icon = style.icon;
                                 return (
                                   <div className="flex items-center space-x-2">
-                                    <Badge variant="outline" className={cn("text-xs", style.color)}>
-                                      <Icon className="w-3 h-3 mr-1" />
-                                      {style.label}
+                                    <Badge
+                                      variant="outline"
+                                      // className={cn("text-xs", style.color)}
+                                    >
+                                      {/* <Icon className="w-3 h-3 mr-1" /> */}
+                                      {style?.label}
                                     </Badge>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>{style.description}</p>
+                                        <p>{style?.description}</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </div>
-                                )
+                                );
                               })()}
                             </div>
                           </div>
 
                           {/* Personality Type */}
                           <div>
-                            <h5 className="text-sm font-medium mb-2">Personality Type</h5>
+                            <h5 className="text-sm font-medium mb-2">
+                              Personality Type
+                            </h5>
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                              >
                                 <Brain className="w-3 h-3 mr-1" />
-                                {personalityAnalysis.primary_contact.personality_type}
+                                {
+                                  personalityAnalysis.primary_contact
+                                    .personality_type
+                                }
                               </Badge>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -644,9 +744,19 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <div>
-                                    <p className="font-medium">{personalityTypes[personalityAnalysis.primary_contact.personality_type]?.label}</p>
+                                    <p className="font-medium">
+                                      {
+                                        personalityTypes[
+                                          personalityAnalysis.primary_contact
+                                            .personality_type
+                                        ]?.label
+                                      }
+                                    </p>
                                     <p className="text-xs mt-1">
-                                      {personalityTypes[personalityAnalysis.primary_contact.personality_type]?.traits.join(', ')}
+                                      {personalityTypes[
+                                        personalityAnalysis.primary_contact
+                                          .personality_type
+                                      ]?.traits.join(", ")}
                                     </p>
                                   </div>
                                 </TooltipContent>
@@ -656,158 +766,245 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         </div>
 
                         {/* Key Traits - Collapsible */}
-                        <Collapsible open={primaryTraitsOpen} onOpenChange={setPrimaryTraitsOpen}>
+                        <Collapsible
+                          open={primaryTraitsOpen}
+                          onOpenChange={setPrimaryTraitsOpen}
+                        >
                           <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                            {primaryTraitsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            {primaryTraitsOpen ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
                             <span>Key Traits</span>
                           </CollapsibleTrigger>
                           <CollapsibleContent className="mt-2">
                             <div className="flex flex-wrap gap-1">
-                              {personalityAnalysis.primary_contact.key_traits.map((trait, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {trait}
-                                </Badge>
-                              ))}
+                              {personalityAnalysis.primary_contact.key_traits.map(
+                                (trait, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {trait}
+                                  </Badge>
+                                )
+                              )}
                             </div>
                           </CollapsibleContent>
                         </Collapsible>
 
                         {/* Communication Preferences - Collapsible */}
-                        <Collapsible open={primaryPrefsOpen} onOpenChange={setPrimaryPrefsOpen}>
+                        <Collapsible
+                          open={primaryPrefsOpen}
+                          onOpenChange={setPrimaryPrefsOpen}
+                        >
                           <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                            {primaryPrefsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            {primaryPrefsOpen ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
                             <span>Communication Preferences</span>
                           </CollapsibleTrigger>
                           <CollapsibleContent className="mt-2">
                             <ul className="text-sm text-muted-foreground space-y-1">
-                              {personalityAnalysis.primary_contact.communication_preferences.map((pref, index) => (
-                                <li key={index} className="flex items-start space-x-2">
-                                  <span className="text-primary mt-1">•</span>
-                                  <span>{pref}</span>
-                                </li>
-                              ))}
+                              {personalityAnalysis.primary_contact.communication_preferences.map(
+                                (pref, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start space-x-2"
+                                  >
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                )
+                              )}
                             </ul>
                           </CollapsibleContent>
                         </Collapsible>
                       </div>
-
+                      {console.log(selectedProspect, "selected prospect")}
                       {/* Key Stakeholders */}
-                      {personalityAnalysis.attendees.length > 0 && (
+                      {selectedProspect?.communication_styles?.length > 0 && (
                         <div className="space-y-3">
                           <h4 className="font-medium flex items-center space-x-2">
                             <Star className="w-4 h-4 text-blue-600" />
                             <span>Key Stakeholders</span>
                           </h4>
-                          {personalityAnalysis.attendees.map((attendee, index) => (
-                            <div key={index} className="border border-border rounded-lg p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <Users className="w-4 h-4 text-blue-600" />
+                          {selectedProspect?.communication_styles?.map(
+                            (attendee, index) => (
+                              <div
+                                key={index}
+                                className="border border-border rounded-lg p-4 space-y-3"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <Users className="w-4 h-4 text-blue-600" />
+                                    <div>
+                                      <h5 className="font-medium">
+                                        {attendee.stakeholder}
+                                      </h5>
+                                      <p className="text-sm text-muted-foreground">
+                                        {attendee.role}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {Math.round(attendee.confidence * 100)}%
+                                    confidence
+                                  </Badge>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  {/* Communication Style */}
                                   <div>
-                                    <h5 className="font-medium">{attendee.name}</h5>
-                                    <p className="text-sm text-muted-foreground">{attendee.role}</p>
+                                    <h6 className="text-sm font-medium mb-2">
+                                      Communication Style
+                                    </h6>
+                                    <div className="flex items-center space-x-2">
+                                      {(() => {
+                                        const style = communicationStyles[0];
+                                        // const Icon = style.icon;
+                                        return (
+                                          <div className="flex items-center space-x-2">
+                                            <Badge
+                                              variant="outline"
+                                              className={cn(
+                                                "text-xs",
+                                                style?.color
+                                              )}
+                                            >
+                                              {/* <Icon className="w-3 h-3 mr-1" /> */}
+                                              {attendee?.style}
+                                            </Badge>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                <p>{style?.description}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
                                   </div>
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {Math.round(attendee.confidence * 100)}% confidence
-                                </Badge>
-                              </div>
 
-                              <div className="grid md:grid-cols-2 gap-4">
-                                {/* Communication Style */}
-                                <div>
-                                  <h6 className="text-sm font-medium mb-2">Communication Style</h6>
-                                  <div className="flex items-center space-x-2">
-                                    {(() => {
-                                      const style = communicationStyles[attendee.communication_style]
-                                      const Icon = style.icon
-                                      return (
-                                        <div className="flex items-center space-x-2">
-                                          <Badge variant="outline" className={cn("text-xs", style.color)}>
-                                            <Icon className="w-3 h-3 mr-1" />
-                                            {style.label}
-                                          </Badge>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>{style.description}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </div>
-                                      )
-                                    })()}
-                                  </div>
-                                </div>
-
-                                {/* Personality Type */}
-                                <div>
-                                  <h6 className="text-sm font-medium mb-2">Personality Type</h6>
-                                  <div className="flex items-center space-x-2">
-                                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                      <Brain className="w-3 h-3 mr-1" />
-                                      {attendee.personality_type}
-                                    </Badge>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <div>
-                                          <p className="font-medium">{personalityTypes[attendee.personality_type]?.label}</p>
-                                          <p className="text-xs mt-1">
-                                            {personalityTypes[attendee.personality_type]?.traits.join(', ')}
-                                          </p>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Key Traits - Collapsible */}
-                              <Collapsible 
-                                open={attendeeTraitsOpen[index]} 
-                                onOpenChange={(open) => setAttendeeTraitsOpen(prev => ({ ...prev, [index]: open }))}
-                              >
-                                <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                                  {attendeeTraitsOpen[index] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                  <span>Key Traits</span>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="mt-2">
-                                  <div className="flex flex-wrap gap-1">
-                                    {attendee.key_traits.map((trait, traitIndex) => (
-                                      <Badge key={traitIndex} variant="secondary" className="text-xs">
-                                        {trait}
+                                  {/* Personality Type */}
+                                  <div>
+                                    <h6 className="text-sm font-medium mb-2">
+                                      Personality Type
+                                    </h6>
+                                    <div className="flex items-center space-x-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                      >
+                                        <Brain className="w-3 h-3 mr-1" />
+                                        {attendee.personality_type}
                                       </Badge>
-                                    ))}
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div>
+                                            <p className="font-medium">
+                                              {
+                                                personalityTypes[
+                                                  attendee.personality_type
+                                                ]?.label
+                                              }
+                                            </p>
+                                            <p className="text-xs mt-1">
+                                              {personalityTypes[
+                                                attendee.personality_type
+                                              ]?.traits.join(", ")}
+                                            </p>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
                                   </div>
-                                </CollapsibleContent>
-                              </Collapsible>
+                                </div>
 
-                              {/* Communication Preferences - Collapsible */}
-                              <Collapsible 
-                                open={attendeePrefsOpen[index]} 
-                                onOpenChange={(open) => setAttendeePrefsOpen(prev => ({ ...prev, [index]: open }))}
-                              >
-                                <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                                  {attendeePrefsOpen[index] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                  <span>Communication Preferences</span>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="mt-2">
-                                  <ul className="text-sm text-muted-foreground space-y-1">
-                                    {attendee.communication_preferences.map((pref, prefIndex) => (
-                                      <li key={prefIndex} className="flex items-start space-x-2">
-                                        <span className="text-primary mt-1">•</span>
-                                        <span>{pref}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </CollapsibleContent>
-                              </Collapsible>
-                            </div>
-                          ))}
+                                {/* Key Traits - Collapsible */}
+                                <Collapsible
+                                  open={attendeeTraitsOpen[index]}
+                                  onOpenChange={(open) =>
+                                    setAttendeeTraitsOpen((prev) => ({
+                                      ...prev,
+                                      [index]: open,
+                                    }))
+                                  }
+                                >
+                                  <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
+                                    {attendeeTraitsOpen[index] ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                    <span>Key Traits</span>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-2">
+                                    <div className="flex flex-wrap gap-1">
+                                      {attendee.communication_tips.map(
+                                        (trait, traitIndex) => (
+                                          <Badge
+                                            key={traitIndex}
+                                            variant="secondary"
+                                            className="text-xs"
+                                          >
+                                            {trait}
+                                          </Badge>
+                                        )
+                                      )}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
+
+                                {/* Communication Preferences - Collapsible */}
+                                <Collapsible
+                                  open={attendeePrefsOpen[index]}
+                                  onOpenChange={(open) =>
+                                    setAttendeePrefsOpen((prev) => ({
+                                      ...prev,
+                                      [index]: open,
+                                    }))
+                                  }
+                                >
+                                  <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
+                                    {attendeePrefsOpen[index] ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                    <span>Communication Preferences</span>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-2">
+                                    <ul className="text-sm text-muted-foreground space-y-1">
+                                      {attendee.preferences.map(
+                                        (pref, prefIndex) => (
+                                          <li
+                                            key={prefIndex}
+                                            className="flex items-start space-x-2"
+                                          >
+                                            <span className="text-primary mt-1">
+                                              •
+                                            </span>
+                                            <span>{pref}</span>
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              </div>
+                            )
+                          )}
                         </div>
                       )}
 
@@ -815,15 +1012,20 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-center space-x-2 mb-2">
                           <Sparkles className="w-4 h-4 text-blue-600" />
-                          <h4 className="font-medium text-blue-900">Insights Summary</h4>
+                          <h4 className="font-medium text-blue-900">
+                            Insights Summary
+                          </h4>
                         </div>
                         <p className="text-sm text-blue-700">
-                          All personality insights and communication preferences for {selectedProspect.companyName} are automatically included when generating personalized emails. 
-                          This ensures maximum personalization based on the complete stakeholder analysis.
+                          {selectedProspect?.call_summary}
                         </p>
                         <div className="mt-3 flex items-center space-x-4">
-                          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
-                            {selectedCount} insights included
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-blue-100 text-blue-800 border-blue-200"
+                          >
+                            {selectedProspect?.sales_insights?.length} insights
+                            included
                           </Badge>
                           <span className="text-xs text-blue-600">
                             Ready for email generation
@@ -850,46 +1052,89 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                       {personalityAnalysis && (
                         <div className="space-y-2">
                           {/* Primary Contact */}
-                          <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
                             <Checkbox
-                              checked={selectedRecipients.includes('primary_contact')}
-                              onCheckedChange={() => handleToggleRecipient('primary_contact')}
+                              checked={selectedRecipients.includes(
+                                "primary_contact"
+                              )}
+                              onCheckedChange={() =>
+                                handleToggleRecipient("primary_contact")
+                              }
                             />
                             <Crown className="w-4 h-4 text-amber-600" />
                             <div className="flex-1">
-                              <p className="font-medium text-sm">{personalityAnalysis.primary_contact.name}</p>
-                              <p className="text-xs text-muted-foreground">{personalityAnalysis.primary_contact.role}</p>
+                              <p className="font-medium text-sm">
+                                {personalityAnalysis.primary_contact.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {personalityAnalysis.primary_contact.role}
+                              </p>
                             </div>
-                            <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-amber-100 text-amber-800 border-amber-300"
+                            >
                               Primary
                             </Badge>
-                          </div>
+                          </div> */}
 
                           {/* Attendees */}
-                          {personalityAnalysis.attendees.map((attendee, index) => (
-                            <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border">
-                              <Checkbox
-                                checked={selectedRecipients.includes(`attendee_${index}`)}
-                                onCheckedChange={() => handleToggleRecipient(`attendee_${index}`)}
-                              />
-                              <Users className="w-4 h-4 text-blue-600" />
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{attendee.name}</p>
-                                <p className="text-xs text-muted-foreground">{attendee.role}</p>
+                          {selectedProspect?.prospect_details?.map(
+                            (attendee, index) => (
+                              <div
+                                key={index}
+                                className={cn(
+                                  "flex items-center space-x-3 p-3 rounded-lg border",
+                                  index === 0
+                                    ? "border-amber-300 bg-amber-50"
+                                    : ""
+                                )}
+                              >
+                                <Checkbox
+                                  checked={selectedRecipients.includes(
+                                    `attendee_${index}`
+                                  )}
+                                  onCheckedChange={() =>
+                                    handleToggleRecipient(`attendee_${index}`)
+                                  }
+                                />
+                                {index === 0 ? (
+                                  <Crown className="w-4 h-4 text-amber-600" />
+                                ) : (
+                                  <Users className="w-4 h-4 text-blue-600" />
+                                )}
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">
+                                    {attendee.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {attendee.role}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs",
+                                    index === 0
+                                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                                      : "text-blue-700 border-blue-300"
+                                  )}
+                                >
+                                  {index === 0 ? "Primary" : "Stakeholder"}
+                                </Badge>
                               </div>
-                              <Badge variant="outline" className="text-xs">
-                                Stakeholder
-                              </Badge>
-                            </div>
-                          ))}
+                            )
+                          )}
                         </div>
                       )}
 
                       {/* Generate Email Button */}
                       <div className="flex justify-center pt-4">
-                        <Button 
+                        <Button
                           onClick={handleGenerateEmail}
-                          disabled={isGenerating || selectedRecipients.length === 0}
+                          disabled={
+                            isGenerating || selectedRecipients.length === 0
+                          }
                           size="lg"
                           className="w-full max-w-md"
                         >
@@ -901,7 +1146,8 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                           ) : (
                             <>
                               <Sparkles className="w-4 h-4 mr-2" />
-                              Generate Personalized Email ({selectedRecipients.length} recipients)
+                              Generate Personalized Email (
+                              {selectedRecipients.length} recipients)
                             </>
                           )}
                         </Button>
@@ -916,12 +1162,17 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         <CardTitle className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <Mail className="w-5 h-5" />
-                            <span>Generated Email for {selectedProspect.companyName}</span>
+                            <span>
+                              Generated Email for {selectedProspect.companyName}
+                            </span>
                             <Badge variant="secondary">AI Generated</Badge>
                           </div>
                           <div className="flex items-center space-x-2">
-                            {pushStatus === 'success' && (
-                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                            {pushStatus === "success" && (
+                              <Badge
+                                variant="default"
+                                className="bg-green-100 text-green-800 border-green-200"
+                              >
                                 Saved to HubSpot
                               </Badge>
                             )}
@@ -929,14 +1180,14 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                               variant="outline"
                               size="sm"
                               onClick={handlePushToHubSpot}
-                              disabled={pushStatus === 'pending'}
+                              disabled={pushStatus === "pending"}
                             >
-                              {pushStatus === 'pending' ? (
+                              {pushStatus === "pending" ? (
                                 <>
                                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                                   Saving...
                                 </>
-                              ) : pushStatus === 'success' ? (
+                              ) : pushStatus === "success" ? (
                                 <>
                                   <Zap className="w-4 h-4 mr-2" />
                                   Saved
@@ -955,7 +1206,9 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         {/* Subject Line */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-medium">Subject Line</label>
+                            <label className="text-sm font-medium">
+                              Subject Line
+                            </label>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -975,7 +1228,9 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                         {/* Email Body */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-medium">Email Body</label>
+                            <label className="text-sm font-medium">
+                              Email Body
+                            </label>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -995,14 +1250,24 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
 
                         {/* Recipients Summary */}
                         <div className="bg-muted/50 rounded-lg p-3">
-                          <h4 className="text-sm font-medium mb-2">Email Recipients ({selectedRecipients.length})</h4>
+                          <h4 className="text-sm font-medium mb-2">
+                            Email Recipients ({selectedRecipients.length})
+                          </h4>
                           <div className="flex flex-wrap gap-2">
-                            {getSelectedRecipientsData().map((recipient, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {recipient.isPrimary && <Crown className="w-3 h-3 mr-1" />}
-                                {recipient.name} - {recipient.role}
-                              </Badge>
-                            ))}
+                            {getSelectedRecipientsData().map(
+                              (recipient, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {recipient.isPrimary && (
+                                    <Crown className="w-3 h-3 mr-1" />
+                                  )}
+                                  {recipient.name} - {recipient.role}
+                                </Badge>
+                              )
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -1011,9 +1276,13 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                     <Card>
                       <CardContent className="text-center py-12">
                         <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No Email Generated Yet</h3>
+                        <h3 className="text-lg font-medium mb-2">
+                          No Email Generated Yet
+                        </h3>
                         <p className="text-muted-foreground mb-4">
-                          Select recipients above and click "Generate Personalized Email" to create an AI-powered email using all available insights.
+                          Select recipients above and click "Generate
+                          Personalized Email" to create an AI-powered email
+                          using all available insights.
                         </p>
                       </CardContent>
                     </Card>
@@ -1031,7 +1300,9 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                       <CardContent className="space-y-4">
                         {/* Quick Prompts */}
                         <div>
-                          <h4 className="text-sm font-medium mb-2">Quick Refinements</h4>
+                          <h4 className="text-sm font-medium mb-2">
+                            Quick Refinements
+                          </h4>
                           <div className="flex flex-wrap gap-2">
                             {quickPrompts.map((prompt, index) => (
                               <Button
@@ -1055,7 +1326,7 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                                 key={index}
                                 className={cn(
                                   "p-3 rounded-lg text-sm",
-                                  message.role === 'user'
+                                  message.role === "user"
                                     ? "bg-primary text-primary-foreground ml-8"
                                     : "bg-muted mr-8"
                                 )}
@@ -1076,9 +1347,9 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
                             onKeyPress={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                handleSendPrompt(chatInput)
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendPrompt(chatInput);
                               }
                             }}
                             disabled={isRefining}
@@ -1104,5 +1375,5 @@ P.S. The case study from a similar ${selectedProspect.dealValue} implementation 
         </div>
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};

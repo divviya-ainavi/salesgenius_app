@@ -11,25 +11,13 @@ class FirefliesService {
         options: Object.keys(options),
       });
 
-      // Add error handling for network issues
-      let response;
-      try {
-        response = await api.get(API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPTS, {
-          limit: options.limit || 50,
-          offset: options.offset || 0,
-          date_from: options.dateFrom,
-          date_to: options.dateTo,
-          ...options,
-        });
-      } catch (networkError) {
-        // If it's a network error, return mock data for development
-        if (networkError.message.includes('Failed to fetch') || networkError.message.includes('CORS')) {
-          console.warn('Fireflies API unavailable, returning mock data for development');
-          return this.getMockTranscripts();
-        }
-        // Only throw if it's not a network error we can handle
-        throw networkError;
-      }
+      const response = await api.get(API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPTS, {
+        limit: options.limit || 50,
+        offset: options.offset || 0,
+        date_from: options.dateFrom,
+        date_to: options.dateTo,
+        ...options,
+      });
 
       // Transform the API response to match our expected format
       const transformedData = this.transformFirefliesResponse(response.data);
@@ -45,137 +33,10 @@ class FirefliesService {
       analytics.track('fireflies_fetch_transcripts_failed', {
         error: error.message,
       });
-      
-      // Return mock data if API is unavailable
-      if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
-        console.warn('Fireflies API unavailable, returning mock data for development');
-        return this.getMockTranscripts();
-      }
-      
+
       console.error('Error fetching Fireflies transcripts:', error);
       throw error;
     }
-  }
-
-  // Get mock transcripts for development when API is unavailable
-  getMockTranscripts() {
-    return [
-      {
-        id: 'mock_001',
-        callId: 'Demo Call - TechCorp',
-        companyName: 'TechCorp Solutions',
-        prospectName: 'Sarah Johnson',
-        date: '2024-01-15',
-        duration: '45 min',
-        status: 'completed',
-        hasTranscript: true,
-        hasSummary: true,
-        firefliesSummary: `Meeting Summary:
-• Title: Demo Call - TechCorp Solutions
-• Date: 2024-01-15
-• Organizer: sales@company.com
-• Participants: sarah.johnson@techcorp.com, mike.chen@techcorp.com
-• Meeting Link: https://zoom.us/j/123456789
-
-Key Discussion Points:
-• TechCorp is evaluating sales automation solutions
-• Current manual process takes 2-3 hours daily
-• Budget approved for $50K annually
-• Decision timeline: End of Q1
-• 3 vendors being evaluated
-
-Pain Points Discussed:
-• Manual lead scoring process
-• Lack of integration with existing CRM
-• Poor response times from current vendor
-
-Next Steps:
-• Provide technical integration documentation
-• Schedule demo with engineering team
-• Send ROI analysis and case studies`,
-        transcript: `[00:00] Sarah Johnson: Hi everyone, thanks for taking the time to meet with us today. I'm Sarah, VP of Sales Operations at TechCorp.
-
-[00:30] Mike Chen: And I'm Mike, our Sales Operations Manager. We're really excited to learn more about your solution.
-
-[01:00] Sales Rep: Great to meet you both. I understand you're looking to automate your lead scoring process?
-
-[01:15] Sarah Johnson: Exactly. Our current process is completely manual and it's taking our team 2-3 hours every day just to qualify leads.
-
-[02:00] Sales Rep: That's a significant time investment. What's driving the need to change now?
-
-[02:15] Sarah Johnson: We just secured Series B funding and we're planning to double our sales team by Q3. We can't scale our current manual process.
-
-[03:00] Mike Chen: Plus, our current vendor's support response times are terrible. Sometimes we wait days for simple questions.
-
-[03:30] Sales Rep: I understand the frustration. How are you currently handling lead scoring?
-
-[04:00] Sarah Johnson: Everything goes through spreadsheets. We have a complex scoring matrix, but it's all manual input and calculation.
-
-[05:00] Sales Rep: And what's your timeline for making a decision?
-
-[05:15] Sarah Johnson: We need to have something in place by end of Q1. We're evaluating three vendors total.
-
-[06:00] Mike Chen: Budget-wise, we have approval for up to $50K annually.
-
-[Continue with full transcript...]`,
-        audioUrl: null,
-        participants: ['sarah.johnson@techcorp.com', 'mike.chen@techcorp.com'],
-        meeting_link: 'https://zoom.us/j/123456789',
-        organizer_email: 'sales@company.com',
-      },
-      {
-        id: 'mock_002',
-        callId: 'Follow-up Call - InnovateLabs',
-        companyName: 'InnovateLabs Inc',
-        prospectName: 'David Brown',
-        date: '2024-01-12',
-        duration: '30 min',
-        status: 'completed',
-        hasTranscript: true,
-        hasSummary: true,
-        firefliesSummary: `Meeting Summary:
-• Title: Follow-up Call - InnovateLabs Inc
-• Date: 2024-01-12
-• Organizer: sales@company.com
-• Participants: david.brown@innovatelabs.com
-• Meeting Link: https://meet.google.com/abc-defg-hij
-
-Key Discussion Points:
-• Follow-up on initial demo
-• Technical integration requirements
-• Implementation timeline discussion
-• Pricing and contract terms
-
-Positive Signals:
-• David confirmed strong interest
-• Technical team approved the integration approach
-• Ready to move forward with pilot program
-
-Next Steps:
-• Send formal proposal
-• Schedule implementation kickoff
-• Provide pilot program details`,
-        transcript: `[00:00] David Brown: Thanks for following up so quickly after our demo last week.
-
-[00:15] Sales Rep: Of course! I wanted to address the technical questions your team had.
-
-[00:30] David Brown: Perfect. Our engineering team reviewed the integration docs you sent, and they're impressed with the API design.
-
-[01:00] Sales Rep: That's great to hear. Any concerns about the implementation?
-
-[01:15] David Brown: Actually, no. They think it'll be pretty straightforward. We're ready to move forward.
-
-[01:45] Sales Rep: Excellent. What's your preferred timeline?
-
-[02:00] David Brown: We'd like to start with a pilot program next month, then full rollout in Q2.
-
-[Continue with full transcript...]`,
-        audioUrl: null,
-        participants: ['david.brown@innovatelabs.com'],
-        meeting_link: 'https://meet.google.com/abc-defg-hij',
-        organizer_email: 'sales@company.com',
-      }
-    ];
   }
 
   // Get detailed transcript data
@@ -185,18 +46,7 @@ Next Steps:
         transcript_id: transcriptId,
       });
 
-      let response;
-      try {
-        response = await api.get(`${API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPT_DETAIL}/${transcriptId}`);
-      } catch (networkError) {
-        // Return mock data if API is unavailable
-        if (networkError.message.includes('Failed to fetch') || networkError.message.includes('CORS')) {
-          console.warn('Fireflies API unavailable, returning mock transcript detail');
-          return this.getMockTranscriptDetail(transcriptId);
-        }
-        // Only throw if it's not a network error we can handle
-        throw networkError;
-      }
+      const response = await api.get(`${API_ENDPOINTS.FIREFLIES.GET_TRANSCRIPT_DETAIL}/${transcriptId}`);
 
       analytics.track('fireflies_fetch_transcript_detail_completed', {
         transcript_id: transcriptId,
@@ -210,28 +60,10 @@ Next Steps:
         transcript_id: transcriptId,
         error: error.message,
       });
-      
-      // Return mock data if API is unavailable
-      if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
-        console.warn('Fireflies API unavailable, returning mock transcript detail');
-        return this.getMockTranscriptDetail(transcriptId);
-      }
-      
+
       console.error('Error fetching Fireflies transcript detail:', error);
       throw error;
     }
-  }
-
-  // Get mock transcript detail for development
-  getMockTranscriptDetail(transcriptId) {
-    return {
-      id: transcriptId,
-      transcript: 'Mock detailed transcript content...',
-      summary: 'Mock detailed summary...',
-      participants: ['participant1@example.com', 'participant2@example.com'],
-      duration: '30 min',
-      date: '2024-01-15',
-    };
   }
 
   // Sync transcripts from Fireflies
@@ -241,22 +73,17 @@ Next Steps:
         sync_options: Object.keys(options),
       });
 
-      let response;
-      try {
-        response = await api.get(API_ENDPOINTS.FIREFLIES.SYNC_TRANSCRIPTS);
-      } catch (networkError) {
-        // Return mock sync result if API is unavailable
-        if (networkError.message.includes('Failed to fetch') || networkError.message.includes('CORS')) {
-          console.warn('Fireflies API unavailable, returning mock sync result');
-          return {
-            synced_count: 2,
-            new_transcripts: 1,
-            updated_transcripts: 1,
-          };
-        }
-        // Only throw if it's not a network error we can handle
-        throw networkError;
-      }
+      const response = await api.get(API_ENDPOINTS.FIREFLIES.SYNC_TRANSCRIPTS
+        //   , {
+        //   sync_options: {
+        //     force_refresh: options.forceRefresh || false,
+        //     date_range: options.dateRange || '7d',
+        //     include_processed: options.includeProcessed !== false,
+        //     ...options,
+        //   },
+        //   timestamp: new Date().toISOString(),
+        // }
+      );
 
       analytics.track('fireflies_sync_completed', {
         synced_count: response.data.synced_count,
@@ -269,17 +96,7 @@ Next Steps:
       analytics.track('fireflies_sync_failed', {
         error: error.message,
       });
-      
-      // Return mock sync result if API is unavailable
-      if (error.message.includes('Failed to fetch') || error.message.includes('CORS') || error.status === 0) {
-        console.warn('Fireflies API unavailable, returning mock sync result');
-        return {
-          synced_count: 2,
-          new_transcripts: 1,
-          updated_transcripts: 1,
-        };
-      }
-      
+
       console.error('Error syncing Fireflies transcripts:', error);
       throw error;
     }
@@ -409,6 +226,14 @@ Next Steps:
   // Calculate duration (placeholder - would need actual duration from API)
   calculateDuration(data) {
     // This is a placeholder - in reality, you'd get duration from the API
+    // For now, we'll estimate based on meeting type or use a default
+    // if (data.title && data.title.toLowerCase().includes('sync')) {
+    //   return '30 min';
+    // } else if (data.title && data.title.toLowerCase().includes('demo')) {
+    //   return '45 min';
+    // } else {
+    //   return '25 min'; // Default duration
+    // }
     return 'Unknown Duration';
   }
 
@@ -449,6 +274,15 @@ Note: This is a preliminary summary. Detailed analysis will be available after p
     }
   }
 
+  // Add this method to firefliesService
+  async getTranscriptById(firefliesId) {
+    const response = await api.get('/get-fireflies-transcripts-byid', {
+      id: firefliesId,
+    });
+    return response.data[0]; // as per your response format
+  }
+
+
   // Validate Fireflies data
   validateFirefliesData(data) {
     const errors = [];
@@ -483,4 +317,5 @@ export const {
   syncTranscripts,
   getConnectionStatus,
   validateFirefliesData,
+  getTranscriptById
 } = firefliesService;

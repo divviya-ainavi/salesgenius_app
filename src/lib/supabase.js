@@ -42,43 +42,6 @@ export const CURRENT_USER = {
   language: 'en'
 }
 
-// Initialize demo authentication
-let isAuthInitialized = false;
-
-const initializeDemoAuth = async () => {
-  if (isAuthInitialized) return;
-  
-  try {
-    // Check if we already have a session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      // Create a demo session by signing in with the demo user
-      // This uses the demo user credentials that should exist in your Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: CURRENT_USER.email,
-        password: 'demo-password-123' // This should match what's in your Supabase Auth
-      });
-
-      if (error) {
-        console.warn('Demo auth failed, using anonymous access:', error.message);
-        // If sign-in fails, we'll continue with anonymous access
-        // The RLS policies should handle the demo user ID specifically
-      } else {
-        console.log('Demo user authenticated successfully');
-      }
-    }
-    
-    isAuthInitialized = true;
-  } catch (error) {
-    console.warn('Error initializing demo auth:', error);
-    isAuthInitialized = true; // Mark as initialized even if failed to prevent retries
-  }
-};
-
-// Initialize demo auth when the module loads
-initializeDemoAuth();
-
 // User management helper functions using the new service
 export const userHelpers = {
   // Get user profile with role and organization info
@@ -309,9 +272,6 @@ export const dbHelpers = {
   // File management functions using centralized file service
   async saveUploadedFile(userId, file, content = null) {
     try {
-      // Ensure demo auth is initialized
-      await initializeDemoAuth();
-      
       // Use centralized file service
       return await fileService.uploadFile(file, {
         userId,
@@ -366,8 +326,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('uploaded_files')
         .select('*')
@@ -389,8 +347,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('uploaded_files')
         .select('*')
@@ -460,42 +416,11 @@ export const dbHelpers = {
     }
   },
 
-  // Update uploaded file metadata/content
-  async updateUploadedFile(fileId, updates) {
-    const startTime = Date.now()
-
-    try {
-      await initializeDemoAuth();
-      
-      const { data, error } = await supabase
-        .from('uploaded_files')
-        .update(updates)
-        .eq('id', fileId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      analytics.track('uploaded_file_updated', {
-        file_id: fileId,
-        updated_fields: Object.keys(updates)
-      })
-      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 200, Date.now() - startTime)
-
-      return data
-    } catch (error) {
-      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 500, Date.now() - startTime, error.message)
-      throw error
-    }
-  },
-
   // Delete file and clean up storage
   async deleteUploadedFile(fileId) {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const fileData = await this.getUploadedFile(fileId)
 
       if (fileData.storage_path) {
@@ -529,8 +454,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('processing_history')
         .insert({
@@ -561,8 +484,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const updateData = {
         ...updates,
         processing_completed_at: updates.processing_status === 'completed' ? new Date().toISOString() : undefined
@@ -596,8 +517,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('processing_history')
         .update({
@@ -633,8 +552,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('processing_history')
         .select(`
@@ -674,8 +591,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data: session, error } = await supabase
         .from('processing_history')
         .select(`
@@ -750,8 +665,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_notes')
         .insert({
@@ -786,8 +699,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_notes')
         .select('*')
@@ -808,8 +719,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_notes')
         .update(updates)
@@ -836,8 +745,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const commitmentRecords = commitments.map((commitment, index) => ({
         call_notes_id: callNotesId,
         user_id: userId,
@@ -876,8 +783,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_commitments')
         .update(updates)
@@ -904,8 +809,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('follow_up_emails')
         .insert({
@@ -938,8 +841,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('follow_up_emails')
         .update(updates)
@@ -966,8 +867,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('deck_prompts')
         .insert({
@@ -1000,8 +899,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('deck_prompts')
         .update(updates)
@@ -1028,8 +925,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const insightRecords = insights.map(insight => ({
         call_notes_id: callNotesId,
         user_id: userId,
@@ -1068,8 +963,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_insights')
         .update(updates)
@@ -1096,8 +989,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('call_insights')
         .select('*')
@@ -1120,8 +1011,6 @@ export const dbHelpers = {
     const contentIds = {}
 
     try {
-      await initializeDemoAuth();
-      
       analytics.track('complete_call_analysis_started', {
         user_id: userId,
         file_id: fileId,
@@ -1144,54 +1033,47 @@ export const dbHelpers = {
         })
       }
 
-      if (analysisData.action_items?.length) {
+      if (analysisData.action_items && analysisData.action_items.length > 0) {
         const commitments = await this.createCommitments(
-          callNote.id, userId, analysisData.action_items, processingSessionId
+          callNote.id,
+          userId,
+          analysisData.action_items,
+          processingSessionId
         )
         contentIds.commitmentsIds = commitments.map(c => c.id)
       }
 
       if (analysisData.follow_up_email) {
         const email = await this.createFollowUpEmail(
-          callNote.id, userId, analysisData.follow_up_email, processingSessionId
+          callNote.id,
+          userId,
+          analysisData.follow_up_email,
+          processingSessionId
         )
         contentIds.followUpEmailId = email.id
       }
 
       if (analysisData.deck_prompt) {
         const deck = await this.createDeckPrompt(
-          callNote.id, userId, analysisData.deck_prompt, processingSessionId
+          callNote.id,
+          userId,
+          analysisData.deck_prompt,
+          processingSessionId
         )
         contentIds.deckPromptId = deck.id
       }
 
-      if (analysisData.sales_insights?.length) {
+      if (analysisData.sales_insights && analysisData.sales_insights.length > 0) {
         const insights = await this.saveCallInsights(
-          callNote.id, userId, analysisData.sales_insights, processingSessionId
+          callNote.id,
+          userId,
+          analysisData.sales_insights,
+          processingSessionId
         )
         contentIds.insightsIds = insights.map(i => i.id)
       }
 
       await this.linkContentToSession(processingSessionId, contentIds)
-
-      // ✅ Store full structured response in call_insights with proper user_id
-      await supabase.from('call_insights').insert([{
-        call_notes_id: callNote.id,
-        user_id: userId, // Ensure user_id is set for RLS
-        insight_type: 'complete_analysis',
-        content: 'Complete call analysis data',
-        company_details: analysisData.company_details,
-        prospect_details: analysisData.prospect_details,
-        call_summary: analysisData.call_summary,
-        action_items: analysisData.action_items,
-        sales_insights: analysisData.sales_insights,
-        communication_styles: analysisData.communication_styles,
-        call_analysis_overview: analysisData.call_analysis_overview,
-        processing_status: analysisData.processing_status,
-        error_message: analysisData.error_message,
-        extracted_transcript: analysisData.extracted_transcript,
-        processing_session_id: processingSessionId
-      }]).select().single();
 
       analytics.track('complete_call_analysis_completed', {
         user_id: userId,
@@ -1210,182 +1092,6 @@ export const dbHelpers = {
       })
 
       console.error('Error creating complete call analysis:', error)
-      throw error
-    }
-  },
-
-  // NEW: Store API Response Data in Database Tables
-  async storeApiResponseData(userId, fileId, processingSessionId, apiResponse) {
-    const startTime = Date.now()
-    const contentIds = {}
-
-    try {
-      await initializeDemoAuth();
-      
-      analytics.track('api_response_storage_started', {
-        user_id: userId,
-        file_id: fileId,
-        processing_session_id: processingSessionId,
-        response_keys: Object.keys(apiResponse)
-      })
-
-      // 1. Create Call Note with AI Summary
-      let callNote = null
-      if (apiResponse.call_summary || apiResponse.call_analysis_overview) {
-        const callId = `processed-${Date.now()}`
-        const transcriptContent = apiResponse.transcript || 'Processed from uploaded file'
-
-        callNote = await this.createCallNote(
-          userId,
-          callId,
-          transcriptContent,
-          fileId,
-          processingSessionId
-        )
-        contentIds.callNotesId = callNote.id
-
-        // Update with AI summary
-        if (apiResponse.call_summary) {
-          await this.updateCallNote(callNote.id, {
-            ai_summary: apiResponse.call_summary,
-            status: 'completed'
-          })
-        }
-      }
-
-      // 2. Store Action Items/Commitments
-      if (apiResponse.action_items && apiResponse.action_items.length > 0 && callNote) {
-        const commitments = await this.createCommitments(
-          callNote.id,
-          userId,
-          apiResponse.action_items.map(item => ({
-            task: item.task,
-            owner: item.owner,
-            deadline: item.deadline,
-            priority: item.priority || 'medium'
-          })),
-          processingSessionId
-        )
-        contentIds.commitmentsIds = commitments.map(c => c.id)
-      }
-
-      // 3. Store Follow-up Email
-      if (apiResponse.follow_up_email && callNote) {
-        const email = await this.createFollowUpEmail(
-          callNote.id,
-          userId,
-          apiResponse.follow_up_email,
-          processingSessionId
-        )
-        contentIds.followUpEmailId = email.id
-      }
-
-      // 4. Store Deck Prompt
-      if (apiResponse.deck_prompt && callNote) {
-        const deck = await this.createDeckPrompt(
-          callNote.id,
-          userId,
-          apiResponse.deck_prompt,
-          processingSessionId
-        )
-        contentIds.deckPromptId = deck.id
-      }
-
-      // 5. Store Sales Insights
-      if (apiResponse.sales_insights && apiResponse.sales_insights.length > 0 && callNote) {
-        const insights = await this.saveCallInsights(
-          callNote.id,
-          userId,
-          apiResponse.sales_insights.map(insight => ({
-            type: insight.type,
-            content: insight.content,
-            relevance_score: insight.relevance_score || 50,
-            is_selected: insight.is_selected !== false,
-            source: insight.source || 'AI Analysis',
-            timestamp: insight.timestamp || new Date().toISOString()
-          })),
-          processingSessionId
-        )
-        contentIds.insightsIds = insights.map(i => i.id)
-      }
-
-      // 6. Store Communication Styles as Special Insights
-      if (apiResponse.communication_styles && apiResponse.communication_styles.length > 0 && callNote) {
-        const communicationInsights = await this.saveCallInsights(
-          callNote.id,
-          userId,
-          apiResponse.communication_styles.map(style => ({
-            type: 'communication_style',
-            content: JSON.stringify({
-              stakeholder: style.stakeholder,
-              role: style.role,
-              style: style.style,
-              confidence: style.confidence,
-              evidence: style.evidence,
-              preferences: style.preferences,
-              communication_tips: style.communication_tips
-            }),
-            relevance_score: Math.round((style.confidence || 0.5) * 100),
-            is_selected: true,
-            source: 'Communication Analysis',
-            timestamp: new Date().toISOString()
-          })),
-          processingSessionId
-        )
-
-        // Add communication style insights to the insights array
-        if (!contentIds.insightsIds) contentIds.insightsIds = []
-        contentIds.insightsIds.push(...communicationInsights.map(i => i.id))
-      }
-
-      // 7. Update Processing Session with Content References and API Response
-      await this.updateProcessingSession(processingSessionId, {
-        processing_status: 'completed',
-        api_response: apiResponse,
-        call_notes_id: contentIds.callNotesId,
-        content_references: {
-          call_notes_id: contentIds.callNotesId,
-          commitments_ids: contentIds.commitmentsIds || [],
-          follow_up_email_id: contentIds.followUpEmailId,
-          deck_prompt_id: contentIds.deckPromptId,
-          insights_ids: contentIds.insightsIds || []
-        }
-      })
-
-      // 8. Mark File as Processed
-      if (fileId) {
-        await this.updateUploadedFile(fileId, {
-          is_processed: true
-        })
-      }
-
-      analytics.track('api_response_storage_completed', {
-        user_id: userId,
-        file_id: fileId,
-        processing_session_id: processingSessionId,
-        content_types_created: Object.keys(contentIds).filter(key => contentIds[key]),
-        total_insights: contentIds.insightsIds?.length || 0,
-        total_commitments: contentIds.commitmentsIds?.length || 0,
-        duration_ms: Date.now() - startTime
-      })
-
-      return {
-        success: true,
-        contentIds,
-        processingSessionId,
-        callNotesId: contentIds.callNotesId
-      }
-
-    } catch (error) {
-      analytics.track('api_response_storage_failed', {
-        user_id: userId,
-        file_id: fileId,
-        processing_session_id: processingSessionId,
-        error: error.message,
-        duration_ms: Date.now() - startTime
-      })
-
-      console.error('Error storing API response data:', error)
       throw error
     }
   },
@@ -1416,8 +1122,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from(table)
         .update(updates)
@@ -1446,8 +1150,6 @@ export const dbHelpers = {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       const { data, error } = await supabase
         .from('processing_history')
         .select('*')
@@ -1463,12 +1165,36 @@ export const dbHelpers = {
     }
   },
 
+  async updateUploadedFile(fileId, updates) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .update(updates)
+        .eq('id', fileId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('uploaded_file_updated', {
+        file_id: fileId,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-uploaded-file', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
   async logPushAction(userId, contentType, contentId, status, errorMessage = null, hubspotId = null) {
     const startTime = Date.now()
 
     try {
-      await initializeDemoAuth();
-      
       // Try using centralized CRM service first
       if (status === 'success') {
         // This would be called after a successful CRM push
@@ -1505,8 +1231,472 @@ export const dbHelpers = {
       analytics.trackApiResponse('/api/log-push-action', 'POST', 500, Date.now() - startTime, error.message)
       throw error
     }
+  },
+
+  // Create a new call insights record
+  async createCallInsight(userId, fileId, insightData) {
+    const companyInfo = insightData.company_details?.[0] || { name: "Company" };
+    const prospects = insightData.prospect_details || [];
+    let companyId = null;
+    console.log(companyInfo, "check company info")
+    // 1. Handle Company Insert or Lookup
+    if (companyInfo?.name) {
+      try {
+        console.log("called company try")
+        const { data: existingCompany, error: checkError } = await supabase
+          .from("company")
+          .select("id")
+          .eq("name", companyInfo.name)
+          .maybeSingle();
+
+        if (checkError) {
+          console.log("checkError", checkError)
+          console.error("Company lookup error:", checkError.message);
+        }
+
+        if (existingCompany) {
+          console.log("existingCompany", existingCompany)
+          companyId = existingCompany.id;
+          console.log("Found existing company ID:", companyId);
+        } else {
+          console.log("Inserting new company:", companyInfo.name)
+          const { data: insertedCompany, error: insertError } = await supabase
+            .from("company")
+            .insert({
+              name: companyInfo.name,
+              mention_context: companyInfo.mention_context || null,
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.log("insertError", insertError)
+            console.error("Company insert error:", insertError.message);
+          } else if (!insertedCompany) {
+            console.log("insertedCompany", insertedCompany)
+            console.error("Company insert returned no data, check RLS or table schema.");
+          } else {
+            companyId = insertedCompany.id;
+            console.log("Inserted new company ID:", companyId);
+          }
+        }
+      } catch (err) {
+        console.log("err 1284", err)
+        console.error("Company block exception:", err);
+      }
+    }
+
+    // 2. Insert all Prospects with companyId
+    const insertedProspectIds = [];
+    for (const person of prospects) {
+      if (person?.name) {
+        try {
+          const { data: newProspect, error: insertError } = await supabase
+            .from("prospect")
+            .insert({
+              name: person.name,
+              title: person.title || "",
+              company_id: companyId,
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error("Prospect insert error:", insertError.message);
+          } else if (newProspect?.id) {
+            insertedProspectIds.push(newProspect.id);
+          }
+        } catch (err) {
+          console.error("Prospect block exception:", err);
+        }
+      }
+    }
+
+    // 3. Insert into call_insights
+    try {
+      const { data, error } = await supabase
+        .from("call_insights")
+        .insert({
+          user_id: userId,
+          uploaded_file_id: fileId,
+          company_id: companyId,
+          company_details: insightData.company_details || null,
+          prospect_details: insightData.prospect_details || null,
+          call_summary: insightData.call_summary || null,
+          action_items: insightData.action_items || null,
+          sales_insights: insightData.sales_insights || null,
+          communication_styles: insightData.communication_styles || null,
+          call_analysis_overview: insightData.call_analysis_overview || null,
+          processing_status: insightData.processing_status || "completed",
+          error_message: insightData.error_message || null,
+          extracted_transcript: insightData.extracted_transcript || null,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Call insight insert error:", error.message);
+        throw error;
+      }
+
+      console.log("Call insight stored successfully with company ID:", companyId);
+      return data;
+    } catch (err) {
+      console.error("Call insight block exception:", err);
+      throw err;
+    }
+  },
+
+  async getGroupedCallInsightsByCompany(userId) {
+    const { data: insights, error } = await supabase
+      .from("call_insights")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) throw error;
+
+    // Group by company_id
+    const companyMap = new Map();
+
+    for (const insight of insights) {
+      const { company_id, prospect_ids, sales_insights = [], communication_styles = [] } = insight;
+
+      if (!companyMap.has(company_id)) {
+        companyMap.set(company_id, {
+          company_id,
+          call_count: 0,
+          sales_insights: [],
+          communication_styles: [],
+          prospect_ids: new Set(),
+          raw_call_insights: [],
+        });
+      }
+
+      const entry = companyMap.get(company_id);
+      entry.call_count += 1;
+      entry.sales_insights.push(...sales_insights);
+      entry.communication_styles.push(...communication_styles);
+      prospect_ids?.forEach((id) => entry.prospect_ids.add(id));
+      entry.raw_call_insights.push(insight);
+    }
+
+    // Enrich with company and prospect info
+    const results = [];
+    for (const [companyId, group] of companyMap.entries()) {
+      const { data: company, error: companyError } = await supabase
+        .from("company")
+        .select("*")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      const { data: prospects, error: prospectError } = await supabase
+        .from("prospect")
+        .select("*")
+        .in("id", Array.from(group.prospect_ids));
+
+      results.push({
+        ...group,
+        company_details: company,
+        prospect_details: prospects,
+      });
+    }
+
+    return results;
+  },
+
+
+  // Get all call insights for a user - Fixed to use the correct relationship
+  async getUserCallInsights(userId, limit = 20) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('call_insights')
+        .select(`
+          *,
+          uploaded_files!call_insights_uploaded_file_id_fkey (*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-user-call-insights', 'GET', 200, Date.now() - startTime)
+      return data || []
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-user-call-insights', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+  async getEmailProspectInsights(userId) {
+    const { data, error } = await supabase
+      .from('call_insights')
+      .select(`
+      id,
+      company_id,
+      prospect_ids,
+      company_details,
+      prospect_details,
+      sales_insights,
+      communication_styles,
+      created_at,
+      call_summary,
+      extracted_transcript,
+email_template_id,
+presentation_prompt_id
+    `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async savePresentationPrompt({ prompt, prospectId }) {
+    const { data, error } = await supabase
+      .from("presentation_prompt")
+      .insert([{ prompt, prospect_id: prospectId }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePresentationPrompt({ id, prompt }) {
+    const { error } = await supabase
+      .from("presentation_prompt")
+      .update({ body: prompt })
+      .eq("id", id);
+
+    if (error) throw error;
+  },
+
+  async getPresentationPromptById(id) {
+    const { data, error } = await supabase
+      .from("presentation_prompt")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updateCallInsightsPresentationId({ insightId, presentationId }) {
+    const { error } = await supabase
+      .from("call_insights")
+      .update({ presentation_prompt_id: presentationId })
+      .eq("id", insightId);
+    if (error) throw error;
+  },
+
+  async saveOrFetchEmailTemplate(insightId, subject, body) {
+    // First check if email already exists
+    const { data: insight, error: fetchError } = await supabase
+      .from('call_insights')
+      .select('email_template_id')
+      .eq('id', insightId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (insight?.email_template_id) {
+      const { data: emailTemplate, error: emailError } = await supabase
+        .from('email_templates')
+        .select('*')
+        .eq('id', insight.email_template_id)
+        .single();
+
+      if (emailError) throw emailError;
+      return emailTemplate;
+    }
+
+    // If not, insert and link
+    const { data: newEmail, error: insertError } = await supabase
+      .from('email_templates')
+      .insert({
+        subject,
+        body,
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    // Link to call_insight
+    const { error: updateError } = await supabase
+      .from('call_insights')
+      .update({ email_template_id: newEmail.id })
+      .eq('id', insightId);
+
+    if (updateError) throw updateError;
+
+    return newEmail;
+  },
+
+  // async savePresentationPrompt({ prompt, prospectId }) {
+  //   const { data: inserted, error } = await supabase
+  //     .from("presentation_prompt")
+  //     .insert({ body: prompt })
+  //     .select()
+  //     .single();
+
+  //   if (error) throw error;
+
+  //   const { error: updateError } = await supabase
+  //     .from("call_insights")
+  //     .update({ presentation_prompt_id: inserted.id })
+  //     .eq("id", prospectId);
+
+  //   if (updateError) throw updateError;
+
+  //   return inserted;
+  // },
+  async createEmailTemplate(subject, body) {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .insert({ subject, body })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+
+  async getFirefliesFiles(userId) {
+    const { data, error } = await supabase
+      .from("fireflies_files")
+      .select("*")
+      // .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  },
+
+  async updateEmailTemplate(templateId, subject, body) {
+    const { data, error } = await supabase
+      .from("email_templates")
+      .update({ subject, body })
+      .eq("id", templateId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Fetch email template by ID
+  async getEmailTemplateById(templateId) {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('id', templateId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Update call_insights to link email template
+  async linkEmailTemplateToCallInsight(callInsightId, templateId) {
+    const { data, error } = await supabase
+      .from('call_insights')
+      .update({ email_template_id: templateId })
+      .eq('id', callInsightId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get a specific call insight by ID
+  async getCallInsightById(insightId) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('call_insights')
+        .select(`
+          *,
+          uploaded_files!call_insights_uploaded_file_id_fkey (*)
+        `)
+        .eq('id', insightId)
+        .single()
+
+      if (error) throw error
+
+      analytics.trackApiResponse('/api/get-call-insight', 'GET', 200, Date.now() - startTime)
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/get-call-insight', 'GET', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  // Update company name in call insights
+  async updateCompanyName(insightId, companyName) {
+    const startTime = Date.now()
+
+    try {
+      // First, get the current insight to access company_id
+      const { data: currentInsight, error: fetchError } = await supabase
+        .from('call_insights')
+        .select('company_id, company_details')
+        .eq('id', insightId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Update the company table if company_id exists
+      if (currentInsight.company_id) {
+        const { error: companyUpdateError } = await supabase
+          .from('company')
+          .update({ name: companyName })
+          .eq('id', currentInsight.company_id)
+
+        if (companyUpdateError) {
+          console.warn('Failed to update company table:', companyUpdateError.message)
+        }
+      }
+
+      // Update the company_details in call_insights
+      const updatedCompanyDetails = {
+        ...currentInsight.company_details,
+        name: companyName
+      }
+
+      const { data, error } = await supabase
+        .from('call_insights')
+        .update({ company_details: updatedCompanyDetails })
+        .eq('id', insightId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('company_name_updated', {
+        insight_id: insightId,
+        new_company_name: companyName
+      })
+      analytics.trackApiResponse('/api/update-company-name', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-company-name', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
   }
 }
+
+
+
 
 // Export centralized services for easy access
 export { api, aiService, fileService, crmService, userManagementService }
