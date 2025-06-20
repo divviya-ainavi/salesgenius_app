@@ -20,6 +20,28 @@ export let CURRENT_USER = {
 
 // Authentication helpers
 export const authHelpers = {
+
+  async loginWithCustomPassword(email, plainPassword) {
+    // 1. Fetch the profile with the stored password
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id, password_hash')
+      .eq('email', email)
+      .single();
+
+    if (error || !profile) {
+      throw new Error('Invalid login credentials');
+    }
+
+    // 2. Directly compare the provided password with the stored password_hash
+    if (plainPassword !== profile.password_hash) {
+      throw new Error('Invalid login credentials');
+    }
+
+    // 3. Return user ID if matched
+    return profile.id;
+  },
+
   // Get user profile from database
   async getUserProfile(userId) {
     try {
@@ -87,8 +109,7 @@ export const authHelpers = {
 
   // Check if user is authenticated
   async isAuthenticated() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return !!session?.user;
+    return !!CURRENT_USER?.id;
   },
 
   // Sign out user
@@ -96,7 +117,7 @@ export const authHelpers = {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       this.clearCurrentUser();
       return { success: true };
     } catch (error) {
@@ -139,12 +160,12 @@ export const authHelpers = {
         .single();
 
       if (error) throw error;
-      
+
       // Update current user state if it's the same user
       if (userId === CURRENT_USER.id) {
         await this.setCurrentUser(data);
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -168,12 +189,12 @@ export const authHelpers = {
         .single();
 
       if (error) throw error;
-      
+
       // Update current user state
       if (userId === CURRENT_USER.id) {
         await this.setCurrentUser(data);
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error saving HubSpot credentials:', error);
@@ -208,7 +229,7 @@ export const dbHelpers = {
       const timestamp = Date.now()
       const fileExtension = file.name.split('.').pop()
       const uniqueFileName = `${userId}/${timestamp}_${file.name}`
-      
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('call-transcripts')
         .upload(uniqueFileName, file, {

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { supabase, authHelpers } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { authHelpers, userHelpers } from "@/lib/supabase";
+import { Loader2 } from "lucide-react";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 
 const ProtectedRoute = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -9,52 +10,17 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Ensure user profile is loaded
-          const profile = await authHelpers.getUserProfile(session.user.id);
-          if (profile) {
-            await authHelpers.setCurrentUser(profile);
-            setIsAuthenticated(true);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
+    const checkCustomAuth = async () => {
+      const isAuth = await userHelpers.isAuthenticated(); // custom checker
+      console.log("ProtectedRoute - isAuthenticated:", isAuth);
+      const getStatus = localStorage.getItem("status");
+      setIsAuthenticated(isAuth && getStatus === "loggedin");
+      setIsLoading(false);
     };
 
-    checkAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          setIsAuthenticated(false);
-          authHelpers.clearCurrentUser();
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          const profile = await authHelpers.getUserProfile(session.user.id);
-          if (profile) {
-            await authHelpers.setCurrentUser(profile);
-            setIsAuthenticated(true);
-          }
-        }
-        setIsLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    checkCustomAuth();
   }, []);
-
+  console.log(isAuthenticated, isLoading, CURRENT_USER.id, "check user id");
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

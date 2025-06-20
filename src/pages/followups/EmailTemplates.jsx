@@ -302,6 +302,8 @@ export const EmailTemplates = () => {
   const [prospects, setProspects] = useState([]);
   const [emailTemplate, setEmailTemplate] = useState(null);
 
+  console.log(CURRENT_USER.id, "Current User ID in EmailTemplates");
+
   useEffect(() => {
     const fetchProspects = async () => {
       try {
@@ -334,8 +336,11 @@ export const EmailTemplates = () => {
         }));
 
         setProspects(enrichedProspects);
-        if (enrichedProspects.length > 0)
+
+        if (enrichedProspects.length > 0) {
+          console.log("Enriched prospects:", enrichedProspects);
           setSelectedProspect(enrichedProspects[0]);
+        }
       } catch (err) {
         console.error("Failed to load email insights:", err);
         toast.error("Could not fetch email insights");
@@ -344,6 +349,8 @@ export const EmailTemplates = () => {
 
     fetchProspects();
   }, []);
+
+  console.log("Prospects loaded:", prospects, selectedProspect);
 
   useEffect(() => {
     if (selectedProspect.email_template_id) {
