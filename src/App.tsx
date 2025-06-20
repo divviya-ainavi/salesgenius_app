@@ -13,35 +13,20 @@ import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import UserManagementPage from "@/pages/admin/UserManagement";
+import LoginPage from "@/pages/Auth/LoginPage";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
-import { CURRENT_USER } from "@/lib/supabase";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Initialize user identification and properties
+  // Initialize analytics
   useEffect(() => {
-    // Identify the current user for analytics
-    analytics.identify(CURRENT_USER.id, {
-      email: CURRENT_USER.email,
-      name: CURRENT_USER.name,
-      role: CURRENT_USER.role_key,
-      organization_id: CURRENT_USER.organization_id,
-    });
-
-    // Set user properties
-    analytics.setUserProperties({
-      user_type: "sales_manager",
-      subscription_tier: "demo",
-      signup_date: new Date().toISOString(),
-    });
-
     // Track app initialization
     analytics.track("app_initialized", {
-      user_id: CURRENT_USER.id,
-      user_role: CURRENT_USER.role_key,
       timestamp: new Date().toISOString(),
     });
   }, []);
@@ -53,7 +38,16 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<MainLayout />}>
+            {/* Public Routes */}
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/hubspot-callback" element={<HubSpotCallback />} />
+            
+            {/* Protected Routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }>
               <Route index element={<Navigate to="/calls" replace />} />
               <Route path="research" element={<Research />} />
               <Route path="calls" element={<SalesCalls />} />
@@ -74,6 +68,8 @@ const App = () => {
                 <Route path="users" element={<UserManagementPage />} />
               </Route>
             </Route>
+            
+            {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { User, UserCircle, Settings, LogOut, Building, Crown, Users, Shield } from 'lucide-react'
 import { toast } from 'sonner'
-import { CURRENT_USER, userHelpers } from '@/lib/supabase'
+import { CURRENT_USER, authHelpers } from '@/lib/supabase'
 
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
@@ -54,16 +54,15 @@ export const UserDropdown = () => {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Load user profile with role and organization info
+  // Load user profile
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        // For demo purposes, we'll use the current user data
-        // In a real app, this would fetch from the database
+        // Use current user data
         const profile = {
           ...CURRENT_USER,
           role: {
-            key: 'sales_manager',
+            key: CURRENT_USER.role_key || 'sales_manager',
             label: 'Sales Manager',
             description: 'Sales team management and analytics access'
           },
@@ -99,12 +98,21 @@ export const UserDropdown = () => {
     setShowLogoutDialog(true)
   }
 
-  const handleConfirmLogout = () => {
-    // Implement logout logic here
-    toast.success('Logged out successfully')
-    setShowLogoutDialog(false)
-    // In a real app, this would clear auth tokens and redirect to login
-    // For demo purposes, we'll just show a toast
+  const handleConfirmLogout = async () => {
+    try {
+      const result = await authHelpers.signOut()
+      
+      if (result.success) {
+        toast.success('Logged out successfully')
+        setShowLogoutDialog(false)
+        navigate('/auth/login')
+      } else {
+        toast.error('Failed to logout: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error('An error occurred during logout')
+    }
   }
 
   const handleCancelLogout = () => {
