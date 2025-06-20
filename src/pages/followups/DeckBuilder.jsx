@@ -43,6 +43,8 @@ import {
   BarChart3,
   Shield,
   Rocket,
+  Building,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -193,53 +195,6 @@ const quickPrompts = [
   "Strengthen the call-to-action",
 ];
 
-// Mock prospects data
-const mockProspects = [
-  {
-    id: "acme_corp",
-    companyName: "Acme Corp",
-    prospectName: "Sarah Johnson",
-    title: "VP of Sales",
-    status: "hot",
-    dealValue: "$120K",
-    probability: 85,
-    nextAction: "Pilot program approval",
-    stakeholders: [
-      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
-      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
-      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
-    ],
-  },
-  {
-    id: "techstart_inc",
-    companyName: "TechStart Inc",
-    prospectName: "John Smith",
-    title: "CEO",
-    status: "warm",
-    dealValue: "$45K",
-    probability: 65,
-    nextAction: "Technical demo",
-    stakeholders: [
-      { name: "John Smith", role: "CEO", style: "Visual" },
-      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
-    ],
-  },
-  {
-    id: "global_solutions",
-    companyName: "Global Solutions Ltd",
-    prospectName: "Emma Wilson",
-    title: "Director of Operations",
-    status: "warm",
-    dealValue: "$85K",
-    probability: 70,
-    nextAction: "Proposal review",
-    stakeholders: [
-      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
-      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
-    ],
-  },
-];
-
 export function DeckBuilder() {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [prospects, setProspects] = useState([]);
@@ -256,13 +211,22 @@ export function DeckBuilder() {
   const [isRefining, setIsRefining] = useState(false);
   const [editingBlock, setEditingBlock] = useState(null);
   const [editText, setEditText] = useState("");
+  const [isLoadingProspects, setIsLoadingProspects] = useState(true);
+
+  // Use current authenticated user
+  const userId = CURRENT_USER.id;
 
   useEffect(() => {
     const fetchProspects = async () => {
+      if (!userId) {
+        console.log("No user ID available, skipping prospect fetch");
+        setIsLoadingProspects(false);
+        return;
+      }
+
+      setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getEmailProspectInsights(
-          CURRENT_USER.id
-        );
+        const insights = await dbHelpers.getEmailProspectInsights(userId);
 
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
@@ -290,16 +254,19 @@ export function DeckBuilder() {
         }));
 
         setProspects(enrichedProspects);
-        if (enrichedProspects.length > 0)
+        if (enrichedProspects.length > 0) {
           setSelectedProspect(enrichedProspects[0]);
+        }
       } catch (error) {
         console.error("Failed to load prospects:", error);
         toast.error("Could not fetch call insights");
+      } finally {
+        setIsLoadingProspects(false);
       }
     };
 
     fetchProspects();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (selectedProspect !== null && selectedProspect.presentation_prompt_id) {
@@ -572,9 +539,6 @@ export function DeckBuilder() {
     );
   };
 
-  if (!selectedProspect)
-    return <div className="p-6">Loading prospect data...</div>;
-
   const handleRefinePromptViaAPI = async (refinementPrompt) => {
     if (!generatedPrompt || !refinementPrompt) return;
 
@@ -671,6 +635,18 @@ export function DeckBuilder() {
     }
   };
 
+  // Show loading state while checking authentication
+  if (!userId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading user session...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -687,13 +663,40 @@ export function DeckBuilder() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Sidebar - Prospect Selector */}
         <div className="space-y-6">
-          <ProspectSelector
-            selectedProspect={selectedProspect}
-            onProspectSelect={handleProspectSelect}
-            compact={true}
-            showStakeholders={true}
-            prospectList={prospects}
-          />
+          {isLoadingProspects ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">Loading prospects...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : prospects.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>No Prospects Available</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">No prospects found</p>
+                <p className="text-sm text-muted-foreground">
+                  Process some call transcripts first to generate presentation prompts for prospects.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <ProspectSelector
+              selectedProspect={selectedProspect}
+              onProspectSelect={handleProspectSelect}
+              compact={true}
+              showStakeholders={true}
+              prospectList={prospects}
+            />
+          )}
 
           {/* Strategic Compass */}
           {generatedPrompt && (
@@ -749,7 +752,7 @@ export function DeckBuilder() {
                     <Progress value={qualityScore} className="h-2" />
                     <p className="text-xs text-muted-foreground">
                       Excellent personalization for{" "}
-                      {selectedProspect.companyName}
+                      {selectedProspect?.companyName}
                     </p>
                   </div>
                 </div>
@@ -800,360 +803,374 @@ export function DeckBuilder() {
 
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Setup Section */}
-          {console.log("Selected Prospect:", selectedProspect)}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="w-5 h-5" />
-                <span>Contextual Setup for {selectedProspect.companyName}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Methodology & Objective */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Sales Methodology
-                  </label>
-                  <Select
-                    value={selectedMethodology}
-                    onValueChange={setSelectedMethodology}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(salesMethodologies).map(
-                        ([key, method]) => (
-                          <SelectItem key={key} value={key}>
-                            <div>
-                              <div className="font-medium">{method.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {method.description}
-                              </div>
-                            </div>
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Presentation Objective
-                  </label>
-                  <Select
-                    value={selectedObjective}
-                    onValueChange={setSelectedObjective}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {presentationObjectives.map((objective) => {
-                        const Icon = objective.icon;
-                        return (
-                          <SelectItem
-                            key={objective.value}
-                            value={objective.value}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Icon className="w-4 h-4" />
-                              <span>{objective.label}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Content Library */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">
-                  Content Library for {selectedProspect.companyName}
-                </label>
-                <div className="grid md:grid-cols-2 gap-2">
-                  {contentLibrary.map((content) => (
-                    <div
-                      key={content.id}
-                      className={cn(
-                        "p-3 rounded-lg border cursor-pointer transition-colors text-sm",
-                        selectedContent.includes(content.id)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-accent"
-                      )}
-                      onClick={() => handleContentToggle(content.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{content.title}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {content.type}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last used: {content.lastUsed}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Generate Button */}
-              <Button
-                onClick={handleGeneratePrompt}
-                disabled={
-                  isGenerating ||
-                  !selectedProspect ||
-                  !selectedMethodology ||
-                  !selectedObjective ||
-                  selectedProspect.presentation_prompt_id
-                }
-                className="w-full"
-                size="lg"
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    Generating Strategic Prompt for{" "}
-                    {selectedProspect.companyName}...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Generate Presentation Prompt
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Generated Prompt Section */}
-          {selectedProspect?.presentation_prompt_id || generatedPrompt ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5" />
-                    <span>
-                      Strategic Canvas for {selectedProspect.companyName}
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center space-x-1"
-                    >
-                      <Star className="w-3 h-3" />
-                      <span>Quality: {qualityScore}/100</span>
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyPrompt}
-                    >
-                      <Copy className="w-4 h-4 mr-1" />
-                      Copy
-                    </Button>
-                    <Button onClick={handleExportToGamma} size="sm">
-                      <Send className="w-4 h-4 mr-1" />
-                      Export to Gamma
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="blocks" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="blocks">Modular Blocks</TabsTrigger>
-                    <TabsTrigger value="full">Full Prompt</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="blocks" className="mt-4">
-                    <div className="space-y-4">
-                      {promptBlocks.map((block, index) => (
-                        <div
-                          key={block.id}
-                          className="border border-border rounded-lg p-4"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium text-sm">
-                              {block.title}
-                            </h4>
-                            <div className="flex items-center space-x-1">
-                              {index > 1 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleMoveBlock(block.id, "up")
-                                  }
-                                >
-                                  <ArrowUp className="w-4 h-4" />
-                                </Button>
-                              )}
-                              {index < promptBlocks.length - 1 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleMoveBlock(block.id, "down")
-                                  }
-                                >
-                                  <ArrowDown className="w-4 h-4" />
-                                </Button>
-                              )}
-                              {editingBlock === block.id ? (
-                                <div className="flex space-x-1">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleSaveBlock}
-                                  >
-                                    <Save className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setEditingBlock(null)}
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
+          {selectedProspect ? (
+            <>
+              {/* Setup Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Settings className="w-5 h-5" />
+                    <span>Contextual Setup for {selectedProspect.companyName}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Methodology & Objective */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Sales Methodology
+                      </label>
+                      <Select
+                        value={selectedMethodology}
+                        onValueChange={setSelectedMethodology}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(salesMethodologies).map(
+                            ([key, method]) => (
+                              <SelectItem key={key} value={key}>
+                                <div>
+                                  <div className="font-medium">{method.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {method.description}
+                                  </div>
                                 </div>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleBlockEdit(block.id)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          {editingBlock === block.id ? (
-                            <Textarea
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              className="min-h-32 font-mono text-sm"
-                            />
-                          ) : (
-                            <div className="bg-muted rounded-lg p-3">
-                              <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
-                                {block.content.substring(0, 200)}...
-                              </pre>
-                            </div>
+                              </SelectItem>
+                            )
                           )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Presentation Objective
+                      </label>
+                      <Select
+                        value={selectedObjective}
+                        onValueChange={setSelectedObjective}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {presentationObjectives.map((objective) => {
+                            const Icon = objective.icon;
+                            return (
+                              <SelectItem
+                                key={objective.value}
+                                value={objective.value}
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <Icon className="w-4 h-4" />
+                                  <span>{objective.label}</span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Content Library */}
+                  <div>
+                    <label className="text-sm font-medium mb-3 block">
+                      Content Library for {selectedProspect.companyName}
+                    </label>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {contentLibrary.map((content) => (
+                        <div
+                          key={content.id}
+                          className={cn(
+                            "p-3 rounded-lg border cursor-pointer transition-colors text-sm",
+                            selectedContent.includes(content.id)
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:bg-accent"
+                          )}
+                          onClick={() => handleContentToggle(content.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{content.title}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {content.type}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Last used: {content.lastUsed}
+                          </p>
                         </div>
                       ))}
                     </div>
-                  </TabsContent>
-
-                  <TabsContent value="full" className="mt-4">
-                    <div className="bg-muted rounded-lg p-4">
-                      <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed max-h-96 overflow-y-auto">
-                        {generatedPrompt}
-                      </pre>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ) : (
-            ""
-          )}
-
-          {/* Chat Refinement Interface */}
-          {generatedPrompt && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5" />
-                  <span>
-                    Co-Pilot Refinement for {selectedProspect.companyName}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Quick Prompts */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">
-                    Quick Refinements
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {quickPrompts.map((prompt, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSendPrompt(prompt)}
-                        disabled={isRefining}
-                        className="justify-start text-left h-auto py-2"
-                      >
-                        <Sparkles className="w-3 h-3 mr-2 flex-shrink-0" />
-                        <span className="text-xs">{prompt}</span>
-                      </Button>
-                    ))}
                   </div>
-                </div>
 
-                {/* Chat Messages */}
-                {chatMessages.length > 0 && (
-                  <div className="border border-border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
-                    {chatMessages.map((message, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "flex",
-                          message.role === "user"
-                            ? "justify-end"
-                            : "justify-start"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "max-w-xs px-3 py-2 rounded-lg text-sm",
-                            message.role === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          )}
-                        >
-                          {message.content}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Chat Input */}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder={`Refine the presentation for ${selectedProspect.companyName}... (e.g., 'Add more competitive analysis' or 'Make it more technical')`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendPrompt(chatInput);
-                      }
-                    }}
-                    disabled={isRefining}
-                  />
+                  {/* Generate Button */}
                   <Button
-                    onClick={() => handleSendPrompt(chatInput)}
-                    disabled={!chatInput.trim() || isRefining}
+                    onClick={handleGeneratePrompt}
+                    disabled={
+                      isGenerating ||
+                      !selectedProspect ||
+                      !selectedMethodology ||
+                      !selectedObjective ||
+                      selectedProspect.presentation_prompt_id
+                    }
+                    className="w-full"
+                    size="lg"
                   >
-                    {isRefining ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        Generating Strategic Prompt for{" "}
+                        {selectedProspect.companyName}...
+                      </>
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Generate Presentation Prompt
+                      </>
                     )}
                   </Button>
-                </div>
+                </CardContent>
+              </Card>
+
+              {/* Generated Prompt Section */}
+              {(selectedProspect?.presentation_prompt_id || generatedPrompt) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-5 h-5" />
+                        <span>
+                          Strategic Canvas for {selectedProspect.companyName}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center space-x-1"
+                        >
+                          <Star className="w-3 h-3" />
+                          <span>Quality: {qualityScore}/100</span>
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopyPrompt}
+                        >
+                          <Copy className="w-4 h-4 mr-1" />
+                          Copy
+                        </Button>
+                        <Button onClick={handleExportToGamma} size="sm">
+                          <Send className="w-4 h-4 mr-1" />
+                          Export to Gamma
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="blocks" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="blocks">Modular Blocks</TabsTrigger>
+                        <TabsTrigger value="full">Full Prompt</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="blocks" className="mt-4">
+                        <div className="space-y-4">
+                          {promptBlocks.map((block, index) => (
+                            <div
+                              key={block.id}
+                              className="border border-border rounded-lg p-4"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-sm">
+                                  {block.title}
+                                </h4>
+                                <div className="flex items-center space-x-1">
+                                  {index > 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleMoveBlock(block.id, "up")
+                                      }
+                                    >
+                                      <ArrowUp className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {index < promptBlocks.length - 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleMoveBlock(block.id, "down")
+                                      }
+                                    >
+                                      <ArrowDown className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {editingBlock === block.id ? (
+                                    <div className="flex space-x-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleSaveBlock}
+                                      >
+                                        <Save className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setEditingBlock(null)}
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleBlockEdit(block.id)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {editingBlock === block.id ? (
+                                <Textarea
+                                  value={editText}
+                                  onChange={(e) => setEditText(e.target.value)}
+                                  className="min-h-32 font-mono text-sm"
+                                />
+                              ) : (
+                                <div className="bg-muted rounded-lg p-3">
+                                  <pre className="whitespace-pre-wrap text-xs font-mono leading-relaxed">
+                                    {block.content.substring(0, 200)}...
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="full" className="mt-4">
+                        <div className="bg-muted rounded-lg p-4">
+                          <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed max-h-96 overflow-y-auto">
+                            {generatedPrompt}
+                          </pre>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Chat Refinement Interface */}
+              {generatedPrompt && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5" />
+                      <span>
+                        Co-Pilot Refinement for {selectedProspect.companyName}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Quick Prompts */}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">
+                        Quick Refinements
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-2">
+                        {quickPrompts.map((prompt, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSendPrompt(prompt)}
+                            disabled={isRefining}
+                            className="justify-start text-left h-auto py-2"
+                          >
+                            <Sparkles className="w-3 h-3 mr-2 flex-shrink-0" />
+                            <span className="text-xs">{prompt}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chat Messages */}
+                    {chatMessages.length > 0 && (
+                      <div className="border border-border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
+                        {chatMessages.map((message, index) => (
+                          <div
+                            key={index}
+                            className={cn(
+                              "flex",
+                              message.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "max-w-xs px-3 py-2 rounded-lg text-sm",
+                                message.role === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              )}
+                            >
+                              {message.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Chat Input */}
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder={`Refine the presentation for ${selectedProspect.companyName}... (e.g., 'Add more competitive analysis' or 'Make it more technical')`}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendPrompt(chatInput);
+                          }
+                        }}
+                        disabled={isRefining}
+                      />
+                      <Button
+                        onClick={() => handleSendPrompt(chatInput)}
+                        disabled={!chatInput.trim() || isRefining}
+                      >
+                        {isRefining ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <Card className="shadow-sm">
+              <CardContent className="text-center py-12">
+                <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Prospect Selected</h3>
+                <p className="text-muted-foreground mb-4">
+                  {prospects.length === 0 
+                    ? "No prospects available. Process some call transcripts first to generate presentation prompts."
+                    : "Select a prospect from the sidebar to generate personalized presentation prompts."
+                  }
+                </p>
               </CardContent>
             </Card>
           )}

@@ -1,316 +1,84 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ProspectSelector } from "@/components/shared/ProspectSelector";
 import {
-  Eye,
-  Ear,
-  Hand,
-  Brain,
-  Heart,
-  Zap,
+  Mail,
   Send,
   Copy,
   RefreshCw,
-  Plus,
-  MessageSquare,
-  User,
-  Target,
-  Sparkles,
-  ArrowRight,
   Edit,
   Save,
   X,
-  Mail,
-  Crown,
-  Star,
-  Info,
-  ChevronDown,
-  ChevronRight,
-  Users,
+  Sparkles,
+  MessageSquare,
+  Target,
+  TrendingUp,
+  User,
+  Building,
+  Calendar,
+  ExternalLink,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-import api from "../../lib/api";
+import crmService from "@/services/crmService";
 
-// Mock personality analysis data based on selected prospect
-const getPersonalityAnalysis = (prospectId) => {
-  const analysisData = {
-    acme_corp: {
-      primary_contact: {
-        name: "Sarah Johnson",
-        role: "VP of Sales",
-        communication_style: "visual",
-        personality_type: "ENTJ",
-        confidence: 0.85,
-        key_traits: ["Direct", "Results-oriented", "Strategic thinker"],
-        communication_preferences: [
-          "Prefers visual data and charts",
-          "Values efficiency and quick decisions",
-          "Responds well to ROI-focused messaging",
-        ],
-      },
-      attendees: [
-        {
-          name: "Mike Chen",
-          role: "Sales Operations Manager",
-          communication_style: "kinesthetic",
-          personality_type: "ISTJ",
-          confidence: 0.78,
-          key_traits: ["Detail-oriented", "Process-focused", "Analytical"],
-          communication_preferences: [
-            "Prefers hands-on demonstrations",
-            "Values detailed implementation plans",
-            "Needs concrete examples and case studies",
-          ],
-        },
-        {
-          name: "Lisa Rodriguez",
-          role: "Director of Marketing",
-          communication_style: "auditory",
-          personality_type: "ENFP",
-          confidence: 0.72,
-          key_traits: ["Creative", "Collaborative", "Enthusiastic"],
-          communication_preferences: [
-            "Enjoys verbal discussions and calls",
-            "Values team collaboration features",
-            "Responds to emotional and inspirational messaging",
-          ],
-        },
-      ],
-    },
-    techstart_inc: {
-      primary_contact: {
-        name: "John Smith",
-        role: "CEO",
-        communication_style: "visual",
-        personality_type: "INTJ",
-        confidence: 0.88,
-        key_traits: ["Analytical", "Strategic", "Independent"],
-        communication_preferences: [
-          "Prefers data-driven presentations",
-          "Values long-term strategic thinking",
-          "Responds to innovation and efficiency",
-        ],
-      },
-      attendees: [
-        {
-          name: "Emma Wilson",
-          role: "CTO",
-          communication_style: "kinesthetic",
-          personality_type: "ISTP",
-          confidence: 0.82,
-          key_traits: ["Technical", "Practical", "Problem-solver"],
-          communication_preferences: [
-            "Prefers technical demonstrations",
-            "Values hands-on testing",
-            "Needs detailed technical specifications",
-          ],
-        },
-      ],
-    },
-    global_solutions: {
-      primary_contact: {
-        name: "Emma Wilson",
-        role: "Director of Operations",
-        communication_style: "auditory",
-        personality_type: "ESFJ",
-        confidence: 0.79,
-        key_traits: ["Collaborative", "Process-oriented", "People-focused"],
-        communication_preferences: [
-          "Prefers verbal communication",
-          "Values team consensus",
-          "Responds to relationship-building",
-        ],
-      },
-      attendees: [
-        {
-          name: "David Brown",
-          role: "IT Manager",
-          communication_style: "kinesthetic",
-          personality_type: "ISTJ",
-          confidence: 0.85,
-          key_traits: ["Methodical", "Reliable", "Detail-focused"],
-          communication_preferences: [
-            "Prefers step-by-step processes",
-            "Values practical implementation",
-            "Needs comprehensive documentation",
-          ],
-        },
-      ],
-    },
-  };
-
-  return (
-    analysisData[prospectId] || {
-      primary_contact: {
-        name: "Unknown Contact",
-        role: "Unknown Role",
-        communication_style: "visual",
-        personality_type: "UNKNOWN",
-        confidence: 0.5,
-        key_traits: ["To be determined"],
-        communication_preferences: ["Analysis pending"],
-      },
-      attendees: [],
-    }
-  );
-};
-
-const communicationStyles = {
-  visual: {
-    icon: Eye,
-    label: "Visual",
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-    description: "Prefers charts, graphs, and visual demonstrations",
-  },
-  auditory: {
-    icon: Ear,
-    label: "Auditory",
-    color: "bg-green-100 text-green-800 border-green-200",
-    description: "Learns through listening and verbal communication",
-  },
-  kinesthetic: {
-    icon: Hand,
-    label: "Kinesthetic",
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-    description: "Prefers hands-on experiences and practical examples",
-  },
-};
-
-const personalityTypes = {
-  ENTJ: {
-    label: "The Commander",
-    traits: ["Natural leader", "Strategic", "Decisive"],
-  },
-  ISTJ: {
-    label: "The Logistician",
-    traits: ["Practical", "Fact-minded", "Reliable"],
-  },
-  ENFP: {
-    label: "The Campaigner",
-    traits: ["Enthusiastic", "Creative", "Sociable"],
-  },
-  INTJ: {
-    label: "The Architect",
-    traits: ["Imaginative", "Strategic", "Independent"],
-  },
-  ISTP: {
-    label: "The Virtuoso",
-    traits: ["Practical", "Experimental", "Adaptable"],
-  },
-  ESFJ: { label: "The Consul", traits: ["Caring", "Social", "Popular"] },
-  UNKNOWN: { label: "Analysis Pending", traits: ["To be determined"] },
-};
-
+// Quick refinement prompts
 const quickPrompts = [
-  "Make it more concise and direct",
-  "Add more technical details",
-  "Include specific ROI metrics",
-  "Make it more personal and warm",
-  "Add urgency and next steps",
-  "Focus on competitive advantages",
-  "Include social proof and testimonials",
-  "Emphasize integration capabilities",
-];
-
-// Mock prospects data
-const mockProspects = [
-  {
-    id: "acme_corp",
-    companyName: "Acme Corp",
-    prospectName: "Sarah Johnson",
-    title: "VP of Sales",
-    status: "hot",
-    dealValue: "$120K",
-    probability: 85,
-    nextAction: "Pilot program approval",
-    stakeholders: [
-      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
-      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
-      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
-    ],
-  },
-  {
-    id: "techstart_inc",
-    companyName: "TechStart Inc",
-    prospectName: "John Smith",
-    title: "CEO",
-    status: "warm",
-    dealValue: "$45K",
-    probability: 65,
-    nextAction: "Technical demo",
-    stakeholders: [
-      { name: "John Smith", role: "CEO", style: "Visual" },
-      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
-    ],
-  },
-  {
-    id: "global_solutions",
-    companyName: "Global Solutions Ltd",
-    prospectName: "Emma Wilson",
-    title: "Director of Operations",
-    status: "warm",
-    dealValue: "$85K",
-    probability: 70,
-    nextAction: "Proposal review",
-    stakeholders: [
-      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
-      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
-    ],
-  },
+  "Make it more professional",
+  "Add urgency",
+  "Include specific next steps",
+  "Make it more personal",
+  "Add social proof",
+  "Shorten the email",
+  "Add technical details",
+  "Focus on ROI benefits",
 ];
 
 export const EmailTemplates = () => {
-  const location = useLocation();
-  const [selectedProspect, setSelectedProspect] = useState(mockProspects[0]);
-  const [personalityAnalysis, setPersonalityAnalysis] = useState(null);
-  const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [selectedProspect, setSelectedProspect] = useState(null);
+  const [prospects, setProspects] = useState([]);
   const [generatedEmail, setGeneratedEmail] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
+  const [editedSubject, setEditedSubject] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [isRefining, setIsRefining] = useState(false);
-  const [emailSubject, setEmailSubject] = useState("");
   const [pushStatus, setPushStatus] = useState("draft");
-  const [activeTab, setActiveTab] = useState("insights");
-  const [recipientSidebarOpen, setRecipientSidebarOpen] = useState(false);
+  const [hubspotConnectionStatus, setHubspotConnectionStatus] = useState(null);
+  const [isLoadingProspects, setIsLoadingProspects] = useState(true);
 
-  // Collapsible states - all collapsed by default
-  const [primaryTraitsOpen, setPrimaryTraitsOpen] = useState(false);
-  const [primaryPrefsOpen, setPrimaryPrefsOpen] = useState(false);
-  const [attendeeTraitsOpen, setAttendeeTraitsOpen] = useState({});
-  const [attendeePrefsOpen, setAttendeePrefsOpen] = useState({});
-  const [prospects, setProspects] = useState([]);
-  const [emailTemplate, setEmailTemplate] = useState(null);
+  // Use current authenticated user
+  const userId = CURRENT_USER.id;
 
-  console.log(CURRENT_USER.id, "Current User ID in EmailTemplates");
+  useEffect(() => {
+    checkHubSpotConnection();
+  }, []);
 
   useEffect(() => {
     const fetchProspects = async () => {
+      if (!userId) {
+        console.log("No user ID available, skipping prospect fetch");
+        setIsLoadingProspects(false);
+        return;
+      }
+
+      setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getEmailProspectInsights(
-          CURRENT_USER.id
-        );
-        console.log("Fetched email insights:", insights);
+        const insights = await dbHelpers.getEmailProspectInsights(userId);
+
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
           companyName: insight.company_details?.name || "Unknown Company",
@@ -336,88 +104,39 @@ export const EmailTemplates = () => {
         }));
 
         setProspects(enrichedProspects);
-
         if (enrichedProspects.length > 0) {
-          console.log("Enriched prospects:", enrichedProspects);
           setSelectedProspect(enrichedProspects[0]);
         }
-      } catch (err) {
-        console.error("Failed to load email insights:", err);
-        toast.error("Could not fetch email insights");
+      } catch (error) {
+        console.error("Failed to load prospects:", error);
+        toast.error("Could not fetch call insights");
+      } finally {
+        setIsLoadingProspects(false);
       }
     };
 
     fetchProspects();
-  }, []);
-
-  console.log("Prospects loaded:", prospects, selectedProspect);
+  }, [userId]);
 
   useEffect(() => {
-    if (selectedProspect.email_template_id) {
-      setIsGenerating(true);
-      dbHelpers
-        .getEmailTemplateById(selectedProspect.email_template_id)
-        .then((template) => {
-          setEmailTemplate(template);
-          setEmailSubject(template.subject || "");
-          setGeneratedEmail(template.body || "");
-        })
-        .finally(() => setIsGenerating(false));
-    }
-  }, [selectedProspect.email_template_id]);
-
-  // Check for selected call from navigation
-  useEffect(() => {
-    if (location.state?.selectedCall) {
-      const call = location.state.selectedCall;
-      // Find matching prospect or create new one
-      const prospect = mockProspects.find(
-        (p) => p.companyName === call.companyName
-      ) || {
-        id: call.companyName.toLowerCase().replace(/\s+/g, "_"),
-        companyName: call.companyName,
-        prospectName: call.prospectName,
-        title: "Unknown",
-        status: "new",
-        dealValue: "TBD",
-        probability: 50,
-        nextAction: "Initial follow-up",
-        stakeholders: [],
+    if (selectedProspect?.email_template_id) {
+      const fetchEmailTemplate = async () => {
+        try {
+          const template = await dbHelpers.getEmailTemplateById(
+            selectedProspect.email_template_id
+          );
+          if (template) {
+            setEmailSubject(template.subject || "");
+            setGeneratedEmail(template.body || "");
+          }
+        } catch (error) {
+          console.error("Error fetching email template:", error);
+        }
       };
-      setSelectedProspect(prospect);
-    }
-  }, [location.state]);
 
-  // Load personality analysis when prospect changes
-  useEffect(() => {
-    if (selectedProspect) {
-      const primary = selectedProspect.communication_styles?.[0] || {};
-      const others = selectedProspect.communication_styles?.slice(1) || [];
-
-      setPersonalityAnalysis({
-        primary_contact: {
-          name: primary.stakeholder || "Unknown",
-          role: primary.role || "Unknown",
-          communication_style: primary.style?.toLowerCase() || "visual",
-          personality_type: primary.personality_type || "UNKNOWN",
-          confidence: primary.confidence || 0.5,
-          key_traits: primary.key_traits || ["To be determined"],
-          communication_preferences: primary.preferences || ["Pending"],
-        },
-        attendees: others.map((p) => ({
-          name: p.stakeholder,
-          role: p.role,
-          communication_style: p.style?.toLowerCase(),
-          personality_type: p.personality_type || "UNKNOWN",
-          confidence: p.confidence || 0.5,
-          key_traits: p.key_traits || ["To be determined"],
-          communication_preferences: p.preferences || ["Pending"],
-        })),
-      });
-
-      const defaultRecipients = ["primary_contact"];
-      if (others.length > 0) defaultRecipients.push("attendee_0");
-      setSelectedRecipients([]);
+      fetchEmailTemplate();
+    } else {
+      // Clear email when switching prospects without templates
       setGeneratedEmail("");
       setEmailSubject("");
       setChatMessages([]);
@@ -425,107 +144,126 @@ export const EmailTemplates = () => {
     }
   }, [selectedProspect]);
 
-  // Clear email when recipients change
-  useEffect(() => {
-    if (generatedEmail && selectedRecipients.length > 0) {
-      // Only clear if we have an existing email and selections have changed
-      // This prevents clearing on initial load
-      setGeneratedEmail("");
-      setEmailSubject("");
-      setChatMessages([]);
-      setPushStatus("draft");
+  const checkHubSpotConnection = async () => {
+    try {
+      const status = await crmService.getConnectionStatus("hubspot");
+      setHubspotConnectionStatus(status);
+    } catch (error) {
+      console.error("Error checking HubSpot connection:", error);
+      setHubspotConnectionStatus({ connected: false, error: error.message });
     }
-  }, [selectedRecipients]);
+  };
 
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
   };
 
-  const handleToggleRecipient = (recipientId) => {
-    setSelectedRecipients((prev) => {
-      if (prev.includes(recipientId)) {
-        return prev.filter((id) => id !== recipientId);
-      } else {
-        return [...prev, recipientId];
-      }
-    });
-  };
-
-  const getSelectedRecipientsData = () => {
-    if (!personalityAnalysis) return [];
-
-    const recipients = [];
-
-    if (selectedRecipients.includes("primary_contact")) {
-      recipients.push({
-        id: "primary_contact",
-        ...personalityAnalysis.primary_contact,
-        isPrimary: true,
-      });
+  const handleGenerateEmail = async () => {
+    if (!selectedProspect?.extracted_transcript) {
+      toast.error("Missing transcript for this prospect");
+      return;
     }
 
-    selectedRecipients.forEach((recipientId) => {
-      if (recipientId.startsWith("attendee_")) {
-        const index = parseInt(recipientId.split("_")[1]);
-        if (personalityAnalysis.attendees[index]) {
-          recipients.push({
-            id: recipientId,
-            ...personalityAnalysis.attendees[index],
-            isPrimary: false,
-          });
-        }
-      }
-    });
-
-    return recipients;
-  };
-
-  const handleGenerateEmail = async () => {
     setIsGenerating(true);
+
     try {
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-follow-up-email",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             transcript: selectedProspect.extracted_transcript,
-            sales_insights: selectedProspect.sales_insights,
-            action_items: selectedProspect.action_items,
-            prospects: selectedRecipients?.join(", "),
+            sales_insights: selectedProspect.sales_insights || [],
+            communication_styles: selectedProspect.communication_styles || [],
+            action_items: selectedProspect.action_items || [],
           }),
         }
       );
 
-      const { output } = (await response.json())[0];
+      const result = await response.json();
+      const emailData = result?.[0]?.output;
 
-      const subject = output.subject || output.Subject || "Follow-Up";
-      const body = output.body || output.Body || JSON.stringify(output);
+      if (!emailData) throw new Error("Empty response from AI");
 
-      const newEmail = await dbHelpers.createEmailTemplate(subject, body);
-      await dbHelpers.linkEmailTemplateToCallInsight(
+      setEmailSubject(emailData.subject || "Follow-up from our conversation");
+      setGeneratedEmail(emailData.body || emailData.email_content || "");
+
+      // Save to database
+      const savedTemplate = await dbHelpers.saveEmailTemplate({
+        subject: emailData.subject || "Follow-up from our conversation",
+        body: emailData.body || emailData.email_content || "",
+      });
+
+      // Update call_insights with email_template_id
+      await dbHelpers.updateCallInsightsEmailId(
         selectedProspect.id,
-        newEmail.id
+        savedTemplate.id
       );
 
-      // Set local state
-      setEmailTemplate(newEmail);
-      setGeneratedEmail(newEmail.body);
-      setEmailSubject(newEmail.subject);
+      // Update local state
+      setSelectedProspect((prev) => ({
+        ...prev,
+        email_template_id: savedTemplate.id,
+      }));
+
+      toast.success(
+        `Email generated and saved for ${selectedProspect.companyName}`
+      );
     } catch (error) {
-      console.error("Email generation error:", error);
+      console.error("Error generating email:", error);
+      toast.error("Failed to generate email");
     } finally {
       setIsGenerating(false);
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!selectedProspect?.email_template_id) {
+      toast.error("No email template to update");
+      return;
+    }
+
+    try {
+      await dbHelpers.updateEmailTemplate(selectedProspect.email_template_id, {
+        subject: editedSubject,
+        body: editedContent,
+      });
+
+      setEmailSubject(editedSubject);
+      setGeneratedEmail(editedContent);
+      setIsEditing(false);
+      toast.success("Email updated successfully");
+    } catch (error) {
+      console.error("Error updating email:", error);
+      toast.error("Failed to update email");
+    }
+  };
+
+  const handleStartEdit = () => {
+    setEditedSubject(emailSubject);
+    setEditedContent(generatedEmail);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedSubject("");
+    setEditedContent("");
+  };
+
+  const handleCopyEmail = () => {
+    const fullEmail = `Subject: ${emailSubject}\n\n${generatedEmail}`;
+    navigator.clipboard.writeText(fullEmail);
+    toast.success("Email copied to clipboard");
+  };
+
   const handleSendPrompt = async (prompt) => {
-    if (!prompt.trim() || !generatedEmail || !emailTemplate?.id) return;
+    if (!prompt.trim() || !generatedEmail) return;
 
     setIsRefining(true);
     setChatInput("");
 
-    // Add user message to chat
     const userMessage = {
       role: "user",
       content: prompt,
@@ -535,865 +273,474 @@ export const EmailTemplates = () => {
 
     try {
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-email",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-follow-up-email",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             current_email_content: generatedEmail,
-            email_subject: emailSubject,
+            current_subject: emailSubject,
             refinement_prompt: prompt,
-            sales_insights: selectedProspect.sales_insights,
-            action_items: selectedProspect.action_items,
+            sales_insights: selectedProspect.sales_insights || [],
+            communication_styles: selectedProspect.communication_styles || [],
+            action_items: selectedProspect.action_items || [],
           }),
         }
       );
 
-      const {
-        refined_email_content,
-        refined_email_subject,
-        ai_response_message,
-      } = (await response.json())[0];
-      const refinedSubject = refined_email_subject || emailSubject;
-      const refinedBody = refined_email_content || generatedEmail;
+      const result = await response.json();
+      const refinedEmail = result?.[0]?.refined_email;
 
-      // Update in Supabase
-      const updated = await dbHelpers.updateEmailTemplate(
-        emailTemplate.id,
-        refinedSubject,
-        refinedBody
+      if (!refinedEmail) throw new Error("Empty refinement result");
+
+      setEmailSubject(
+        refinedEmail.subject || refinedEmail.refined_subject || emailSubject
+      );
+      setGeneratedEmail(
+        refinedEmail.body ||
+          refinedEmail.refined_body ||
+          refinedEmail.email_content ||
+          ""
       );
 
-      // Reflect in UI
-      setGeneratedEmail(updated.body);
-      setEmailSubject(updated.subject);
-      setEmailTemplate(updated);
+      // Update database
+      if (selectedProspect?.email_template_id) {
+        await dbHelpers.updateEmailTemplate(selectedProspect.email_template_id, {
+          subject:
+            refinedEmail.subject || refinedEmail.refined_subject || emailSubject,
+          body:
+            refinedEmail.body ||
+            refinedEmail.refined_body ||
+            refinedEmail.email_content ||
+            "",
+        });
+      }
 
-      // Add assistant message
-      const aiMessage = {
-        role: "assistant",
-        content: `Refined email using prompt: "${prompt}". Changes have been saved.`,
-        timestamp: new Date(),
-      };
-      setChatMessages((prev) => [...prev, aiMessage]);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Refined email for ${selectedProspect.companyName} based on: "${prompt}"`,
+          timestamp: new Date(),
+        },
+      ]);
 
-      toast.success("Email refined and updated successfully!");
+      toast.success("Email refined and saved!");
     } catch (error) {
       console.error("Error refining email:", error);
-      toast.error("Failed to refine and update the email");
+      toast.error("Failed to refine email");
     } finally {
       setIsRefining(false);
     }
   };
 
-  const handleCopyEmail = () => {
-    navigator.clipboard.writeText(generatedEmail);
-    toast.success("Email body copied to clipboard");
-  };
-
-  const handleCopySubject = () => {
-    navigator.clipboard.writeText(emailSubject);
-    toast.success("Subject line copied to clipboard");
-  };
-
   const handlePushToHubSpot = async () => {
+    if (!hubspotConnectionStatus?.connected) {
+      toast.error("HubSpot is not connected");
+      return;
+    }
+
+    if (!generatedEmail || !emailSubject) {
+      toast.error("No email content to push");
+      return;
+    }
+
     setPushStatus("pending");
 
     try {
+      // Mock HubSpot push - in real implementation, this would use the CRM service
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
       setPushStatus("success");
-      toast.success(
-        `Email template for ${selectedProspect.companyName} saved to HubSpot!`
-      );
+      toast.success("Email pushed to HubSpot successfully!");
     } catch (error) {
+      console.error("Error pushing to HubSpot:", error);
       setPushStatus("error");
-      toast.error("Failed to push to HubSpot");
+      toast.error("Failed to push email to HubSpot");
     }
   };
 
-  // Calculate total insights count (all insights are automatically included)
-  const selectedCount = personalityAnalysis
-    ? 1 + personalityAnalysis.attendees.length
-    : 0;
+  // Show loading state while checking authentication
+  if (!userId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading user session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <TooltipProvider>
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Personalized Emails with AI Insights
-          </h1>
-          <p className="text-muted-foreground">
-            Generate personalized follow-up emails based on prospect personality
-            analysis and communication preferences.
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          AI-Powered Email Templates
+        </h1>
+        <p className="text-muted-foreground">
+          Generate personalized follow-up emails based on call insights and
+          prospect communication styles.
+        </p>
+      </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Sidebar - Prospect Selector */}
-          <div className="space-y-6">
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Sidebar - Prospect Selector */}
+        <div className="space-y-6">
+          {isLoadingProspects ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">Loading prospects...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : prospects.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>No Prospects Available</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">No prospects found</p>
+                <p className="text-sm text-muted-foreground">
+                  Process some call transcripts first to generate email templates for prospects.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
             <ProspectSelector
               selectedProspect={selectedProspect}
               onProspectSelect={handleProspectSelect}
               compact={false}
               showStakeholders={true}
-              prospectList={prospects} // filtered from call_insights
+              prospectList={prospects}
             />
-          </div>
+          )}
 
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="insights">
-                  Prospect Profile & Insights
-                </TabsTrigger>
-                <TabsTrigger value="generator">Email Generator</TabsTrigger>
-              </TabsList>
-              {console.log("Selected Prospect:", selectedProspect)}
-              {/* Insights Tab */}
-              <TabsContent value="insights" className="mt-6">
-                {personalityAnalysis && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-5 h-5" />
-                          <span>
-                            Personalization Insights for{" "}
-                            {selectedProspect.companyName}
-                          </span>
-                          <Badge variant="secondary">AI Analyzed</Badge>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Primary Decision Maker */}
-                      <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Crown className="w-4 h-4 text-amber-600" />
-                            <div>
-                              <h4 className="font-semibold text-amber-900">
-                                {personalityAnalysis.primary_contact.name}
-                              </h4>
-                              <p className="text-sm text-amber-700">
-                                {personalityAnalysis.primary_contact.role}
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className="mt-1 bg-amber-100 text-amber-800 border-amber-300 text-xs"
-                              >
-                                Primary Decision Maker
-                              </Badge>
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(
-                              personalityAnalysis.primary_contact.confidence *
-                                100
-                            )}
-                            % confidence
-                          </Badge>
-                        </div>
+          {/* Email Stats */}
+          {selectedProspect && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Email Performance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">92%</div>
+                    <div className="text-muted-foreground">Open Rate</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">68%</div>
+                    <div className="text-muted-foreground">Response Rate</div>
+                  </div>
+                </div>
 
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {/* Communication Style */}
-                          <div>
-                            <h5 className="text-sm font-medium mb-2">
-                              Communication Style
-                            </h5>
-                            <div className="flex items-center space-x-2">
-                              {(() => {
-                                const style =
-                                  communicationStyles[
-                                    personalityAnalysis.primary_contact
-                                      .communication_style
-                                  ];
-                                // const Icon = style.icon;
-                                return (
-                                  <div className="flex items-center space-x-2">
-                                    <Badge
-                                      variant="outline"
-                                      // className={cn("text-xs", style.color)}
-                                    >
-                                      {/* <Icon className="w-3 h-3 mr-1" /> */}
-                                      {style?.label}
-                                    </Badge>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{style?.description}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Personalization Score</span>
+                    <Badge variant="default">High</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Communication Style</span>
+                    <Badge variant="outline">
+                      {selectedProspect.communication_styles?.[0]?.style ||
+                        "Professional"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Urgency Level</span>
+                    <Badge variant="secondary">Medium</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                          {/* Personality Type */}
-                          <div>
-                            <h5 className="text-sm font-medium mb-2">
-                              Personality Type
-                            </h5>
-                            <div className="flex items-center space-x-2">
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                              >
-                                <Brain className="w-3 h-3 mr-1" />
-                                {
-                                  personalityAnalysis.primary_contact
-                                    .personality_type
-                                }
-                              </Badge>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div>
-                                    <p className="font-medium">
-                                      {
-                                        personalityTypes[
-                                          personalityAnalysis.primary_contact
-                                            .personality_type
-                                        ]?.label
-                                      }
-                                    </p>
-                                    <p className="text-xs mt-1">
-                                      {personalityTypes[
-                                        personalityAnalysis.primary_contact
-                                          .personality_type
-                                      ]?.traits.join(", ")}
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        </div>
+          {/* Quick Actions */}
+          {selectedProspect && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleCopyEmail}
+                  disabled={!generatedEmail}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy Email
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handlePushToHubSpot}
+                  disabled={
+                    !generatedEmail ||
+                    !hubspotConnectionStatus?.connected ||
+                    pushStatus === "pending"
+                  }
+                >
+                  {pushStatus === "pending" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                  )}
+                  {pushStatus === "pending" ? "Pushing..." : "Push to HubSpot"}
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Send
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-                        {/* Key Traits - Collapsible */}
-                        <Collapsible
-                          open={primaryTraitsOpen}
-                          onOpenChange={setPrimaryTraitsOpen}
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {selectedProspect ? (
+            <>
+              {/* Email Generation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="w-5 h-5" />
+                      <span>Email for {selectedProspect.companyName}</span>
+                      {pushStatus === "success" && (
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800 border-green-200"
                         >
-                          <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                            {primaryTraitsOpen ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                            <span>Key Traits</span>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-2">
-                            <div className="flex flex-wrap gap-1">
-                              {personalityAnalysis.primary_contact.key_traits.map(
-                                (trait, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {trait}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-
-                        {/* Communication Preferences - Collapsible */}
-                        <Collapsible
-                          open={primaryPrefsOpen}
-                          onOpenChange={setPrimaryPrefsOpen}
-                        >
-                          <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                            {primaryPrefsOpen ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                            <span>Communication Preferences</span>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-2">
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              {personalityAnalysis.primary_contact.communication_preferences.map(
-                                (pref, index) => (
-                                  <li
-                                    key={index}
-                                    className="flex items-start space-x-2"
-                                  >
-                                    <span className="text-primary mt-1">•</span>
-                                    <span>{pref}</span>
-                                  </li>
-                                )
-                              )}
-                            </ul>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </div>
-                      {console.log(selectedProspect, "selected prospect")}
-                      {/* Key Stakeholders */}
-                      {selectedProspect?.communication_styles?.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="font-medium flex items-center space-x-2">
-                            <Star className="w-4 h-4 text-blue-600" />
-                            <span>Key Stakeholders</span>
-                          </h4>
-                          {selectedProspect?.communication_styles?.map(
-                            (attendee, index) => (
-                              <div
-                                key={index}
-                                className="border border-border rounded-lg p-4 space-y-3"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-3">
-                                    <Users className="w-4 h-4 text-blue-600" />
-                                    <div>
-                                      <h5 className="font-medium">
-                                        {attendee.stakeholder}
-                                      </h5>
-                                      <p className="text-sm text-muted-foreground">
-                                        {attendee.role}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {Math.round(attendee.confidence * 100)}%
-                                    confidence
-                                  </Badge>
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-4">
-                                  {/* Communication Style */}
-                                  <div>
-                                    <h6 className="text-sm font-medium mb-2">
-                                      Communication Style
-                                    </h6>
-                                    <div className="flex items-center space-x-2">
-                                      {(() => {
-                                        const style = communicationStyles[0];
-                                        // const Icon = style.icon;
-                                        return (
-                                          <div className="flex items-center space-x-2">
-                                            <Badge
-                                              variant="outline"
-                                              className={cn(
-                                                "text-xs",
-                                                style?.color
-                                              )}
-                                            >
-                                              {/* <Icon className="w-3 h-3 mr-1" /> */}
-                                              {attendee?.style}
-                                            </Badge>
-                                            <Tooltip>
-                                              <TooltipTrigger asChild>
-                                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                              </TooltipTrigger>
-                                              <TooltipContent>
-                                                <p>{style?.description}</p>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-
-                                  {/* Personality Type */}
-                                  <div>
-                                    <h6 className="text-sm font-medium mb-2">
-                                      Personality Type
-                                    </h6>
-                                    <div className="flex items-center space-x-2">
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                      >
-                                        <Brain className="w-3 h-3 mr-1" />
-                                        {attendee.personality_type}
-                                      </Badge>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <div>
-                                            <p className="font-medium">
-                                              {
-                                                personalityTypes[
-                                                  attendee.personality_type
-                                                ]?.label
-                                              }
-                                            </p>
-                                            <p className="text-xs mt-1">
-                                              {personalityTypes[
-                                                attendee.personality_type
-                                              ]?.traits.join(", ")}
-                                            </p>
-                                          </div>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Key Traits - Collapsible */}
-                                <Collapsible
-                                  open={attendeeTraitsOpen[index]}
-                                  onOpenChange={(open) =>
-                                    setAttendeeTraitsOpen((prev) => ({
-                                      ...prev,
-                                      [index]: open,
-                                    }))
-                                  }
-                                >
-                                  <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                                    {attendeeTraitsOpen[index] ? (
-                                      <ChevronDown className="w-4 h-4" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4" />
-                                    )}
-                                    <span>Key Traits</span>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2">
-                                    <div className="flex flex-wrap gap-1">
-                                      {attendee.communication_tips.map(
-                                        (trait, traitIndex) => (
-                                          <Badge
-                                            key={traitIndex}
-                                            variant="secondary"
-                                            className="text-xs"
-                                          >
-                                            {trait}
-                                          </Badge>
-                                        )
-                                      )}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-
-                                {/* Communication Preferences - Collapsible */}
-                                <Collapsible
-                                  open={attendeePrefsOpen[index]}
-                                  onOpenChange={(open) =>
-                                    setAttendeePrefsOpen((prev) => ({
-                                      ...prev,
-                                      [index]: open,
-                                    }))
-                                  }
-                                >
-                                  <CollapsibleTrigger className="flex items-center space-x-2 text-sm font-medium hover:text-primary transition-colors">
-                                    {attendeePrefsOpen[index] ? (
-                                      <ChevronDown className="w-4 h-4" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4" />
-                                    )}
-                                    <span>Communication Preferences</span>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2">
-                                    <ul className="text-sm text-muted-foreground space-y-1">
-                                      {attendee.preferences.map(
-                                        (pref, prefIndex) => (
-                                          <li
-                                            key={prefIndex}
-                                            className="flex items-start space-x-2"
-                                          >
-                                            <span className="text-primary mt-1">
-                                              •
-                                            </span>
-                                            <span>{pref}</span>
-                                          </li>
-                                        )
-                                      )}
-                                    </ul>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </div>
-                            )
-                          )}
-                        </div>
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Pushed to HubSpot
+                        </Badge>
                       )}
-
-                      {/* Insights Summary */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Sparkles className="w-4 h-4 text-blue-600" />
-                          <h4 className="font-medium text-blue-900">
-                            Insights Summary
-                          </h4>
-                        </div>
-                        <p className="text-sm text-blue-700">
-                          {selectedProspect?.call_summary}
-                        </p>
-                        <div className="mt-3 flex items-center space-x-4">
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-blue-100 text-blue-800 border-blue-200"
-                          >
-                            {selectedProspect?.sales_insights?.length} insights
-                            included
-                          </Badge>
-                          <span className="text-xs text-blue-600">
-                            Ready for email generation
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              {/* Email Generator Tab */}
-              <TabsContent value="generator" className="mt-6">
-                <div className="space-y-6">
-                  {/* Recipients Selection */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Mail className="w-5 h-5" />
-                        <span>Email Recipients</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {personalityAnalysis && (
-                        <div className="space-y-2">
-                          {/* Primary Contact */}
-                          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
-                            <Checkbox
-                              checked={selectedRecipients.includes(
-                                "primary_contact"
-                              )}
-                              onCheckedChange={() =>
-                                handleToggleRecipient("primary_contact")
-                              }
-                            />
-                            <Crown className="w-4 h-4 text-amber-600" />
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">
-                                {personalityAnalysis.primary_contact.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {personalityAnalysis.primary_contact.role}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-amber-100 text-amber-800 border-amber-300"
-                            >
-                              Primary
-                            </Badge>
-                          </div> */}
-
-                          {/* Attendees */}
-                          {selectedProspect?.prospect_details?.map(
-                            (attendee, index) => {
-                              const isChecked = selectedRecipients.includes(
-                                attendee.name
-                              );
-
-                              return (
-                                <div
-                                  key={index}
-                                  className={cn(
-                                    "flex items-center space-x-3 p-3 rounded-lg border",
-                                    index === 0
-                                      ? "border-amber-300 bg-amber-50"
-                                      : ""
-                                  )}
-                                >
-                                  {generatedEmail && (
-                                    <Checkbox
-                                      checked={isChecked}
-                                      onCheckedChange={() =>
-                                        handleToggleRecipient(attendee.name)
-                                      }
-                                    />
-                                  )}
-
-                                  {index === 0 ? (
-                                    <Crown className="w-4 h-4 text-amber-600" />
-                                  ) : (
-                                    <Users className="w-4 h-4 text-blue-600" />
-                                  )}
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">
-                                      {attendee.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {attendee.role}
-                                    </p>
-                                  </div>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-xs",
-                                      index === 0
-                                        ? "bg-amber-100 text-amber-800 border-amber-300"
-                                        : "text-blue-700 border-blue-300"
-                                    )}
-                                  >
-                                    {index === 0 ? "Primary" : "Stakeholder"}
-                                  </Badge>
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                      )}
-
-                      {/* Generate Email Button */}
-                      <div className="flex justify-center pt-4">
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {!generatedEmail && (
                         <Button
                           onClick={handleGenerateEmail}
-                          disabled={
-                            isGenerating || selectedRecipients.length === 0
-                          }
-                          size="lg"
-                          className="w-full max-w-md"
+                          disabled={isGenerating}
                         >
                           {isGenerating ? (
                             <>
-                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                              Generating Personalized Email...
+                              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                              Generating...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Generate Personalized Email (
-                              {selectedRecipients.length} recipients)
+                              <Sparkles className="w-4 h-4 mr-1" />
+                              Generate Email
                             </>
                           )}
                         </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Generated Email Display */}
-                  {generatedEmail ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Mail className="w-5 h-5" />
-                            <span>
-                              Generated Email for {selectedProspect.companyName}
-                            </span>
-                            <Badge variant="secondary">AI Generated</Badge>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {pushStatus === "success" && (
-                              <Badge
-                                variant="default"
-                                className="bg-green-100 text-green-800 border-green-200"
-                              >
-                                Saved to HubSpot
-                              </Badge>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handlePushToHubSpot}
-                              disabled={pushStatus === "pending"}
-                            >
-                              {pushStatus === "pending" ? (
-                                <>
-                                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : pushStatus === "success" ? (
-                                <>
-                                  <Zap className="w-4 h-4 mr-2" />
-                                  Saved
-                                </>
-                              ) : (
-                                <>
-                                  <Send className="w-4 h-4 mr-2" />
-                                  Save to HubSpot
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Subject Line */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-medium">
-                              Subject Line
-                            </label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCopySubject}
-                            >
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                          <Input
-                            value={emailSubject}
-                            onChange={(e) => setEmailSubject(e.target.value)}
-                            className="font-medium"
-                          />
-                        </div>
-
-                        {/* Email Body */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-medium">
-                              Email Body
-                            </label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCopyEmail}
-                            >
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                          <Textarea
-                            value={generatedEmail}
-                            onChange={(e) => setGeneratedEmail(e.target.value)}
-                            rows={16}
-                            className="font-mono text-sm"
-                          />
-                        </div>
-
-                        {/* Recipients Summary */}
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <h4 className="text-sm font-medium mb-2">
-                            Email Recipients ({selectedRecipients.length})
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {getSelectedRecipientsData().map(
-                              (recipient, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {recipient.isPrimary && (
-                                    <Crown className="w-3 h-3 mr-1" />
-                                  )}
-                                  {recipient.name} - {recipient.role}
-                                </Badge>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card>
-                      <CardContent className="text-center py-12">
-                        <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">
-                          No Email Generated Yet
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          Select recipients above and click "Generate
-                          Personalized Email" to create an AI-powered email
-                          using all available insights.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* AI Refinement Chat */}
-                  {generatedEmail && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <MessageSquare className="w-5 h-5" />
-                          <span>Refine with AI</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Quick Prompts */}
-                        <div>
-                          <h4 className="text-sm font-medium mb-2">
-                            Quick Refinements
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {quickPrompts.map((prompt, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSendPrompt(prompt)}
-                                disabled={isRefining}
-                              >
-                                {prompt}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Chat Messages */}
-                        {chatMessages.length > 0 && (
-                          <div className="space-y-3 max-h-64 overflow-y-auto">
-                            {chatMessages.map((message, index) => (
-                              <div
-                                key={index}
-                                className={cn(
-                                  "p-3 rounded-lg text-sm",
-                                  message.role === "user"
-                                    ? "bg-primary text-primary-foreground ml-8"
-                                    : "bg-muted mr-8"
-                                )}
-                              >
-                                <p>{message.content}</p>
-                                <p className="text-xs opacity-70 mt-1">
-                                  {message.timestamp.toLocaleTimeString()}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Chat Input */}
+                      )}
+                      {generatedEmail && !isEditing && (
+                        <Button variant="outline" onClick={handleStartEdit}>
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      {isEditing && (
                         <div className="flex space-x-2">
-                          <Input
-                            placeholder="Ask AI to refine the email (e.g., 'Make it more technical' or 'Add urgency')"
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendPrompt(chatInput);
-                              }
-                            }}
-                            disabled={isRefining}
-                          />
-                          <Button
-                            onClick={() => handleSendPrompt(chatInput)}
-                            disabled={isRefining || !chatInput.trim()}
-                          >
-                            {isRefining ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Send className="w-4 h-4" />
-                            )}
+                          <Button onClick={handleSaveEdit}>
+                            <Save className="w-4 h-4 mr-1" />
+                            Save
+                          </Button>
+                          <Button variant="outline" onClick={handleCancelEdit}>
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {generatedEmail ? (
+                    <div className="space-y-4">
+                      {/* Subject Line */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Subject Line
+                        </label>
+                        {isEditing ? (
+                          <Input
+                            value={editedSubject}
+                            onChange={(e) => setEditedSubject(e.target.value)}
+                            placeholder="Email subject..."
+                          />
+                        ) : (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="font-medium">{emailSubject}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Email Body */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Email Content
+                        </label>
+                        {isEditing ? (
+                          <Textarea
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className="min-h-64"
+                            placeholder="Email content..."
+                          />
+                        ) : (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {generatedEmail}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Mail className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                      <h3 className="text-lg font-medium mb-2">
+                        Generate Personalized Email
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Create a tailored follow-up email based on your call
+                        insights and {selectedProspect.companyName}'s
+                        communication style.
+                      </p>
+                      <Button onClick={handleGenerateEmail} disabled={isGenerating}>
+                        {isGenerating ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Generating Email...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate Email
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </CardContent>
+              </Card>
+
+              {/* Chat Refinement Interface */}
+              {generatedEmail && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <MessageSquare className="w-5 h-5" />
+                      <span>Refine Email</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Quick Prompts */}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">
+                        Quick Refinements
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-2">
+                        {quickPrompts.map((prompt, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSendPrompt(prompt)}
+                            disabled={isRefining}
+                            className="justify-start text-left h-auto py-2"
+                          >
+                            <Sparkles className="w-3 h-3 mr-2 flex-shrink-0" />
+                            <span className="text-xs">{prompt}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chat Messages */}
+                    {chatMessages.length > 0 && (
+                      <div className="border border-border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
+                        {chatMessages.map((message, index) => (
+                          <div
+                            key={index}
+                            className={cn(
+                              "flex",
+                              message.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "max-w-xs px-3 py-2 rounded-lg text-sm",
+                                message.role === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              )}
+                            >
+                              {message.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Chat Input */}
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder={`Refine the email for ${selectedProspect.companyName}... (e.g., 'Make it more urgent' or 'Add technical details')`}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendPrompt(chatInput);
+                          }
+                        }}
+                        disabled={isRefining}
+                      />
+                      <Button
+                        onClick={() => handleSendPrompt(chatInput)}
+                        disabled={!chatInput.trim() || isRefining}
+                      >
+                        {isRefining ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <Card className="shadow-sm">
+              <CardContent className="text-center py-12">
+                <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Prospect Selected</h3>
+                <p className="text-muted-foreground mb-4">
+                  {prospects.length === 0 
+                    ? "No prospects available. Process some call transcripts first to generate email templates."
+                    : "Select a prospect from the sidebar to generate personalized email templates."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-    </TooltipProvider>
+    </div>
   );
 };

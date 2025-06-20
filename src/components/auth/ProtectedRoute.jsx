@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { authHelpers, userHelpers } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { CURRENT_USER } from "@/lib/supabase";
 
 const ProtectedRoute = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -10,17 +10,26 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const checkCustomAuth = async () => {
-      const isAuth = await userHelpers.isAuthenticated(); // custom checker
-      console.log("ProtectedRoute - isAuthenticated:", isAuth);
-      const getStatus = localStorage.getItem("status");
-      setIsAuthenticated(isAuth && getStatus === "loggedin");
-      setIsLoading(false);
+    const checkAuth = async () => {
+      try {
+        const isAuth = await authHelpers.isAuthenticated();
+        console.log("ProtectedRoute - isAuthenticated:", isAuth);
+        console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
+        
+        setIsAuthenticated(isAuth);
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    checkCustomAuth();
+    checkAuth();
   }, []);
-  console.log(isAuthenticated, isLoading, CURRENT_USER.id, "check user id");
+
+  console.log("ProtectedRoute state:", { isAuthenticated, isLoading, userId: CURRENT_USER.id });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

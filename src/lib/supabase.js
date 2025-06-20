@@ -7,16 +7,39 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Current user state - will be updated when user logs in
 export let CURRENT_USER = {
-  id: '00000000-0000-0000-0000-000000000003',
-  email: 'demo@salesgenius.ai',
-  full_name: 'Demo Sales Manager',
-  name: 'Demo Sales Manager',
-  role_key: 'sales_manager',
-  organization_id: '00000000-0000-0000-0000-000000000001',
+  id: null,
+  email: null,
+  full_name: null,
+  name: null,
+  role_key: null,
+  organization_id: null,
   hubspot_connected: false,
   hubspot_access_token: null,
   hubspot_refresh_token: null,
 }
+
+// Initialize user from localStorage on app start
+const initializeUserFromStorage = () => {
+  const storedUserId = localStorage.getItem("userId");
+  const storedStatus = localStorage.getItem("status");
+  
+  if (storedUserId && storedStatus === "loggedin") {
+    // Load user profile from database
+    authHelpers.getUserProfile(storedUserId).then(profile => {
+      if (profile) {
+        authHelpers.setCurrentUser(profile);
+      } else {
+        // Clear invalid stored data
+        localStorage.removeItem("userId");
+        localStorage.removeItem("status");
+      }
+    }).catch(error => {
+      console.error('Error loading user from storage:', error);
+      localStorage.removeItem("userId");
+      localStorage.removeItem("status");
+    });
+  }
+};
 
 // Authentication helpers
 export const authHelpers = {
@@ -90,6 +113,10 @@ export const authHelpers = {
       created_at: profile.created_at,
       updated_at: profile.updated_at,
     };
+
+    // Store user ID in localStorage for persistence
+    localStorage.setItem("userId", profile.id);
+    localStorage.setItem("status", "loggedin");
   },
 
   // Clear current user state
@@ -105,11 +132,37 @@ export const authHelpers = {
       hubspot_access_token: null,
       hubspot_refresh_token: null,
     };
+
+    // Clear localStorage
+    localStorage.removeItem("userId");
+    localStorage.removeItem("status");
   },
 
   // Check if user is authenticated
   async isAuthenticated() {
-    return !!CURRENT_USER?.id;
+    // Check if we have a current user ID
+    if (CURRENT_USER?.id) {
+      return true;
+    }
+
+    // Check localStorage for persisted session
+    const storedUserId = localStorage.getItem("userId");
+    const storedStatus = localStorage.getItem("status");
+    
+    if (storedUserId && storedStatus === "loggedin") {
+      // Try to load user profile
+      try {
+        const profile = await this.getUserProfile(storedUserId);
+        if (profile) {
+          await this.setCurrentUser(profile);
+          return true;
+        }
+      } catch (error) {
+        console.error('Error restoring user session:', error);
+      }
+    }
+
+    return false;
   },
 
   // Sign out user
@@ -219,6 +272,9 @@ export const authHelpers = {
     }
   },
 };
+
+// Initialize user from storage when module loads
+initializeUserFromStorage();
 
 // Database helpers (existing code remains the same)
 export const dbHelpers = {

@@ -16,6 +16,8 @@ import {
   CheckCircle,
   Loader2,
   RefreshCw,
+  FileText,
+  Building,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
@@ -139,63 +141,17 @@ const getActionItemsForProspect = (prospectId) => {
   return actionItemsData[prospectId] || [];
 };
 
-// Mock prospects data
-const mockProspects = [
-  {
-    id: "acme_corp",
-    companyName: "Acme Corp",
-    prospectName: "Sarah Johnson",
-    title: "VP of Sales",
-    status: "hot",
-    dealValue: "$120K",
-    probability: 85,
-    nextAction: "Pilot program approval",
-    stakeholders: [
-      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
-      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
-      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
-    ],
-  },
-  {
-    id: "techstart_inc",
-    companyName: "TechStart Inc",
-    prospectName: "John Smith",
-    title: "CEO",
-    status: "warm",
-    dealValue: "$45K",
-    probability: 65,
-    nextAction: "Technical demo",
-    stakeholders: [
-      { name: "John Smith", role: "CEO", style: "Visual" },
-      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
-    ],
-  },
-  {
-    id: "global_solutions",
-    companyName: "Global Solutions Ltd",
-    prospectName: "Emma Wilson",
-    title: "Director of Operations",
-    status: "warm",
-    dealValue: "$85K",
-    probability: 70,
-    nextAction: "Proposal review",
-    stakeholders: [
-      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
-      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
-    ],
-  },
-];
-
 export const ActionItems = () => {
-  const [selectedProspect, setSelectedProspect] = useState([]);
+  const [selectedProspect, setSelectedProspect] = useState(null);
   const [commitments, setCommitments] = useState([]);
   const [pushStatus, setPushStatus] = useState("draft");
   const [prospects, setProspects] = useState([]);
   const [hubspotConnectionStatus, setHubspotConnectionStatus] = useState(null);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [pushResults, setPushResults] = useState({});
+  const [isLoadingProspects, setIsLoadingProspects] = useState(true);
 
-  // Use predefined Sales Manager user
+  // Use current authenticated user
   const userId = CURRENT_USER.id;
 
   // Check HubSpot connection status on component mount
@@ -206,11 +162,17 @@ export const ActionItems = () => {
   // Load action items when prospect changes
   useEffect(() => {
     const fetchProspects = async () => {
+      if (!userId) {
+        console.log("No user ID available, skipping prospect fetch");
+        setIsLoadingProspects(false);
+        return;
+      }
+
+      setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getEmailProspectInsights(
-          CURRENT_USER.id
-        );
+        const insights = await dbHelpers.getEmailProspectInsights(userId);
         console.log("Fetched email insights:", insights);
+        
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
           companyName: insight.company_details?.name || "Unknown Company",
@@ -233,16 +195,19 @@ export const ActionItems = () => {
         }));
 
         setProspects(enrichedProspects);
-        if (enrichedProspects.length > 0)
+        if (enrichedProspects.length > 0) {
           setSelectedProspect(enrichedProspects[0]);
+        }
       } catch (err) {
         console.error("Failed to load email insights:", err);
         toast.error("Could not fetch email insights");
+      } finally {
+        setIsLoadingProspects(false);
       }
     };
 
     fetchProspects();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (selectedProspect?.action_items?.length) {
@@ -502,6 +467,18 @@ export const ActionItems = () => {
     );
   };
 
+  // Show loading state while checking authentication
+  if (!userId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading user session...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -569,7 +546,7 @@ export const ActionItems = () => {
             </div>
             <p className="text-2xl font-bold mt-1">{totalCommitments}</p>
             <p className="text-xs text-muted-foreground">
-              for {selectedProspect.companyName}
+              for {selectedProspect?.companyName || "No prospect selected"}
             </p>
           </CardContent>
         </Card>
@@ -620,296 +597,342 @@ export const ActionItems = () => {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Sidebar - Prospect Selector */}
         <div className="space-y-6">
-          <ProspectSelector
-            selectedProspect={selectedProspect}
-            onProspectSelect={handleProspectSelect}
-            compact={false}
-            showStakeholders={true}
-            prospectList={prospects} // filtered from call_insights
-          />
+          {isLoadingProspects ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">Loading prospects...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : prospects.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>No Prospects Available</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">No prospects found</p>
+                <p className="text-sm text-muted-foreground">
+                  Process some call transcripts first to generate action items for prospects.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <ProspectSelector
+              selectedProspect={selectedProspect}
+              onProspectSelect={handleProspectSelect}
+              compact={false}
+              showStakeholders={true}
+              prospectList={prospects}
+            />
+          )}
 
           {/* Action Items Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Action Items Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Next Action:
-                  </span>
-                  <Badge variant="default" className="text-xs">
-                    {selectedProspect.nextAction}
-                  </Badge>
+          {selectedProspect && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Action Items Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Next Action:
+                    </span>
+                    <Badge variant="default" className="text-xs">
+                      {selectedProspect.nextAction}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Deal Value:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {selectedProspect.dealValue}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Deal Value:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {selectedProspect.dealValue}
-                  </span>
-                </div>
-              </div>
 
-              {/* Priority Breakdown */}
-              <div className="pt-3 border-t border-border">
-                <h4 className="text-sm font-medium mb-2">Priority Breakdown</h4>
-                <div className="space-y-2">
-                  {["high", "medium", "low"].map((priority) => {
-                    const count = commitments.filter(
-                      (c) => c.priority === priority
-                    ).length;
-                    return (
-                      <div
-                        key={priority}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs",
-                              getPriorityColor(priority)
-                            )}
-                          >
-                            {priority}
-                          </Badge>
-                        </div>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* HubSpot Push Status */}
-              {Object.keys(pushResults).length > 0 && (
+                {/* Priority Breakdown */}
                 <div className="pt-3 border-t border-border">
-                  <h4 className="text-sm font-medium mb-2">Push Results</h4>
-                  <div className="space-y-1">
-                    {Object.entries(pushResults).map(([id, result]) => {
-                      const commitment = commitments.find((c) => c.id === id);
+                  <h4 className="text-sm font-medium mb-2">Priority Breakdown</h4>
+                  <div className="space-y-2">
+                    {["high", "medium", "low"].map((priority) => {
+                      const count = commitments.filter(
+                        (c) => c.priority === priority
+                      ).length;
                       return (
                         <div
-                          key={id}
-                          className="flex items-center justify-between text-xs"
+                          key={priority}
+                          className="flex items-center justify-between text-sm"
                         >
-                          <span className="truncate max-w-[120px]">
-                            {commitment?.commitment_text?.substring(0, 20)}...
-                          </span>
-                          {result.success ? (
+                          <div className="flex items-center space-x-2">
                             <Badge
-                              variant="default"
-                              className="bg-green-100 text-green-800 text-xs"
+                              variant="outline"
+                              className={cn(
+                                "text-xs",
+                                getPriorityColor(priority)
+                              )}
                             >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Pushed
+                              {priority}
                             </Badge>
-                          ) : (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Failed
-                            </Badge>
-                          )}
+                          </div>
+                          <span className="font-medium">{count}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                {/* HubSpot Push Status */}
+                {Object.keys(pushResults).length > 0 && (
+                  <div className="pt-3 border-t border-border">
+                    <h4 className="text-sm font-medium mb-2">Push Results</h4>
+                    <div className="space-y-1">
+                      {Object.entries(pushResults).map(([id, result]) => {
+                        const commitment = commitments.find((c) => c.id === id);
+                        return (
+                          <div
+                            key={id}
+                            className="flex items-center justify-between text-xs"
+                          >
+                            <span className="truncate max-w-[120px]">
+                              {commitment?.commitment_text?.substring(0, 20)}...
+                            </span>
+                            {result.success ? (
+                              <Badge
+                                variant="default"
+                                className="bg-green-100 text-green-800 text-xs"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Pushed
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Failed
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!hubspotConnectionStatus?.connected}
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                View All Tasks in HubSpot
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Clock className="w-4 h-4 mr-2" />
-                Set Reminder
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <User className="w-4 h-4 mr-2" />
-                Assign to Team Member
-              </Button>
-            </CardContent>
-          </Card>
+          {selectedProspect && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={!hubspotConnectionStatus?.connected}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  View All Tasks in HubSpot
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Set Reminder
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <User className="w-4 h-4 mr-2" />
+                  Assign to Team Member
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Enhanced Commitments Card with prospect context */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <div className="flex items-center space-x-3">
-                <CardTitle className="text-lg font-semibold">
-                  Action Items for {selectedProspect.companyName}
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">
-                  {selectedCount} selected
-                </Badge>
-                {pushStatus === "success" && (
-                  <Badge
-                    variant="default"
-                    className="bg-green-100 text-green-800 border-green-200 text-xs"
-                  >
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Pushed to HubSpot
+          {selectedProspect ? (
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <div className="flex items-center space-x-3">
+                  <CardTitle className="text-lg font-semibold">
+                    Action Items for {selectedProspect.companyName}
+                  </CardTitle>
+                  <Badge variant="secondary" className="text-xs">
+                    {selectedCount} selected
                   </Badge>
-                )}
-                {pushStatus === "partial" && (
-                  <Badge
-                    variant="outline"
-                    className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs"
-                  >
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    Partially Pushed
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Button
-                  onClick={() =>
-                    handlePushCommitments(
-                      commitments.filter((item) => item.is_selected)
-                    )
-                  }
-                  disabled={
-                    pushStatus === "pending" ||
-                    selectedCount === 0 ||
-                    !hubspotConnectionStatus?.connected
-                  }
-                  size="sm"
-                >
-                  {pushStatus === "pending" ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Pushing to HubSpot...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      Push {selectedCount} to HubSpot
-                    </>
+                  {pushStatus === "success" && (
+                    <Badge
+                      variant="default"
+                      className="bg-green-100 text-green-800 border-green-200 text-xs"
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Pushed to HubSpot
+                    </Badge>
                   )}
-                </Button>
-              </div>
-            </CardHeader>
+                  {pushStatus === "partial" && (
+                    <Badge
+                      variant="outline"
+                      className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs"
+                    >
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      Partially Pushed
+                    </Badge>
+                  )}
+                </div>
 
-            <CardContent className="space-y-3">
-              {/* Enhanced Items List */}
-              {commitments.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start space-x-3 p-4 border border-border rounded-lg"
-                >
-                  <input
-                    type="checkbox"
-                    checked={item.is_selected}
-                    onChange={() => {
-                      const updatedCommitments = commitments.map((c) =>
-                        c.id === item.id
-                          ? { ...c, is_selected: !c.is_selected }
-                          : c
-                      );
-                      handleUpdateCommitments(updatedCommitments);
-                    }}
-                    className="mt-1"
-                  />
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={() =>
+                      handlePushCommitments(
+                        commitments.filter((item) => item.is_selected)
+                      )
+                    }
+                    disabled={
+                      pushStatus === "pending" ||
+                      selectedCount === 0 ||
+                      !hubspotConnectionStatus?.connected
+                    }
+                    size="sm"
+                  >
+                    {pushStatus === "pending" ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        Pushing to HubSpot...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Push {selectedCount} to HubSpot
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <p
-                        className={cn(
-                          "text-sm leading-relaxed",
-                          !item.is_selected &&
-                            "text-muted-foreground line-through"
-                        )}
-                      >
-                        {item.commitment_text}
-                      </p>
-                      <div className="flex items-center space-x-2 ml-2">
-                        <Badge
-                          variant="outline"
+              <CardContent className="space-y-3">
+                {/* Enhanced Items List */}
+                {commitments.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start space-x-3 p-4 border border-border rounded-lg"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.is_selected}
+                      onChange={() => {
+                        const updatedCommitments = commitments.map((c) =>
+                          c.id === item.id
+                            ? { ...c, is_selected: !c.is_selected }
+                            : c
+                        );
+                        handleUpdateCommitments(updatedCommitments);
+                      }}
+                      className="mt-1"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <p
                           className={cn(
-                            "text-xs",
-                            getPriorityColor(item.priority)
+                            "text-sm leading-relaxed",
+                            !item.is_selected &&
+                              "text-muted-foreground line-through"
                           )}
                         >
-                          {item.priority}
-                        </Badge>
-                        {item.is_pushed && (
+                          {item.commitment_text}
+                        </p>
+                        <div className="flex items-center space-x-2 ml-2">
                           <Badge
-                            variant="default"
-                            className="text-xs bg-green-100 text-green-800 border-green-200"
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              getPriorityColor(item.priority)
+                            )}
                           >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            In HubSpot
+                            {item.priority}
                           </Badge>
-                        )}
-                        {pushResults[item.id] &&
-                          !pushResults[item.id].success && (
+                          {item.is_pushed && (
                             <Badge
-                              variant="destructive"
-                              className="text-xs"
-                              title={pushResults[item.id].error}
+                              variant="default"
+                              className="text-xs bg-green-100 text-green-800 border-green-200"
                             >
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Push Failed
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              In HubSpot
                             </Badge>
                           )}
+                          {pushResults[item.id] &&
+                            !pushResults[item.id].success && (
+                              <Badge
+                                variant="destructive"
+                                className="text-xs"
+                                title={pushResults[item.id].error}
+                              >
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Push Failed
+                              </Badge>
+                            )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <User className="w-3 h-3" />
-                        <span>Owner: {item.owner}</span>
+                      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <User className="w-3 h-3" />
+                          <span>Owner: {item.owner}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>Due: {item.deadline || "No deadline"}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>Due: {item.deadline || "No deadline"}</span>
-                      </div>
-                    </div>
 
-                    {item.hubspot_task_id && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        <span className="font-medium">HubSpot Task ID:</span>{" "}
-                        {item.hubspot_task_id}
-                      </div>
-                    )}
+                      {item.hubspot_task_id && (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <span className="font-medium">HubSpot Task ID:</span>{" "}
+                          {item.hubspot_task_id}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {/* Empty State */}
-              {commitments.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">
-                    No action items for {selectedProspect.companyName}
-                  </p>
-                  <p className="text-sm">
-                    Action items will appear here after processing calls with
-                    this prospect
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {/* Empty State */}
+                {commitments.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="mb-2">
+                      No action items for {selectedProspect.companyName}
+                    </p>
+                    <p className="text-sm">
+                      Action items will appear here after processing calls with
+                      this prospect
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-sm">
+              <CardContent className="text-center py-12">
+                <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Prospect Selected</h3>
+                <p className="text-muted-foreground mb-4">
+                  {prospects.length === 0 
+                    ? "No prospects available. Process some call transcripts first to generate action items."
+                    : "Select a prospect from the sidebar to view their action items."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
