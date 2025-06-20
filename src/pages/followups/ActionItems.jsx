@@ -16,175 +16,12 @@ import {
   CheckCircle,
   Loader2,
   RefreshCw,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
-
-// Mock data for action items based on selected prospect
-const getActionItemsForProspect = (prospectId) => {
-  const actionItemsData = {
-    acme_corp: [
-      {
-        id: "1",
-        commitment_text: "Send product demo video by Friday",
-        is_selected: true,
-        is_pushed: false,
-        owner: "Sarah Johnson",
-        deadline: "2024-01-19",
-        priority: "high",
-        source: "Call 4 - Pilot Discussion",
-      },
-      {
-        id: "2",
-        commitment_text:
-          "Schedule technical deep-dive with Mike's team next week",
-        is_selected: true,
-        is_pushed: true,
-        owner: "Mike Chen",
-        deadline: "2024-01-22",
-        priority: "high",
-        source: "Call 3 - Technical Requirements",
-      },
-      {
-        id: "3",
-        commitment_text:
-          "Prepare custom pricing proposal for Q2 implementation",
-        is_selected: false,
-        is_pushed: false,
-        owner: "Sales Team",
-        deadline: "2024-01-25",
-        priority: "medium",
-        source: "Call 4 - Budget Discussion",
-      },
-      {
-        id: "4",
-        commitment_text: "Provide HubSpot integration documentation",
-        is_selected: true,
-        is_pushed: false,
-        owner: "Technical Team",
-        deadline: "2024-01-20",
-        priority: "high",
-        source: "Call 2 - Integration Requirements",
-      },
-    ],
-    techstart_inc: [
-      {
-        id: "5",
-        commitment_text: "Review integration requirements with CTO",
-        is_selected: true,
-        is_pushed: true,
-        owner: "Emma Wilson",
-        deadline: "2024-01-18",
-        priority: "high",
-        source: "Call 2 - Technical Review",
-      },
-      {
-        id: "6",
-        commitment_text:
-          "Connect with their development team for API discussion",
-        is_selected: true,
-        is_pushed: false,
-        owner: "John Smith",
-        deadline: "2024-01-21",
-        priority: "medium",
-        source: "Call 1 - Initial Discovery",
-      },
-      {
-        id: "7",
-        commitment_text: "Prepare startup-specific pricing model",
-        is_selected: true,
-        is_pushed: false,
-        owner: "Sales Team",
-        deadline: "2024-01-23",
-        priority: "medium",
-        source: "Call 2 - Budget Constraints",
-      },
-    ],
-    global_solutions: [
-      {
-        id: "8",
-        commitment_text: "Schedule process optimization workshop",
-        is_selected: true,
-        is_pushed: false,
-        owner: "Emma Wilson",
-        deadline: "2024-01-24",
-        priority: "high",
-        source: "Call 3 - Process Review",
-      },
-      {
-        id: "9",
-        commitment_text: "Provide enterprise security documentation",
-        is_selected: true,
-        is_pushed: true,
-        owner: "David Brown",
-        deadline: "2024-01-20",
-        priority: "high",
-        source: "Call 2 - Security Requirements",
-      },
-      {
-        id: "10",
-        commitment_text: "Create implementation timeline for Q2",
-        is_selected: false,
-        is_pushed: false,
-        owner: "Project Team",
-        deadline: "2024-01-26",
-        priority: "low",
-        source: "Call 1 - Timeline Discussion",
-      },
-    ],
-  };
-
-  return actionItemsData[prospectId] || [];
-};
-
-// Mock prospects data
-const mockProspects = [
-  {
-    id: "acme_corp",
-    companyName: "Acme Corp",
-    prospectName: "Sarah Johnson",
-    title: "VP of Sales",
-    status: "hot",
-    dealValue: "$120K",
-    probability: 85,
-    nextAction: "Pilot program approval",
-    stakeholders: [
-      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
-      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
-      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
-    ],
-  },
-  {
-    id: "techstart_inc",
-    companyName: "TechStart Inc",
-    prospectName: "John Smith",
-    title: "CEO",
-    status: "warm",
-    dealValue: "$45K",
-    probability: 65,
-    nextAction: "Technical demo",
-    stakeholders: [
-      { name: "John Smith", role: "CEO", style: "Visual" },
-      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
-    ],
-  },
-  {
-    id: "global_solutions",
-    companyName: "Global Solutions Ltd",
-    prospectName: "Emma Wilson",
-    title: "Director of Operations",
-    status: "warm",
-    dealValue: "$85K",
-    probability: 70,
-    nextAction: "Proposal review",
-    stakeholders: [
-      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
-      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
-    ],
-  },
-];
 
 export const ActionItems = () => {
   const [selectedProspect, setSelectedProspect] = useState([]);
@@ -257,7 +94,6 @@ export const ActionItems = () => {
           deadline: item.deadline || null,
           priority: item.priority || "medium",
           hubspot_task_id: item.hubspot_task_id || null,
-          // source: selectedProspect.call_summary || "Call Summary",
         })
       );
 
@@ -290,8 +126,23 @@ export const ActionItems = () => {
 
   const handleUpdateCommitments = (updatedCommitments) => {
     setCommitments(updatedCommitments);
-    // In real app, save to database
     toast.success(`Commitments updated for ${selectedProspect.companyName}`);
+  };
+
+  const handleConnectHubSpot = () => {
+    const clientId = import.meta.env.VITE_HUBSPOT_CLIENT_ID;
+    const redirectUri = import.meta.env.VITE_HUBSPOT_REDIRECT_URI;
+    const scopes = "crm.objects.contacts.read crm.objects.tasks.write crm.objects.emails.write oauth";
+    
+    if (!clientId || !redirectUri) {
+      toast.error("HubSpot configuration is missing. Please check environment variables.");
+      return;
+    }
+    
+    const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+    
+    console.log('Redirecting to HubSpot OAuth:', authUrl);
+    window.location.href = authUrl;
   };
 
   const handlePushCommitments = async (selectedCommitments) => {
@@ -319,23 +170,6 @@ export const ActionItems = () => {
       // Push each commitment as a task to HubSpot
       for (const commitment of selectedCommitments) {
         try {
-          const taskData = {
-            subject: commitment.commitment_text,
-            body: `Action item from sales call with ${selectedProspect.companyName}`,
-            taskType: 'TODO',
-            status: 'NOT_STARTED',
-            priority: mapPriorityToHubSpot(commitment.priority),
-            ownerId: null, // Will be assigned to the current user
-            associations: {
-              contacts: [contactId],
-            },
-          };
-
-          // Add deadline if available
-          if (commitment.deadline) {
-            taskData.dueDate = new Date(commitment.deadline).toISOString();
-          }
-
           const response = await crmService.hubspot.pushCommitments(
             [commitment], 
             contactId
@@ -435,15 +269,6 @@ export const ActionItems = () => {
     }
   };
 
-  const mapPriorityToHubSpot = (priority) => {
-    const priorityMap = {
-      high: 'HIGH',
-      medium: 'MEDIUM',
-      low: 'LOW',
-    };
-    return priorityMap[priority] || 'MEDIUM';
-  };
-
   const totalCommitments = commitments.length;
   const selectedCount = commitments.filter((c) => c.is_selected).length;
   const pushedCount = commitments.filter((c) => c.is_pushed).length;
@@ -530,10 +355,39 @@ export const ActionItems = () => {
                 <p className="text-sm text-orange-700 mt-1">
                   To push action items to HubSpot, you need to connect your HubSpot account first.
                 </p>
-                <Button variant="outline" size="sm" className="mt-2">
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Connect HubSpot
-                </Button>
+                <div className="mt-3 flex items-center space-x-3">
+                  <Button variant="outline" size="sm" onClick={handleConnectHubSpot}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Connect HubSpot
+                  </Button>
+                  {hubspotConnectionStatus?.error && (
+                    <span className="text-xs text-orange-600">
+                      Error: {hubspotConnectionStatus.error}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* HubSpot Connection Success */}
+      {hubspotConnectionStatus?.connected && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-green-900">HubSpot Connected Successfully</h4>
+                <p className="text-sm text-green-700 mt-1">
+                  Your HubSpot account is connected and ready to receive action items.
+                </p>
+                {hubspotConnectionStatus.account_name && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Connected to: {hubspotConnectionStatus.account_name}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -604,7 +458,7 @@ export const ActionItems = () => {
             onProspectSelect={handleProspectSelect}
             compact={false}
             showStakeholders={true}
-            prospectList={prospects} // filtered from call_insights
+            prospectList={prospects}
           />
 
           {/* Action Items Summary */}

@@ -13,6 +13,7 @@ import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import UserManagementPage from "@/pages/admin/UserManagement";
+import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
@@ -71,6 +72,7 @@ const App = () => {
                 <Route path="users" element={<UserManagementPage />} />
               </Route>
             </Route>
+            <Route path="/hubspot-callback" element={<HubSpotCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

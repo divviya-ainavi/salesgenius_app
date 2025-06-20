@@ -21,18 +21,18 @@ class CRMService {
     try {
       const credentials = await this.getUserCredentials(userId);
       
-      if (!credentials) {
+      if (!credentials || !credentials.hubspot_access_token) {
         throw new Error('No HubSpot credentials found for user');
       }
 
       // Check if token is expired (with 5 minute buffer)
-      const expiresAt = new Date(credentials.expires_at);
+      const expiresAt = new Date(credentials.hubspot_token_expires_at);
       const now = new Date();
       const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
 
       if (expiresAt.getTime() - now.getTime() < bufferTime) {
         // Token is expired or will expire soon, refresh it
-        return await this.refreshAccessToken(userId, credentials.refresh_token);
+        return await this.refreshAccessToken(userId, credentials.hubspot_refresh_token);
       }
 
       return credentials;
@@ -53,20 +53,26 @@ class CRMService {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
+          client_id: import.meta.env.VITE_HUBSPOT_CLIENT_ID,
+          client_secret: import.meta.env.VITE_HUBSPOT_CLIENT_SECRET,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Token refresh failed: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Token refresh failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const tokenData = await response.json();
+
+      // Calculate expiration time
+      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
       // Update tokens in database
       const updatedCredentials = await dbHelpers.updateUserHubSpotTokens(userId, {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || refreshToken, // Some providers don't return new refresh token
-        expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        expires_at: expiresAt,
       });
 
       analytics.track('hubspot_token_refreshed', {
@@ -88,6 +94,8 @@ class CRMService {
     // Connect to HubSpot with user credentials
     connect: async (authCode, userId = CURRENT_USER.id) => {
       try {
+        console.log('Starting HubSpot connection with auth code:', authCode);
+        
         // Exchange auth code for tokens
         const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/token', {
           method: 'POST',
@@ -97,17 +105,22 @@ class CRMService {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code: authCode,
-            redirect_uri: window.location.origin + '/hubspot/callback',
-            client_id: 'your-client-id', // This should come from environment or config
-            client_secret: 'your-client-secret', // This should come from environment or config
+            redirect_uri: import.meta.env.VITE_HUBSPOT_REDIRECT_URI,
+            client_id: import.meta.env.VITE_HUBSPOT_CLIENT_ID,
+            client_secret: import.meta.env.VITE_HUBSPOT_CLIENT_SECRET,
           }),
         });
 
         if (!tokenResponse.ok) {
-          throw new Error(`HubSpot connection failed: ${tokenResponse.statusText}`);
+          const errorText = await tokenResponse.text();
+          throw new Error(`HubSpot token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText} - ${errorText}`);
         }
 
         const tokenData = await tokenResponse.json();
+        console.log('Token exchange successful:', { 
+          expires_in: tokenData.expires_in,
+          scope: tokenData.scope 
+        });
 
         // Get account info
         const accountResponse = await fetch('https://api.hubapi.com/account-info/v3/details', {
@@ -116,18 +129,19 @@ class CRMService {
           },
         });
 
-        const accountData = await accountResponse.json();
+        let accountData = { companyName: 'Unknown', portalId: 'unknown' };
+        if (accountResponse.ok) {
+          accountData = await accountResponse.json();
+        }
+
+        // Calculate expiration time
+        const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
         // Save credentials to database
         const credentials = await dbHelpers.saveUserHubSpotCredentials(userId, {
-          client_id: 'your-client-id', // Store the client ID used
-          client_secret: 'your-client-secret', // Store encrypted
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
-          expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-          scope: tokenData.scope,
-          hub_domain: accountData.uiDomain,
-          hub_id: accountData.portalId.toString(),
+          expires_at: expiresAt,
         });
 
         analytics.trackCrmIntegration('connect', 'hubspot', true, {
@@ -140,8 +154,10 @@ class CRMService {
           connection_id: credentials.id,
           hub_domain: accountData.uiDomain,
           hub_id: accountData.portalId,
+          account_name: accountData.companyName,
         };
       } catch (error) {
+        console.error('HubSpot connection error:', error);
         analytics.trackCrmIntegration('connect', 'hubspot', false, {
           user_id: userId,
           error: error.message,
@@ -177,7 +193,7 @@ class CRMService {
         const response = await fetch('https://api.hubapi.com/crm/v3/objects/emails', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${credentials.access_token}`,
+            'Authorization': `Bearer ${credentials.hubspot_access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -201,7 +217,8 @@ class CRMService {
         });
 
         if (!response.ok) {
-          throw new Error(`HubSpot API error: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
@@ -262,14 +279,15 @@ class CRMService {
           const response = await fetch('https://api.hubapi.com/crm/v3/objects/tasks', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${credentials.access_token}`,
+              'Authorization': `Bearer ${credentials.hubspot_access_token}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(taskData),
           });
 
           if (!response.ok) {
-            throw new Error(`HubSpot API error: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
           }
 
           const result = await response.json();
@@ -307,7 +325,7 @@ class CRMService {
         const response = await fetch('https://api.hubapi.com/crm/v3/objects/notes', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${credentials.access_token}`,
+            'Authorization': `Bearer ${credentials.hubspot_access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -329,7 +347,8 @@ class CRMService {
         });
 
         if (!response.ok) {
-          throw new Error(`HubSpot API error: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
@@ -368,12 +387,13 @@ class CRMService {
 
         const response = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
           headers: {
-            'Authorization': `Bearer ${credentials.access_token}`,
+            'Authorization': `Bearer ${credentials.hubspot_access_token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error(`HubSpot API error: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
@@ -412,12 +432,13 @@ class CRMService {
 
         const response = await fetch(`https://api.hubapi.com/crm/v3/objects/deals?${queryParams}`, {
           headers: {
-            'Authorization': `Bearer ${credentials.access_token}`,
+            'Authorization': `Bearer ${credentials.hubspot_access_token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error(`HubSpot API error: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
@@ -451,7 +472,7 @@ class CRMService {
       if (platform === 'hubspot') {
         const credentials = await this.getUserCredentials(userId);
         
-        if (!credentials) {
+        if (!credentials || !credentials.hubspot_access_token) {
           return {
             connected: false,
             error: 'No credentials found',
@@ -462,7 +483,7 @@ class CRMService {
         try {
           const response = await fetch('https://api.hubapi.com/account-info/v3/details', {
             headers: {
-              'Authorization': `Bearer ${credentials.access_token}`,
+              'Authorization': `Bearer ${credentials.hubspot_access_token}`,
             },
           });
 
@@ -470,9 +491,8 @@ class CRMService {
             const accountData = await response.json();
             return {
               connected: true,
-              hub_domain: credentials.hub_domain,
-              hub_id: credentials.hub_id,
               account_name: accountData.companyName,
+              portal_id: accountData.portalId,
               last_sync: credentials.updated_at,
             };
           } else if (response.status === 401) {
@@ -481,8 +501,6 @@ class CRMService {
               await this.ensureValidToken(userId);
               return {
                 connected: true,
-                hub_domain: credentials.hub_domain,
-                hub_id: credentials.hub_id,
                 last_sync: credentials.updated_at,
               };
             } catch (refreshError) {
