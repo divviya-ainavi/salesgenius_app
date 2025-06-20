@@ -117,14 +117,6 @@ export const authHelpers = {
     // Store user ID in localStorage for persistence
     localStorage.setItem("userId", profile.id);
     localStorage.setItem("status", "loggedin");
-
-    // Set the current user ID as a database session variable for RLS policies
-    try {
-      await supabase.rpc('set_current_user_id', { user_id: profile.id });
-      console.log('Set current user ID in database session:', profile.id);
-    } catch (error) {
-      console.error('Error setting current user ID in database session:', error);
-    }
   },
 
   // Clear current user state
