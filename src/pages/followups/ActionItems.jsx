@@ -16,12 +16,175 @@ import {
   CheckCircle,
   Loader2,
   RefreshCw,
-  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
+
+// Mock data for action items based on selected prospect
+const getActionItemsForProspect = (prospectId) => {
+  const actionItemsData = {
+    acme_corp: [
+      {
+        id: "1",
+        commitment_text: "Send product demo video by Friday",
+        is_selected: true,
+        is_pushed: false,
+        owner: "Sarah Johnson",
+        deadline: "2024-01-19",
+        priority: "high",
+        source: "Call 4 - Pilot Discussion",
+      },
+      {
+        id: "2",
+        commitment_text:
+          "Schedule technical deep-dive with Mike's team next week",
+        is_selected: true,
+        is_pushed: true,
+        owner: "Mike Chen",
+        deadline: "2024-01-22",
+        priority: "high",
+        source: "Call 3 - Technical Requirements",
+      },
+      {
+        id: "3",
+        commitment_text:
+          "Prepare custom pricing proposal for Q2 implementation",
+        is_selected: false,
+        is_pushed: false,
+        owner: "Sales Team",
+        deadline: "2024-01-25",
+        priority: "medium",
+        source: "Call 4 - Budget Discussion",
+      },
+      {
+        id: "4",
+        commitment_text: "Provide HubSpot integration documentation",
+        is_selected: true,
+        is_pushed: false,
+        owner: "Technical Team",
+        deadline: "2024-01-20",
+        priority: "high",
+        source: "Call 2 - Integration Requirements",
+      },
+    ],
+    techstart_inc: [
+      {
+        id: "5",
+        commitment_text: "Review integration requirements with CTO",
+        is_selected: true,
+        is_pushed: true,
+        owner: "Emma Wilson",
+        deadline: "2024-01-18",
+        priority: "high",
+        source: "Call 2 - Technical Review",
+      },
+      {
+        id: "6",
+        commitment_text:
+          "Connect with their development team for API discussion",
+        is_selected: true,
+        is_pushed: false,
+        owner: "John Smith",
+        deadline: "2024-01-21",
+        priority: "medium",
+        source: "Call 1 - Initial Discovery",
+      },
+      {
+        id: "7",
+        commitment_text: "Prepare startup-specific pricing model",
+        is_selected: true,
+        is_pushed: false,
+        owner: "Sales Team",
+        deadline: "2024-01-23",
+        priority: "medium",
+        source: "Call 2 - Budget Constraints",
+      },
+    ],
+    global_solutions: [
+      {
+        id: "8",
+        commitment_text: "Schedule process optimization workshop",
+        is_selected: true,
+        is_pushed: false,
+        owner: "Emma Wilson",
+        deadline: "2024-01-24",
+        priority: "high",
+        source: "Call 3 - Process Review",
+      },
+      {
+        id: "9",
+        commitment_text: "Provide enterprise security documentation",
+        is_selected: true,
+        is_pushed: true,
+        owner: "David Brown",
+        deadline: "2024-01-20",
+        priority: "high",
+        source: "Call 2 - Security Requirements",
+      },
+      {
+        id: "10",
+        commitment_text: "Create implementation timeline for Q2",
+        is_selected: false,
+        is_pushed: false,
+        owner: "Project Team",
+        deadline: "2024-01-26",
+        priority: "low",
+        source: "Call 1 - Timeline Discussion",
+      },
+    ],
+  };
+
+  return actionItemsData[prospectId] || [];
+};
+
+// Mock prospects data
+const mockProspects = [
+  {
+    id: "acme_corp",
+    companyName: "Acme Corp",
+    prospectName: "Sarah Johnson",
+    title: "VP of Sales",
+    status: "hot",
+    dealValue: "$120K",
+    probability: 85,
+    nextAction: "Pilot program approval",
+    stakeholders: [
+      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
+      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
+      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
+    ],
+  },
+  {
+    id: "techstart_inc",
+    companyName: "TechStart Inc",
+    prospectName: "John Smith",
+    title: "CEO",
+    status: "warm",
+    dealValue: "$45K",
+    probability: 65,
+    nextAction: "Technical demo",
+    stakeholders: [
+      { name: "John Smith", role: "CEO", style: "Visual" },
+      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
+    ],
+  },
+  {
+    id: "global_solutions",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    title: "Director of Operations",
+    status: "warm",
+    dealValue: "$85K",
+    probability: 70,
+    nextAction: "Proposal review",
+    stakeholders: [
+      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
+      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
+    ],
+  },
+];
 
 export const ActionItems = () => {
   const [selectedProspect, setSelectedProspect] = useState([]);
@@ -94,6 +257,7 @@ export const ActionItems = () => {
           deadline: item.deadline || null,
           priority: item.priority || "medium",
           hubspot_task_id: item.hubspot_task_id || null,
+          // source: selectedProspect.call_summary || "Call Summary",
         })
       );
 
@@ -110,10 +274,10 @@ export const ActionItems = () => {
   const checkHubSpotConnection = async () => {
     setIsCheckingConnection(true);
     try {
-      const status = await crmService.getConnectionStatus('hubspot');
+      const status = await crmService.getConnectionStatus("hubspot");
       setHubspotConnectionStatus(status);
     } catch (error) {
-      console.error('Error checking HubSpot connection:', error);
+      console.error("Error checking HubSpot connection:", error);
       setHubspotConnectionStatus({ connected: false, error: error.message });
     } finally {
       setIsCheckingConnection(false);
@@ -126,28 +290,15 @@ export const ActionItems = () => {
 
   const handleUpdateCommitments = (updatedCommitments) => {
     setCommitments(updatedCommitments);
+    // In real app, save to database
     toast.success(`Commitments updated for ${selectedProspect.companyName}`);
-  };
-
-  const handleConnectHubSpot = () => {
-    const clientId = import.meta.env.VITE_HUBSPOT_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_HUBSPOT_REDIRECT_URI;
-    const scopes = "crm.objects.contacts.read crm.objects.tasks.write crm.objects.emails.write oauth";
-    
-    if (!clientId || !redirectUri) {
-      toast.error("HubSpot configuration is missing. Please check environment variables.");
-      return;
-    }
-    
-    const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
-    
-    console.log('Redirecting to HubSpot OAuth:', authUrl);
-    window.location.href = authUrl;
   };
 
   const handlePushCommitments = async (selectedCommitments) => {
     if (!hubspotConnectionStatus?.connected) {
-      toast.error("HubSpot is not connected. Please connect your HubSpot account first.");
+      toast.error(
+        "HubSpot is not connected. Please connect your HubSpot account first."
+      );
       return;
     }
 
@@ -162,7 +313,7 @@ export const ActionItems = () => {
     try {
       // Get or create HubSpot contact for this prospect
       const contactId = await getOrCreateHubSpotContact();
-      
+
       if (!contactId) {
         throw new Error("Unable to find or create HubSpot contact");
       }
@@ -170,8 +321,25 @@ export const ActionItems = () => {
       // Push each commitment as a task to HubSpot
       for (const commitment of selectedCommitments) {
         try {
+          const taskData = {
+            subject: commitment.commitment_text,
+            body: `Action item from sales call with ${selectedProspect.companyName}`,
+            taskType: "TODO",
+            status: "NOT_STARTED",
+            priority: mapPriorityToHubSpot(commitment.priority),
+            ownerId: null, // Will be assigned to the current user
+            associations: {
+              contacts: [contactId],
+            },
+          };
+
+          // Add deadline if available
+          if (commitment.deadline) {
+            taskData.dueDate = new Date(commitment.deadline).toISOString();
+          }
+
           const response = await crmService.hubspot.pushCommitments(
-            [commitment], 
+            [commitment],
             contactId
           );
 
@@ -215,8 +383,8 @@ export const ActionItems = () => {
       const updatedCommitments = commitments.map((item) => {
         const result = results[item.id];
         if (result?.success) {
-          return { 
-            ...item, 
+          return {
+            ...item,
             is_pushed: true,
             hubspot_task_id: result.hubspot_id,
           };
@@ -228,8 +396,12 @@ export const ActionItems = () => {
       setPushResults(results);
 
       // Show summary toast
-      const successCount = Object.values(results).filter(r => r.success).length;
-      const failureCount = Object.values(results).filter(r => !r.success).length;
+      const successCount = Object.values(results).filter(
+        (r) => r.success
+      ).length;
+      const failureCount = Object.values(results).filter(
+        (r) => !r.success
+      ).length;
 
       if (successCount > 0 && failureCount === 0) {
         setPushStatus("success");
@@ -245,7 +417,6 @@ export const ActionItems = () => {
         setPushStatus("error");
         toast.error("Failed to push action items to HubSpot");
       }
-
     } catch (error) {
       console.error("Error pushing commitments to HubSpot:", error);
       setPushStatus("error");
@@ -259,7 +430,7 @@ export const ActionItems = () => {
       // 1. Search for existing contact by email or company name
       // 2. Create a new contact if not found
       // 3. Return the contact ID
-      
+
       // For now, we'll simulate this with a mock contact ID
       // In production, this would integrate with your HubSpot contact management
       return "mock-contact-id-12345";
@@ -267,6 +438,15 @@ export const ActionItems = () => {
       console.error("Error getting/creating HubSpot contact:", error);
       throw error;
     }
+  };
+
+  const mapPriorityToHubSpot = (priority) => {
+    const priorityMap = {
+      high: "HIGH",
+      medium: "MEDIUM",
+      low: "LOW",
+    };
+    return priorityMap[priority] || "MEDIUM";
   };
 
   const totalCommitments = commitments.length;
@@ -301,7 +481,10 @@ export const ActionItems = () => {
 
     if (hubspotConnectionStatus?.connected) {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+        <Badge
+          variant="default"
+          className="bg-green-100 text-green-800 border-green-200"
+        >
           <CheckCircle className="w-3 h-3 mr-1" />
           HubSpot Connected
         </Badge>
@@ -309,7 +492,10 @@ export const ActionItems = () => {
     }
 
     return (
-      <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">
+      <Badge
+        variant="destructive"
+        className="bg-red-100 text-red-800 border-red-200"
+      >
         <AlertCircle className="w-3 h-3 mr-1" />
         HubSpot Disconnected
       </Badge>
@@ -329,7 +515,7 @@ export const ActionItems = () => {
             items to HubSpot as tasks.
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {getConnectionStatusBadge()}
           <Button
@@ -338,7 +524,12 @@ export const ActionItems = () => {
             onClick={checkHubSpotConnection}
             disabled={isCheckingConnection}
           >
-            <RefreshCw className={cn("w-4 h-4 mr-1", isCheckingConnection && "animate-spin")} />
+            <RefreshCw
+              className={cn(
+                "w-4 h-4 mr-1",
+                isCheckingConnection && "animate-spin"
+              )}
+            />
             Refresh Connection
           </Button>
         </div>
@@ -351,43 +542,17 @@ export const ActionItems = () => {
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-medium text-orange-900">HubSpot Connection Required</h4>
+                <h4 className="font-medium text-orange-900">
+                  HubSpot Connection Required
+                </h4>
                 <p className="text-sm text-orange-700 mt-1">
-                  To push action items to HubSpot, you need to connect your HubSpot account first.
+                  To push action items to HubSpot, you need to connect your
+                  HubSpot account first.
                 </p>
-                <div className="mt-3 flex items-center space-x-3">
-                  <Button variant="outline" size="sm" onClick={handleConnectHubSpot}>
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Connect HubSpot
-                  </Button>
-                  {hubspotConnectionStatus?.error && (
-                    <span className="text-xs text-orange-600">
-                      Error: {hubspotConnectionStatus.error}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* HubSpot Connection Success */}
-      {hubspotConnectionStatus?.connected && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-green-900">HubSpot Connected Successfully</h4>
-                <p className="text-sm text-green-700 mt-1">
-                  Your HubSpot account is connected and ready to receive action items.
-                </p>
-                {hubspotConnectionStatus.account_name && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Connected to: {hubspotConnectionStatus.account_name}
-                  </p>
-                )}
+                <Button variant="outline" size="sm" className="mt-2">
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Connect HubSpot
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -437,7 +602,9 @@ export const ActionItems = () => {
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Pushed to HubSpot</span>
+              <span className="text-sm text-muted-foreground">
+                Pushed to HubSpot
+              </span>
             </div>
             <p className="text-2xl font-bold mt-1">{pushedCount}</p>
             <p className="text-xs text-muted-foreground">
@@ -458,7 +625,7 @@ export const ActionItems = () => {
             onProspectSelect={handleProspectSelect}
             compact={false}
             showStakeholders={true}
-            prospectList={prospects}
+            prospectList={prospects} // filtered from call_insights
           />
 
           {/* Action Items Summary */}
@@ -523,14 +690,20 @@ export const ActionItems = () => {
                   <h4 className="text-sm font-medium mb-2">Push Results</h4>
                   <div className="space-y-1">
                     {Object.entries(pushResults).map(([id, result]) => {
-                      const commitment = commitments.find(c => c.id === id);
+                      const commitment = commitments.find((c) => c.id === id);
                       return (
-                        <div key={id} className="flex items-center justify-between text-xs">
+                        <div
+                          key={id}
+                          className="flex items-center justify-between text-xs"
+                        >
                           <span className="truncate max-w-[120px]">
                             {commitment?.commitment_text?.substring(0, 20)}...
                           </span>
                           {result.success ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                            <Badge
+                              variant="default"
+                              className="bg-green-100 text-green-800 text-xs"
+                            >
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Pushed
                             </Badge>
@@ -555,8 +728,8 @@ export const ActionItems = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 disabled={!hubspotConnectionStatus?.connected}
               >
@@ -588,13 +761,19 @@ export const ActionItems = () => {
                   {selectedCount} selected
                 </Badge>
                 {pushStatus === "success" && (
-                  <Badge variant="default" className="bg-green-100 text-green-800 border-green-200 text-xs">
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800 border-green-200 text-xs"
+                  >
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Pushed to HubSpot
                   </Badge>
                 )}
                 {pushStatus === "partial" && (
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs"
+                  >
                     <AlertCircle className="w-3 h-3 mr-1" />
                     Partially Pushed
                   </Badge>
@@ -609,8 +788,8 @@ export const ActionItems = () => {
                     )
                   }
                   disabled={
-                    pushStatus === "pending" || 
-                    selectedCount === 0 || 
+                    pushStatus === "pending" ||
+                    selectedCount === 0 ||
                     !hubspotConnectionStatus?.connected
                   }
                   size="sm"
@@ -681,16 +860,17 @@ export const ActionItems = () => {
                             In HubSpot
                           </Badge>
                         )}
-                        {pushResults[item.id] && !pushResults[item.id].success && (
-                          <Badge
-                            variant="destructive"
-                            className="text-xs"
-                            title={pushResults[item.id].error}
-                          >
-                            <AlertCircle className="w-3 h-3 mr-1" />
-                            Push Failed
-                          </Badge>
-                        )}
+                        {pushResults[item.id] &&
+                          !pushResults[item.id].success && (
+                            <Badge
+                              variant="destructive"
+                              className="text-xs"
+                              title={pushResults[item.id].error}
+                            >
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Push Failed
+                            </Badge>
+                          )}
                       </div>
                     </div>
 
@@ -707,7 +887,8 @@ export const ActionItems = () => {
 
                     {item.hubspot_task_id && (
                       <div className="mt-2 text-xs text-muted-foreground">
-                        <span className="font-medium">HubSpot Task ID:</span> {item.hubspot_task_id}
+                        <span className="font-medium">HubSpot Task ID:</span>{" "}
+                        {item.hubspot_task_id}
                       </div>
                     )}
                   </div>

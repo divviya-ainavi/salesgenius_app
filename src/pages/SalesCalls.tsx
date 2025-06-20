@@ -455,7 +455,7 @@ const SalesCalls = () => {
       let fileBlob = null;
       if (file.file_url && source != "fireflies") {
         try {
-          const response = await fetch(file.file_url);
+          const response = await fetch(file?.file_url);
           if (!response.ok) {
             throw new Error(
               `Failed to fetch file: ${response.status} ${response.statusText}`
@@ -530,7 +530,8 @@ const SalesCalls = () => {
           call_analysis_overview: processedData.call_analysis_overview,
           processing_status: processedData.processing_status || "completed",
           error_message: processedData.error_message,
-          extracted_transcript: file.file_content,
+          extracted_transcript:
+            processedData.extracted_transcript || file.file_content,
         };
         console.log(
           {

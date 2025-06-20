@@ -286,6 +286,7 @@ export function DeckBuilder() {
           extracted_transcript: insight.extracted_transcript,
           email_template_id: insight.email_template_id || null,
           presentation_prompt_id: insight.presentation_prompt_id || null,
+          action_items: insight.action_items || [],
         }));
 
         setProspects(enrichedProspects);
@@ -308,6 +309,7 @@ export function DeckBuilder() {
             selectedProspect.presentation_prompt_id
           );
           console.log("Fetched prompt data:", promptData);
+          console.log(promptData?.body, "prompt body");
           if (promptData?.body) {
             setGeneratedPrompt(promptData.body);
 
@@ -396,6 +398,10 @@ export function DeckBuilder() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             transcript: selectedProspect.extracted_transcript,
+            sales_methodology: selectedMethodology,
+            sales_insights: selectedProspect.sales_insights || [],
+            presentation_objective: selectedObjective,
+            action_items: selectedProspect.action_items || [],
           }),
         }
       );
@@ -443,7 +449,7 @@ export function DeckBuilder() {
 
       // 3. Save prompt to Supabase and get ID
       const savedPrompt = await dbHelpers.savePresentationPrompt({
-        prompt: rawPrompt,
+        body: rawPrompt,
         prospectId: selectedProspect.id,
       });
 
@@ -509,7 +515,7 @@ export function DeckBuilder() {
       try {
         await dbHelpers.updatePresentationPrompt({
           id: selectedProspect.presentation_prompt_id,
-          prompt: updatedPrompt,
+          block: updatedPrompt,
         });
 
         toast.success("Block and presentation prompt updated successfully");
@@ -591,6 +597,10 @@ export function DeckBuilder() {
           body: JSON.stringify({
             current_prompt_content: generatedPrompt,
             refinement_prompt: refinementPrompt,
+            sales_methodology: selectedMethodology,
+            sales_insights: selectedProspect.sales_insights || [],
+            presentation_objective: selectedObjective,
+            action_items: selectedProspect.action_items || [],
           }),
         }
       );
@@ -639,7 +649,7 @@ export function DeckBuilder() {
       if (selectedProspect?.presentation_prompt_id) {
         await dbHelpers.updatePresentationPrompt({
           id: selectedProspect.presentation_prompt_id,
-          prompt: refined,
+          body: refined,
         });
       }
 

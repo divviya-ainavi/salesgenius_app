@@ -330,6 +330,7 @@ export const EmailTemplates = () => {
           call_summary: insight.call_summary,
           extracted_transcript: insight.extracted_transcript,
           email_template_id: insight.email_template_id || null,
+          action_items: insight.action_items || [],
         }));
 
         setProspects(enrichedProspects);
@@ -482,6 +483,9 @@ export const EmailTemplates = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             transcript: selectedProspect.extracted_transcript,
+            sales_insights: selectedProspect.sales_insights,
+            action_items: selectedProspect.action_items,
+            prospects: selectedRecipients?.join(", "),
           }),
         }
       );
@@ -493,7 +497,7 @@ export const EmailTemplates = () => {
 
       const newEmail = await dbHelpers.createEmailTemplate(subject, body);
       await dbHelpers.linkEmailTemplateToCallInsight(
-        callInsight.id,
+        selectedProspect.id,
         newEmail.id
       );
 
@@ -532,6 +536,8 @@ export const EmailTemplates = () => {
             current_email_content: generatedEmail,
             email_subject: emailSubject,
             refinement_prompt: prompt,
+            sales_insights: selectedProspect.sales_insights,
+            action_items: selectedProspect.action_items,
           }),
         }
       );
@@ -1080,50 +1086,57 @@ export const EmailTemplates = () => {
 
                           {/* Attendees */}
                           {selectedProspect?.prospect_details?.map(
-                            (attendee, index) => (
-                              <div
-                                key={index}
-                                className={cn(
-                                  "flex items-center space-x-3 p-3 rounded-lg border",
-                                  index === 0
-                                    ? "border-amber-300 bg-amber-50"
-                                    : ""
-                                )}
-                              >
-                                <Checkbox
-                                  checked={selectedRecipients.includes(
-                                    `attendee_${index}`
-                                  )}
-                                  onCheckedChange={() =>
-                                    handleToggleRecipient(`attendee_${index}`)
-                                  }
-                                />
-                                {index === 0 ? (
-                                  <Crown className="w-4 h-4 text-amber-600" />
-                                ) : (
-                                  <Users className="w-4 h-4 text-blue-600" />
-                                )}
-                                <div className="flex-1">
-                                  <p className="font-medium text-sm">
-                                    {attendee.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {attendee.role}
-                                  </p>
-                                </div>
-                                <Badge
-                                  variant="outline"
+                            (attendee, index) => {
+                              const isChecked = selectedRecipients.includes(
+                                attendee.name
+                              );
+
+                              return (
+                                <div
+                                  key={index}
                                   className={cn(
-                                    "text-xs",
+                                    "flex items-center space-x-3 p-3 rounded-lg border",
                                     index === 0
-                                      ? "bg-amber-100 text-amber-800 border-amber-300"
-                                      : "text-blue-700 border-blue-300"
+                                      ? "border-amber-300 bg-amber-50"
+                                      : ""
                                   )}
                                 >
-                                  {index === 0 ? "Primary" : "Stakeholder"}
-                                </Badge>
-                              </div>
-                            )
+                                  {generatedEmail && (
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onCheckedChange={() =>
+                                        handleToggleRecipient(attendee.name)
+                                      }
+                                    />
+                                  )}
+
+                                  {index === 0 ? (
+                                    <Crown className="w-4 h-4 text-amber-600" />
+                                  ) : (
+                                    <Users className="w-4 h-4 text-blue-600" />
+                                  )}
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm">
+                                      {attendee.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {attendee.role}
+                                    </p>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-xs",
+                                      index === 0
+                                        ? "bg-amber-100 text-amber-800 border-amber-300"
+                                        : "text-blue-700 border-blue-300"
+                                    )}
+                                  >
+                                    {index === 0 ? "Primary" : "Stakeholder"}
+                                  </Badge>
+                                </div>
+                              );
+                            }
                           )}
                         </div>
                       )}

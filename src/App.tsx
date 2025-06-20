@@ -13,7 +13,6 @@ import { CallInsights } from "@/pages/CallInsights";
 import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import UserManagementPage from "@/pages/admin/UserManagement";
-import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
@@ -30,22 +29,22 @@ const App = () => {
       name: CURRENT_USER.name,
       role: CURRENT_USER.role_key,
       organization_id: CURRENT_USER.organization_id,
-    })
+    });
 
     // Set user properties
     analytics.setUserProperties({
-      user_type: 'sales_manager',
-      subscription_tier: 'demo',
+      user_type: "sales_manager",
+      subscription_tier: "demo",
       signup_date: new Date().toISOString(),
-    })
+    });
 
     // Track app initialization
-    analytics.track('app_initialized', {
+    analytics.track("app_initialized", {
       user_id: CURRENT_USER.id,
       user_role: CURRENT_USER.role_key,
       timestamp: new Date().toISOString(),
-    })
-  }, [])
+    });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -60,7 +59,10 @@ const App = () => {
               <Route path="calls" element={<SalesCalls />} />
               <Route path="call-insights" element={<CallInsights />} />
               <Route path="follow-ups">
-                <Route index element={<Navigate to="/call-insights" replace />} />
+                <Route
+                  index
+                  element={<Navigate to="/call-insights" replace />}
+                />
                 <Route path="actions" element={<ActionItems />} />
                 <Route path="emails" element={<EmailTemplates />} />
                 <Route path="decks" element={<DeckBuilder />} />
@@ -72,7 +74,6 @@ const App = () => {
                 <Route path="users" element={<UserManagementPage />} />
               </Route>
             </Route>
-            <Route path="/hubspot-callback" element={<HubSpotCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
