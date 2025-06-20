@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
+import { fileStorage } from './fileStorage'
+import { analytics } from './analytics'
+import api from './api'
+import aiService from '@/services/aiService'
+import fileService from '@/services/fileService'
+import crmService from '@/services/crmService'
+import userManagementService from '@/services/userManagementService'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -22,7 +30,7 @@ export let CURRENT_USER = {
 const initializeUserFromStorage = () => {
   const storedUserId = localStorage.getItem("userId");
   const storedStatus = localStorage.getItem("status");
-  
+
   if (storedUserId && storedStatus === "loggedin") {
     // Load user profile from database
     authHelpers.getUserProfile(storedUserId).then(profile => {
@@ -148,7 +156,7 @@ export const authHelpers = {
     // Check localStorage for persisted session
     const storedUserId = localStorage.getItem("userId");
     const storedStatus = localStorage.getItem("status");
-    
+
     if (storedUserId && storedStatus === "loggedin") {
       // Try to load user profile
       try {
@@ -563,6 +571,90 @@ export const dbHelpers = {
       return data
     } catch (error) {
       console.error('Error updating presentation prompt:', error)
+      throw error
+    }
+  },
+
+  async updateCallInsight(id, updates) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('call_insights')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('call_insight_updated', {
+        insight_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-insight', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-insight', 'PUT', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  async createFollowUpEmail(callNotesId, userId, emailContent, processingSessionId = null) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_emails')
+        .insert({
+          call_notes_id: callNotesId,
+          user_id: userId,
+          email_content: emailContent,
+          processing_session_id: processingSessionId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('follow_up_email_created', {
+        email_id: data.id,
+        call_notes_id: callNotesId,
+        user_id: userId,
+        processing_session_id: processingSessionId
+      })
+      analytics.trackApiResponse('/api/create-email', 'POST', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/create-email', 'POST', 500, Date.now() - startTime, error.message)
+      throw error
+    }
+  },
+
+  async updateFollowUpEmail(id, updates) {
+    const startTime = Date.now()
+
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_emails')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      analytics.track('follow_up_email_updated', {
+        email_id: id,
+        updated_fields: Object.keys(updates)
+      })
+      analytics.trackApiResponse('/api/update-email', 'PUT', 200, Date.now() - startTime)
+
+      return data
+    } catch (error) {
+      analytics.trackApiResponse('/api/update-email', 'PUT', 500, Date.now() - startTime, error.message)
       throw error
     }
   },
