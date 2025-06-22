@@ -164,17 +164,56 @@ const SalesCalls = () => {
     }
   };
 
+  // const handleSyncFireflies = async () => {
+  //   setIsLoadingFireflies(true);
+
+  //   try {
+  //     trackButtonClick("Sync Fireflies");
+
+  //     await firefliesService.syncTranscripts({
+  //       forceRefresh: true,
+  //     });
+
+  //     // Reload transcripts after sync
+  //     await loadFirefliesTranscripts();
+
+  //     toast.success("Fireflies transcripts synced successfully!");
+  //   } catch (error) {
+  //     console.error("Error syncing Fireflies:", error);
+  //     toast.error("Failed to sync Fireflies transcripts. Please try again.");
+  //   } finally {
+  //     setIsLoadingFireflies(false);
+  //   }
+  // };
+
   const handleSyncFireflies = async () => {
     setIsLoadingFireflies(true);
 
     try {
       trackButtonClick("Sync Fireflies");
 
-      await firefliesService.syncTranscripts({
-        forceRefresh: true,
-      });
+      // Call your external API directly
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcript",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            forceRefresh: true,
+          }),
+        }
+      );
 
-      // Reload transcripts after sync
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const result = await response.json(); // Optional: log or use the response
+      console.log("Fireflies sync result:", result);
+
+      // Then reload transcripts
       await loadFirefliesTranscripts();
 
       toast.success("Fireflies transcripts synced successfully!");

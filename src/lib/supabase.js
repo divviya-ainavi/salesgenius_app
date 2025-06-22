@@ -682,7 +682,7 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from('fireflies_files')
         .select('*')
-        .eq('user_id', userId)
+        // .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -691,6 +691,29 @@ export const dbHelpers = {
       console.error('Error fetching Fireflies files:', error)
       throw error
     }
+  },
+
+  async createEmailTemplate(subject, body) {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .insert({ subject, body })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async linkEmailTemplateToCallInsight(callInsightId, templateId) {
+    const { data, error } = await supabase
+      .from('call_insights')
+      .update({ email_template_id: templateId })
+      .eq('id', callInsightId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async updateFirefliesFile(fileId, updates) {

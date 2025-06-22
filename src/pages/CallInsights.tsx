@@ -1370,7 +1370,7 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">Fireflies Calls:</span>
+                  <span className="text-sm">Calls:</span>
                   <Badge
                     variant={
                       selectedProspect.dataSources.fireflies > 0
@@ -1378,7 +1378,7 @@ const CallInsights = () => {
                         : "secondary"
                     }
                   >
-                    {selectedProspect.dataSources.fireflies}
+                    {insights?.length}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1430,7 +1430,7 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">Email Threads:</span>
+                  <span className="text-sm">Internal datas:</span>
                   <Badge
                     variant={
                       selectedProspect.dataSources.emails > 0
