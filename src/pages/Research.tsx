@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 
 interface ResearchFormData {
   companyName: string;
@@ -249,6 +250,16 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           (result.prospectAnalysis
             ? `\n\n---\n\n${result.prospectAnalysis}`
             : ""),
+        sources: result.sources || [],
+        recommendations: result.recommendations || "",
+      });
+      await dbHelpers.saveResearchCompany({
+        user_id: CURRENT_USER.id,
+        company_name: formData.companyName,
+        company_url: formData.companyWebsite,
+        prospect_url: formData.prospectLinkedIn,
+        company_analysis: result.companyAnalysis,
+        prospect_analysis: result.prospectAnalysis || "",
         sources: result.sources || [],
         recommendations: result.recommendations || "",
       });

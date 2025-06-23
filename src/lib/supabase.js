@@ -523,6 +523,24 @@ export const dbHelpers = {
     }
   },
 
+  // ResearchCompany operations
+  async saveResearchCompany(data) {
+    try {
+      const { data: inserted, error } = await supabase
+        .from("ResearchCompany")
+        .insert([data])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return inserted;
+    } catch (error) {
+      console.error("Error saving research company:", error);
+      throw error;
+    }
+  },
+
+
   // Presentation prompt operations
   async savePresentationPrompt(promptData) {
     try {
