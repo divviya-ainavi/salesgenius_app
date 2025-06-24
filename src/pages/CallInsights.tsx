@@ -397,8 +397,25 @@ const CallInsights = () => {
   // Company name editing state
   const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
   const [editingCompanyName, setEditingCompanyName] = useState("");
+  const [researchCompanyCount, setResearchCompanyCount] = useState(null);
 
   useEffect(() => {
+    const fetchCount = async () => {
+      if (!CURRENT_USER.id) return;
+      try {
+        const result = await dbHelpers?.getResearchCompanyCountByUser(
+          CURRENT_USER.id
+        );
+        setResearchCompanyCount(result);
+      } catch (error) {
+        console.error("Failed to load research count:", error);
+        setResearchCompanyCount(null);
+      } finally {
+        console.log("Research count fetched");
+      }
+    };
+
+    fetchCount();
     const fetchInsightsAndSetProspect = async () => {
       try {
         let insights = await dbHelpers.getUserCallInsights(CURRENT_USER.id);
@@ -851,7 +868,7 @@ const CallInsights = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">
-                          Last Engagement:
+                          Processed Date:
                         </span>
                         <span className="font-medium">{lastEngagement}</span>
                       </div>
@@ -1365,9 +1382,7 @@ const CallInsights = () => {
                   <ExternalLink
                     className={cn(
                       "w-4 h-4",
-                      selectedProspect.dataSources.fireflies > 0
-                        ? "text-blue-600"
-                        : "text-gray-400"
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
                     )}
                   />
                   <span className="text-sm">Calls:</span>
@@ -1401,20 +1416,16 @@ const CallInsights = () => {
                   <FileText
                     className={cn(
                       "w-4 h-4",
-                      selectedProspect.dataSources.presentations > 0
+                      researchCompanyCount > 0
                         ? "text-purple-600"
                         : "text-gray-400"
                     )}
                   />
                   <span className="text-sm">Research:</span>
                   <Badge
-                    variant={
-                      selectedProspect.dataSources.presentations > 0
-                        ? "default"
-                        : "secondary"
-                    }
+                    variant={researchCompanyCount > 0 ? "default" : "secondary"}
                   >
-                    {selectedProspect.dataSources.presentations}
+                    {researchCompanyCount}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">

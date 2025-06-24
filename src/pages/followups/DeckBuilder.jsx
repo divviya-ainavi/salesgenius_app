@@ -279,6 +279,10 @@ export function DeckBuilder() {
           console.log(promptData?.body, "prompt body");
           if (promptData?.body) {
             setGeneratedPrompt(promptData.body);
+            setSelectedMethodology(promptData.sales_methodology || "spin");
+            setSelectedObjective(
+              promptData.presentation_objective || "educate"
+            );
 
             const lines = promptData.body.split("\n");
             const blocks = [];
@@ -318,6 +322,8 @@ export function DeckBuilder() {
       fetchPresentationPrompt();
     }
   }, [selectedProspect]);
+
+  console.log("Selected", selectedMethodology, selectedObjective);
 
   useEffect(() => {
     if (location.state?.selectedCall && prospects.length > 0) {
@@ -418,6 +424,8 @@ export function DeckBuilder() {
       const savedPrompt = await dbHelpers.savePresentationPrompt({
         body: rawPrompt,
         prospectId: selectedProspect.id,
+        sales_methodology: selectedMethodology,
+        presentation_objective: selectedObjective,
       });
 
       // 4. Update call_insights with presentation_prompt_id
@@ -684,18 +692,21 @@ export function DeckBuilder() {
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
                 <p className="text-muted-foreground mb-2">No prospects found</p>
                 <p className="text-sm text-muted-foreground">
-                  Process some call transcripts first to generate presentation prompts for prospects.
+                  Process some call transcripts first to generate presentation
+                  prompts for prospects.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <ProspectSelector
-              selectedProspect={selectedProspect}
-              onProspectSelect={handleProspectSelect}
-              compact={true}
-              showStakeholders={true}
-              prospectList={prospects}
-            />
+            prospects.length > 0 && (
+              <ProspectSelector
+                selectedProspect={selectedProspect}
+                onProspectSelect={handleProspectSelect}
+                compact={true}
+                showStakeholders={true}
+                prospectList={prospects}
+              />
+            )
           )}
 
           {/* Strategic Compass */}
@@ -810,7 +821,9 @@ export function DeckBuilder() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Settings className="w-5 h-5" />
-                    <span>Contextual Setup for {selectedProspect.companyName}</span>
+                    <span>
+                      Contextual Setup for {selectedProspect.companyName}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -832,7 +845,9 @@ export function DeckBuilder() {
                             ([key, method]) => (
                               <SelectItem key={key} value={key}>
                                 <div>
-                                  <div className="font-medium">{method.name}</div>
+                                  <div className="font-medium">
+                                    {method.name}
+                                  </div>
                                   <div className="text-xs text-muted-foreground">
                                     {method.description}
                                   </div>
@@ -936,7 +951,8 @@ export function DeckBuilder() {
               </Card>
 
               {/* Generated Prompt Section */}
-              {(selectedProspect?.presentation_prompt_id || generatedPrompt) && (
+              {(selectedProspect?.presentation_prompt_id ||
+                generatedPrompt) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -1164,12 +1180,13 @@ export function DeckBuilder() {
             <Card className="shadow-sm">
               <CardContent className="text-center py-12">
                 <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Prospect Selected</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  No Prospect Selected
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  {prospects.length === 0 
+                  {prospects.length === 0
                     ? "No prospects available. Process some call transcripts first to generate presentation prompts."
-                    : "Select a prospect from the sidebar to generate personalized presentation prompts."
-                  }
+                    : "Select a prospect from the sidebar to generate personalized presentation prompts."}
                 </p>
               </CardContent>
             </Card>

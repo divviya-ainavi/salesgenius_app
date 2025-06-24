@@ -113,9 +113,16 @@ export const ProspectSelector = ({
                 <h3 className="font-medium text-sm">
                   {selectedProspect.companyName}
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedProspect.prospectName} • {selectedProspect.title}
-                </p>
+                {console.log(
+                  selectedProspect.prospect_details,
+                  "selected prospect compact"
+                )}
+                {selectedProspect.prospect_details?.length > 0 &&
+                  selectedProspect.prospect_details.map((detail, index) => (
+                    <p className="text-xs text-muted-foreground">
+                      {detail.name} {detail.title && "•"} {detail.title}
+                    </p>
+                  ))}
               </div>
               <Badge
                 variant="outline"
@@ -183,9 +190,14 @@ export const ProspectSelector = ({
                 <h3 className="font-semibold">
                   {selectedProspect.companyName}
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedProspect.prospectName} • {selectedProspect.title}
-                </p>
+                {console.log(selectedProspect, "selected prospect details")}
+
+                {selectedProspect?.prospect_details?.length > 0 &&
+                  selectedProspect.prospect_details.map((detail, index) => (
+                    <p className="text-sm text-muted-foreground">
+                      {detail.name} {detail?.title && "•"} {detail.title}
+                    </p>
+                  ))}
               </div>
               <Badge
                 variant="outline"
@@ -282,9 +294,12 @@ export const ProspectSelector = ({
                     <h4 className="font-medium text-sm">
                       {prospect.companyName}
                     </h4>
-                    <p className="text-xs text-muted-foreground">
-                      {prospect.prospectName} • {prospect.title}
-                    </p>
+                    {prospect.prospect_details?.length > 0 &&
+                      prospect.prospect_details.map((detail, index) => (
+                        <p className="text-xs text-muted-foreground">
+                          {detail.name} {detail?.title && "•"} {detail.title}
+                        </p>
+                      ))}
                   </div>
                   <Badge
                     variant="outline"

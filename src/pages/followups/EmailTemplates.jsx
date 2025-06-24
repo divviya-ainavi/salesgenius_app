@@ -358,13 +358,24 @@ export const EmailTemplates = () => {
       dbHelpers
         .getEmailTemplateById(selectedProspect.email_template_id)
         .then((template) => {
+          console.log(template, "template email");
           setEmailTemplate(template);
           setEmailSubject(template.subject || "");
           setGeneratedEmail(template.body || "");
         })
+        .catch((error) => {
+          console.log(error, "email template error");
+        })
         .finally(() => setIsGenerating(false));
     }
   }, [selectedProspect.email_template_id]);
+
+  console.log(
+    generatedEmail,
+    "generated email",
+    emailTemplate,
+    selectedProspect.email_template_id
+  );
 
   // Check for selected call from navigation
   useEffect(() => {
@@ -393,7 +404,7 @@ export const EmailTemplates = () => {
     if (selectedProspect) {
       const primary = selectedProspect.communication_styles?.[0] || {};
       const others = selectedProspect.communication_styles?.slice(1) || [];
-
+      console.log(primary, others, "Primary and others styles");
       setPersonalityAnalysis({
         primary_contact: {
           name: primary.stakeholder || "Unknown",
@@ -631,14 +642,17 @@ export const EmailTemplates = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Sidebar - Prospect Selector */}
+
           <div className="space-y-6">
-            <ProspectSelector
-              selectedProspect={selectedProspect}
-              onProspectSelect={handleProspectSelect}
-              compact={false}
-              showStakeholders={true}
-              prospectList={prospects} // filtered from call_insights
-            />
+            {prospects.length > 0 && (
+              <ProspectSelector
+                selectedProspect={selectedProspect}
+                onProspectSelect={handleProspectSelect}
+                compact={false}
+                showStakeholders={true}
+                prospectList={prospects} // filtered from call_insights
+              />
+            )}
           </div>
 
           {/* Main Content */}
@@ -707,8 +721,7 @@ export const EmailTemplates = () => {
                               {(() => {
                                 const style =
                                   communicationStyles[
-                                    personalityAnalysis.primary_contact
-                                      .communication_style
+                                    personalityAnalysis.primary_contact.style
                                   ];
                                 // const Icon = style.icon;
                                 return (
@@ -718,8 +731,12 @@ export const EmailTemplates = () => {
                                       // className={cn("text-xs", style.color)}
                                     >
                                       {/* <Icon className="w-3 h-3 mr-1" /> */}
-                                      {style?.label}
+                                      {
+                                        personalityAnalysis.primary_contact
+                                          .style
+                                      }
                                     </Badge>
+                                    {console.log(style, "check Style")}
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Info className="w-3 h-3 text-muted-foreground cursor-help" />

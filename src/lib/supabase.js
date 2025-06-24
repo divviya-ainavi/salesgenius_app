@@ -540,6 +540,20 @@ export const dbHelpers = {
     }
   },
 
+  async getResearchCompanyCountByUser(userId) {
+    try {
+      const { count, error } = await supabase
+        .from('ResearchCompany')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return count
+    } catch (error) {
+      console.error('Error getting research company count:', error)
+      throw error
+    }
+  },
 
   // Presentation prompt operations
   async savePresentationPrompt(promptData) {
@@ -548,6 +562,8 @@ export const dbHelpers = {
         .from('presentation_prompt')
         .insert([{
           body: promptData.body,
+          sales_methodology: promptData.sales_methodology,
+          presentation_objective: promptData.presentation_objective,
         }])
         .select()
         .single()

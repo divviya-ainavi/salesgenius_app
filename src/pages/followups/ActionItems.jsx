@@ -172,7 +172,7 @@ export const ActionItems = () => {
       try {
         const insights = await dbHelpers.getEmailProspectInsights(userId);
         console.log("Fetched email insights:", insights);
-        
+
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
           companyName: insight.company_details?.name || "Unknown Company",
@@ -618,18 +618,21 @@ export const ActionItems = () => {
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
                 <p className="text-muted-foreground mb-2">No prospects found</p>
                 <p className="text-sm text-muted-foreground">
-                  Process some call transcripts first to generate action items for prospects.
+                  Process some call transcripts first to generate action items
+                  for prospects.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <ProspectSelector
-              selectedProspect={selectedProspect}
-              onProspectSelect={handleProspectSelect}
-              compact={false}
-              showStakeholders={true}
-              prospectList={prospects}
-            />
+            prospects?.length > 0 && (
+              <ProspectSelector
+                selectedProspect={selectedProspect}
+                onProspectSelect={handleProspectSelect}
+                compact={false}
+                showStakeholders={true}
+                prospectList={prospects}
+              />
+            )
           )}
 
           {/* Action Items Summary */}
@@ -660,7 +663,9 @@ export const ActionItems = () => {
 
                 {/* Priority Breakdown */}
                 <div className="pt-3 border-t border-border">
-                  <h4 className="text-sm font-medium mb-2">Priority Breakdown</h4>
+                  <h4 className="text-sm font-medium mb-2">
+                    Priority Breakdown
+                  </h4>
                   <div className="space-y-2">
                     {["high", "medium", "low"].map((priority) => {
                       const count = commitments.filter(
@@ -923,12 +928,13 @@ export const ActionItems = () => {
             <Card className="shadow-sm">
               <CardContent className="text-center py-12">
                 <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Prospect Selected</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  No Prospect Selected
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  {prospects.length === 0 
+                  {prospects.length === 0
                     ? "No prospects available. Process some call transcripts first to generate action items."
-                    : "Select a prospect from the sidebar to view their action items."
-                  }
+                    : "Select a prospect from the sidebar to view their action items."}
                 </p>
               </CardContent>
             </Card>
