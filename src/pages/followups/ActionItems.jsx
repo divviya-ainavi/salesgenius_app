@@ -23,7 +23,6 @@ import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
-import { usePageTimer } from "@/hooks/usePageTimer";
 
 // Mock data for action items based on selected prospect
 const getActionItemsForProspect = (prospectId) => {
@@ -143,9 +142,6 @@ const getActionItemsForProspect = (prospectId) => {
 };
 
 export const ActionItems = () => {
-  // Track time spent on Action Items page
-  usePageTimer('Action Items');
-
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [commitments, setCommitments] = useState([]);
   const [pushStatus, setPushStatus] = useState("draft");

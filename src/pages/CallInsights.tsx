@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -12,594 +12,728 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CallInsightsViewer } from "@/components/followups/CallInsightsViewer";
-import { ProspectSelector } from "@/components/shared/ProspectSelector";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  ArrowLeft,
   Sparkles,
-  Search,
-  Filter,
-  Calendar,
-  Clock,
+  TrendingUp,
+  Users,
+  Target,
+  Lightbulb,
+  Star,
+  Eye,
+  MessageSquare,
+  CheckSquare,
+  FileText,
   Building,
   User,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  ArrowRight,
-  ExternalLink,
-  MessageSquare,
-  Mail,
-  Presentation,
-  CheckSquare,
-  BarChart3,
-  TrendingUp,
-  Target,
+  Calendar,
+  Clock,
+  Database,
+  Layers,
   Zap,
-  Phone,
-  Download,
-  Copy,
+  BarChart3,
+  RefreshCw,
+  ExternalLink,
+  Plus,
   Edit,
   Save,
   X,
-  Eye,
-  EyeOff,
-  Plus,
-  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  Filter,
+  Ear,
+  Hand,
+  Brain,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-import { usePageTimer } from "@/hooks/usePageTimer";
 
-// Mock data for demonstration
-const mockInsightsData = [
+// Mock prospects data with cumulative insights
+const mockProspects = [
   {
-    id: "1",
-    callId: "CALL-2024-001",
+    id: "acme_corp",
     companyName: "Acme Corp",
     prospectName: "Sarah Johnson",
-    date: "2024-01-15",
-    duration: "45 min",
-    status: "completed",
-    hasTranscript: true,
-    hasSummary: true,
-    call_summary:
-      "Discussed Q2 implementation timeline and budget allocation. Key stakeholders identified: Sarah (VP Sales), Mike (Sales Ops), Lisa (Marketing). Next steps: Technical demo scheduled for next week.",
-    company_details: {
-      name: "Acme Corp",
-      industry: "Technology",
-      size: "Enterprise",
-      revenue: "$500M+",
-      challenges: [
-        "Legacy system integration",
-        "Sales team efficiency",
-        "Data silos",
-      ],
-    },
-    prospect_details: [
-      {
-        name: "Sarah Johnson",
-        title: "VP of Sales",
-        influence: "Decision Maker",
-        communication_style: "Direct",
-        pain_points: ["Team productivity", "Reporting accuracy"],
-      },
-      {
-        name: "Mike Chen",
-        title: "Sales Operations Manager",
-        influence: "Technical Evaluator",
-        communication_style: "Analytical",
-        pain_points: ["Process automation", "Data integration"],
-      },
-    ],
-    action_items: [
-      {
-        task: "Send product demo video by Friday",
-        owner: "Sales Team",
-        deadline: "2024-01-19",
-        priority: "high",
-      },
-      {
-        task: "Schedule technical deep-dive with Mike's team",
-        owner: "Technical Team",
-        deadline: "2024-01-22",
-        priority: "medium",
-      },
-      {
-        task: "Prepare custom pricing proposal for Q2 implementation",
-        owner: "Sales Team",
-        deadline: "2024-01-25",
-        priority: "high",
-      },
-    ],
-    sales_insights: [
-      {
-        type: "pain_point",
-        content:
-          "Current sales process requires manual data entry across multiple systems",
-        relevance: 90,
-      },
-      {
-        type: "objection",
-        content: "Concerned about implementation timeline and team adoption",
-        relevance: 85,
-      },
-      {
-        type: "buying_signal",
-        content: "Mentioned Q2 budget allocation for sales technology",
-        relevance: 95,
-      },
-      {
-        type: "competitive_intel",
-        content: "Currently evaluating Competitor X but unhappy with support",
-        relevance: 80,
-      },
-    ],
-    communication_styles: [
-      {
-        person: "Sarah Johnson",
-        style: "Direct and results-oriented",
-        preferences: "Values ROI and business impact",
-      },
-      {
-        person: "Mike Chen",
-        style: "Analytical and detail-focused",
-        preferences: "Needs technical validation and proof points",
-      },
-    ],
-    follow_up_email:
-      "Hi Sarah,\n\nThank you for the productive discussion today about Acme Corp's sales automation needs. I appreciate you and Mike sharing insights into your current challenges with manual data entry and cross-system integration.\n\nAs promised, I've attached the product demo video that highlights how our solution addresses your specific pain points. I've also included case studies from similar enterprise technology companies that have achieved 30%+ efficiency gains after implementation.\n\nI'll reach out to Mike separately to schedule the technical deep-dive session for his team next week. In the meantime, I'll work on preparing the custom pricing proposal for your Q2 implementation timeline.\n\nPlease let me know if you have any questions or need additional information.\n\nBest regards,\n[Your Name]",
-    deck_prompt:
-      "# Acme Corp Sales Presentation\n\n## Slide 1: Introduction\n- Title: Transforming Sales Operations at Acme Corp\n- Subtitle: Driving Efficiency, Visibility, and Growth\n- Include: Acme Corp logo and our company logo\n\n## Slide 2: Understanding Your Challenges\n- Legacy system integration challenges\n- Manual data entry across multiple systems\n- Limited visibility into sales pipeline\n- Team adoption concerns\n\n## Slide 3: Solution Overview\n- Unified sales platform with seamless integrations\n- Automated data capture and entry\n- Real-time analytics and reporting\n- Intuitive user experience for rapid adoption\n\n## Slide 4: ROI Projection\n- 30% reduction in administrative tasks\n- 25% improvement in data accuracy\n- 15% increase in sales velocity\n- 3-month implementation timeline\n\n## Slide 5: Implementation Approach\n- Phased rollout strategy\n- Dedicated implementation team\n- Comprehensive training program\n- Ongoing support and optimization\n\n## Slide 6: Next Steps\n- Technical deep-dive session\n- Custom pricing proposal\n- Q2 implementation timeline\n- Decision milestones",
-    reviewInsights: [
-      {
-        id: "insight-1",
-        type: "pain_point",
-        content:
-          "Current sales process requires manual data entry across multiple systems",
-        relevance: 90,
-        isSelected: true,
-      },
-      {
-        id: "insight-2",
-        type: "objection",
-        content: "Concerned about implementation timeline and team adoption",
-        relevance: 85,
-        isSelected: true,
-      },
-      {
-        id: "insight-3",
-        type: "buying_signal",
-        content: "Mentioned Q2 budget allocation for sales technology",
-        relevance: 95,
-        isSelected: true,
-      },
-      {
-        id: "insight-4",
-        type: "competitive_intel",
-        content: "Currently evaluating Competitor X but unhappy with support",
-        relevance: 80,
-        isSelected: true,
-      },
-    ],
-    callAnalysisData: {
-      company_details: {
-        name: "Acme Corp",
-        industry: "Technology",
-        size: "Enterprise",
-        revenue: "$500M+",
-        challenges: [
-          "Legacy system integration",
-          "Sales team efficiency",
-          "Data silos",
-        ],
-      },
-      prospect_details: [
-        {
-          name: "Sarah Johnson",
-          title: "VP of Sales",
-          influence: "Decision Maker",
-          communication_style: "Direct",
-          pain_points: ["Team productivity", "Reporting accuracy"],
-        },
-        {
-          name: "Mike Chen",
-          title: "Sales Operations Manager",
-          influence: "Technical Evaluator",
-          communication_style: "Analytical",
-          pain_points: ["Process automation", "Data integration"],
-        },
-      ],
-      action_items: [
-        {
-          task: "Send product demo video by Friday",
-          owner: "Sales Team",
-          deadline: "2024-01-19",
-          priority: "high",
-        },
-        {
-          task: "Schedule technical deep-dive with Mike's team",
-          owner: "Technical Team",
-          deadline: "2024-01-22",
-          priority: "medium",
-        },
-        {
-          task: "Prepare custom pricing proposal for Q2 implementation",
-          owner: "Sales Team",
-          deadline: "2024-01-25",
-          priority: "high",
-        },
-      ],
-      sales_insights: [
-        {
-          type: "pain_point",
-          content:
-            "Current sales process requires manual data entry across multiple systems",
-          relevance: 90,
-        },
-        {
-          type: "objection",
-          content: "Concerned about implementation timeline and team adoption",
-          relevance: 85,
-        },
-        {
-          type: "buying_signal",
-          content: "Mentioned Q2 budget allocation for sales technology",
-          relevance: 95,
-        },
-        {
-          type: "competitive_intel",
-          content: "Currently evaluating Competitor X but unhappy with support",
-          relevance: 80,
-        },
-      ],
-      communication_styles: [
-        {
-          person: "Sarah Johnson",
-          style: "Direct and results-oriented",
-          preferences: "Values ROI and business impact",
-        },
-        {
-          person: "Mike Chen",
-          style: "Analytical and detail-focused",
-          preferences: "Needs technical validation and proof points",
-        },
-      ],
+    title: "VP of Sales",
+    totalCalls: 4,
+    lastCallDate: "2024-01-15",
+    lastEngagement: "2 hours ago",
+    status: "hot",
+    dealValue: "$120K",
+    probability: 85,
+    nextAction: "Pilot program approval",
+    dataSources: {
+      fireflies: 3,
+      hubspot: 1,
+      presentations: 2,
+      emails: 5,
     },
   },
   {
-    id: "2",
-    callId: "CALL-2024-002",
+    id: "techstart_inc",
     companyName: "TechStart Inc",
     prospectName: "John Smith",
-    date: "2024-01-14",
-    duration: "30 min",
-    status: "completed",
-    hasTranscript: true,
-    hasSummary: true,
-    call_summary:
-      "Initial discovery call with startup CEO. Discussed scaling challenges and integration requirements. Budget constraints noted. Follow-up: Send startup-specific pricing proposal.",
-    company_details: {
-      name: "TechStart Inc",
-      industry: "SaaS",
-      size: "Startup (25 employees)",
-      revenue: "$2-5M",
-      challenges: ["Scaling operations", "Limited budget", "Fast growth"],
+    title: "CEO",
+    totalCalls: 2,
+    lastCallDate: "2024-01-14",
+    lastEngagement: "1 day ago",
+    status: "warm",
+    dealValue: "$45K",
+    probability: 65,
+    nextAction: "Technical demo",
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 3,
     },
-    prospect_details: [
-      {
-        name: "John Smith",
-        title: "CEO",
-        influence: "Decision Maker",
-        communication_style: "Visionary",
-        pain_points: ["Time management", "Resource allocation"],
-      },
-      {
-        name: "Emma Wilson",
-        title: "CTO",
-        influence: "Technical Decision Maker",
-        communication_style: "Technical",
-        pain_points: ["Integration complexity", "Technical debt"],
-      },
-    ],
-    action_items: [
-      {
-        task: "Send startup-friendly pricing options",
-        owner: "Sales Team",
-        deadline: "2024-01-18",
-        priority: "high",
-      },
-      {
-        task: "Schedule technical demo with Emma",
-        owner: "Technical Team",
-        deadline: "2024-01-20",
-        priority: "medium",
-      },
-    ],
-    sales_insights: [
-      {
-        type: "pain_point",
-        content: "Struggling with scaling sales operations as they grow",
-        relevance: 95,
-      },
-      {
-        type: "objection",
-        content: "Limited budget for enterprise solutions",
-        relevance: 90,
-      },
-      {
-        type: "buying_signal",
-        content: "Looking to implement solution before next funding round",
-        relevance: 85,
-      },
-    ],
-    communication_styles: [
-      {
-        person: "John Smith",
-        style: "Big picture thinker",
-        preferences: "Values vision and growth potential",
-      },
-      {
-        person: "Emma Wilson",
-        style: "Detail-oriented and technical",
-        preferences: "Needs technical specifications and integration details",
-      },
-    ],
-    follow_up_email:
-      "Hi John,\n\nThank you for taking the time to discuss TechStart's sales automation needs. I understand that as a growing startup, you're looking for a solution that can scale with your business while being mindful of budget constraints.\n\nAs promised, I've attached our startup-friendly pricing options that include flexible payment terms and a growth-scaled approach. I've also included a technical overview for Emma to review the integration capabilities.\n\nI'd like to schedule a technical demo with Emma next week to dive deeper into the implementation details. Please let me know what times work best for your team.\n\nLooking forward to helping TechStart streamline your sales operations as you prepare for your next funding round.\n\nBest regards,\n[Your Name]",
-    deck_prompt:
-      "# TechStart Inc Growth Solution\n\n## Slide 1: Introduction\n- Title: Scaling Sales Operations for TechStart's Growth Journey\n- Subtitle: Flexible, Scalable, Budget-Conscious Solutions\n- Include: TechStart logo and our company logo\n\n## Slide 2: Startup Challenges\n- Rapid growth requiring scalable systems\n- Limited resources and budget constraints\n- Need for quick implementation before funding round\n- Integration with existing tech stack\n\n## Slide 3: Tailored Solution\n- Modular approach - start small, scale as you grow\n- API-first architecture for seamless integration\n- Self-service implementation options\n- Pay-as-you-grow pricing model\n\n## Slide 4: Growth ROI\n- 40% reduction in manual sales tasks\n- 50% improvement in pipeline visibility\n- 20% faster sales cycle\n- Positive impact on investor metrics\n\n## Slide 5: Startup Success Stories\n- Case study: Similar SaaS startup growth\n- Testimonials from founders\n- Growth metrics before/after implementation\n\n## Slide 6: Next Steps\n- Technical demo with Emma's team\n- Flexible implementation timeline\n- Startup-friendly payment terms\n- 30-day free trial option",
-    reviewInsights: [
-      {
-        id: "insight-5",
-        type: "pain_point",
-        content: "Struggling with scaling sales operations as they grow",
-        relevance: 95,
-        isSelected: true,
-      },
-      {
-        id: "insight-6",
-        type: "objection",
-        content: "Limited budget for enterprise solutions",
-        relevance: 90,
-        isSelected: true,
-      },
-      {
-        id: "insight-7",
-        type: "buying_signal",
-        content: "Looking to implement solution before next funding round",
-        relevance: 85,
-        isSelected: true,
-      },
-    ],
-    callAnalysisData: {
-      company_details: {
-        name: "TechStart Inc",
-        industry: "SaaS",
-        size: "Startup (25 employees)",
-        revenue: "$2-5M",
-        challenges: ["Scaling operations", "Limited budget", "Fast growth"],
-      },
-      prospect_details: [
-        {
-          name: "John Smith",
-          title: "CEO",
-          influence: "Decision Maker",
-          communication_style: "Visionary",
-          pain_points: ["Time management", "Resource allocation"],
-        },
-        {
-          name: "Emma Wilson",
-          title: "CTO",
-          influence: "Technical Decision Maker",
-          communication_style: "Technical",
-          pain_points: ["Integration complexity", "Technical debt"],
-        },
-      ],
-      action_items: [
-        {
-          task: "Send startup-friendly pricing options",
-          owner: "Sales Team",
-          deadline: "2024-01-18",
-          priority: "high",
-        },
-        {
-          task: "Schedule technical demo with Emma",
-          owner: "Technical Team",
-          deadline: "2024-01-20",
-          priority: "medium",
-        },
-      ],
-      sales_insights: [
-        {
-          type: "pain_point",
-          content: "Struggling with scaling sales operations as they grow",
-          relevance: 95,
-        },
-        {
-          type: "objection",
-          content: "Limited budget for enterprise solutions",
-          relevance: 90,
-        },
-        {
-          type: "buying_signal",
-          content: "Looking to implement solution before next funding round",
-          relevance: 85,
-        },
-      ],
-      communication_styles: [
-        {
-          person: "John Smith",
-          style: "Big picture thinker",
-          preferences: "Values vision and growth potential",
-        },
-        {
-          person: "Emma Wilson",
-          style: "Detail-oriented and technical",
-          preferences: "Needs technical specifications and integration details",
-        },
-      ],
+  },
+  {
+    id: "global_solutions",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    title: "Director of Operations",
+    totalCalls: 3,
+    lastCallDate: "2024-01-10",
+    lastEngagement: "5 days ago",
+    status: "warm",
+    dealValue: "$85K",
+    probability: 70,
+    nextAction: "Proposal review",
+    dataSources: {
+      fireflies: 2,
+      hubspot: 1,
+      presentations: 1,
+      emails: 4,
     },
   },
 ];
 
-export const CallInsights = () => {
-  // Track time spent on Call Insights page
-  usePageTimer('Call Insights');
+// Mock cumulative insights for selected prospect
+const mockCumulativeInsights = {
+  acme_corp: {
+    salesInsights: [
+      {
+        id: "insight_1",
+        type: "buying_signal",
+        content:
+          "Strong budget approval confirmed across 3 calls. £50K annual budget pre-approved with Q2 implementation timeline. Decision authority confirmed with Sarah Johnson.",
+        relevance_score: 98,
+        is_selected: true,
+        source: "Cumulative Analysis",
+        timestamp: "Calls 1-4",
+        trend: "increasing",
+      },
+      {
+        id: "insight_2",
+        type: "pain_point",
+        content:
+          "Manual lead qualification consuming 15+ hours weekly across 8-person sales team. 40% of time spent on admin vs. selling. 30% lead leakage due to delayed response.",
+        relevance_score: 96,
+        is_selected: true,
+        source: "Progressive Discovery",
+        timestamp: "Consistent across calls",
+        trend: "stable",
+      },
+      {
+        id: "insight_3",
+        type: "competitive_advantage",
+        content:
+          "Speed advantage identified: 6-week implementation vs. competitors' 3-6 months. Critical for Q2 deadline. HubSpot native integration is key differentiator.",
+        relevance_score: 94,
+        is_selected: true,
+        source: "Competitive Intelligence",
+        timestamp: "Call 3-4",
+        trend: "increasing",
+      },
+      {
+        id: "insight_4",
+        type: "stakeholder_dynamics",
+        content:
+          "Sarah (decision maker), Mike (technical influencer), Lisa (process stakeholder). No additional approvals needed. Consensus building complete.",
+        relevance_score: 92,
+        is_selected: true,
+        source: "Stakeholder Mapping",
+        timestamp: "Progressive analysis",
+        trend: "stable",
+      },
+      {
+        id: "insight_5",
+        type: "urgency_driver",
+        content:
+          "Q2 scaling plans driving urgency. Series B funding secured, doubling sales team. Automation critical for growth execution.",
+        relevance_score: 90,
+        is_selected: true,
+        source: "Business Context",
+        timestamp: "Call 2-4",
+        trend: "increasing",
+      },
+    ],
+    communicationStyles: [
+      {
+        id: "comm_1",
+        stakeholder: "Sarah Johnson",
+        role: "VP of Sales",
+        style: "Visual",
+        confidence: 0.92,
+        evidence:
+          "Consistently requests charts, dashboards, and visual data across all 4 calls. Responds positively to ROI visualizations.",
+        preferences: [
+          "Data-driven presentations",
+          "Visual ROI calculators",
+          "Dashboard mockups",
+          "Infographic summaries",
+        ],
+        communication_tips: [
+          "Lead with visual data",
+          "Use charts and graphs",
+          "Provide dashboard previews",
+          "Include visual case studies",
+        ],
+        personality_type: {
+          type: "Architect (Dc)",
+          key: "D",
+          traits: [
+            "Seeks autonomy and efficiency",
+            "Pushes for practical improvements",
+            "Challenges unproductive ideas",
+          ],
+        },
+        modality: {
+          type: "Visual",
+          icon: "Eye",
+          guidance: "Incorporate charts & visuals in your messages",
+        },
+      },
+      {
+        id: "comm_2",
+        stakeholder: "Mike Chen",
+        role: "Sales Operations Manager",
+        style: "Kinesthetic",
+        confidence: 0.87,
+        evidence:
+          'Prefers hands-on technical demos, asks for implementation details, wants to "see it in action".',
+        preferences: [
+          "Live demonstrations",
+          "Hands-on trials",
+          "Technical deep-dives",
+          "Implementation walkthroughs",
+        ],
+        communication_tips: [
+          "Offer hands-on demos",
+          "Provide trial access",
+          "Show technical details",
+          "Include implementation guides",
+        ],
+        personality_type: {
+          type: "Implementer (Sc)",
+          key: "S",
+          traits: [
+            "Values stability and process",
+            "Prefers step-by-step guidance",
+            "Focuses on practical execution",
+          ],
+        },
+        modality: {
+          type: "Kinesthetic",
+          icon: "Hand",
+          guidance: "Focus on actionable steps & experiences",
+        },
+      },
+      {
+        id: "comm_3",
+        stakeholder: "Lisa Rodriguez",
+        role: "Director of Marketing",
+        style: "Auditory",
+        confidence: 0.83,
+        evidence:
+          "Engages well in verbal discussions, asks clarifying questions, prefers phone calls over emails.",
+        preferences: [
+          "Verbal explanations",
+          "Phone discussions",
+          "Collaborative conversations",
+          "Team meetings",
+        ],
+        communication_tips: [
+          "Schedule regular calls",
+          "Encourage questions",
+          "Use storytelling",
+          "Focus on collaboration",
+        ],
+        personality_type: null, // Example of no data available
+        modality: {
+          type: "Auditory",
+          icon: "Ear",
+          guidance: "Use clear, concise language",
+        },
+      },
+    ],
+    howToEngageSummary: {
+      "General Communication": [
+        "State purpose first, avoid small-talk",
+        "Be clear and concise",
+        "Express confidence in recommendations",
+        "Focus on efficiency and results",
+      ],
+      "Meeting & Demo Tactics": [
+        "Be direct with next steps",
+        "Address pain points immediately",
+        "Focus on value over features",
+        "Keep meetings brief and structured",
+      ],
+      "Email & Follow-up Style": [
+        "State purpose in the first sentence",
+        "Avoid small-talk in written communication",
+        "Provide clear deadlines",
+        "Ask yes/no questions about status",
+      ],
+      "Negotiation & Pricing Strategy": [
+        "Focus on efficiency and cost-effectiveness",
+        "Be transparent about benefits and limitations",
+        "Articulate clear ROI goals",
+        "Present options with clear recommendations",
+      ],
+      "Driving Action": [
+        "Propose specific times but allow modifications",
+        "Ask for agenda proposals",
+        "Set clear expectations for next steps",
+        "Follow up with action item summaries",
+      ],
+    },
+  },
+};
 
-  const [insights, setInsights] = useState([]);
-  const [selectedInsight, setSelectedInsight] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [pushStatuses, setPushStatuses] = useState({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState("");
-  const [editType, setEditType] = useState("");
+const insightTypes = {
+  buying_signal: {
+    icon: TrendingUp,
+    label: "Buying Signal",
+    color: "bg-green-100 text-green-800 border-green-200",
+  },
+  pain_point: {
+    icon: Target,
+    label: "Pain Point",
+    color: "bg-red-100 text-red-800 border-red-200",
+  },
+  competitive_advantage: {
+    icon: Star,
+    label: "Competitive Edge",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+  },
+  stakeholder_dynamics: {
+    icon: Users,
+    label: "Stakeholder Dynamics",
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+  },
+  urgency_driver: {
+    icon: Clock,
+    label: "Urgency Driver",
+    color: "bg-orange-100 text-orange-800 border-orange-200",
+  },
+  user_insight: {
+    icon: Lightbulb,
+    label: "Your Insight",
+    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  },
+};
+
+const communicationStyleConfigs = {
+  Visual: {
+    icon: Eye,
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    description: "Prefers charts, graphs, and visual demonstrations",
+  },
+  Auditory: {
+    icon: Ear,
+    color: "bg-green-100 text-green-800 border-green-200",
+    description: "Learns through listening and verbal communication",
+  },
+  Kinesthetic: {
+    icon: Hand,
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+    description: "Prefers hands-on experiences and practical examples",
+  },
+};
+
+// Personality type icons mapping
+const personalityTypeIcons = {
+  D: Brain,
+  I: MessageSquare,
+  S: Users,
+  C: BarChart3,
+};
+
+// Communication modality icons mapping
+const communicationModalityIcons = {
+  Visual: Eye,
+  Auditory: Ear,
+  Kinesthetic: Hand,
+};
+
+const CallInsights = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedProspect, setSelectedProspect] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [insights, setInsights] = useState([]);
+  const [communicationStyles, setCommunicationStyles] = useState([]);
+  const [howToEngageSummary, setHowToEngageSummary] = useState(null);
+  const [isAddingInsight, setIsAddingInsight] = useState(false);
+  const [newInsight, setNewInsight] = useState({
+    content: "",
+    type: "user_insight",
+  });
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [allInsights, setAllInsights] = useState([]);
 
-  // Use current authenticated user
-  const userId = CURRENT_USER.id;
+  // Company name editing state
+  const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
+  const [editingCompanyName, setEditingCompanyName] = useState("");
+  const [researchCompanyCount, setResearchCompanyCount] = useState(null);
 
-  // Load insights on component mount
   useEffect(() => {
-    const loadInsights = async () => {
-      if (!userId) {
-        console.log("No user ID available, skipping insights load");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
+    const fetchCount = async () => {
+      if (!CURRENT_USER.id) return;
       try {
-        // In a real implementation, you would fetch from your database
-        // const data = await dbHelpers.getUserCallInsights(userId);
-        
-        // For now, use mock data
-        setInsights(mockInsightsData);
-        
-        if (mockInsightsData.length > 0) {
-          setSelectedInsight(mockInsightsData[0]);
-          setSelectedProspect({
-            id: mockInsightsData[0].id,
-            companyName: mockInsightsData[0].company_details.name,
-            prospectName: mockInsightsData[0].prospect_details[0]?.name || "Unknown",
-            title: mockInsightsData[0].prospect_details[0]?.title || "Unknown",
-            prospect_details: mockInsightsData[0].prospect_details,
-            status: "hot",
-            dealValue: "$120K",
-            probability: 85,
-            nextAction: "Technical demo",
-            stakeholders: mockInsightsData[0].prospect_details.map(p => ({
-              name: p.name,
-              role: p.title,
-              style: p.communication_style,
-            })),
-          });
-        }
+        const result = await dbHelpers?.getResearchCompanyCountByUser(
+          CURRENT_USER.id
+        );
+        setResearchCompanyCount(result);
       } catch (error) {
-        console.error("Error loading insights:", error);
-        toast.error("Failed to load call insights");
+        console.error("Failed to load research count:", error);
+        setResearchCompanyCount(null);
       } finally {
-        setIsLoading(false);
+        console.log("Research count fetched");
       }
     };
 
-    loadInsights();
-  }, [userId]);
+    fetchCount();
+    const fetchInsightsAndSetProspect = async () => {
+      try {
+        let insights = await dbHelpers.getUserCallInsights(CURRENT_USER.id);
 
-  // Filter insights based on search and filters
-  const filteredInsights = insights.filter((insight) => {
-    const matchesSearch =
-      insight.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      insight.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      insight.callId.toLowerCase().includes(searchTerm.toLowerCase());
+        // Sort insights by created_at descending
+        insights = insights.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
 
-    const matchesDate =
-      dateFilter === "all" ||
-      (dateFilter === "today" &&
-        new Date(insight.date).toDateString() === new Date().toDateString()) ||
-      (dateFilter === "week" &&
-        new Date(insight.date) >
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) ||
-      (dateFilter === "month" &&
-        new Date(insight.date) >
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        setAllInsights(insights);
 
-    const matchesStatus =
-      statusFilter === "all" || insight.status === statusFilter;
+        let defaultInsight;
 
-    return matchesSearch && matchesDate && matchesStatus;
-  });
+        if (location.state?.selectedCall) {
+          const selectedCall = location.state.selectedCall;
+          defaultInsight = insights.find(
+            (insight) => insight.id === selectedCall.id
+          );
+        }
 
-  const handleSelectInsight = (insight) => {
-    setSelectedInsight(insight);
-    setSelectedProspect({
-      id: insight.id,
-      companyName: insight.company_details.name,
-      prospectName: insight.prospect_details[0]?.name || "Unknown",
-      title: insight.prospect_details[0]?.title || "Unknown",
-      prospect_details: insight.prospect_details,
-      status: "hot",
-      dealValue: "$120K",
-      probability: 85,
-      nextAction: "Technical demo",
-      stakeholders: insight.prospect_details.map(p => ({
-        name: p.name,
-        role: p.title,
-        style: p.communication_style,
-      })),
-    });
-  };
+        if (!defaultInsight && insights.length > 0) {
+          defaultInsight = insights[0]; // most recent
+        }
 
-  const handleEditInsight = (type, content) => {
-    setIsEditing(true);
-    setEditType(type);
-    setEditedContent(content);
-  };
+        if (defaultInsight) {
+          const companyName =
+            defaultInsight.company_details?.name || "Unknown Company";
 
-  const handleSaveEdit = () => {
-    // In a real implementation, you would save to your database
-    setSelectedInsight((prev) => ({
-      ...prev,
-      [editType]: editedContent,
-    }));
-    setIsEditing(false);
-    setEditType("");
-    setEditedContent("");
-    toast.success(`${editType.replace("_", " ")} updated successfully`);
-  };
+          const prospect = {
+            id: defaultInsight.id,
+            companyName,
+            prospectName:
+              (defaultInsight.prospect_details || [])
+                .map((p) => p.name)
+                .join(", ") || "Unknown",
+            title:
+              (defaultInsight.prospect_details || [])
+                .map((p) => p.title)
+                .join(", ") || "Unknown",
+            totalCalls: 1,
+            lastCallDate: defaultInsight.created_at,
+            lastEngagement: "Just now",
+            status: "new",
+            dealValue: "TBD",
+            probability: 50,
+            nextAction: "Initial follow-up",
+            dataSources: {
+              fireflies: 1,
+              hubspot: 0,
+              presentations: 0,
+              emails: 0,
+            },
+            fullInsight: defaultInsight,
+          };
 
-  const handlePushToHubSpot = (type, content) => {
-    setPushStatuses((prev) => ({
-      ...prev,
-      [type]: "pending",
-    }));
+          setSelectedProspect(prospect);
+          loadProspectInsights(defaultInsight);
+        } else {
+          toast.info("No call insights found yet.");
+        }
+      } catch (error) {
+        console.error("Failed to fetch call insights", error);
+        toast.error("Error loading call insight data");
+      }
+    };
 
-    // Simulate API call
-    setTimeout(() => {
-      setPushStatuses((prev) => ({
-        ...prev,
-        [type]: "success",
-      }));
-      toast.success(`${type.replace("_", " ")} pushed to HubSpot successfully`);
-    }, 1500);
-  };
+    fetchInsightsAndSetProspect();
+  }, [location.state]);
 
-  // Show loading state while checking authentication
-  if (!userId) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading user session...</p>
-        </div>
-      </div>
+  const updateAllInsightsEntry = (updatedInsight) => {
+    setAllInsights((prev) =>
+      prev.map((insight) =>
+        insight.id === updatedInsight.id ? updatedInsight : insight
+      )
     );
-  }
+  };
+
+  const loadProspectInsights = (insightData) => {
+    setInsights(insightData.sales_insights || []);
+    setCommunicationStyles(insightData.communication_styles || []);
+
+    // Load mock data for demonstration - in real app this would come from the database
+    if (insightData.id && mockCumulativeInsights.acme_corp) {
+      setHowToEngageSummary(
+        mockCumulativeInsights.acme_corp.howToEngageSummary
+      );
+    }
+  };
+
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+    loadProspectInsights(prospect.fullInsight);
+    toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
+
+  const handleEditCompanyName = () => {
+    setIsEditingCompanyName(true);
+    setEditingCompanyName(selectedProspect.companyName);
+  };
+
+  const handleSaveCompanyName = async () => {
+    if (!editingCompanyName.trim()) {
+      toast.error("Company name cannot be empty");
+      return;
+    }
+
+    try {
+      // Update the company_details in the call_insights table
+      const updatedCompanyDetails = {
+        ...selectedProspect.fullInsight.company_details,
+        name: editingCompanyName.trim(),
+      };
+
+      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+        company_details: updatedCompanyDetails,
+      });
+
+      // Update local state
+      setSelectedProspect((prev) => ({
+        ...prev,
+        companyName: editingCompanyName.trim(),
+        fullInsight: {
+          ...prev.fullInsight,
+          company_details: updatedCompanyDetails,
+        },
+      }));
+
+      // Update allInsights array
+      updateAllInsightsEntry(updated);
+
+      setIsEditingCompanyName(false);
+      setEditingCompanyName("");
+      toast.success("Company name updated successfully");
+    } catch (error) {
+      console.error("Error updating company name:", error);
+      toast.error("Failed to update company name");
+    }
+  };
+
+  const handleCancelEditCompanyName = () => {
+    setIsEditingCompanyName(false);
+    setEditingCompanyName("");
+  };
+
+  const handleAddInsight = async () => {
+    if (!newInsight.content.trim()) return;
+
+    try {
+      const newEntry = {
+        id: Date.now().toString(),
+        type: newInsight.type,
+        content: newInsight.content.trim(),
+        relevance_score: 85,
+        is_selected: true,
+        source: "User Input",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        trend: "new",
+      };
+
+      const updatedSalesInsights = [newEntry, ...insights];
+      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+        sales_insights: updatedSalesInsights,
+      });
+
+      setInsights(updated.sales_insights);
+      setNewInsight({ content: "", type: "user_insight" });
+      setIsAddingInsight(false);
+
+      // ✅ Update memory
+      setSelectedProspect((prev) => ({
+        ...prev,
+        fullInsight: {
+          ...prev.fullInsight,
+          sales_insights: updated.sales_insights,
+        },
+      }));
+      updateAllInsightsEntry(updated); // ✅ persist to allInsights
+
+      toast.success("Insight added successfully");
+    } catch (error) {
+      toast.error("Failed to add insight");
+    }
+  };
+
+  const handleEditInsight = (insightId) => {
+    const insight = insights.find((i) => i.id === insightId);
+    setEditingId(insightId);
+    setEditContent(insight.content);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const updatedList = insights.map((insight) =>
+        insight.id === editingId
+          ? { ...insight, content: editContent }
+          : insight
+      );
+
+      const payload = {
+        sales_insights: updatedList,
+      };
+
+      const updated = await dbHelpers.updateCallInsight(
+        selectedProspect.id,
+        payload
+      );
+      setInsights(updated.sales_insights);
+
+      setEditingId(null);
+      setEditContent("");
+      updateAllInsightsEntry(updated);
+      toast.success("Insight updated");
+    } catch (error) {
+      toast.error("Failed to update insight");
+    }
+  };
+
+  const handleMoveInsight = async (insightId, direction) => {
+    const currentIndex = insights.findIndex(
+      (insight) => insight.id === insightId
+    );
+
+    if (
+      (direction === "up" && currentIndex > 0) ||
+      (direction === "down" && currentIndex < insights.length - 1)
+    ) {
+      const newInsights = [...insights];
+      const targetIndex =
+        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      // Swap
+      [newInsights[currentIndex], newInsights[targetIndex]] = [
+        newInsights[targetIndex],
+        newInsights[currentIndex],
+      ];
+
+      try {
+        const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
+          sales_insights: newInsights,
+        });
+
+        setInsights(updated.sales_insights);
+
+        // ✅ Update memory too
+        setSelectedProspect((prev) => ({
+          ...prev,
+          fullInsight: {
+            ...prev.fullInsight,
+            sales_insights: updated.sales_insights,
+          },
+        }));
+        updateAllInsightsEntry(updated);
+        toast.success("Insight priority updated");
+      } catch (error) {
+        toast.error("Failed to update priority");
+      }
+    }
+  };
+
+  const handleDeleteInsight = async (insightId) => {
+    try {
+      const filtered = insights.filter((i) => i.id !== insightId);
+
+      const payload = {
+        sales_insights: filtered,
+      };
+
+      const updated = await dbHelpers.updateCallInsight(
+        selectedProspect.id,
+        payload
+      );
+      setInsights(updated.sales_insights);
+      updateAllInsightsEntry(updated);
+      toast.success("Insight removed");
+    } catch (error) {
+      toast.error("Failed to delete insight");
+    }
+  };
+
+  console.log(allInsights, mockProspects, "check insights and prospects");
+  const filteredProspects = allInsights?.filter(
+    (prospect) =>
+      prospect?.company_details?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      prospect?.prospectName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "hot":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "warm":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "cold":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "new":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case "increasing":
+        return <TrendingUp className="w-3 h-3 text-green-600" />;
+      case "decreasing":
+        return <TrendingUp className="w-3 h-3 text-red-600 rotate-180" />;
+      case "new":
+        return <Star className="w-3 h-3 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -610,296 +744,725 @@ export const CallInsights = () => {
             Call Insights
           </h1>
           <p className="text-muted-foreground">
-            AI-generated insights and analysis from your sales calls
+            Accelerating Prospect Conversion - Your ultimate hub for AI-driven
+            prospect intelligence
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search insights..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
-          </div>
-
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/calls")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Sales Calls
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Sidebar - Insights List */}
-        <div className="space-y-4">
+      {/* Cumulative Intelligence Active Indicator */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
+
+      {/* Prospect Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Building className="w-5 h-5" />
+            <span>Prospect Selection</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search prospects by company or name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Prospect List */}
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory scroll-smooth">
+              {filteredProspects.map((prospect) => {
+                const companyName =
+                  prospect.company_details?.name || "Unknown Company";
+                const prospectNames =
+                  prospect.prospect_details
+                    ?.map((p) => p.name)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const titles =
+                  prospect.prospect_details
+                    ?.map((p) => p.title)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const totalCalls = 1;
+                const dealValue = "TBD";
+                const probability = 50;
+                const lastEngagement = new Date(
+                  prospect.created_at
+                ).toLocaleDateString();
+                const status = "new";
+
+                return (
+                  <div
+                    key={prospect.id}
+                    className={cn(
+                      "min-w-[300px] max-w-[300px] snap-start shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                      selectedProspect?.id === prospect.id
+                        ? "border-primary bg-primary/5 shadow-md"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() =>
+                      handleProspectSelect({
+                        id: prospect.id,
+                        companyName,
+                        prospectNames,
+                        titles,
+                        totalCalls,
+                        lastCallDate: prospect.created_at,
+                        lastEngagement,
+                        status,
+                        dealValue,
+                        probability,
+                        nextAction: "Initial follow-up",
+                        dataSources: {
+                          fireflies: 1,
+                          hubspot: 0,
+                          presentations: 0,
+                          emails: 0,
+                        },
+                        fullInsight: prospect,
+                      })
+                    }
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-sm">{companyName}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {prospectNames}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs", getStatusColor(status))}
+                      >
+                        {status}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Calls:</span>
+                        <span className="font-medium">{totalCalls}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Deal Value:
+                        </span>
+                        <span className="font-medium">{dealValue}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Processed Date:
+                        </span>
+                        <span className="font-medium">{lastEngagement}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedProspect && (
+        <>
+          {/* Company Name Section with Edit Capability */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Call Insights</span>
-                <Badge variant="outline" className="text-xs">
-                  {filteredInsights.length} calls
+                <div className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>Company Information</span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Company Name:
+                </span>
+                {isEditingCompanyName ? (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Input
+                      value={editingCompanyName}
+                      onChange={(e) => setEditingCompanyName(e.target.value)}
+                      className="flex-1"
+                      placeholder="Enter company name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveCompanyName();
+                        if (e.key === "Escape") handleCancelEditCompanyName();
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyName}
+                      disabled={!editingCompanyName.trim()}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEditCompanyName}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <span className="text-lg font-semibold">
+                      {selectedProspect.companyName}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditCompanyName}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sales Insights Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sales Insights</span>
+                  <Badge variant="secondary">{insights.length} insights</Badge>
+                </div>
+                <Button
+                  onClick={() => setIsAddingInsight(true)}
+                  disabled={isAddingInsight}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Insight
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Insight */}
+              {isAddingInsight && (
+                <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Select
+                      value={newInsight.type}
+                      onValueChange={(value) =>
+                        setNewInsight((prev) => ({ ...prev, type: value }))
+                      }
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(insightTypes).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center space-x-2">
+                              <config.icon className="w-4 h-4" />
+                              <span>{config.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Textarea
+                    value={newInsight.content}
+                    onChange={(e) =>
+                      setNewInsight((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter your insight about this prospect..."
+                    className="min-h-20"
+                    autoFocus
+                  />
+
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" onClick={handleAddInsight}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Insight
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingInsight(false);
+                        setNewInsight({ content: "", type: "user_insight" });
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insights List */}
+              {insights.map((insight, index) => {
+                const typeConfig = insightTypes[insight.type];
+                const TypeIcon = typeConfig.icon;
+
+                return (
+                  <div
+                    key={insight.id}
+                    className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs", typeConfig.color)}
+                        >
+                          <TypeIcon className="w-3 h-3 mr-1" />
+                          {typeConfig.label}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Score: {insight.relevance_score}
+                        </Badge>
+                        {getTrendIcon(insight.trend)}
+                        <span className="text-xs text-muted-foreground">
+                          {insight.source} • {insight.timestamp}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, "up")}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleMoveInsight(insight.id, "down")}
+                          disabled={index === insights.length - 1}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                        {editingId === insight.id ? (
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleSaveEdit}
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingId(null)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditInsight(insight.id)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteInsight(insight.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ml-6">
+                      {editingId === insight.id ? (
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-20"
+                        />
+                      ) : (
+                        <p className="text-sm leading-relaxed">
+                          {insight.content}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {insights.length === 0 && !isAddingInsight && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No insights available yet</p>
+                  <p className="text-sm mb-4">
+                    Add your first insight about this prospect
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingInsight(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add First Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Communication Styles Detected with Behavioral Insights */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Prospect Behavioral & Communication Insights</span>
+                <Badge variant="secondary">
+                  {communicationStyles.length} stakeholders
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Loading insights...</p>
+              {communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles.map((stakeholder) => {
+                    const styleConfig =
+                      communicationStyleConfigs[stakeholder.style];
+                    const PersonalityIcon = stakeholder.personality_type
+                      ? personalityTypeIcons[stakeholder.personality_type.key]
+                      : null;
+                    const ModalityIcon = stakeholder.modality
+                      ? communicationModalityIcons[stakeholder.modality.type]
+                      : null;
+
+                    return (
+                      <div
+                        key={stakeholder.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                              <span>{stakeholder.stakeholder}</span>
+                              {PersonalityIcon && (
+                                <PersonalityIcon className="w-4 h-4 text-primary" />
+                              )}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.role}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge
+                              variant="outline"
+                              className={cn("text-xs", styleConfig?.color)}
+                            >
+                              {stakeholder.style}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {Math.round(stakeholder.confidence * 100)}%
+                              confidence
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Personality Type Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              <Brain className="w-4 h-4" />
+                              <span>Personality Type</span>
+                            </h4>
+                            {stakeholder.personality_type ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.personality_type.type}
+                                </p>
+                                <ul className="text-sm text-muted-foreground space-y-1">
+                                  {stakeholder.personality_type.traits.map(
+                                    (trait, index) => (
+                                      <li
+                                        key={index}
+                                        className="flex items-start space-x-2"
+                                      >
+                                        <span className="text-primary mt-1">
+                                          •
+                                        </span>
+                                        <span>{trait}</span>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Personality Type: Data not available
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Communication Modality Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              {ModalityIcon && (
+                                <ModalityIcon className="w-4 h-4" />
+                              )}
+                              <span>Preferred Communication Modality</span>
+                            </h4>
+                            {stakeholder.modality ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.modality.type}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stakeholder.modality.guidance}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Communication Modality: Data not available
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Evidence Section */}
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Evidence
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.evidence}
+                            </p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Preferences
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start space-x-2"
+                                  >
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Communication Tips
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map(
+                                  (tip, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start space-x-2"
+                                    >
+                                      <span className="text-primary mt-1">
+                                        •
+                                      </span>
+                                      <span>{tip}</span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : filteredInsights.length === 0 ? (
+              ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No insights found</p>
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No communication styles detected yet</p>
                   <p className="text-sm">
-                    Upload call transcripts to generate AI insights
+                    Communication styles will be identified as you have more
+                    calls with this prospect
                   </p>
                 </div>
-              ) : (
-                <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
-                  {filteredInsights.map((insight) => (
-                    <div
-                      key={insight.id}
-                      className={cn(
-                        "border rounded-lg p-3 cursor-pointer transition-all hover:shadow-sm",
-                        selectedInsight?.id === insight.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      )}
-                      onClick={() => handleSelectInsight(insight)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-medium text-sm">
-                            {insight.company_details.name}
-                          </h3>
-                          <Badge
-                            variant={
-                              insight.status === "completed"
-                                ? "default"
-                                : insight.status === "processing"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                            className="text-xs"
-                          >
-                            {insight.status}
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {insight.date}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                        {insight.call_summary}
-                      </p>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center space-x-1">
-                          <User className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            {insight.prospect_details[0]?.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            {insight.duration}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Insights Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-primary/5 p-3 rounded-lg">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <MessageSquare className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-medium">Total Calls</span>
-                    </div>
-                    <p className="text-xl font-bold">{insights.length}</p>
+          {/* Consolidated "How To Engage" Summary */}
+          {/* {howToEngageSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Consolidated "How To Engage" Summary</span>
+                  <Badge variant="default">Strategic Guide</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(howToEngageSummary).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(howToEngageSummary).map(([category, tips]) => (
+                      <Collapsible key={category} defaultOpen={true}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <h4 className="font-medium text-sm">{category}</h4>
+                          <ChevronRight className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 ml-3">
+                          <ul className="space-y-2">
+                            {tips.map((tip, index) => (
+                              <li key={index} className="flex items-start space-x-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
                   </div>
-                  <div className="bg-primary/5 p-3 rounded-lg">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <CheckSquare className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-medium">Action Items</span>
-                    </div>
-                    <p className="text-xl font-bold">
-                      {insights.reduce(
-                        (total, insight) =>
-                          total + (insight.action_items?.length || 0),
-                        0
-                      )}
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">
+                      Comprehensive Engagement Strategy: Insufficient data for a tailored summary.
                     </p>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Insights Generated
-                    </span>
-                    <span className="font-medium">
-                      {insights.reduce(
-                        (total, insight) =>
-                          total + (insight.sales_insights?.length || 0),
-                        0
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Follow-up Emails
-                    </span>
-                    <span className="font-medium">
-                      {
-                        insights.filter((i) => i.follow_up_email?.length > 0)
-                          .length
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Presentation Prompts
-                    </span>
-                    <span className="font-medium">
-                      {
-                        insights.filter((i) => i.deck_prompt?.length > 0).length
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content - Selected Insight */}
-        <div className="lg:col-span-2">
-          {selectedInsight ? (
-            <>
-              {isEditing ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>
-                        Editing{" "}
-                        {editType
-                          .replace("_", " ")
-                          .replace(/\b\w/g, (l) => l.toUpperCase())}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsEditing(false)}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveEdit}>
-                          <Save className="w-4 h-4 mr-1" />
-                          Save
-                        </Button>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <textarea
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      className="w-full h-96 p-4 border border-border rounded-lg font-mono text-sm"
-                    />
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  {/* Prospect Context */}
-                  <div className="mb-6">
-                    <ProspectSelector
-                      selectedProspect={selectedProspect}
-                      onProspectSelect={() => {}}
-                      compact={true}
-                      showStakeholders={false}
-                    />
-                  </div>
-
-                  {/* Call Insights Viewer */}
-                  <CallInsightsViewer
-                    insights={selectedInsight}
-                    callNotesId={selectedInsight.id}
-                    userId={userId}
-                    onNavigateBack={() => setSelectedInsight(null)}
-                    onEditInsight={handleEditInsight}
-                    onPushToHubSpot={handlePushToHubSpot}
-                    pushStatuses={pushStatuses}
-                    showBackButton={false}
-                    isEditable={true}
-                    title={`Insights for ${selectedInsight.company_details.name}`}
-                  />
-                </>
-              )}
-            </>
-          ) : (
-            <Card className="shadow-sm">
-              <CardContent className="text-center py-12">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Insight Selected</h3>
-                <p className="text-muted-foreground mb-4">
-                  {filteredInsights.length === 0
-                    ? "No insights available. Process some call transcripts first to generate insights."
-                    : "Select a call from the sidebar to view detailed AI-generated insights."}
-                </p>
-                {filteredInsights.length > 0 && (
-                  <Button
-                    onClick={() => handleSelectInsight(filteredInsights[0])}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    View First Insight
-                  </Button>
                 )}
               </CardContent>
             </Card>
-          )}
-        </div>
-      </div>
+          )} */}
+
+          {/* Cumulative Intelligence Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Calls:</span>
+                  <Badge
+                    variant={insights?.length > 0 ? "default" : "secondary"}
+                  >
+                    {insights?.length}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      researchCompanyCount > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Research:</span>
+                  <Badge
+                    variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                  >
+                    {researchCompanyCount}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Internal datas:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                These insights represent an amalgamation of data from all
+                interactions with {selectedProspect.companyName}, providing a
+                comprehensive and evolving understanding of the prospect
+                relationship.
+              </p>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };
 
 export default CallInsights;
+export { CallInsights };
