@@ -873,6 +873,144 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+  // Notification settings
+  async updateUserNotificationSettings(userId, settings) {
+    try {
+      const { data, error } = await supabase
+        .from('user_notification_settings')
+        .upsert([{
+          user_id: userId,
+          email_notifications: settings.emailNotifications,
+          push_notifications: settings.pushNotifications,
+          weekly_reports: settings.weeklyReports,
+          security_alerts: settings.securityAlerts,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating notification settings:', error);
+      throw error;
+    }
+  },
+
+  // Fireflies integration helpers
+  async getUserFirefliesKey(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('user_fireflies_keys')
+        .select('is_valid, last_verified')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      return data;
+    } catch (error) {
+      console.error('Error getting user Fireflies key:', error);
+      return null;
+    }
+  },
+
+  async saveUserFirefliesKey(userId, apiKey) {
+    try {
+      // In a real implementation, you would encrypt the API key before storing
+      const encryptedKey = btoa(apiKey); // Simple base64 encoding for demo
+
+      const { data, error } = await supabase
+        .from('user_fireflies_keys')
+        .upsert([{
+          user_id: userId,
+          encrypted_api_key: encryptedKey,
+          is_valid: true,
+          last_verified: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving user Fireflies key:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFirefliesKey(userId) {
+    try {
+      const { error } = await supabase
+        .from('user_fireflies_keys')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting user Fireflies key:', error);
+      throw error;
+    }
+  },
+
+  // Organization HubSpot token helpers
+  async getOrgHubspotToken(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('org_hubspot_tokens')
+        .select('hub_id, account_name, expires_at, is_valid, last_verified')
+        .eq('organization_id', organizationId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      return data;
+    } catch (error) {
+      console.error('Error getting org HubSpot token:', error);
+      return null;
+    }
+  },
+
+  async saveOrgHubspotToken(organizationId, tokenData) {
+    try {
+      // In a real implementation, you would encrypt the access token before storing
+      const encryptedToken = btoa(tokenData.access_token); // Simple base64 encoding for demo
+
+      const { data, error } = await supabase
+        .from('org_hubspot_tokens')
+        .upsert([{
+          organization_id: organizationId,
+          encrypted_access_token: encryptedToken,
+          hub_id: tokenData.hub_id,
+          account_name: tokenData.account_name,
+          expires_at: tokenData.expires_at,
+          is_valid: true,
+          last_verified: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving org HubSpot token:', error);
+      throw error;
+    }
+  },
+
+  async deleteOrgHubspotToken(organizationId) {
+    try {
+      const { error } = await supabase
+        .from('org_hubspot_tokens')
+        .delete()
+        .eq('organization_id', organizationId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting org HubSpot token:', error);
+      throw error;
+    }
+  },
 }
 
 // User helpers for backward compatibility
