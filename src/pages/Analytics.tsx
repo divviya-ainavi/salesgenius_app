@@ -779,6 +779,9 @@ const Analytics = () => {
       (sum, d) => sum + d,
       0
     );
+
+    console.log("Total Seconds:", totalSeconds, durations);
+
     return (
       <div className="space-y-6">
         {/* Personal Productivity */}
@@ -787,13 +790,12 @@ const Analytics = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    Weekly Time Saved
-                  </p>
+                  <p className="text-sm text-muted-foreground">Call Insights</p>
                   <p className="text-2xl font-bold">
                     {
-                      mockAnalyticsData.individual.personalProductivity
-                        .weeklyTimeSaved
+                      // mockAnalyticsData.individual.personalProductivity
+                      //   .weeklyTimeSaved
+                      (durations["Call Insights"] / 3600).toFixed(1)
                     }
                     h
                   </p>
@@ -809,11 +811,11 @@ const Analytics = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Email Time</p>
                   <p className="text-2xl font-bold">
-                    {
+                    {/* {
                       mockAnalyticsData.individual.personalProductivity
                         .emailTime
-                    }
-                    h
+                    } */}
+                    {((durations["Email Templates"] || 0) / 3600).toFixed(1)}h
                   </p>
                 </div>
                 <Mail className="w-8 h-8 text-green-600" />
@@ -829,11 +831,14 @@ const Analytics = () => {
                     Presentation Time
                   </p>
                   <p className="text-2xl font-bold">
-                    {
+                    {/* {
                       mockAnalyticsData.individual.personalProductivity
                         .presentationTime
-                    }
-                    h
+                    } */}
+                    {(
+                      (durations["Presentation Prompt Builder"] || 0) / 3600
+                    ).toFixed(1)}
+                    h h
                   </p>
                 </div>
                 <Presentation className="w-8 h-8 text-purple-600" />
@@ -847,11 +852,11 @@ const Analytics = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Research Time</p>
                   <p className="text-2xl font-bold">
-                    {
+                    {/* {
                       mockAnalyticsData.individual.personalProductivity
                         .researchTime
-                    }
-                    h
+                    } */}
+                    {((durations["Research"] || 0) / 3600).toFixed(1)}h h
                   </p>
                 </div>
                 <FileText className="w-8 h-8 text-orange-600" />

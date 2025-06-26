@@ -49,7 +49,7 @@ export const analytics = {
   // User identification - now dynamic
   identify: (userId, traits = {}) => {
     if (userId) {
-      posthog.identify(userId, traits)
+      posthog.identify(traits?.email, traits)
       console.log('PostHog: User identified', { userId, traits })
     }
   },
