@@ -1,931 +1,1250 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  User,
-  Bell,
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { 
+  Settings as SettingsIcon,
   Shield,
-  Palette,
-  Globe,
-  Clock,
+  Users,
+  Brain,
+  Upload,
+  Download,
+  Trash2,
+  Edit,
   Save,
+  X,
+  Plus,
   Eye,
   EyeOff,
-  ExternalLink,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
   Key,
-  Settings as SettingsIcon,
-  Calendar,
+  Globe,
+  Building,
+  User,
+  Bell,
+  Database,
+  Cloud,
   Lock,
   Unlock,
-  RefreshCw,
+  CheckCircle,
+  AlertCircle,
   Info,
+  Crown,
+  UserCheck,
+  FileText,
+  BarChart3,
   Zap,
-  Building,
-} from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { CURRENT_USER, authHelpers, dbHelpers } from "@/lib/supabase";
-import { usePageTimer } from "../hooks/userPageTimer";
+  RefreshCw,
+  ExternalLink,
+  Copy
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
-const Settings = () => {
-  usePageTimer("Settings");
+// Mock user data - in real app this would come from auth context
+const mockCurrentUser = {
+  id: '550e8400-e29b-41d4-a716-446655440000',
+  email: 'john.smith@acmecorp.com',
+  role: 'client_admin', // super_admin, client_admin, app_user
+  organizationId: 'org-acme-corp',
+  organizationName: 'Acme Corp',
+  permissions: ['manage_users', 'manage_org_settings', 'upload_org_materials', 'view_org_analytics']
+}
 
-  const [activeTab, setActiveTab] = useState("profile");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  
-  // Profile settings
-  const [profileData, setProfileData] = useState({
-    fullName: CURRENT_USER.full_name || "",
-    email: CURRENT_USER.email || "",
-    timezone: "UTC",
-    language: "en",
-    theme: "light",
-  });
+// User roles configuration
+const userRoles = {
+  super_admin: {
+    label: 'Super Admin',
+    icon: Crown,
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    description: 'Platform administrator with global access',
+    permissions: ['all']
+  },
+  client_admin: {
+    label: 'Organization Admin',
+    icon: UserCheck,
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    description: 'Organization-level administrator',
+    permissions: ['manage_users', 'manage_org_settings', 'upload_org_materials', 'view_org_analytics']
+  },
+  app_user: {
+    label: 'Application User',
+    icon: User,
+    color: 'bg-green-100 text-green-800 border-green-200',
+    description: 'Individual user with personal access',
+    permissions: ['view_personal_analytics', 'upload_personal_materials', 'manage_personal_settings']
+  }
+}
 
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    pushNotifications: false,
-    weeklyReports: true,
-    securityAlerts: true,
-  });
+// Mock organization users
+const mockOrgUsers = [
+  {
+    id: '1',
+    email: 'sarah.johnson@acmecorp.com',
+    name: 'Sarah Johnson',
+    role: 'app_user',
+    status: 'active',
+    lastLogin: '2024-01-15T10:30:00Z',
+    joinedAt: '2024-01-01T00:00:00Z'
+  },
+  {
+    id: '2',
+    email: 'mike.chen@acmecorp.com',
+    name: 'Mike Chen',
+    role: 'app_user',
+    status: 'active',
+    lastLogin: '2024-01-14T15:45:00Z',
+    joinedAt: '2024-01-02T00:00:00Z'
+  },
+  {
+    id: '3',
+    email: 'lisa.rodriguez@acmecorp.com',
+    name: 'Lisa Rodriguez',
+    role: 'app_user',
+    status: 'pending',
+    lastLogin: null,
+    joinedAt: '2024-01-14T00:00:00Z'
+  }
+]
 
-  // Setup settings
-  const [firefliesKey, setFirefliesKey] = useState("");
-  const [hubspotToken, setHubspotToken] = useState("");
-  const [showFirefliesKey, setShowFirefliesKey] = useState(false);
-  const [showHubspotToken, setShowHubspotToken] = useState(false);
-  const [firefliesStatus, setFirefliesStatus] = useState(null);
-  const [hubspotStatus, setHubspotStatus] = useState(null);
-  const [isValidatingFireflies, setIsValidatingFireflies] = useState(false);
-  const [isValidatingHubspot, setIsValidatingHubspot] = useState(false);
+// Mock training materials
+const mockTrainingMaterials = {
+  general: [
+    { id: '1', name: 'B2B Sales Best Practices 2024', type: 'document', size: '2.4 MB', uploadedAt: '2024-01-10', status: 'processed' },
+    { id: '2', name: 'Industry Insights - SaaS Sales', type: 'video', size: '45.2 MB', uploadedAt: '2024-01-08', status: 'processing' },
+    { id: '3', name: 'Sales Methodology Frameworks', type: 'document', size: '1.8 MB', uploadedAt: '2024-01-05', status: 'processed' }
+  ],
+  business: [
+    { id: '4', name: 'Acme Corp Sales Playbook', type: 'document', size: '5.2 MB', uploadedAt: '2024-01-12', status: 'processed' },
+    { id: '5', name: 'Product Demo Scripts', type: 'document', size: '1.1 MB', uploadedAt: '2024-01-10', status: 'processed' },
+    { id: '6', name: 'Competitive Analysis 2024', type: 'presentation', size: '8.7 MB', uploadedAt: '2024-01-08', status: 'processed' },
+    { id: '7', name: 'Customer Success Stories', type: 'document', size: '3.4 MB', uploadedAt: '2024-01-06', status: 'processed' }
+  ],
+  personal: [
+    { id: '8', name: 'My Sales Techniques', type: 'document', size: '0.8 MB', uploadedAt: '2024-01-14', status: 'processed' },
+    { id: '9', name: 'Personal Call Notes Template', type: 'document', size: '0.3 MB', uploadedAt: '2024-01-12', status: 'processed' }
+  ]
+}
 
-  // Check if user is org admin
-  const isOrgAdmin = CURRENT_USER.role_key === 'org_admin' || CURRENT_USER.role_key === 'super_admin';
+export const Settings = () => {
+  const [activeTab, setActiveTab] = useState('profile')
+  const [isEditing, setIsEditing] = useState(false)
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserRole, setNewUserRole] = useState('app_user')
+  const [orgUsers, setOrgUsers] = useState(mockOrgUsers)
+  const [trainingMaterials, setTrainingMaterials] = useState(mockTrainingMaterials)
 
-  useEffect(() => {
-    loadSetupData();
-  }, []);
-
-  const loadSetupData = async () => {
-    try {
-      // Load existing Fireflies key status
-      const firefliesData = await dbHelpers.getUserFirefliesKey(CURRENT_USER.id);
-      if (firefliesData) {
-        setFirefliesStatus({
-          connected: true,
-          lastVerified: firefliesData.last_verified,
-          isValid: firefliesData.is_valid,
-        });
-      }
-
-      // Load existing HubSpot token status (for org admins)
-      if (isOrgAdmin) {
-        const hubspotData = await dbHelpers.getOrgHubspotToken(CURRENT_USER.organization_id);
-        if (hubspotData) {
-          setHubspotStatus({
-            connected: true,
-            expiresAt: hubspotData.expires_at,
-            lastVerified: hubspotData.last_verified,
-            isValid: hubspotData.is_valid,
-            daysUntilExpiration: calculateDaysUntilExpiration(hubspotData.expires_at),
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading setup data:', error);
+  // Profile settings state
+  const [profileSettings, setProfileSettings] = useState({
+    name: 'John Smith',
+    email: 'john.smith@acmecorp.com',
+    timezone: 'Europe/London',
+    language: 'en',
+    notifications: {
+      email: true,
+      push: true,
+      weekly_reports: true,
+      ai_insights: true
     }
-  };
+  })
 
-  const calculateDaysUntilExpiration = (expiresAt) => {
-    if (!expiresAt) return null;
-    const now = new Date();
-    const expiration = new Date(expiresAt);
-    const diffTime = expiration - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  // Organization settings state
+  const [orgSettings, setOrgSettings] = useState({
+    name: 'Acme Corp',
+    domain: 'acmecorp.com',
+    industry: 'technology',
+    size: '50-200',
+    default_methodology: 'spin',
+    ai_training_enabled: true,
+    data_retention_days: 365,
+    require_2fa: false
+  })
 
-  const handleSaveProfile = async () => {
-    setIsLoading(true);
-    try {
-      await authHelpers.updateUserProfile(CURRENT_USER.id, {
-        full_name: profileData.fullName,
-        timezone: profileData.timezone,
-        language: profileData.language,
-        theme: profileData.theme,
-      });
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      toast.error("Failed to update profile");
-      console.error("Profile update error:", error);
-    } finally {
-      setIsLoading(false);
+  // Security settings state
+  const [securitySettings, setSecuritySettings] = useState({
+    two_factor_enabled: false,
+    session_timeout: 480, // minutes
+    password_policy: 'strong',
+    api_access_enabled: true,
+    audit_logging: true
+  })
+
+  const currentUserRole = userRoles[mockCurrentUser.role]
+  const canManageUsers = mockCurrentUser.permissions.includes('manage_users')
+  const canManageOrgSettings = mockCurrentUser.permissions.includes('manage_org_settings')
+  const canUploadOrgMaterials = mockCurrentUser.permissions.includes('upload_org_materials')
+  const canViewOrgAnalytics = mockCurrentUser.permissions.includes('view_org_analytics')
+
+  const handleSaveProfile = () => {
+    setIsEditing(false)
+    toast.success('Profile settings saved successfully')
+  }
+
+  const handleSaveOrgSettings = () => {
+    toast.success('Organization settings saved successfully')
+  }
+
+  const handleSaveSecurity = () => {
+    toast.success('Security settings saved successfully')
+  }
+
+  const handleInviteUser = () => {
+    if (!newUserEmail.trim()) {
+      toast.error('Please enter a valid email address')
+      return
     }
-  };
 
-  const handleSaveNotifications = async () => {
-    setIsLoading(true);
-    try {
-      await dbHelpers.updateUserNotificationSettings(CURRENT_USER.id, notifications);
-      toast.success("Notification settings updated");
-    } catch (error) {
-      toast.error("Failed to update notification settings");
-      console.error("Notification update error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const validateAndSaveFirefliesKey = async () => {
-    if (!firefliesKey.trim()) {
-      toast.error("Please enter a Fireflies API key");
-      return;
+    const newUser = {
+      id: Date.now().toString(),
+      email: newUserEmail,
+      name: newUserEmail.split('@')[0],
+      role: newUserRole,
+      status: 'pending',
+      lastLogin: null,
+      joinedAt: new Date().toISOString()
     }
 
-    setIsValidatingFireflies(true);
+    setOrgUsers(prev => [...prev, newUser])
+    setNewUserEmail('')
+    setNewUserRole('app_user')
+    toast.success(`Invitation sent to ${newUserEmail}`)
+  }
+
+  const handleRemoveUser = (userId: string) => {
+    setOrgUsers(prev => prev.filter(user => user.id !== userId))
+    toast.success('User removed from organization')
+  }
+
+  const handleFileUpload = async (file: File, category: 'general' | 'business' | 'personal') => {
+    if (!file) return
+
+    // Check permissions
+    if (category === 'general' && mockCurrentUser.role !== 'super_admin') {
+      toast.error('Only Super Admins can upload general materials')
+      return
+    }
+    if (category === 'business' && !canUploadOrgMaterials) {
+      toast.error('You do not have permission to upload business materials')
+      return
+    }
+
+    setIsUploading(true)
+    setUploadProgress(0)
+
     try {
-      // Validate the key with Fireflies API
-      const isValid = await validateFirefliesKey(firefliesKey);
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 200)
+
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
-      if (isValid) {
-        // Encrypt and save the key
-        await dbHelpers.saveUserFirefliesKey(CURRENT_USER.id, firefliesKey);
-        
-        setFirefliesStatus({
-          connected: true,
-          lastVerified: new Date().toISOString(),
-          isValid: true,
-        });
-        
-        setFirefliesKey("");
-        toast.success("Fireflies API key saved and validated successfully");
-      } else {
-        toast.error("Invalid Fireflies API key. Please check and try again.");
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      // Add to materials list
+      const newMaterial = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type.includes('video') ? 'video' : file.type.includes('presentation') ? 'presentation' : 'document',
+        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        uploadedAt: new Date().toISOString().split('T')[0],
+        status: 'processing'
       }
+
+      setTrainingMaterials(prev => ({
+        ...prev,
+        [category]: [...prev[category], newMaterial]
+      }))
+
+      // Simulate processing completion
+      setTimeout(() => {
+        setTrainingMaterials(prev => ({
+          ...prev,
+          [category]: prev[category].map(material => 
+            material.id === newMaterial.id 
+              ? { ...material, status: 'processed' }
+              : material
+          )
+        }))
+        toast.success('File processed and ready for AI training')
+      }, 3000)
+
+      toast.success('File uploaded successfully')
     } catch (error) {
-      console.error("Fireflies validation error:", error);
-      toast.error("Failed to validate Fireflies API key");
+      toast.error('Failed to upload file')
     } finally {
-      setIsValidatingFireflies(false);
+      setIsUploading(false)
+      setUploadProgress(0)
     }
-  };
+  }
 
-  const validateAndSaveHubspotToken = async () => {
-    if (!hubspotToken.trim()) {
-      toast.error("Please enter a HubSpot access token");
-      return;
-    }
+  const handleDeleteMaterial = (materialId: string, category: 'general' | 'business' | 'personal') => {
+    setTrainingMaterials(prev => ({
+      ...prev,
+      [category]: prev[category].filter(material => material.id !== materialId)
+    }))
+    toast.success('Training material deleted')
+  }
 
-    setIsValidatingHubspot(true);
-    try {
-      // Validate the token with HubSpot API
-      const validation = await validateHubspotToken(hubspotToken);
-      
-      if (validation.isValid) {
-        // Encrypt and save the token
-        await dbHelpers.saveOrgHubspotToken(CURRENT_USER.organization_id, {
-          access_token: hubspotToken,
-          expires_at: validation.expiresAt,
-          hub_id: validation.hubId,
-          account_name: validation.accountName,
-        });
-        
-        setHubspotStatus({
-          connected: true,
-          expiresAt: validation.expiresAt,
-          lastVerified: new Date().toISOString(),
-          isValid: true,
-          daysUntilExpiration: calculateDaysUntilExpiration(validation.expiresAt),
-          accountName: validation.accountName,
-          hubId: validation.hubId,
-        });
-        
-        setHubspotToken("");
-        toast.success("HubSpot access token saved and validated successfully");
-      } else {
-        toast.error("Invalid HubSpot access token. Please check and try again.");
-      }
-    } catch (error) {
-      console.error("HubSpot validation error:", error);
-      toast.error("Failed to validate HubSpot access token");
-    } finally {
-      setIsValidatingHubspot(false);
-    }
-  };
-
-  const validateFirefliesKey = async (apiKey) => {
-    try {
-      // Mock validation - replace with actual Fireflies API call
-      const response = await fetch('https://api.fireflies.ai/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          query: `
-            query {
-              user {
-                user_id
-                email
-              }
-            }
-          `
-        }),
-      });
-
-      return response.ok;
-    } catch (error) {
-      console.error('Fireflies validation error:', error);
-      return false;
-    }
-  };
-
-  const validateHubspotToken = async (accessToken) => {
-    try {
-      const response = await fetch('https://api.hubapi.com/account-info/v3/details', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Get token info for expiration
-        const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/access-tokens/' + accessToken);
-        let expiresAt = null;
-        
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString();
-        }
-
-        return {
-          isValid: true,
-          hubId: data.portalId,
-          accountName: data.companyName,
-          expiresAt: expiresAt,
-        };
-      }
-
-      return { isValid: false };
-    } catch (error) {
-      console.error('HubSpot validation error:', error);
-      return { isValid: false };
-    }
-  };
-
-  const handleRevokeFirefliesKey = async () => {
-    try {
-      await dbHelpers.deleteUserFirefliesKey(CURRENT_USER.id);
-      setFirefliesStatus(null);
-      toast.success("Fireflies API key revoked successfully");
-    } catch (error) {
-      toast.error("Failed to revoke Fireflies API key");
-      console.error("Fireflies revoke error:", error);
-    }
-  };
-
-  const handleRevokeHubspotToken = async () => {
-    try {
-      await dbHelpers.deleteOrgHubspotToken(CURRENT_USER.organization_id);
-      setHubspotStatus(null);
-      toast.success("HubSpot access token revoked successfully");
-    } catch (error) {
-      toast.error("Failed to revoke HubSpot access token");
-      console.error("HubSpot revoke error:", error);
-    }
-  };
-
-  const getExpirationBadge = (daysUntilExpiration) => {
-    if (daysUntilExpiration === null) return null;
-    
-    if (daysUntilExpiration < 0) {
-      return (
-        <Badge variant="destructive" className="flex items-center space-x-1">
-          <AlertCircle className="w-3 h-3" />
-          <span>Expired</span>
-        </Badge>
-      );
-    } else if (daysUntilExpiration <= 7) {
-      return (
-        <Badge variant="destructive" className="flex items-center space-x-1">
-          <Clock className="w-3 h-3" />
-          <span>{daysUntilExpiration} days left</span>
-        </Badge>
-      );
-    } else if (daysUntilExpiration <= 30) {
-      return (
-        <Badge variant="outline" className="flex items-center space-x-1 bg-yellow-100 text-yellow-800 border-yellow-200">
-          <Clock className="w-3 h-3" />
-          <span>{daysUntilExpiration} days left</span>
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge variant="default" className="flex items-center space-x-1 bg-green-100 text-green-800 border-green-200">
-          <CheckCircle className="w-3 h-3" />
-          <span>{daysUntilExpiration} days left</span>
-        </Badge>
-      );
-    }
-  };
+  const generateApiKey = () => {
+    const apiKey = 'sk-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    navigator.clipboard.writeText(apiKey)
+    toast.success('New API key generated and copied to clipboard')
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings, preferences, and integrations.
-        </p>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center space-x-3">
+            <SettingsIcon className="w-8 h-8 text-primary" />
+            <span>Settings</span>
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your account, organization, and AI training configurations
+          </p>
+        </div>
+        
+        {/* User Role Badge */}
+        <div className="flex items-center space-x-3">
+          <Badge variant="outline" className={cn("text-sm", currentUserRole.color)}>
+            <currentUserRole.icon className="w-4 h-4 mr-2" />
+            {currentUserRole.label}
+          </Badge>
+          <div className="text-right">
+            <p className="text-sm font-medium">{mockCurrentUser.organizationName}</p>
+            <p className="text-xs text-muted-foreground">{mockCurrentUser.email}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
             <User className="w-4 h-4" />
             <span>Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center space-x-2">
-            <Bell className="w-4 h-4" />
-            <span>Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="setup" className="flex items-center space-x-2">
-            <SettingsIcon className="w-4 h-4" />
-            <span>Setup</span>
-          </TabsTrigger>
+          {canManageOrgSettings && (
+            <TabsTrigger value="organization" className="flex items-center space-x-2">
+              <Building className="w-4 h-4" />
+              <span>Organization</span>
+            </TabsTrigger>
+          )}
+          {canManageUsers && (
+            <TabsTrigger value="users" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Users</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
             <span>Security</span>
           </TabsTrigger>
+          <TabsTrigger value="ai-training" className="flex items-center space-x-2">
+            <Brain className="w-4 h-4" />
+            <span>AI Training</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center space-x-2">
+            <BarChart3 className="w-4 h-4" />
+            <span>Analytics</span>
+          </TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab */}
+        {/* Profile Settings */}
         <TabsContent value="profile" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={profileData.fullName}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, fullName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={profileData.email}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select
-                    value={profileData.timezone}
-                    onValueChange={(value) =>
-                      setProfileData({ ...profileData, timezone: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                      <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                      <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                      <SelectItem value="Europe/London">London</SelectItem>
-                      <SelectItem value="Europe/Paris">Paris</SelectItem>
-                      <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select
-                    value={profileData.language}
-                    onValueChange={(value) =>
-                      setProfileData({ ...profileData, language: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="theme">Theme</Label>
-                <Select
-                  value={profileData.theme}
-                  onValueChange={(value) =>
-                    setProfileData({ ...profileData, theme: value })
-                  }
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={handleSaveProfile} disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Save Profile
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="emailNotifications">Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive email notifications for important updates
-                    </p>
-                  </div>
-                  <Switch
-                    id="emailNotifications"
-                    checked={notifications.emailNotifications}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, emailNotifications: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="pushNotifications">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive browser push notifications
-                    </p>
-                  </div>
-                  <Switch
-                    id="pushNotifications"
-                    checked={notifications.pushNotifications}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, pushNotifications: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="weeklyReports">Weekly Reports</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive weekly performance reports
-                    </p>
-                  </div>
-                  <Switch
-                    id="weeklyReports"
-                    checked={notifications.weeklyReports}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, weeklyReports: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="securityAlerts">Security Alerts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive alerts for security-related events
-                    </p>
-                  </div>
-                  <Switch
-                    id="securityAlerts"
-                    checked={notifications.securityAlerts}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, securityAlerts: checked })
-                    }
-                  />
-                </div>
-              </div>
-
-              <Button onClick={handleSaveNotifications} disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Save Preferences
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Setup Tab */}
-        <TabsContent value="setup" className="mt-6">
-          <div className="space-y-6">
-            {/* Fireflies Integration */}
+          <div className="grid lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5" />
-                  <span>Fireflies.ai Integration</span>
-                  {firefliesStatus?.connected && (
-                    <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Connected
-                    </Badge>
-                  )}
+                <CardTitle className="flex items-center justify-between">
+                  <span>Personal Information</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+                  >
+                    {isEditing ? (
+                      <>
+                        <Save className="w-4 h-4 mr-1" />
+                        Save
+                      </>
+                    ) : (
+                      <>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </>
+                    )}
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {firefliesStatus?.connected ? (
-                  <div className="space-y-4">
-                    <Alert>
-                      <CheckCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Your Fireflies API key is connected and working properly.
-                        Last verified: {new Date(firefliesStatus.lastVerified).toLocaleDateString()}
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => loadSetupData()}
-                        size="sm"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Test Connection
-                      </Button>
-                      
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Unlock className="w-4 h-4 mr-1" />
-                            Revoke Key
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Revoke Fireflies API Key</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to revoke your Fireflies API key? 
-                              This will disable automatic transcript syncing.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button variant="outline">Cancel</Button>
-                            <Button variant="destructive" onClick={handleRevokeFirefliesKey}>
-                              Revoke Key
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Full Name</label>
+                  <Input
+                    value={profileSettings.name}
+                    onChange={(e) => setProfileSettings(prev => ({ ...prev, name: e.target.value }))}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Email Address</label>
+                  <Input
+                    value={profileSettings.email}
+                    onChange={(e) => setProfileSettings(prev => ({ ...prev, email: e.target.value }))}
+                    disabled={!isEditing}
+                    type="email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Timezone</label>
+                    <Select 
+                      value={profileSettings.timezone} 
+                      onValueChange={(value) => setProfileSettings(prev => ({ ...prev, timezone: value }))}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                        <SelectItem value="America/New_York">New York (EST)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Los Angeles (PST)</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        Connect your Fireflies.ai account to automatically sync call transcripts.
-                        You can find your API key in your Fireflies.ai account settings.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="firefliesKey">Fireflies API Key</Label>
-                      <div className="flex space-x-2">
-                        <div className="relative flex-1">
-                          <Input
-                            id="firefliesKey"
-                            type={showFirefliesKey ? "text" : "password"}
-                            value={firefliesKey}
-                            onChange={(e) => setFirefliesKey(e.target.value)}
-                            placeholder="Enter your Fireflies API key"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowFirefliesKey(!showFirefliesKey)}
-                          >
-                            {showFirefliesKey ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <Button
-                          onClick={validateAndSaveFirefliesKey}
-                          disabled={isValidatingFireflies || !firefliesKey.trim()}
-                        >
-                          {isValidatingFireflies ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <Key className="w-4 h-4 mr-2" />
-                          )}
-                          {isValidatingFireflies ? "Validating..." : "Save & Validate"}
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                      <ExternalLink className="w-4 h-4" />
-                      <a
-                        href="https://app.fireflies.ai/integrations/custom/api"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        Get your Fireflies API key
-                      </a>
-                    </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Language</label>
+                    <Select 
+                      value={profileSettings.language} 
+                      onValueChange={(value) => setProfileSettings(prev => ({ ...prev, language: value }))}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Spanish</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                        <SelectItem value="de">German</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 
-            {/* HubSpot Integration (Org Admin Only) */}
-            {isOrgAdmin && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Building className="w-5 h-5" />
-                    <span>HubSpot Organization Token</span>
-                    {hubspotStatus?.connected && (
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Connected
-                        </Badge>
-                        {getExpirationBadge(hubspotStatus.daysUntilExpiration)}
-                      </div>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {hubspotStatus?.connected ? (
-                    <div className="space-y-4">
-                      <Alert>
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          Organization HubSpot token is connected and working properly.
-                          {hubspotStatus.accountName && (
-                            <div className="mt-2">
-                              <strong>Account:</strong> {hubspotStatus.accountName}
-                              {hubspotStatus.hubId && (
-                                <span className="ml-2 text-muted-foreground">
-                                  (Hub ID: {hubspotStatus.hubId})
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <div className="mt-1">
-                            Last verified: {new Date(hubspotStatus.lastVerified).toLocaleDateString()}
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                      
-                      {hubspotStatus.daysUntilExpiration !== null && hubspotStatus.daysUntilExpiration <= 30 && (
-                        <Alert variant={hubspotStatus.daysUntilExpiration <= 7 ? "destructive" : "default"}>
-                          <Clock className="h-4 w-4" />
-                          <AlertDescription>
-                            {hubspotStatus.daysUntilExpiration <= 0
-                              ? "Your HubSpot token has expired. Please update it to continue using HubSpot integration."
-                              : `Your HubSpot token will expire in ${hubspotStatus.daysUntilExpiration} days. Consider updating it soon.`
-                            }
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => loadSetupData()}
-                          size="sm"
-                        >
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                          Test Connection
-                        </Button>
-                        
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              <Unlock className="w-4 h-4 mr-1" />
-                              Revoke Token
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Revoke HubSpot Token</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to revoke the organization's HubSpot token? 
-                                This will disable HubSpot integration for all users in your organization.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                              <Button variant="outline">Cancel</Button>
-                              <Button variant="destructive" onClick={handleRevokeHubspotToken}>
-                                Revoke Token
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          As an organization administrator, you can configure a HubSpot access token 
-                          that will be used by all users in your organization for CRM integration.
-                        </AlertDescription>
-                      </Alert>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="hubspotToken">HubSpot Access Token</Label>
-                        <div className="flex space-x-2">
-                          <div className="relative flex-1">
-                            <Input
-                              id="hubspotToken"
-                              type={showHubspotToken ? "text" : "password"}
-                              value={hubspotToken}
-                              onChange={(e) => setHubspotToken(e.target.value)}
-                              placeholder="Enter HubSpot access token"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={() => setShowHubspotToken(!showHubspotToken)}
-                            >
-                              {showHubspotToken ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </div>
-                          <Button
-                            onClick={validateAndSaveHubspotToken}
-                            disabled={isValidatingHubspot || !hubspotToken.trim()}
-                          >
-                            {isValidatingHubspot ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <Lock className="w-4 h-4 mr-2" />
-                            )}
-                            {isValidatingHubspot ? "Validating..." : "Save & Validate"}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <ExternalLink className="w-4 h-4" />
-                        <a
-                          href="https://developers.hubspot.com/docs/api/private-apps"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          Learn how to create a HubSpot access token
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Access Level Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Access Level Information</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <Bell className="w-5 h-5" />
+                  <span>Notification Preferences</span>
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Your Role:</span>
-                    <Badge variant="outline">
-                      {CURRENT_USER.role_key?.replace('_', ' ').toUpperCase() || 'USER'}
-                    </Badge>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Email Notifications</p>
+                    <p className="text-xs text-muted-foreground">Receive updates via email</p>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Fireflies Integration:</span>
-                    <Badge variant="secondary">User Level</Badge>
+                  <Switch
+                    checked={profileSettings.notifications.email}
+                    onCheckedChange={(checked) => 
+                      setProfileSettings(prev => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, email: checked }
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Push Notifications</p>
+                    <p className="text-xs text-muted-foreground">Browser notifications</p>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">HubSpot Integration:</span>
-                    <Badge variant={isOrgAdmin ? "default" : "secondary"}>
-                      {isOrgAdmin ? "Admin Level" : "Organization Level"}
-                    </Badge>
+                  <Switch
+                    checked={profileSettings.notifications.push}
+                    onCheckedChange={(checked) => 
+                      setProfileSettings(prev => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, push: checked }
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Weekly Reports</p>
+                    <p className="text-xs text-muted-foreground">Performance summaries</p>
                   </div>
-                  
-                  {!isOrgAdmin && (
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        HubSpot integration is managed at the organization level. 
-                        Contact your organization administrator to configure HubSpot access.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  <Switch
+                    checked={profileSettings.notifications.weekly_reports}
+                    onCheckedChange={(checked) => 
+                      setProfileSettings(prev => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, weekly_reports: checked }
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">AI Insights</p>
+                    <p className="text-xs text-muted-foreground">New AI-generated insights</p>
+                  </div>
+                  <Switch
+                    checked={profileSettings.notifications.ai_insights}
+                    onCheckedChange={(checked) => 
+                      setProfileSettings(prev => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, ai_insights: checked }
+                      }))
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Security Tab */}
+        {/* Organization Settings */}
+        {canManageOrgSettings && (
+          <TabsContent value="organization" className="mt-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Organization Details</span>
+                    <Button variant="outline" size="sm" onClick={handleSaveOrgSettings}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Changes
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Organization Name</label>
+                    <Input
+                      value={orgSettings.name}
+                      onChange={(e) => setOrgSettings(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Domain</label>
+                    <Input
+                      value={orgSettings.domain}
+                      onChange={(e) => setOrgSettings(prev => ({ ...prev, domain: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Industry</label>
+                      <Select 
+                        value={orgSettings.industry} 
+                        onValueChange={(value) => setOrgSettings(prev => ({ ...prev, industry: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="technology">Technology</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="healthcare">Healthcare</SelectItem>
+                          <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Company Size</label>
+                      <Select 
+                        value={orgSettings.size} 
+                        onValueChange={(value) => setOrgSettings(prev => ({ ...prev, size: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1-10">1-10 employees</SelectItem>
+                          <SelectItem value="11-50">11-50 employees</SelectItem>
+                          <SelectItem value="50-200">50-200 employees</SelectItem>
+                          <SelectItem value="200-1000">200-1000 employees</SelectItem>
+                          <SelectItem value="1000+">1000+ employees</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Default Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Default Sales Methodology</label>
+                    <Select 
+                      value={orgSettings.default_methodology} 
+                      onValueChange={(value) => setOrgSettings(prev => ({ ...prev, default_methodology: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="spin">SPIN Selling</SelectItem>
+                        <SelectItem value="sandler">Sandler</SelectItem>
+                        <SelectItem value="meddic">MEDDIC</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Data Retention (Days)</label>
+                    <Input
+                      type="number"
+                      value={orgSettings.data_retention_days}
+                      onChange={(e) => setOrgSettings(prev => ({ ...prev, data_retention_days: parseInt(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">AI Training Enabled</p>
+                      <p className="text-xs text-muted-foreground">Allow AI to learn from organization data</p>
+                    </div>
+                    <Switch
+                      checked={orgSettings.ai_training_enabled}
+                      onCheckedChange={(checked) => 
+                        setOrgSettings(prev => ({ ...prev, ai_training_enabled: checked }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Require 2FA</p>
+                      <p className="text-xs text-muted-foreground">Mandatory two-factor authentication</p>
+                    </div>
+                    <Switch
+                      checked={orgSettings.require_2fa}
+                      onCheckedChange={(checked) => 
+                        setOrgSettings(prev => ({ ...prev, require_2fa: checked }))
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
+
+        {/* User Management */}
+        {canManageUsers && (
+          <TabsContent value="users" className="mt-6">
+            <div className="space-y-6">
+              {/* Invite User */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Plus className="w-5 h-5" />
+                    <span>Invite New User</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-end space-x-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Email Address</label>
+                      <Input
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="user@acmecorp.com"
+                        type="email"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Role</label>
+                      <Select value={newUserRole} onValueChange={setNewUserRole}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="app_user">Application User</SelectItem>
+                          <SelectItem value="client_admin">Organization Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleInviteUser}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Send Invite
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Users List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Organization Users</span>
+                    <Badge variant="secondary">{orgUsers.length} users</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {orgUsers.map((user) => {
+                      const role = userRoles[user.role]
+                      return (
+                        <div key={user.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Badge variant="outline" className={cn("text-xs", role.color)}>
+                                  <role.icon className="w-3 h-3 mr-1" />
+                                  {role.label}
+                                </Badge>
+                                <Badge 
+                                  variant={user.status === 'active' ? 'default' : 'secondary'}
+                                  className="text-xs"
+                                >
+                                  {user.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="text-right text-sm text-muted-foreground">
+                              {user.lastLogin ? (
+                                <p>Last login: {new Date(user.lastLogin).toLocaleDateString()}</p>
+                              ) : (
+                                <p>Never logged in</p>
+                              )}
+                              <p>Joined: {new Date(user.joinedAt).toLocaleDateString()}</p>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleRemoveUser(user.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
+
+        {/* Security Settings */}
         <TabsContent value="security" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Alert>
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  Security settings are coming soon. This will include password management,
-                  two-factor authentication, and session management.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Authentication & Access</span>
+                  <Button variant="outline" size="sm" onClick={handleSaveSecurity}>
+                    <Save className="w-4 h-4 mr-1" />
+                    Save Changes
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Two-Factor Authentication</p>
+                    <p className="text-xs text-muted-foreground">Add extra security to your account</p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.two_factor_enabled}
+                    onCheckedChange={(checked) => 
+                      setSecuritySettings(prev => ({ ...prev, two_factor_enabled: checked }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Session Timeout (minutes)</label>
+                  <Input
+                    type="number"
+                    value={securitySettings.session_timeout}
+                    onChange={(e) => setSecuritySettings(prev => ({ ...prev, session_timeout: parseInt(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Password Policy</label>
+                  <Select 
+                    value={securitySettings.password_policy} 
+                    onValueChange={(value) => setSecuritySettings(prev => ({ ...prev, password_policy: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">Basic (8+ characters)</SelectItem>
+                      <SelectItem value="strong">Strong (12+ chars, mixed case, numbers)</SelectItem>
+                      <SelectItem value="enterprise">Enterprise (16+ chars, symbols required)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">API Access</p>
+                    <p className="text-xs text-muted-foreground">Allow API key generation</p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.api_access_enabled}
+                    onCheckedChange={(checked) => 
+                      setSecuritySettings(prev => ({ ...prev, api_access_enabled: checked }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Audit Logging</p>
+                    <p className="text-xs text-muted-foreground">Track all administrative actions</p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.audit_logging}
+                    onCheckedChange={(checked) => 
+                      setSecuritySettings(prev => ({ ...prev, audit_logging: checked }))
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Key className="w-5 h-5" />
+                  <span>API Keys</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Current API Key</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                    >
+                      {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <div className="font-mono text-sm bg-background p-2 rounded border">
+                    {showApiKey ? 'sk-1234567890abcdef1234567890abcdef' : '••••••••••••••••••••••••••••••••'}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Created: January 15, 2024 • Last used: 2 hours ago
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={generateApiKey} className="flex-1">
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Generate New Key
+                  </Button>
+                  <Button variant="outline" onClick={() => toast.success('API key copied to clipboard')}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <p>⚠️ Generating a new key will invalidate the current one</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Training Materials */}
+        <TabsContent value="ai-training" className="mt-6">
+          <div className="space-y-6">
+            {/* Upload Progress */}
+            {isUploading && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Upload className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Uploading training material...</span>
+                  </div>
+                  <Progress value={uploadProgress} className="w-full" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {uploadProgress < 50 ? 'Uploading file...' : 
+                     uploadProgress < 90 ? 'Processing content...' : 
+                     'Finalizing...'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* General B2B Sales Knowledge */}
+            {mockCurrentUser.role === 'super_admin' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Globe className="w-5 h-5" />
+                    <span>General B2B Sales Knowledge</span>
+                    <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+                      Super Admin Only
+                    </Badge>
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Platform-level resources for all organizations (industry best practices, expert insights)
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        id="general-upload"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'general')}
+                        accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                      />
+                      <label htmlFor="general-upload" className="cursor-pointer">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Upload General Training Material</p>
+                        <p className="text-xs text-muted-foreground">PDF, DOC, TXT, MP4, PPT (Max 100MB)</p>
+                      </label>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {trainingMaterials.general.map((material) => (
+                        <div key={material.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{material.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {material.size} • {material.uploadedAt}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={material.status === 'processed' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {material.status === 'processed' ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Processed
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                  Processing
+                                </>
+                              )}
+                            </Badge>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteMaterial(material.id, 'general')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Business-Specific Knowledge */}
+            {canUploadOrgMaterials && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Building className="w-5 h-5" />
+                    <span>Business-Specific Knowledge</span>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                      Organization Level
+                    </Badge>
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Company playbooks, product documentation, presentations, and unique selling propositions
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        id="business-upload"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'business')}
+                        accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                      />
+                      <label htmlFor="business-upload" className="cursor-pointer">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">Upload Business Material</p>
+                        <p className="text-xs text-muted-foreground">PDF, DOC, TXT, MP4, PPT (Max 100MB)</p>
+                      </label>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {trainingMaterials.business.map((material) => (
+                        <div key={material.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{material.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {material.size} • {material.uploadedAt}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={material.status === 'processed' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {material.status === 'processed' ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Processed
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                  Processing
+                                </>
+                              )}
+                            </Badge>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteMaterial(material.id, 'business')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Personal Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="w-5 h-5" />
+                  <span>Personal Insights</span>
+                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                    Personal Level
+                  </Badge>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Your personal sales knowledge, experiences, and preferred approaches
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      id="personal-upload"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'personal')}
+                      accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                    />
+                    <label htmlFor="personal-upload" className="cursor-pointer">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium">Upload Personal Material</p>
+                      <p className="text-xs text-muted-foreground">PDF, DOC, TXT, MP4, PPT (Max 50MB)</p>
+                    </label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {trainingMaterials.personal.map((material) => (
+                      <div key={material.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{material.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {material.size} • {material.uploadedAt}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge 
+                            variant={material.status === 'processed' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {material.status === 'processed' ? (
+                              <>
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Processed
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                Processing
+                              </>
+                            )}
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteMaterial(material.id, 'personal')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Analytics Access */}
+        <TabsContent value="analytics" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="w-5 h-5" />
+                  <span>Analytics Access</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {mockCurrentUser.role === 'super_admin' && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Globe className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <p className="text-sm font-medium">Platform Analytics</p>
+                          <p className="text-xs text-muted-foreground">All organizations and users</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {canViewOrgAnalytics && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium">Organization Analytics</p>
+                          <p className="text-xs text-muted-foreground">{mockCurrentUser.organizationName} only</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium">Personal Analytics</p>
+                        <p className="text-xs text-muted-foreground">Your individual performance</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Export</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Export Personal Data</p>
+                      <p className="text-xs text-muted-foreground">Download your data in JSON format</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-1" />
+                      Export
+                    </Button>
+                  </div>
+                  
+                  {canViewOrgAnalytics && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Export Organization Data</p>
+                        <p className="text-xs text-muted-foreground">Download organization analytics</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        Export
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <Separator />
+                
+                <div className="text-xs text-muted-foreground">
+                  <p className="mb-2">Data Retention Policy:</p>
+                  <ul className="space-y-1">
+                    <li>• Personal data: Retained until account deletion</li>
+                    <li>• Call transcripts: {orgSettings.data_retention_days} days</li>
+                    <li>• Analytics data: 2 years</li>
+                    <li>• Audit logs: 7 years</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
-export default Settings;
-export { Settings };
+export default Settings
