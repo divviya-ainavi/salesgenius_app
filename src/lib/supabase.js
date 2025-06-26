@@ -105,7 +105,7 @@ export const authHelpers = {
     }
   },
 
-  // Set current user state
+  // Set current user state and identify with PostHog
   async setCurrentUser(profile) {
     CURRENT_USER = {
       id: profile.id,
@@ -125,10 +125,38 @@ export const authHelpers = {
     // Store user ID in localStorage for persistence
     localStorage.setItem("userId", profile.id);
     localStorage.setItem("status", "loggedin");
+
+    // Identify user with PostHog analytics
+    analytics.identify(profile.id, {
+      email: profile.email,
+      full_name: profile.full_name,
+      role: 'sales_manager',
+      organization_id: profile.organization_id,
+      hubspot_connected: profile.hubspot_connected || false,
+      created_at: profile.created_at,
+    });
+
+    // Track login event
+    analytics.track('user_logged_in', {
+      user_id: profile.id,
+      email: profile.email,
+      login_method: 'custom_password',
+    });
   },
 
-  // Clear current user state
+  // Clear current user state and reset PostHog
   clearCurrentUser() {
+    // Track logout event before clearing user data
+    if (CURRENT_USER.id) {
+      analytics.track('user_logged_out', {
+        user_id: CURRENT_USER.id,
+        session_duration: Date.now() - (localStorage.getItem('login_timestamp') || Date.now()),
+      });
+    }
+
+    // Reset PostHog session
+    analytics.reset();
+
     CURRENT_USER = {
       id: null,
       email: null,
@@ -144,6 +172,7 @@ export const authHelpers = {
     // Clear localStorage
     localStorage.removeItem("userId");
     localStorage.removeItem("status");
+    localStorage.removeItem("login_timestamp");
   },
 
   // Check if user is authenticated

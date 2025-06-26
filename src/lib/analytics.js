@@ -46,9 +46,12 @@ export const analytics = {
     })
   },
 
-  // User identification
+  // User identification - now dynamic
   identify: (userId, traits = {}) => {
-    posthog.identify(userId, traits)
+    if (userId) {
+      posthog.identify(userId, traits)
+      console.log('PostHog: User identified', { userId, traits })
+    }
   },
 
   // Event tracking
@@ -171,6 +174,7 @@ export const analytics = {
   // Reset user (for logout)
   reset: () => {
     posthog.reset()
+    console.log('PostHog: User session reset')
   },
 
   // Get feature flags

@@ -62,23 +62,12 @@ const LoginPage = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    setError("");
-
     try {
-      // Sign in with Supabase Auth
-
+      // Sign in with custom password authentication
       const userId = await authHelpers.loginWithCustomPassword(
         formData.email,
         formData.password
       );
-
-      // const profile = await authHelpers.getUserProfile(userId);
-      // if (!profile) throw new Error("User profile not found.");
-
-      // await authHelpers.setCurrentUser(profile);
-
-      // toast.success("Login successful!");
-      // navigate("/calls");
 
       if (userId) {
         // Fetch user profile data
@@ -88,10 +77,11 @@ const LoginPage = () => {
           throw new Error("User profile not found. Please contact support.");
         }
 
-        // Update current user state
+        // Update current user state and identify with PostHog
         await authHelpers.setCurrentUser(profile);
-        localStorage.setItem("userId", userId);
-        localStorage.setItem("status", "loggedin");
+        
+        // Store login timestamp for session tracking
+        localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");
         navigate("/calls");
@@ -244,21 +234,6 @@ const LoginPage = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Demo Credentials */}
-        {/* <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">
-            Demo Credentials
-          </h4>
-          <div className="text-xs text-blue-700 space-y-1">
-            <p>
-              <strong>Email:</strong> demo@salesgenius.ai
-            </p>
-            <p>
-              <strong>Password:</strong> demo123
-            </p>
-          </div>
-        </div> */}
       </div>
     </div>
   );
