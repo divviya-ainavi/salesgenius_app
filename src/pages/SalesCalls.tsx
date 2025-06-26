@@ -43,8 +43,11 @@ import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import firefliesService from "@/services/firefliesService";
+import { usePageTimer } from "../hooks/userPageTimer";
 
 const SalesCalls = () => {
+  usePageTimer("Sales Calls");
+
   const navigate = useNavigate();
   const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
     useAnalytics();

@@ -55,6 +55,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { usePageTimer } from "../hooks/userPageTimer";
 
 // Mock prospects data with cumulative insights
 const mockProspects = [
@@ -378,6 +379,7 @@ const communicationModalityIcons = {
 };
 
 const CallInsights = () => {
+  usePageTimer("Call Insights");
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedProspect, setSelectedProspect] = useState(null);

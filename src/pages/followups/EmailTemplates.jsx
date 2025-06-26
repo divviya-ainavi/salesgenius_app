@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import api from "../../lib/api";
+import { usePageTimer } from "../../hooks/userPageTimer";
 
 // Mock personality analysis data based on selected prospect
 const getPersonalityAnalysis = (prospectId) => {
@@ -280,6 +281,8 @@ const mockProspects = [
 ];
 
 export const EmailTemplates = () => {
+  usePageTimer("Email Templates");
+
   const location = useLocation();
   const [selectedProspect, setSelectedProspect] = useState(mockProspects[0]);
   const [personalityAnalysis, setPersonalityAnalysis] = useState(null);

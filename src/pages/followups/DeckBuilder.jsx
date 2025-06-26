@@ -49,6 +49,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { usePageTimer } from "../../hooks/userPageTimer";
 
 // Sales methodologies
 const salesMethodologies = {
@@ -196,6 +197,8 @@ const quickPrompts = [
 ];
 
 export function DeckBuilder() {
+  usePageTimer("Presentation Prompt Builder");
+
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [prospects, setProspects] = useState([]);
   const [selectedMethodology, setSelectedMethodology] = useState("spin");

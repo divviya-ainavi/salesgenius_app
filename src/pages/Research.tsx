@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { usePageTimer } from "../hooks/userPageTimer";
 
 interface ResearchFormData {
   companyName: string;
@@ -36,6 +37,8 @@ interface ResearchResult {
 }
 
 const Research = () => {
+  usePageTimer("Research");
+
   const [currentView, setCurrentView] = useState<"form" | "results">("form");
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<ResearchFormData>({
