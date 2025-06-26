@@ -3,223 +3,181 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrackedButton } from "@/components/ui/tracked-button";
 import {
   Upload,
   FileText,
-  Eye,
-  Download,
-  Search,
+  Phone,
   Calendar,
+  Clock,
   User,
   Building,
-  Phone,
-  Clock,
-  Filter,
-  RefreshCw,
-  ExternalLink,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
   Play,
   Pause,
-  Volume2,
-  FileIcon,
+  RotateCcw,
+  Download,
+  Trash2,
+  Eye,
+  Search,
+  Filter,
+  RefreshCw,
   Plus,
+  ExternalLink,
+  Sparkles,
   ArrowRight,
-  Copy,
-  AlertCircle,
-  Loader2,
+  FileAudio,
+  FileVideo,
+  File,
+  Zap,
+  Target,
+  MessageSquare,
+  TrendingUp,
+  Users,
+  BarChart3,
+  Mic,
+  Video,
+  FileImage,
+  X,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { fileStorage } from "@/lib/fileStorage";
 import firefliesService from "@/services/firefliesService";
+import { usePageTimer } from "@/hooks/usePageTimer";
 
-const SalesCalls = () => {
-  const navigate = useNavigate();
-  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
-    useAnalytics();
+// Mock data for demonstration
+const mockCallData = [
+  {
+    id: "1",
+    callId: "CALL-2024-001",
+    companyName: "Acme Corp",
+    prospectName: "Sarah Johnson",
+    date: "2024-01-15",
+    duration: "45 min",
+    status: "completed",
+    hasTranscript: true,
+    hasSummary: true,
+    firefliesSummary:
+      "Discussed Q2 implementation timeline and budget allocation. Key stakeholders identified: Sarah (VP Sales), Mike (Sales Ops), Lisa (Marketing). Next steps: Technical demo scheduled for next week.",
+    transcript:
+      "Sarah: Thanks for joining today's call. We're looking at implementing a new sales automation platform for Q2...",
+    audioUrl: null,
+    participants: ["Sarah Johnson", "Mike Chen", "Lisa Rodriguez"],
+    meeting_link: "https://zoom.us/j/123456789",
+    organizer_email: "sarah.johnson@acmecorp.com",
+  },
+  {
+    id: "2",
+    callId: "CALL-2024-002",
+    companyName: "TechStart Inc",
+    prospectName: "John Smith",
+    date: "2024-01-14",
+    duration: "30 min",
+    status: "completed",
+    hasTranscript: true,
+    hasSummary: true,
+    firefliesSummary:
+      "Initial discovery call with startup CEO. Discussed scaling challenges and integration requirements. Budget constraints noted. Follow-up: Send startup-specific pricing proposal.",
+    transcript:
+      "John: Hi there, thanks for reaching out. We're a growing startup and looking for solutions that can scale with us...",
+    audioUrl: null,
+    participants: ["John Smith", "Emma Wilson"],
+    meeting_link: "https://meet.google.com/abc-defg-hij",
+    organizer_email: "john@techstart.com",
+  },
+  {
+    id: "3",
+    callId: "CALL-2024-003",
+    companyName: "Global Solutions Ltd",
+    prospectName: "Emma Wilson",
+    date: "2024-01-10",
+    duration: "60 min",
+    status: "processing",
+    hasTranscript: false,
+    hasSummary: false,
+    firefliesSummary: "Processing call transcript and generating insights...",
+    transcript: "",
+    audioUrl: null,
+    participants: ["Emma Wilson", "David Brown"],
+    meeting_link: "https://teams.microsoft.com/l/meetup-join/xyz",
+    organizer_email: "emma@globalsolutions.com",
+  },
+];
+
+export const SalesCalls = () => {
+  // Track time spent on Sales Calls page
+  usePageTimer('Sales Calls');
+
   const [activeTab, setActiveTab] = useState("upload");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCall, setSelectedCall] = useState(null);
-  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [modalContent, setModalContent] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingFileId, setProcessingFileId] = useState(null);
-  const [processedCalls, setProcessedCalls] = useState([]);
-
-  // Fireflies state
-  const [firefliesCalls, setFirefliesCalls] = useState([]);
+  const [firefliesData, setFirefliesData] = useState([]);
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
-  const [firefliesError, setFirefliesError] = useState(null);
-  const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
-  const [getFirefliessummary, setGetFirefliessummary] = useState(null);
-  const [getFirefliestranscript, setGetFirefliestranscript] = useState(null);
-  const [processingFirefliesId, setProcessingFirefliesId] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedCall, setSelectedCall] = useState(null);
+  const [showTranscriptDialog, setShowTranscriptDialog] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
 
-  // Load uploaded files, processed calls, and Fireflies data on component mount
+  // Use current authenticated user
+  const userId = CURRENT_USER.id;
+
+  // Load uploaded files on component mount
   useEffect(() => {
-    loadUploadedFiles();
-    loadProcessedCalls();
-    loadFirefliesTranscripts();
-
-    // Track page visit
-    trackFeatureUsage("sales_calls", "page_visit");
-  }, []);
-
-  // Track tab changes
-  useEffect(() => {
-    trackFeatureUsage("sales_calls", "tab_change", { tab: activeTab });
-  }, [activeTab]);
-
-  const loadUploadedFiles = async () => {
-    try {
-      const files = await dbHelpers.getUploadedFiles(CURRENT_USER.id, 20);
-      setUploadedFiles(files);
-    } catch (error) {
-      console.error("Error loading uploaded files:", error);
-      toast.error("Failed to load uploaded files");
-    }
-  };
-
-  const loadProcessedCalls = async () => {
-    try {
-      const insights = await dbHelpers.getUserCallInsights(CURRENT_USER.id);
-      setProcessedCalls(
-        insights.map((insight) => ({
-          id: insight.id,
-          callId: `Call ${insight.id.slice(-5)}`,
-          companyName: insight.company_details?.name || "Unknown Company",
-          prospectName: insight.prospect_details?.name || "Unknown Prospect",
-          date: new Date(insight.created_at).toISOString().split("T")[0],
-          duration: "N/A",
-          status: insight.processing_status,
-          source: "upload",
-          hasInsights: true,
-          transcript: insight.extracted_transcript || "",
-          aiProcessedData: {
-            call_summary: insight.call_summary,
-            action_items: insight.action_items,
-            follow_up_email: insight.follow_up_email,
-            deck_prompt: insight.deck_prompt,
-            sales_insights: insight.sales_insights,
-            communication_styles: insight.communication_styles,
-            call_analysis_overview: insight.call_analysis_overview,
-          },
-          uploaded_file_id: insight.uploaded_file_id,
-          type: insight.type || "file_upload",
-        }))
-      );
-    } catch (error) {
-      console.error("Error loading processed calls:", error);
-      toast.error("Failed to load processed calls");
-    }
-  };
-
-  const loadFirefliesTranscripts = async () => {
-    setIsLoadingFireflies(true);
-    setFirefliesError(null);
-
-    try {
-      const records = await dbHelpers.getFirefliesFiles(CURRENT_USER.id);
-
-      const transformed = records.map((file) => ({
-        id: file.fireflies_id,
-        callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
-        companyName:
-          file.organizer_email?.split("@")[1]?.split(".")[0] || "Unknown",
-        prospectName: file.organizer_email || "Unknown",
-        date: new Date(file.datestring || file.created_at)
-          .toISOString()
-          .split("T")[0],
-        duration: "N/A",
-        status: file.is_processed ? "processed" : "unprocessed",
-        participants: file.participants ? Object.values(file.participants) : [],
-        meetingLink: file.meeting_link,
-        hasSummary: false,
-        hasTranscript: false,
-      }));
-
-      setFirefliesCalls(transformed);
-      setLastFirefliesSync(new Date());
-    } catch (error) {
-      console.error("Error loading Fireflies transcripts:", error);
-      setFirefliesError(error.message);
-      toast.error("Failed to load Fireflies transcripts.");
-    } finally {
-      setIsLoadingFireflies(false);
-    }
-  };
-
-  // const handleSyncFireflies = async () => {
-  //   setIsLoadingFireflies(true);
-
-  //   try {
-  //     trackButtonClick("Sync Fireflies");
-
-  //     await firefliesService.syncTranscripts({
-  //       forceRefresh: true,
-  //     });
-
-  //     // Reload transcripts after sync
-  //     await loadFirefliesTranscripts();
-
-  //     toast.success("Fireflies transcripts synced successfully!");
-  //   } catch (error) {
-  //     console.error("Error syncing Fireflies:", error);
-  //     toast.error("Failed to sync Fireflies transcripts. Please try again.");
-  //   } finally {
-  //     setIsLoadingFireflies(false);
-  //   }
-  // };
-
-  const handleSyncFireflies = async () => {
-    setIsLoadingFireflies(true);
-
-    try {
-      trackButtonClick("Sync Fireflies");
-
-      // Call your external API directly
-      const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcript",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            forceRefresh: true,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+    const loadUploadedFiles = async () => {
+      if (!userId) {
+        console.log("No user ID available, skipping file load");
+        setIsLoadingFiles(false);
+        return;
       }
 
-      const result = await response.json(); // Optional: log or use the response
-      console.log("Fireflies sync result:", result);
+      setIsLoadingFiles(true);
+      try {
+        const files = await dbHelpers.getUploadedFiles(userId);
+        setUploadedFiles(files);
+      } catch (error) {
+        console.error("Error loading uploaded files:", error);
+        toast.error("Failed to load uploaded files");
+      } finally {
+        setIsLoadingFiles(false);
+      }
+    };
 
-      // Then reload transcripts
-      await loadFirefliesTranscripts();
+    loadUploadedFiles();
+  }, [userId]);
 
-      toast.success("Fireflies transcripts synced successfully!");
+  // Load Fireflies data
+  const loadFirefliesData = async () => {
+    setIsLoadingFireflies(true);
+    try {
+      const data = await firefliesService.getTranscripts();
+      setFirefliesData(data);
+      toast.success(`Loaded ${data.length} Fireflies transcripts`);
     } catch (error) {
-      console.error("Error syncing Fireflies:", error);
-      toast.error("Failed to sync Fireflies transcripts. Please try again.");
+      console.error("Error loading Fireflies data:", error);
+      toast.error("Failed to load Fireflies data");
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -227,64 +185,37 @@ const SalesCalls = () => {
 
   // File upload handling
   const onDrop = async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
+    if (!userId) {
+      toast.error("Please log in to upload files");
+      return;
+    }
 
-    setIsUploading(true);
-    const file = acceptedFiles[0];
+    for (const file of acceptedFiles) {
+      try {
+        // Validate file
+        if (file.size > 50 * 1024 * 1024) {
+          // 50MB limit
+          toast.error(`File ${file.name} is too large (max 50MB)`);
+          continue;
+        }
 
-    try {
-      // Track file upload start
-      trackFileUpload(file.name, file.size, file.type, "started");
+        // Read file content for text files
+        let content = null;
+        if (file.type.startsWith("text/")) {
+          content = await file.text();
+        }
 
-      // Validate file type
-      const validTypes = ["text/plain", "text/vtt", "application/pdf"];
-      const validExtensions = [".txt", ".vtt", ".pdf"];
-      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+        // Save file metadata to database
+        const savedFile = await dbHelpers.saveUploadedFile(userId, file, content);
 
-      if (
-        !validTypes.includes(file.type) &&
-        !validExtensions.includes(fileExtension)
-      ) {
-        toast.error("Please upload only .txt, .vtt, or .pdf files");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
+        // Update local state
+        setUploadedFiles((prev) => [savedFile, ...prev]);
+
+        toast.success(`File ${file.name} uploaded successfully`);
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        toast.error(`Failed to upload ${file.name}`);
       }
-
-      if (file.size > 10 * 1024 * 1024) {
-        // 10MB limit
-        toast.error("File size must be less than 10MB");
-        trackFileUpload(file.name, file.size, file.type, "failed");
-        return;
-      }
-
-      // For text files, read content for database storage
-      let content = "";
-      const isPDF =
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf");
-
-      if (!isPDF) {
-        content = await file.text();
-      } else {
-        content = `PDF file: ${file.name} (${file.size} bytes)`;
-      }
-
-      // Save uploaded file to database with shareable link
-      const savedFile = await dbHelpers.saveUploadedFile(
-        CURRENT_USER.id,
-        file,
-        content
-      );
-
-      toast.success("File uploaded successfully!");
-      trackFileUpload(file.name, file.size, file.type, "completed");
-      await loadUploadedFiles(); // Refresh the list
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error(`Failed to upload file: ${error.message}`);
-      trackFileUpload(file.name, file.size, file.type, "failed");
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -294,346 +225,110 @@ const SalesCalls = () => {
       "text/plain": [".txt"],
       "text/vtt": [".vtt"],
       "application/pdf": [".pdf"],
+      "audio/*": [".mp3", ".wav", ".m4a"],
+      "video/*": [".mp4", ".mov"],
     },
-    maxFiles: 1,
-    disabled: isUploading,
+    maxSize: 50 * 1024 * 1024, // 50MB
   });
 
-  const handleViewSummary = async (call, type) => {
-    if (type === "fireflies") {
-      setGetFirefliessummary(true);
-      setProcessingFirefliesId(call.id);
-      try {
-        const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: call.id }),
-          }
-        );
-        const json = await response.json();
-        const shortSummary = json[0]?.data?.summary?.short_summary;
-        setModalTitle(`Summary - ${json[0]?.data?.title || call.callId}`);
-        setModalContent(shortSummary || "No summary available");
-        setGetFirefliessummary(false);
-      } catch (err) {
-        setGetFirefliessummary(false);
-        toast.error("Failed to load summary from Fireflies");
-        return;
-      }
-    } else {
-      setModalTitle(`Summary - ${call.callId}`);
-      setModalContent(
-        call.aiProcessedData?.call_summary || "No summary available"
-      );
-    }
-
-    setShowSummaryModal(true);
-  };
-
-  const handleViewTranscript = async (call, type) => {
-    if (type === "fireflies") {
-      setGetFirefliestranscript(true);
-      setProcessingFirefliesId(call.id);
-      try {
-        const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: call.id }),
-          }
-        );
-        const json = await response.json();
-        const sentences = json[0]?.data?.sentences || [];
-        const transcriptText = sentences
-          .map(
-            (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
-          )
-          .join("\n\n");
-        setModalTitle(`Transcript - ${json[0]?.data?.title || call.callId}`);
-        setModalContent(transcriptText);
-        setGetFirefliestranscript(false);
-      } catch (err) {
-        toast.error("Failed to load transcript from Fireflies");
-        setGetFirefliestranscript(false);
-        return;
-      }
-    } else {
-      setModalTitle(`Transcript - ${call.callId}`);
-      setModalContent(call.transcript || "No transcript available");
-    }
-
-    setShowTranscriptModal(true);
-  };
-
-  const handleCopyTranscript = () => {
-    navigator.clipboard.writeText(modalContent);
-    toast.success("Transcript copied to clipboard");
-    trackButtonClick("Copy Transcript");
-  };
-
-  const handleDownloadTranscriptPDF = () => {
-    try {
-      const doc = new jsPDF();
-
-      // Set up the document
-      doc.setFontSize(16);
-      doc.text("Call Transcript", 20, 20);
-
-      doc.setFontSize(12);
-      doc.text(`Title: ${modalTitle}`, 20, 35);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 45);
-
-      // Add the transcript content
-      doc.setFontSize(10);
-      const splitText = doc.splitTextToSize(modalContent, 170);
-      doc.text(splitText, 20, 60);
-
-      // Save the PDF
-      doc.save(
-        `${modalTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_transcript.pdf`
-      );
-      toast.success("PDF downloaded successfully");
-      trackButtonClick("Download PDF", { content_type: "transcript" });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF");
-    }
-  };
-
-  const handleDownloadTranscript = async (call) => {
-    try {
-      if (!call.uploaded_file_id) {
-        toast.error("No uploaded file associated with this call.");
-        return;
-      }
-
-      // Fetch the uploaded file metadata from Supabase
-      const uploadedFile = await dbHelpers.getUploadedFileById(
-        call.uploaded_file_id
-      );
-
-      if (!uploadedFile || !uploadedFile.file_url) {
-        toast.error("Unable to fetch file URL.");
-        return;
-      }
-
-      const response = await fetch(uploadedFile.file_url);
-
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download =
-        uploadedFile.filename || `${call.companyName}_${call.callId}.pdf`; // fallback name
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success("Transcript file downloaded.");
-      trackButtonClick("Download Original File", {
-        call_id: call.id,
-        uploaded_file_id: call.uploaded_file_id,
-      });
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download transcript file.");
-    }
-  };
-
-  const handleProcessCall = async (call, source = "fireflies") => {
-    trackButtonClick("Generate Insights", {
-      call_id: call.id,
-      company: call.companyName,
-      source: source,
-    });
-
-    trackFeatureUsage("call_processing", "start_processing", {
-      source: source,
-      company: call.companyName,
-    });
-
-    // Navigate to Call Insights page with the selected call data
-    navigate("/call-insights", {
-      state: {
-        selectedCall: call,
-        source: source,
-        aiProcessedData: call.aiProcessedData,
-      },
-    });
-  };
-
-  const handleProcessFile = async (file, source) => {
-    if (!file) {
-      toast.error("Please select a file to process");
+  // Process file with AI
+  const handleProcessFile = async (file) => {
+    if (!file.file_content && !file.file_url) {
+      toast.error("No content available to process");
       return;
     }
 
     setIsProcessing(true);
-    // if (source != "fireflies") {
-    setProcessingFileId(file.id);
-    trackButtonClick(
-      source == "fireflies" ? "Process Fireflies" : "Process File",
-      {
-        file_id: file.id,
-        filename: file.filename,
-      }
-    );
-    // }
+    setProcessingProgress(0);
+
     try {
-      // Get file blob from URL
-
-      let fileBlob = null;
-      if (file.file_url && source != "fireflies") {
-        try {
-          const response = await fetch(file?.file_url);
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch file: ${response.status} ${response.statusText}`
-            );
+      // Simulate processing progress
+      const progressInterval = setInterval(() => {
+        setProcessingProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
           }
-          fileBlob = await response.blob();
-        } catch (fetchError) {
-          console.error("Error fetching file blob:", fetchError);
-          toast.error("Failed to fetch file for sending");
-          setIsProcessing(false);
-          setProcessingFileId(null);
-          return;
-        }
-      }
+          return prev + 10;
+        });
+      }, 500);
 
-      if (!fileBlob && source != "fireflies") {
-        toast.error("No file content available for processing");
-        setIsProcessing(false);
-        setProcessingFileId(null);
-        return;
-      }
-
-      // Create FormData
-      const formData = new FormData();
-      if (source != "fireflies") {
-        formData.append("transcript", fileBlob, file.filename);
-        formData.append("user_id", CURRENT_USER.id);
-        formData.append("call_metadata", null);
-        formData.append("previous_interactions", null);
-      } else {
-        formData.append("transcript_id", file.id);
-      }
-
-      // Make API call to process the transcript file
+      // Call AI processing API
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-data-ai",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-transcript",
         {
           method: "POST",
-          body: formData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            transcript: file.file_content,
+            filename: file.filename,
+            userId: userId,
+          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        throw new Error(`API returned status ${response.status}`);
       }
 
-      const data = await response.json();
-      // Determine file type and set data accordingly
-      const isFireflies = source === "fireflies";
+      const result = await response.json();
+      clearInterval(progressInterval);
+      setProcessingProgress(100);
 
-      if (isFireflies) {
-        await dbHelpers.updateFirefliesFile(file.id, { is_processed: true });
-      } else {
-        await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
-      }
+      // Mark file as processed
+      await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
 
-      if (data && data.length > 0) {
-        const processedData = data[0];
+      // Update local state
+      setUploadedFiles((prev) =>
+        prev.map((f) => (f.id === file.id ? { ...f, is_processed: true } : f))
+      );
 
-        // Store the processed data in the call_insights table
-        const insightData = {
-          company_details: {
-            name: processedData?.company_details?.[0]?.name || "Company",
-          },
-          prospect_details: processedData?.prospect_details,
-          call_summary: processedData.call_summary,
-          action_items: processedData.action_items,
-          follow_up_email: processedData.follow_up_email,
-          deck_prompt: processedData.deck_prompt,
-          sales_insights: processedData.sales_insights,
-          communication_styles: processedData.communication_styles,
-          call_analysis_overview: processedData.call_analysis_overview,
-          processing_status: processedData.processing_status || "completed",
-          error_message: processedData.error_message,
-          extracted_transcript:
-            processedData.extracted_transcript || file.file_content,
-        };
-        console.log(
-          {
-            uploaded_file_id: isFireflies ? null : file.id,
-            fireflies_id: isFireflies ? file.id : null,
-            type: isFireflies ? "fireflies" : "file_upload",
-          },
-          isFireflies,
-          "check data 470"
-        );
-        // Save to call_insights table
-        const savedInsight = await dbHelpers.createCallInsight(
-          CURRENT_USER.id,
-          null, // No uploaded_file_id for fireflies
-          {
-            ...insightData,
-            uploaded_file_id: isFireflies ? null : file.id,
-            fireflies_id: isFireflies ? file.id : null,
-            type: isFireflies ? "fireflies" : "file_upload",
-          }
-        );
+      toast.success(`File ${file.filename} processed successfully`);
 
-        // Create a processed call object with the data
-        const processedCall = {
-          id: savedInsight.id,
-          callId: `Call ${savedInsight.id.slice(-5)}`,
-          companyName: insightData.company_details.name,
-          prospectName: insightData.prospect_details.name,
-          date: new Date().toISOString().split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          transcript: file.file_content,
-          aiProcessedData: processedData,
-          uploaded_file_id: file.id,
-        };
-
-        // Add to processed calls list
-        setProcessedCalls((prev) => [processedCall, ...prev]);
-
-        toast.success("File processed successfully!");
-
-        // Navigate to Call Insights with the processed data
-        navigate("/call-insights", {
-          state: {
-            selectedCall: processedCall,
-            source: "upload",
-            aiProcessedData: processedData,
-          },
-        });
-      } else {
-        toast.error("No insights generated from the file");
-      }
+      // Navigate to call insights after a short delay
+      setTimeout(() => {
+        window.location.href = "/call-insights";
+      }, 1500);
     } catch (error) {
       console.error("Error processing file:", error);
-      toast.error(`Failed to process file: ${error.message}`);
+      toast.error(`Failed to process ${file.filename}`);
     } finally {
       setIsProcessing(false);
-      setProcessingFileId(null);
+      setProcessingProgress(0);
     }
   };
 
+  // Delete file
+  const handleDeleteFile = async (fileId) => {
+    try {
+      // In a real implementation, you would also delete from storage
+      // await fileStorage.deleteFile(file.storage_path);
+
+      // Remove from database (this will be implemented)
+      // await dbHelpers.deleteUploadedFile(fileId);
+
+      // Update local state
+      setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+
+      toast.success("File deleted successfully");
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      toast.error("Failed to delete file");
+    }
+  };
+
+  // Get file icon based on type
+  const getFileIcon = (fileType) => {
+    if (fileType.startsWith("text/")) return FileText;
+    if (fileType.startsWith("audio/")) return FileAudio;
+    if (fileType.startsWith("video/")) return FileVideo;
+    if (fileType === "application/pdf") return File;
+    return File;
+  };
+
+  // Format file size
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -642,215 +337,203 @@ const SalesCalls = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getFileIcon = (fileType) => {
-    if (fileType?.includes("pdf")) {
-      return <FileIcon className="w-4 h-4 text-red-600" />;
-    }
-    return <FileText className="w-4 h-4 text-blue-600" />;
-  };
-
-  // Filter functions
-  const filteredFirefliesCalls = firefliesCalls.filter(
-    (call) =>
+  // Filter calls based on search and status
+  const filteredCalls = [...mockCallData, ...firefliesData].filter((call) => {
+    const matchesSearch =
       call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      call.callId.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const filteredProcessedCalls = processedCalls.filter(
-    (call) =>
-      call.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.callId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  console.log(uploadedFiles, "check uploaded files");
-  const filteredUploadedFiles = uploadedFiles.filter(
-    (file) =>
-      file.filename.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      file.is_processed == false
-  );
+    const matchesStatus =
+      statusFilter === "all" || call.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Show loading state while checking authentication
+  if (!userId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading user session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Sales Calls</h1>
-        <p className="text-muted-foreground">
-          Your starting point for call data. Upload transcripts, import from
-          Fireflies.ai, or select from past processed calls to generate
-          insights.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Sales Calls
+          </h1>
+          <p className="text-muted-foreground">
+            Upload call transcripts or sync from Fireflies.ai to generate
+            AI-powered insights
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" onClick={loadFirefliesData}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Sync Fireflies
+          </Button>
+          <Button onClick={() => setActiveTab("upload")}>
+            <Upload className="w-4 h-4 mr-1" />
+            Upload Transcript
+          </Button>
+        </div>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search by company, prospect, or call ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Processing Progress */}
+      {isProcessing && (
+        <Card className="border-primary">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <div className="flex-1">
+                <h3 className="font-medium mb-2">Processing Call Transcript</h3>
+                <Progress value={processingProgress} className="h-2" />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Analyzing transcript and generating insights... {processingProgress}%
+                </p>
+              </div>
             </div>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              trackingName="Filter Calls"
-            >
-              <Filter className="w-4 h-4 mr-1" />
-              Filter
-            </TrackedButton>
-            <TrackedButton
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                loadUploadedFiles();
-                loadProcessedCalls();
-              }}
-              trackingName="Refresh Files"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Refresh
-            </TrackedButton>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upload">Upload Transcript</TabsTrigger>
-          <TabsTrigger value="fireflies">Fireflies.ai Imports</TabsTrigger>
-          <TabsTrigger value="processed">Past Processed Calls</TabsTrigger>
+          <TabsTrigger value="upload">
+            <Upload className="w-4 h-4 mr-1" />
+            Upload Files
+          </TabsTrigger>
+          <TabsTrigger value="calls">
+            <Phone className="w-4 h-4 mr-1" />
+            Call History ({filteredCalls.length})
+          </TabsTrigger>
+          <TabsTrigger value="fireflies">
+            <ExternalLink className="w-4 h-4 mr-1" />
+            Fireflies.ai ({firefliesData.length})
+          </TabsTrigger>
         </TabsList>
 
-        {/* Upload Transcript Tab */}
+        {/* Upload Tab */}
         <TabsContent value="upload" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Upload Area */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="w-5 h-5" />
-                  <span>Upload Call Transcript</span>
-                </CardTitle>
+                <CardTitle>Upload Call Transcripts</CardTitle>
               </CardHeader>
               <CardContent>
                 <div
                   {...getRootProps()}
                   className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                    "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
                     isDragActive
                       ? "border-primary bg-primary/5"
-                      : "border-border",
-                    isUploading && "opacity-50 cursor-not-allowed"
+                      : "border-border hover:border-primary/50"
                   )}
                 >
                   <input {...getInputProps()} />
-
-                  <div className="space-y-4">
-                    <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                      {isUploading ? (
-                        <RefreshCw className="w-6 h-6 text-primary animate-spin" />
-                      ) : (
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      )}
-                    </div>
-
+                  <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  {isDragActive ? (
+                    <p className="text-primary">Drop files here...</p>
+                  ) : (
                     <div>
-                      <h3 className="font-medium text-foreground mb-2">
-                        {isUploading
-                          ? "Uploading..."
-                          : "Drop your transcript here"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {isUploading
-                          ? "Please wait while we process your file"
-                          : "Drag and drop your .txt, .vtt, or .pdf file, or click to browse"}
+                      <p className="text-lg font-medium mb-2">
+                        Drop files here or click to browse
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Supported formats: TXT, VTT, PDF (Max 10MB)
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Supports: TXT, VTT, PDF, MP3, WAV, MP4 (max 50MB)
                       </p>
+                      <Button variant="outline">
+                        <Plus className="w-4 h-4 mr-1" />
+                        Choose Files
+                      </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Recent Uploads */}
+            {/* Uploaded Files List */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Uploads</CardTitle>
+                <CardTitle>Uploaded Files</CardTitle>
               </CardHeader>
               <CardContent>
-                {filteredUploadedFiles.length === 0 ? (
+                {isLoadingFiles ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                    <p className="text-muted-foreground">Loading files...</p>
+                  </div>
+                ) : uploadedFiles.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="mb-2">No uploaded files yet</p>
+                    <p className="mb-2">No files uploaded yet</p>
                     <p className="text-sm">
-                      Upload your first transcript to get started
+                      Upload your first call transcript to get started
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {filteredUploadedFiles.slice(0, 5).map((file) => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getFileIcon(file.content_type)}
-                          <div>
-                            <h4
-                              className="font-medium text-sm truncate max-w-[350px]"
-                              title={file.filename}
-                            >
-                              {file.filename}
-                            </h4>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {uploadedFiles.map((file) => {
+                      const FileIcon = getFileIcon(file.content_type);
+                      return (
+                        <div
+                          key={file.id}
+                          className="flex items-center justify-between p-3 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <FileIcon className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">
+                                {file.filename}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(file.file_size)} •{" "}
+                                {new Date(file.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
 
-                            <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.file_size)} •{" "}
-                              {formatDate(file.upload_date || file.created_at)}
-                            </p>
+                          <div className="flex items-center space-x-2">
+                            {file.is_processed ? (
+                              <Badge
+                                variant="default"
+                                className="bg-green-100 text-green-800 border-green-200"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Processed
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleProcessFile(file)}
+                                disabled={isProcessing}
+                              >
+                                <Sparkles className="w-4 h-4 mr-1" />
+                                Process
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteFile(file.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <TrackedButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleProcessFile(file)}
-                            disabled={isProcessing}
-                            trackingName="Process Uploaded File"
-                            trackingContext={{
-                              file_id: file.id,
-                              filename: file.filename,
-                            }}
-                          >
-                            {isProcessing && processingFileId === file.id ? (
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            ) : (
-                              <ArrowRight className="w-3 h-3 mr-1" />
-                            )}
-                            {isProcessing && processingFileId === file.id
-                              ? "Processing..."
-                              : "Process"}
-                          </TrackedButton>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -858,251 +541,123 @@ const SalesCalls = () => {
           </div>
         </TabsContent>
 
-        {/* Fireflies.ai Imports Tab */}
-        <TabsContent value="fireflies" className="mt-6">
+        {/* Call History Tab */}
+        <TabsContent value="calls" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
+                <CardTitle>Call History</CardTitle>
                 <div className="flex items-center space-x-2">
-                  <ExternalLink className="w-5 h-5" />
-                  <span>Fireflies.ai Imports</span>
-                  {isLoadingFireflies ? (
-                    <Badge
-                      variant="secondary"
-                      className="flex items-center space-x-1"
-                    >
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Loading...</span>
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">
-                      {filteredFirefliesCalls.length} calls
-                    </Badge>
-                  )}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search calls..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {lastFirefliesSync && (
-                    <span className="text-xs text-muted-foreground">
-                      Last sync: {lastFirefliesSync.toLocaleTimeString()}
-                    </span>
-                  )}
-                  <TrackedButton
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncFireflies}
-                    disabled={isLoadingFireflies}
-                    trackingName="Sync Fireflies"
-                  >
-                    {isLoadingFireflies ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                    )}
-                    Sync from Fireflies
-                  </TrackedButton>
-                </div>
-              </CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              {firefliesError && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-red-900">
-                      Error loading Fireflies data
-                    </h4>
-                    <p className="text-sm text-red-700 mt-1">
-                      {firefliesError}
-                    </p>
-                    <TrackedButton
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={loadFirefliesTranscripts}
-                      trackingName="Retry Fireflies Load"
-                    >
-                      Try Again
-                    </TrackedButton>
-                  </div>
-                </div>
-              )}
-
-              {isLoadingFireflies ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
-                    Loading Fireflies transcripts...
-                  </p>
-                </div>
-              ) : filteredFirefliesCalls.length === 0 ? (
+              {filteredCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No Fireflies.ai calls found</p>
+                  <Phone className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No calls found</p>
                   <p className="text-sm">
-                    Sync your Fireflies.ai account to import calls
+                    Upload transcripts or sync from Fireflies to see your calls
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredFirefliesCalls.map((call) => (
+                  {filteredCalls.map((call) => (
                     <div
                       key={call.id}
-                      className="border border-border rounded-lg p-4"
+                      className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold">{call.callId}</h3>
-                            <Badge
-                              variant={
-                                call.status === "failed"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                            >
-                              {call.status}
-                            </Badge>
-                            {call.status === "failed" && call.error && (
-                              <Badge variant="secondary" className="text-xs">
-                                {call.error}
-                              </Badge>
-                            )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Phone className="w-5 h-5 text-primary" />
                           </div>
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Building className="w-3 h-3" />
-                                <span>Company: {call.companyName}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <User className="w-3 h-3" />
-                                <span>Prospect: {call.prospectName}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="w-3 h-3" />
-                                <span>Date: {call.date}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Clock className="w-3 h-3" />
-                                <span>Duration: {call.duration}</span>
-                              </div>
-                            </div>
-                          </div>
-                          {call.participants &&
-                            call.participants.length > 0 && (
-                              <div className="mt-2 text-xs text-muted-foreground">
-                                <span className="font-medium">
-                                  Participants:
-                                </span>{" "}
-                                {call.participants.slice(0, 3).join(", ")}
-                                {call.participants.length > 3 &&
-                                  ` +${call.participants.length - 3} more`}
-                              </div>
-                            )}
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {
-                            // call.hasSummary &&
-                            call.status !== "failed" && (
-                              <TrackedButton
-                                variant="outline"
-                                size="sm"
-                                disabled={
-                                  getFirefliessummary &&
-                                  processingFirefliesId == call?.id
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h3 className="font-semibold">{call.callId}</h3>
+                              <Badge
+                                variant={
+                                  call.status === "completed"
+                                    ? "default"
+                                    : call.status === "processing"
+                                    ? "secondary"
+                                    : "destructive"
                                 }
-                                onClick={() =>
-                                  handleViewSummary(call, "fireflies")
-                                }
-                                trackingName="View Summary"
-                                trackingContext={{
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                }}
+                                className="text-xs"
                               >
-                                {getFirefliessummary &&
-                                processingFirefliesId == call?.id ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />{" "}
-                                    Getting Summary ...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    View Summary
-                                  </>
-                                )}
-                              </TrackedButton>
-                            )
-                          }
-                          {
-                            // call.hasTranscript &&
-                            call.status !== "failed" && (
-                              <TrackedButton
-                                variant="outline"
-                                size="sm"
-                                disabled={
-                                  getFirefliestranscript &&
-                                  processingFirefliesId == call?.id
-                                }
-                                onClick={() =>
-                                  handleViewTranscript(call, "fireflies")
-                                }
-                                trackingName="View Transcript"
-                                trackingContext={{
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                }}
-                              >
-                                {getFirefliestranscript &&
-                                processingFirefliesId == call?.id ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />{" "}
-                                    Getting transcript ...
-                                  </>
-                                ) : (
-                                  <>
-                                    <FileText className="w-3 h-3 mr-1" />
-                                    View Transcript
-                                  </>
-                                )}
-                              </TrackedButton>
-                            )
-                          }
-                        </div>
-                        {console.log(
-                          processingFileId,
-                          call?.id,
-                          call,
-                          "check call data"
-                        )}
-                        {call.status !== "failed" && (
-                          <TrackedButton
-                            onClick={() => handleProcessFile(call, "fireflies")}
-                            disabled={isProcessing}
-                            trackingName="Generate Insights"
-                            trackingContext={{
-                              call_id: call?.id,
-                              company: call.companyName,
-                              source: "fireflies",
-                            }}
-                          >
-                            {isProcessing && processingFileId === call?.id ? (
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            ) : (
-                              <ArrowRight className="w-3 h-3 mr-1" />
+                                {call.status}
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
+                              <div className="flex items-center space-x-1">
+                                <Building className="w-3 h-3" />
+                                <span>{call.companyName}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <User className="w-3 h-3" />
+                                <span>{call.prospectName}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>{call.date}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{call.duration}</span>
+                              </div>
+                            </div>
+
+                            {call.firefliesSummary && (
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {call.firefliesSummary.substring(0, 150)}...
+                              </p>
                             )}
-                            {/* <ArrowRight className="w-4 h-4 mr-1" /> */}
-                            {isProcessing && processingFileId === call?.id
-                              ? "Generating Insights..."
-                              : "Generate Insights"}
-                          </TrackedButton>
-                        )}
+
+                            <div className="flex items-center space-x-2">
+                              {call.hasTranscript && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedCall(call);
+                                    setShowTranscriptDialog(true);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View Transcript
+                                </Button>
+                              )}
+                              {call.status === "completed" && (
+                                <Button size="sm">
+                                  <ArrowRight className="w-4 h-4 mr-1" />
+                                  View Insights
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1112,140 +667,101 @@ const SalesCalls = () => {
           </Card>
         </TabsContent>
 
-        {/* Past Processed Calls Tab */}
-        <TabsContent value="processed" className="mt-6">
+        {/* Fireflies Tab */}
+        <TabsContent value="fireflies" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
-                <span>Past Processed Calls</span>
-                <Badge variant="secondary">
-                  {filteredProcessedCalls.length} calls
-                </Badge>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Fireflies.ai Integration</CardTitle>
+                <Button
+                  onClick={loadFirefliesData}
+                  disabled={isLoadingFireflies}
+                >
+                  {isLoadingFireflies ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                  )}
+                  Sync Transcripts
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {filteredProcessedCalls.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">No processed calls yet</p>
-                  <p className="text-sm">
-                    Process your first call to see it here
+              {isLoadingFireflies ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">
+                    Syncing transcripts from Fireflies.ai...
                   </p>
+                </div>
+              ) : firefliesData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No Fireflies transcripts found</p>
+                  <p className="text-sm">
+                    Connect your Fireflies.ai account to sync call transcripts
+                    automatically
+                  </p>
+                  <Button className="mt-4" onClick={loadFirefliesData}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Connect Fireflies.ai
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredProcessedCalls.map((call) => (
+                  {firefliesData.map((call) => (
                     <div
                       key={call.id}
                       className="border border-border rounded-lg p-4"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold">{call.callId}</h3>
-                            <Badge variant="default">Processed</Badge>
-                            {call.hasInsights && (
-                              <Badge
-                                variant="outline"
-                                className="bg-green-100 text-green-800 border-green-200"
-                              >
-                                Insights Available
-                              </Badge>
-                            )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <ExternalLink className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Building className="w-3 h-3" />
-                                <span>Company: {call.companyName}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <User className="w-3 h-3" />
-                                <span>Prospect: {call.prospectName}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="w-3 h-3" />
-                                <span>Date: {call.date}</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Clock className="w-3 h-3" />
-                                <span>Duration: {call.duration}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <TrackedButton
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                              call.type == "fireflies" &&
-                              getFirefliestranscript &&
-                              processingFirefliesId == call?.id
-                            }
-                            onClick={() =>
-                              handleViewTranscript(call, "fireflies")
-                            }
-                            trackingName="View Original Transcript"
-                            trackingContext={{
-                              call_id: call.id,
-                              company: call.companyName,
-                            }}
-                          >
-                            <FileText className="w-3 h-3 mr-1" />
-                            View Original Transcript
-                          </TrackedButton>
-                          {console.log("check type", call)}
-                          {call.type !== "fireflies" && (
-                            <TrackedButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadTranscript(call)}
-                              trackingName="Download Transcript PDF"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              Download PDF
-                            </TrackedButton>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {call.hasInsights && (
-                            <TrackedButton
-                              variant="outline"
-                              onClick={() => {
-                                trackButtonClick("View Insights", {
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                });
-                                navigate("/call-insights", {
-                                  state: {
-                                    selectedCall: call,
-                                    source: call.source,
-                                    aiProcessedData: call.aiProcessedData,
-                                    viewMode: "insights",
-                                  },
-                                });
-                              }}
-                              trackingName="View Call Insights"
-                              trackingContext={{
-                                call_id: call.id,
-                                company: call.companyName,
-                              }}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View Insights
-                            </TrackedButton>
-                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h3 className="font-semibold">{call.callId}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                Fireflies
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
+                              <div className="flex items-center space-x-1">
+                                <Building className="w-3 h-3" />
+                                <span>{call.companyName}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <User className="w-3 h-3" />
+                                <span>{call.prospectName}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>{call.date}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{call.duration}</span>
+                              </div>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {call.firefliesSummary}
+                            </p>
+
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm">
+                                <Download className="w-4 h-4 mr-1" />
+                                Import to SalesGenius
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                View in Fireflies
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1257,66 +773,51 @@ const SalesCalls = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Summary Modal */}
-      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      {/* Transcript Dialog */}
+      <Dialog open={showTranscriptDialog} onOpenChange={setShowTranscriptDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{modalTitle}</span>
-              <TrackedButton
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(modalContent);
-                  toast.success("Summary copied to clipboard");
-                }}
-                trackingName="Copy Summary"
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                Copy Text
-              </TrackedButton>
+            <DialogTitle>
+              Call Transcript - {selectedCall?.callId}
             </DialogTitle>
+            <DialogDescription>
+              {selectedCall?.companyName} • {selectedCall?.date} •{" "}
+              {selectedCall?.duration}
+            </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
-              {modalContent}
-            </pre>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Transcript Modal */}
-      <Dialog open={showTranscriptModal} onOpenChange={setShowTranscriptModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{modalTitle}</span>
-              <div className="flex items-center space-x-2">
-                <TrackedButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyTranscript}
-                  trackingName="Copy Transcript"
-                >
-                  <Copy className="w-4 h-4 mr-1" />
-                  Copy Text
-                </TrackedButton>
-                <TrackedButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadTranscriptPDF}
-                  trackingName="Download Transcript PDF"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Download PDF
-                </TrackedButton>
+          <div className="space-y-4">
+            {/* Transcript Content */}
+            <div className="bg-muted p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm">
+                {selectedCall?.transcript}
+              </pre>
+            </div>
+
+            {/* Participants */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">Participants</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedCall?.participants.map((participant, index) => (
+                  <Badge key={index} variant="outline">
+                    <User className="w-3 h-3 mr-1" />
+                    {participant}
+                  </Badge>
+                ))}
               </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-              {modalContent}
-            </pre>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowTranscriptDialog(false)}>
+                <X className="w-4 h-4 mr-1" />
+                Close
+              </Button>
+              <Button>
+                <Sparkles className="w-4 h-4 mr-1" />
+                Generate Insights
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1325,4 +826,3 @@ const SalesCalls = () => {
 };
 
 export default SalesCalls;
-export { SalesCalls };
