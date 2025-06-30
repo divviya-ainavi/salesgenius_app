@@ -32,6 +32,11 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
+  // Compute form validity
+  const isFormValid = formData.email.trim() !== "" && 
+                     formData.password.trim() !== "" && 
+                     /\S+@\S+\.\S+/.test(formData.email);
+
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
