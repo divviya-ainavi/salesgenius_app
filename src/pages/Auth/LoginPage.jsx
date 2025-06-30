@@ -33,9 +33,10 @@ const LoginPage = () => {
   const [error, setError] = useState("");
 
   // Compute form validity
-  const isFormValid = formData.email.trim() !== "" && 
-                     formData.password.trim() !== "" && 
-                     /\S+@\S+\.\S+/.test(formData.email);
+  const isFormValid =
+    formData.email.trim() !== "" &&
+    formData.password.trim() !== "" &&
+    /\S+@\S+\.\S+/.test(formData.email);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -149,7 +150,7 @@ const LoginPage = () => {
         {/* Login Form */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+            <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
             <p className="text-gray-600 mt-2">
               Sign in to your account to continue
             </p>
