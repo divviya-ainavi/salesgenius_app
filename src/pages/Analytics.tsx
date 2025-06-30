@@ -837,8 +837,8 @@ const Analytics = () => {
                     } */}
                     {(
                       (durations["Presentation Prompt Builder"] || 0) / 3600
-                    ).toFixed(1)}
-                    h h
+                    ).toFixed(1)}{" "}
+                    h
                   </p>
                 </div>
                 <Presentation className="w-8 h-8 text-purple-600" />
@@ -856,7 +856,7 @@ const Analytics = () => {
                       mockAnalyticsData.individual.personalProductivity
                         .researchTime
                     } */}
-                    {((durations["Research"] || 0) / 3600).toFixed(1)}h h
+                    {((durations["Research"] || 0) / 3600).toFixed(1)}h
                   </p>
                 </div>
                 <FileText className="w-8 h-8 text-orange-600" />

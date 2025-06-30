@@ -76,31 +76,92 @@ export const authHelpers = {
   // Get user profile from database
   async getUserProfile(userId) {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      // Step 1: Fetch the base profile + organization + title ID
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
         .select(`
-          id,
-          email,
-          full_name,
-          hubspot_access_token,
-          hubspot_refresh_token,
-          hubspot_connected,
-          organization_id,
-          status_id,
-          created_at,
-          updated_at
-        `)
-        .eq('id', userId)
+        id,
+        email,
+        full_name,
+        organization_id,
+        status_id,
+        created_at,
+        updated_at,
+        title_id
+      `)
+        .eq("id", userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching user profile:', error);
+      if (profileError || !profile) {
+        console.error("Error fetching profile:", profileError);
         return null;
       }
 
-      return data;
+      // Step 2: Fetch the organization with nested fields
+      const { data: organization, error: orgError } = await supabase
+        .from("organizations")
+        .select(`
+        id,
+        name,
+        domain,
+        status_id,
+        created_at,
+        hubspot_access_token,
+        company_size:company_size_id (
+          id,
+          key,
+          label,
+          description
+        ),
+        industry:industry_id (
+          id,
+          key,
+          label,
+          description
+        ),
+        sales_methodology:sales_methodology_id (
+          id,
+          key,
+          label,
+          description
+        )
+      `)
+        .eq("id", profile.organization_id)
+        .single();
+
+      if (orgError) {
+        console.warn("No organization found for profile:", orgError.message);
+      }
+
+      // Step 3: Fetch title and nested role
+      const { data: title, error: titleError } = await supabase
+        .from("titles")
+        .select(`
+        id,
+        name,
+        role_id,
+        roles (
+          id,
+          key,
+          label,
+          description
+        )
+      `)
+        .eq("id", profile.title_id)
+        .single();
+
+      if (titleError) {
+        console.warn("No title found for profile:", titleError.message);
+      }
+
+      return {
+        ...profile,
+        organization_details: organization || null,
+        title_name: title?.name || null,
+        role_details: title?.roles || null,
+      };
     } catch (error) {
-      console.error('Error in getUserProfile:', error);
+      console.error("Error in getUserProfile:", error);
       return null;
     }
   },
@@ -873,6 +934,60 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+  //get org dropdown details
+  async getOrgDropdownOptions() {
+    try {
+      const [industryRes, companySizeRes, methodologyRes] = await Promise.all([
+        supabase.from("industry").select("*"),
+        supabase.from("company_size").select("*"),
+        supabase.from("sales_methodology").select("*"),
+      ]);
+
+      const hasError = industryRes.error || companySizeRes.error || methodologyRes.error;
+      if (hasError) {
+        console.error("Error fetching dropdown options:", {
+          industry: industryRes.error,
+          companySize: companySizeRes.error,
+          methodology: methodologyRes.error,
+        });
+        return null;
+      }
+
+      return {
+        industry: industryRes.data,
+        company_size: companySizeRes.data,
+        sales_methodology: methodologyRes.data,
+      };
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      return null;
+    }
+  },
+
+  async updateOrganizationSettings(
+    organizationId,
+    toUpdateData
+  ) {
+    try {
+      const { data, error } = await supabase
+        .from("organizations")
+        .update(toUpdateData)
+        .eq("id", organizationId)
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Supabase update error:", error.message);
+        return { success: false, error };
+      }
+
+      return { success: true, data };
+    } catch (err) {
+      console.error("Unexpected error in updateOrganizationSettings:", err);
+      return { success: false, error: err };
+    }
+  }
 }
 
 // User helpers for backward compatibility

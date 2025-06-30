@@ -7,8 +7,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase, authHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import {
+  setUser,
+  setUserProfileInfo,
+  setUserRole,
+  setUserRoleId,
+  setIsAuthenticated,
+} from "@/store/slices/authSlice"; // adjust import path as needed
+import {
+  setOrganizationDetails,
+  setTitleName,
+} from "../../store/slices/authSlice";
 
 const LoginPage = () => {
+  const dispatch = useDispatch();
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
@@ -70,17 +84,27 @@ const LoginPage = () => {
       );
 
       if (userId) {
-        // Fetch user profile data
         const profile = await authHelpers.getUserProfile(userId);
 
-        if (!profile) {
-          throw new Error("User profile not found. Please contact support.");
+        if (!profile) throw new Error("User profile not found");
+
+        dispatch(setUser(profile));
+        dispatch(setIsAuthenticated(true));
+        dispatch(setUserProfileInfo(profile.full_name || profile.email));
+
+        // Set organization details
+        if (profile.organization_details) {
+          dispatch(setOrganizationDetails(profile.organization_details));
         }
 
-        // Update current user state and identify with PostHog
+        // Set title & role
+        if (profile.title_name) dispatch(setTitleName(profile.title_name));
+        if (profile.role_details) {
+          dispatch(setUserRole(profile.role_details.label));
+          dispatch(setUserRoleId(profile.role_details.id));
+        }
+
         await authHelpers.setCurrentUser(profile);
-        
-        // Store login timestamp for session tracking
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");
