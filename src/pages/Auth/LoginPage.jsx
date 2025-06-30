@@ -144,7 +144,7 @@ const LoginPage = () => {
         {/* Login Form */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
             <p className="text-gray-600 mt-2">
               Sign in to your account to continue
             </p>
@@ -224,7 +224,7 @@ const LoginPage = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={!isFormValid || isLoading}
                 size="lg"
               >
                 {isLoading ? (
