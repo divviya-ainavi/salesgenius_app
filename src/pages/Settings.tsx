@@ -59,6 +59,7 @@ import {
   setIndustry,
   setSales_methodology,
 } from "../store/slices/orgSlice";
+import { setUser } from "../store/slices/authSlice";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -315,9 +316,32 @@ export const Settings = () => {
   const canViewOrgAnalytics =
     mockCurrentUser.permissions.includes("view_org_analytics");
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    toast.success("Profile settings saved successfully");
+  const handleSaveProfile = async () => {
+    try {
+      const updatedProfile = await dbHelpers.updateUserProfile(
+        CURRENT_USER.id,
+        {
+          name: profileSettings.name,
+          email: profileSettings.email,
+          // timezone: profileSettings.timezone,
+          // language: profileSettings.language,
+        }
+      );
+
+      // 🔄 Update Redux state
+      dispatch(
+        setUser({
+          ...user,
+          full_name: updatedProfile.full_name,
+          email: updatedProfile.email,
+        })
+      );
+
+      setIsEditing(false);
+      toast.success("Profile settings saved successfully");
+    } catch (err) {
+      toast.error("Failed to update profile");
+    }
   };
 
   const handleSaveOrgSettings = async () => {
@@ -498,7 +522,11 @@ export const Settings = () => {
       setHubspotError(error.message);
     }
   };
-
+  console.log(
+    user,
+    organizationDetails,
+    "user and org details in settings page"
+  );
   useEffect(() => {
     const fetchDropdowns = async () => {
       const result = await dbHelpers.getOrgDropdownOptions();

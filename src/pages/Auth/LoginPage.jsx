@@ -93,14 +93,22 @@ const LoginPage = () => {
         const profile = await authHelpers.getUserProfile(userId);
 
         if (!profile) throw new Error("User profile not found");
+        console.log("User profile:", profile);
 
-        dispatch(setUser(profile));
+        // Extract organization_details and remove from profile
+        const { organization_details, ...profileWithoutOrgDetails } = profile;
+
+        // Dispatch main profile (without org details)
+        dispatch(setUser(profileWithoutOrgDetails));
         dispatch(setIsAuthenticated(true));
         dispatch(setUserProfileInfo(profile.full_name || profile.email));
 
-        // Set organization details
-        if (profile.organization_details) {
-          dispatch(setOrganizationDetails(profile.organization_details));
+        // Store organization_details separately
+        if (organization_details) {
+          dispatch(setOrganizationDetails(organization_details));
+
+          // Optionally send to DB
+          // await yourApi.saveOrganizationDetails(organization_details);
         }
 
         // Set title & role
@@ -110,7 +118,8 @@ const LoginPage = () => {
           dispatch(setUserRoleId(profile.role_details.id));
         }
 
-        await authHelpers.setCurrentUser(profile);
+        // Save cleaned profile to authHelpers and localStorage
+        await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");

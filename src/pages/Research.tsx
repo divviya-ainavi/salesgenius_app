@@ -26,7 +26,7 @@ import { usePageTimer } from "../hooks/userPageTimer";
 interface ResearchFormData {
   companyName: string;
   companyWebsite: string;
-  prospectLinkedIn: string;
+  prospectLinkedIn: string[]; // make it an array
 }
 
 interface ResearchResult {
@@ -44,8 +44,9 @@ const Research = () => {
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
-    prospectLinkedIn: "",
+    prospectLinkedIn: [""], // initialize with one empty field
   });
+
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(
     null
   );
@@ -228,10 +229,17 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           headers: {
             "Content-Type": "application/json",
           },
+          // body: JSON.stringify({
+          //   companyName: formData.companyName,
+          //   companyUrl: formData.companyWebsite,
+          //   prospectUrl: formData.prospectLinkedIn,
+          // }),
           body: JSON.stringify({
             companyName: formData.companyName,
             companyUrl: formData.companyWebsite,
-            prospectUrl: formData.prospectLinkedIn,
+            prospectUrls: formData.prospectLinkedIn.filter(
+              (url) => url.trim() !== ""
+            ),
           }),
         }
       );
@@ -260,7 +268,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         user_id: CURRENT_USER.id,
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
-        prospect_url: formData.prospectLinkedIn,
+        prospect_urls: formData.prospectLinkedIn.filter(
+          (url) => url.trim() !== ""
+        ),
         company_analysis: result.companyAnalysis,
         prospect_analysis: result.prospectAnalysis || "",
         sources: result.sources || [],
@@ -283,7 +293,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setFormData({
       companyName: "",
       companyWebsite: "",
-      prospectLinkedIn: "",
+      prospectLinkedIn: [""],
     });
     setResearchResult(null);
     setActiveTab("analysis");
@@ -306,6 +316,31 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
   const handlePushToHubSpot = () => {
     toast.success("Research pushed to HubSpot successfully");
     setProspectInCRM(true);
+  };
+
+  const handleProspectLinkedInChange = (index: number, value: string) => {
+    const updatedProspects = [...formData.prospectLinkedIn];
+    updatedProspects[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      prospectLinkedIn: updatedProspects,
+    }));
+  };
+
+  const addProspectField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      prospectLinkedIn: [...prev.prospectLinkedIn, ""],
+    }));
+  };
+
+  const removeProspectField = (index: number) => {
+    const updated = [...formData.prospectLinkedIn];
+    updated.splice(index, 1);
+    setFormData((prev) => ({
+      ...prev,
+      prospectLinkedIn: updated,
+    }));
   };
 
   // Render form view
@@ -369,7 +404,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 </div>
 
                 {/* Prospect LinkedIn */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label
                     htmlFor="prospectLinkedIn"
                     className="text-sm font-medium"
@@ -385,6 +420,45 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       handleInputChange("prospectLinkedIn", e.target.value)
                     }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Add for personalized prospect analysis
+                  </p>
+                </div> */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Prospect LinkedIn URLs
+                  </label>
+
+                  {formData.prospectLinkedIn.map((url, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        type="url"
+                        placeholder="https://www.linkedin.com/in/username"
+                        value={url}
+                        onChange={(e) =>
+                          handleProspectLinkedInChange(index, e.target.value)
+                        }
+                      />
+                      {formData.prospectLinkedIn.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => removeProspectField(index)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addProspectField}
+                  >
+                    + Add Another Prospect
+                  </Button>
+
                   <p className="text-xs text-muted-foreground">
                     Optional: Add for personalized prospect analysis
                   </p>

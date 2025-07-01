@@ -965,6 +965,26 @@ export const dbHelpers = {
     }
   },
 
+  async updateUserProfile(userId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: updates.name,
+          email: updates.email
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error updating user profile:', err);
+      throw err;
+    }
+  },
+
   async updateOrganizationSettings(
     organizationId,
     toUpdateData
