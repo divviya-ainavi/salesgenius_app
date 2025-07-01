@@ -397,6 +397,51 @@ export const authHelpers = {
       return null;
     }
   },
+
+  // Get organization HubSpot integration status
+  async getOrganizationHubSpotStatus(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('hubspot_encrypted_token')
+        .eq('id', organizationId)
+        .single();
+
+      if (error) throw error;
+      
+      return {
+        connected: !!data.hubspot_encrypted_token,
+        encryptedToken: data.hubspot_encrypted_token,
+      };
+    } catch (error) {
+      console.error('Error getting organization HubSpot status:', error);
+      return {
+        connected: false,
+        encryptedToken: null,
+      };
+    }
+  },
+
+  // Update organization HubSpot token
+  async updateOrganizationHubSpotToken(organizationId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .update({
+          hubspot_encrypted_token: encryptedToken,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', organizationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating organization HubSpot token:', error);
+      throw error;
+    }
+  },
 };
 
 // Initialize user from storage when module loads
