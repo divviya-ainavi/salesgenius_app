@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
-import { usePageTimer } from "../hooks/userPageTimer";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase.jsx";
+import { usePageTimer } from "../hooks/userPageTimer.jsx";
 
 interface ResearchFormData {
   companyName: string;

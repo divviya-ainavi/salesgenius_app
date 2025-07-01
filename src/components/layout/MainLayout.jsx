@@ -5,6 +5,7 @@ import { UserDropdown } from './UserDropdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bell, Zap } from 'lucide-react'
+import { CURRENT_USER } from '@/lib/supabase.jsx'
 import { CURRENT_USER } from '@/lib/supabase'
 
 export const MainLayout = () => {

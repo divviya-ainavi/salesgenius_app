@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { supabase, authHelpers } from "@/lib/supabase";
+import { supabase, authHelpers } from "@/lib/supabase.jsx";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import {
@@ -19,7 +19,7 @@ import {
   setOrganizationDetails,
   setTitleName,
 } from "../../store/slices/authSlice";
-import { dbHelpers } from "../../lib/supabase";
+import { dbHelpers } from "../../lib/supabase.jsx";
 
 const LoginPage = () => {
   const dispatch = useDispatch();

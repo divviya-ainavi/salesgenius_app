@@ -29,7 +29,7 @@ import {
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { CURRENT_USER, authHelpers } from "@/lib/supabase.jsx";
 
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
