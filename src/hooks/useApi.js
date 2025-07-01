@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAnalytics } from './useAnalytics';
+import { useAnalytics } from './useAnalytics.jsx';
 
 // Custom hook for API calls with loading states and error handling
 export const useApi = () => {

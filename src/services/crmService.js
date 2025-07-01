@@ -1,7 +1,7 @@
-import api from '@/lib/api';
-import API_ENDPOINTS from '@/lib/apiEndpoints';
-import { analytics } from '@/lib/analytics';
-import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
+import api from '@/lib/api.jsx';
+import API_ENDPOINTS from '@/lib/apiEndpoints.jsx';
+import { analytics } from '@/lib/analytics.jsx';
+import { dbHelpers, CURRENT_USER } from '@/lib/supabase.jsx';
 
 // CRM Service for handling all CRM integrations with user-specific credentials
 class CRMService {
