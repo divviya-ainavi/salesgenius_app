@@ -974,11 +974,16 @@ export const dbHelpers = {
           email: updates.email
         })
         .eq('id', userId)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
-      return data;
+      
+      // Check if any rows were updated
+      if (!data || data.length === 0) {
+        throw new Error('No user found with the provided ID');
+      }
+      
+      return data[0];
     } catch (err) {
       console.error('Error updating user profile:', err);
       throw err;
