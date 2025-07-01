@@ -16,6 +16,11 @@ const initialState = {
     userRoleId: null,
     titleName: null,
     organizationDetails: null,
+    hubspotIntegration: {
+        connected: false,
+        lastSync: null,
+        accountInfo: null,
+    },
 };
 
 const authSlice = createSlice({
@@ -62,6 +67,9 @@ const authSlice = createSlice({
         setOrganizationDetails: (state, action) => {
             state.organizationDetails = action.payload;
         },
+        setHubspotIntegration: (state, action) => {
+            state.hubspotIntegration = action.payload;
+        },
         logout: (state) => {
             state.user = null;
             state.isAuthenticated = false;
@@ -70,6 +78,11 @@ const authSlice = createSlice({
             localStorage.clear();
             Cookies.remove("token");
             Cookies.remove("userid");
+            state.hubspotIntegration = {
+                connected: false,
+                lastSync: null,
+                accountInfo: null,
+            };
         },
     },
 });
@@ -89,5 +102,6 @@ export const {
     setUserRoleId,
     setTitleName,
     setOrganizationDetails,
+    setHubspotIntegration,
 } = authSlice.actions;
 export default authSlice.reducer;
