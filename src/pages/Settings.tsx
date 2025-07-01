@@ -313,7 +313,7 @@ export const Settings = () => {
     industry: organizationDetails?.industry?.id || "Technology",
     size: organizationDetails?.company_size?.id || "1-10",
     default_methodology: organizationDetails?.sales_methodology?.id,
-    ai_training_enabled: true,
+    ai_training_enabled: false,
     data_retention_days: 365,
     require_2fa: false,
   });
@@ -609,7 +609,7 @@ export const Settings = () => {
           setHasExistingToken(true);
           setIsEditingHubspot(false);
           setHubspotToken(""); // Clear the input field for security
-          
+
           toast.success("HubSpot token validated and saved successfully");
         } else {
           toast.error("Token validated but failed to save to database");
@@ -638,7 +638,7 @@ export const Settings = () => {
     organizationDetails,
     "user and org details in settings page"
   );
-  
+
   useEffect(() => {
     const fetchDropdowns = async () => {
       const result = await dbHelpers.getOrgDropdownOptions();
@@ -791,7 +791,7 @@ export const Settings = () => {
                         email: e.target.value,
                       }))
                     }
-                    disabled={!isEditing}
+                    disabled={true}
                     type="email"
                   />
                 </div>
@@ -1097,7 +1097,7 @@ export const Settings = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="text-sm font-medium mb-2 block">
                       Data Retention (Days)
                     </label>
@@ -1111,7 +1111,7 @@ export const Settings = () => {
                         }))
                       }
                     />
-                  </div>
+                  </div> */}
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">AI Training Enabled</p>
@@ -1121,6 +1121,7 @@ export const Settings = () => {
                     </div>
                     <Switch
                       checked={orgSettings.ai_training_enabled}
+                      disabled
                       onCheckedChange={(checked) =>
                         setOrgSettings((prev) => ({
                           ...prev,
@@ -1138,6 +1139,7 @@ export const Settings = () => {
                     </div>
                     <Switch
                       checked={orgSettings.require_2fa}
+                      disabled
                       onCheckedChange={(checked) =>
                         setOrgSettings((prev) => ({
                           ...prev,
@@ -1148,14 +1150,17 @@ export const Settings = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>HubSpot Integration</span>
                     {hasExistingToken && !isEditingHubspot && (
                       <div className="flex items-center space-x-2">
-                        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800 border-green-200"
+                        >
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Connected
                         </Badge>
@@ -1181,8 +1186,9 @@ export const Settings = () => {
                         </p>
                       </div>
                       <p className="text-sm text-green-700">
-                        Your HubSpot access token has been validated and securely stored.
-                        You can now push data to HubSpot from the application.
+                        Your HubSpot access token has been validated and
+                        securely stored. You can now push data to HubSpot from
+                        the application.
                       </p>
                     </div>
                   ) : (
@@ -1201,19 +1207,21 @@ export const Settings = () => {
                           Your token will be encrypted and securely stored
                         </p>
                       </div>
-                      
+
                       <div className="flex space-x-2">
-                        <Button 
+                        <Button
                           onClick={validateHubspotToken}
                           disabled={!hubspotToken.trim()}
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />
-                          {hasExistingToken ? "Update Token" : "Validate & Save Token"}
+                          {hasExistingToken
+                            ? "Update Token"
+                            : "Validate & Save Token"}
                         </Button>
-                        
+
                         {isEditingHubspot && (
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             onClick={handleCancelEditHubspot}
                           >
                             <X className="w-4 h-4 mr-1" />
@@ -1237,9 +1245,17 @@ export const Settings = () => {
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="text-sm text-green-700 space-y-1">
                         <p className="font-medium">Token is valid!</p>
-                        <p><strong>User:</strong> {hubspotInfo.user}</p>
-                        <p><strong>Scopes:</strong> {hubspotInfo.scopes?.join(", ")}</p>
-                        <p><strong>Expires In:</strong> {Math.round(hubspotInfo.expires_in / 3600)} hours</p>
+                        <p>
+                          <strong>User:</strong> {hubspotInfo.user}
+                        </p>
+                        <p>
+                          <strong>Scopes:</strong>{" "}
+                          {hubspotInfo.scopes?.join(", ")}
+                        </p>
+                        <p>
+                          <strong>Expires In:</strong>{" "}
+                          {Math.round(hubspotInfo.expires_in / 3600)} hours
+                        </p>
                       </div>
                     </div>
                   )}

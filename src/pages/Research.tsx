@@ -237,7 +237,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           body: JSON.stringify({
             companyName: formData.companyName,
             companyUrl: formData.companyWebsite,
-            prospectUrls: formData.prospectLinkedIn.filter(
+            prospectUrl: formData.prospectLinkedIn.filter(
               (url) => url.trim() !== ""
             ),
           }),
@@ -276,7 +276,6 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         sources: result.sources || [],
         recommendations: result.recommendations || "",
       });
-
       setCurrentView("results");
       toast.success(`Research completed for ${formData.companyName}`);
     } catch (error) {
