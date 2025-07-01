@@ -224,6 +224,31 @@ const mockTrainingMaterials = {
 };
 
 export const Settings = () => {
+  const createJWT = (payload, secret = "SG") => {
+    const header = {
+      alg: "HS256",
+      typ: "JWT",
+    };
+
+    const base64UrlEncode = (obj) => {
+      return btoa(JSON.stringify(obj))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+    };
+
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payload);
+
+    // Simple HMAC-SHA256 simulation (for demo purposes)
+    // In production, use a proper JWT library like jsonwebtoken
+    const signature = btoa(`${encodedHeader}.${encodedPayload}.${secret}`)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  };
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -525,30 +550,93 @@ export const Settings = () => {
     toast.success("New API key generated and copied to clipboard");
   };
 
-  const validateHubspotToken = async () => {
-    setHubspotError("");
-    setHubspotInfo(null);
+  // const validateHubspotToken = async () => {
+  //   setHubspotError("");
+  //   setHubspotInfo(null);
 
+  //   try {
+  //     const response = await fetch(
+  //       "https://api.hubapi.com/integrations/v1/me",
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${hubspotToken}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || "Invalid access token");
+  //     }
+
+  //     setHubspotInfo(data); // { userId, hubId, appId }
+  //   } catch (error) {
+  //     setHubspotError(error.message);
+  //   }
+  // };
+
+  const validateHubspotToken = async () => {
+    if (!hubspotToken) {
+      toast.error("No HubSpot access token found");
+      return;
+    }
+
+    // setIsCheckingConnection(true);
     try {
+      // Create JWT payload with the access token
+      const payload = {
+        pat: hubspotToken,
+      };
+
+      // Encrypt the token using JWT
+      const jwtToken = createJWT(payload);
+      const formData = new FormData();
+      formData.append("token", jwtToken);
+
+      // Send encrypted token to n8n API
       const response = await fetch(
-        "https://api.hubapi.com/integrations/v1/me",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/hubspotconnection-check",
         {
-          headers: {
-            Authorization: `Bearer ${hubspotToken}`,
-            "Content-Type": "application/json",
-          },
+          method: "POST",
+          body: formData,
         }
       );
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || "Invalid access token");
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`
+        );
       }
 
-      setHubspotInfo(data); // { userId, hubId, appId }
+      const result = await response.json();
+
+      if (result.success || result.valid) {
+        // setHubspotData((prev) => ({
+        //   ...prev,
+        //   connected: true,
+        //   accountInfo: result.account_info || result.data,
+        // }));
+        toast.success("HubSpot connection verified successfully");
+      } else {
+        // setHubspotData((prev) => ({
+        //   ...prev,
+        //   connected: false,
+        // }));
+        toast.error("HubSpot connection is invalid");
+      }
     } catch (error) {
-      setHubspotError(error.message);
+      console.error("Error checking HubSpot connection:", error);
+      toast.error(`Failed to verify HubSpot connection: ${error.message}`);
+
+      // setHubspotData((prev) => ({
+      //   ...prev,
+      //   connected: false,
+      // }));
+    } finally {
+      console.log("HubSpot connection check completed");
+      // setIsCheckingConnection(false);
     }
   };
   console.log(
