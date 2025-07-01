@@ -1101,6 +1101,32 @@ export const dbHelpers = {
       return { success: false, error: err };
     }
   }
+
+  // Update organization location (country and city)
+  async updateOrganizationLocation(organizationId, locationData) {
+    try {
+      const { data, error } = await supabase
+        .from("organizations")
+        .update({
+          country: locationData.country,
+          city: locationData.city,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", organizationId)
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Error updating organization location:", error.message);
+        return { success: false, error };
+      }
+
+      return { success: true, data };
+    } catch (err) {
+      console.error("Unexpected error in updateOrganizationLocation:", err);
+      return { success: false, error: err };
+    }
+  }
 }
 
 // User helpers for backward compatibility

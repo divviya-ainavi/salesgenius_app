@@ -59,7 +59,12 @@ import {
   setIndustry,
   setSales_methodology,
 } from "../store/slices/orgSlice";
-import {
+import { 
+  setOrganizationDetails, 
+  setUser, 
+  setHubspotIntegration 
+} from "../store/slices/authSlice";
+import { getCountries, getCitiesForCountry, isValidCountry } from "../data/countriesAndCities";
   setOrganizationDetails,
   setUser,
   setHubspotIntegration,
@@ -342,9 +347,24 @@ export const Settings = () => {
     audit_logging: true,
   });
 
+  
   // HubSpot integration state
-  const [hubspotToken, setHubspotToken] = useState("");
-  const [hubspotError, setHubspotError] = useState("");
+  const [hubspotData, setHubspotData] = useState({
+    connected: false,
+    token: "",
+    maskedToken: "",
+    lastSync: null,
+    accountInfo: null,
+    isValidating: false,
+    error: "",
+  });
+  
+  // Location state
+  const [selectedCountry, setSelectedCountry] = useState(organizationDetails?.country || "");
+  const [selectedCity, setSelectedCity] = useState(organizationDetails?.city || "");
+  const [availableCities, setAvailableCities] = useState([]);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [isCheckingHubSpot, setIsCheckingHubSpot] = useState(false);
   const [isEditingHubspot, setIsEditingHubspot] = useState(false);
   const [hasExistingToken, setHasExistingToken] = useState(false);
@@ -359,6 +379,135 @@ export const Settings = () => {
   );
   const canViewOrgAnalytics =
     mockCurrentUser.permissions.includes("view_org_analytics");
+
+  // Load HubSpot integration status on component mount
+  useEffect(() => {
+    const loadHubSpotStatus = async () => {
+      if (organizationDetails?.id) {
+        try {
+          const status = await dbHelpers.getOrganizationHubSpotStatus(organizationDetails.id);
+          
+          if (status.connected && status.encryptedToken) {
+            // Mask the token - show only last 4 characters
+            const maskedToken = status.encryptedToken.length > 4 
+              ? 'xxxxx' + status.encryptedToken.slice(-4)
+              : 'xxxxx';
+            
+            setHubspotData(prev => ({
+              ...prev,
+              connected: true,
+              maskedToken,
+              lastSync: new Date().toISOString(), // You might want to store this in DB
+            }));
+            
+            // Update Redux state
+            dispatch(setHubspotIntegration({
+              connected: true,
+              lastSync: new Date().toISOString(),
+              accountInfo: { maskedToken },
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading HubSpot status:', error);
+        }
+      }
+    };
+
+    loadHubSpotStatus();
+  }, [organizationDetails?.id, dispatch]);
+
+  // Initialize location data when organization details are available
+  useEffect(() => {
+    if (organizationDetails) {
+      setSelectedCountry(organizationDetails.country || "");
+      setSelectedCity(organizationDetails.city || "");
+      
+      // Load cities if country is already selected
+      if (organizationDetails.country) {
+        const cities = getCitiesForCountry(organizationDetails.country);
+        setAvailableCities(cities);
+      }
+    }
+  }, [organizationDetails]);
+
+  // Handle country selection
+  const handleCountryChange = (country) => {
+    setLocationError("");
+    setSelectedCountry(country);
+    setSelectedCity(""); // Clear city selection when country changes
+    
+    if (country) {
+      setIsLoadingCities(true);
+      
+      // Simulate loading delay for better UX
+      setTimeout(() => {
+        const cities = getCitiesForCountry(country);
+        setAvailableCities(cities);
+        setIsLoadingCities(false);
+      }, 300);
+    } else {
+      setAvailableCities([]);
+    }
+  };
+
+  // Handle city selection
+  const handleCityChange = (city) => {
+    setLocationError("");
+    setSelectedCity(city);
+  };
+
+  // Save location data
+  const handleSaveLocation = async () => {
+    if (!selectedCountry) {
+      setLocationError("Please select a country");
+      return;
+    }
+
+    if (!selectedCity) {
+      setLocationError("Please select a city");
+      return;
+    }
+
+    // Validate country and city
+    if (!isValidCountry(selectedCountry)) {
+      setLocationError("Invalid country selected");
+      return;
+    }
+
+    const cities = getCitiesForCountry(selectedCountry);
+    if (!cities.includes(selectedCity)) {
+      setLocationError("Invalid city selected for the chosen country");
+      return;
+    }
+
+    try {
+      const response = await dbHelpers.updateOrganizationLocation(
+        organizationDetails.id,
+        {
+          country: selectedCountry,
+          city: selectedCity,
+        }
+      );
+
+      if (response.success) {
+        // Update Redux state
+        dispatch(setOrganizationDetails({
+          ...organizationDetails,
+          country: selectedCountry,
+          city: selectedCity,
+        }));
+        
+        toast.success("Location updated successfully");
+        setLocationError("");
+      } else {
+        throw new Error(response.error?.message || "Failed to update location");
+      }
+    } catch (error) {
+      console.error("Error updating location:", error);
+      setLocationError("Failed to update location. Please try again.");
+      toast.error("Failed to update location");
+    }
+  };
 
   // Load HubSpot integration status
   useEffect(() => {
@@ -689,19 +838,20 @@ export const Settings = () => {
     toast.success("New API key generated and copied to clipboard");
   };
 
-  const validateHubspotToken = async () => {
-    if (!hubspotToken) {
+  const handleConnectHubSpot = async () => {
+    if (!hubspotData.token.trim()) {
       toast.error("No HubSpot access token found");
       return;
     }
 
-    setIsCheckingHubSpot(true);
+    setHubspotData(prev => ({ ...prev, isValidating: true, error: "" }));
+    
     setHubspotError("");
 
     try {
       // Create JWT payload with the access token
       const payload = {
-        pat: hubspotToken,
+        pat: hubspotData.token,
       };
 
       // Encrypt the token using JWT
@@ -727,11 +877,33 @@ export const Settings = () => {
       const result = await response.json();
 
       if (result.success || result.valid) {
-        // Save the encrypted token to organization
-        await authHelpers.updateOrganizationHubSpotToken(
+        // Save encrypted token to database
+        await dbHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          hubspotToken
+          hubspotData.token
         );
+        
+        // Mask the token for display
+        const maskedToken = hubspotData.token.length > 4 
+          ? 'xxxxx' + hubspotData.token.slice(-4)
+          : 'xxxxx';
+        
+        setHubspotData(prev => ({
+          ...prev,
+          connected: true,
+          maskedToken,
+          lastSync: new Date().toISOString(),
+          accountInfo: result.account_info || result.data,
+          token: "", // Clear the input token
+        }));
+        
+        // Update Redux state
+        dispatch(setHubspotIntegration({
+          connected: true,
+          lastSync: new Date().toISOString(),
+          accountInfo: { maskedToken, ...result.account_info },
+        }));
+        
 
         // Update Redux state
         dispatch(
@@ -747,20 +919,16 @@ export const Settings = () => {
 
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
-      } else {
-        setHubspotError(
-          "Invalid HubSpot token. Please check your token and try again."
-        );
-        toast.error("HubSpot connection is invalid");
+        setHubspotData(prev => ({ ...prev, error: "Invalid HubSpot token" }));
+        toast.error("Invalid HubSpot token");
       }
     } catch (error) {
       console.error("Error checking HubSpot connection:", error);
-      setHubspotError(`Failed to verify HubSpot connection: ${error.message}`);
+      setHubspotData(prev => ({ 
+        ...prev, 
+        error: `Failed to verify connection: ${error.message}` 
+      }));
       toast.error(`Failed to verify HubSpot connection: ${error.message}`);
-    } finally {
-      setIsCheckingHubSpot(false);
-    }
-  };
 
   const disconnectHubSpot = async () => {
     try {
@@ -779,10 +947,44 @@ export const Settings = () => {
 
       toast.success("HubSpot disconnected successfully");
     } catch (error) {
+      setHubspotData(prev => ({ ...prev, isValidating: false }));
+    }
+  };
+
+  const handleDisconnectHubSpot = async () => {
+    try {
+      await dbHelpers.updateOrganizationHubSpotToken(organizationDetails.id, null);
+      
+      setHubspotData({
+        connected: false,
+        token: "",
+        maskedToken: "",
+        lastSync: null,
+        accountInfo: null,
+        isValidating: false,
+        error: "",
+      });
+      
+      // Update Redux state
+      dispatch(setHubspotIntegration({
+        connected: false,
+        lastSync: null,
+        accountInfo: null,
+      }));
+      
+      toast.success("HubSpot disconnected successfully");
+    } catch (error) {
       console.error("Error disconnecting HubSpot:", error);
       toast.error("Failed to disconnect HubSpot");
     }
   };
+
+  const handleTestConnection = async () => {
+    // Implement test connection logic here
+    toast.info("Testing HubSpot connection...");
+    // You can reuse the validation logic or create a separate test endpoint
+  };
+
 
   const handleEditHubspotToken = () => {
     setIsEditingHubspot(true);
@@ -1443,6 +1645,160 @@ export const Settings = () => {
                       }
                     />
                   </div>
+                  
+                  {/* Location Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Country
+                      </label>
+                      <Select
+                        value={selectedCountry}
+                        onValueChange={handleCountryChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getCountries().map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        City
+                      </label>
+                      <Select
+                        value={selectedCity}
+                        onValueChange={handleCityChange}
+                        disabled={!selectedCountry || isLoadingCities}
+                      >
+                        <SelectTrigger>
+                          <SelectValue 
+                            placeholder={
+                              !selectedCountry 
+                                ? "Select country first" 
+                                : isLoadingCities 
+                                ? "Loading cities..." 
+                                : "Select city"
+                            } 
+                  <CardTitle className="flex items-center justify-between">
+                    <span>HubSpot Integration</span>
+                    {hubspotData.connected && (
+                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                        </SelectTrigger>
+                        <SelectContent>
+                  {hubspotData.connected ? (
+                    // Connected State
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <span className="font-medium text-green-900">HubSpot Connected</span>
+                        </div>
+                        <div className="space-y-2 text-sm text-green-700">
+                          <div className="flex justify-between">
+                            <span>Access Token:</span>
+                            <span className="font-mono">{hubspotData.maskedToken}</span>
+                          </div>
+                          {hubspotData.lastSync && (
+                            <div className="flex justify-between">
+                              <span>Last Sync:</span>
+                              <span>{new Date(hubspotData.lastSync).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleTestConnection}
+                          className="flex-1"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                          Test Connection
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          onClick={handleDisconnectHubSpot}
+                          className="flex-1"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Disconnect
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Disconnected State
+                    <div className="space-y-4">
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <AlertCircle className="w-5 h-5 text-yellow-600" />
+                          <span className="font-medium text-yellow-900">HubSpot Not Connected</span>
+                        </div>
+                        <p className="text-sm text-yellow-700">
+                          Connect your HubSpot account to enable CRM integration features.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          HubSpot Access Token
+                        </label>
+                        <Input
+                          value={hubspotData.token}
+                          onChange={(e) => {
+                            setHubspotData(prev => ({ 
+                              ...prev, 
+                              token: e.target.value,
+                              error: "" // Clear error when user types
+                            }));
+                          }}
+                          placeholder="Enter your HubSpot Access Token"
+                          disabled={hubspotData.isValidating}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You can find your access token in HubSpot Settings → Integrations → Private Apps
+                        </p>
+                      </div>
+                      
+                      {hubspotData.error && (
+                        <div className="text-sm text-red-600 flex items-center space-x-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>{hubspotData.error}</span>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        onClick={handleConnectHubSpot}
+                        disabled={!hubspotData.token.trim() || hubspotData.isValidating}
+                        className="w-full"
+                      >
+                        {hubspotData.isValidating ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                            Validating Token...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Connect HubSpot
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                      <span>{locationError}</span>
                 </CardContent>
               </Card>
 
