@@ -11,17 +11,19 @@ import userManagementService from '@/services/userManagementService'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Encryption configuration
+// Password hashing configuration
 const ENCRYPTION_SECRET = 'SG_2025'; // In production, use environment variable
 
-// Password encryption helper functions
-const encryptPassword = (password) => {
-  return CryptoJS.AES.encrypt(password, ENCRYPTION_SECRET).toString();
+// Password hashing helper functions
+const hashPassword = (password) => {
+  // Use SHA256 with salt for consistent hashing
+  const saltedPassword = password + ENCRYPTION_SECRET;
+  return CryptoJS.SHA256(saltedPassword).toString();
 };
 
-const decryptPassword = (encryptedPassword) => {
-  const bytes = CryptoJS.AES.decrypt(encryptedPassword, ENCRYPTION_SECRET);
-  return bytes.toString(CryptoJS.enc.Utf8);
+const verifyPassword = (plainPassword, hashedPassword) => {
+  const hashedInput = hashPassword(plainPassword);
+  return hashedInput === hashedPassword;
 };
 
 
@@ -67,7 +69,7 @@ const initializeUserFromStorage = () => {
 export const authHelpers = {
 
   async loginWithCustomPassword(email, plainPassword) {
-    // 1. Fetch the profile with the stored encrypted password
+    // 1. Fetch the profile with the stored hashed password
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, hashed_password')
@@ -78,10 +80,10 @@ export const authHelpers = {
       throw new Error('Invalid login credentials');
     }
 
-    // 2. Encrypt the provided password and compare with stored encrypted password
-    const encryptedInputPassword = encryptPassword(plainPassword);
+    // 2. Hash the provided password and compare with stored hashed password
+    const isPasswordValid = verifyPassword(plainPassword, profile.hashed_password);
     
-    if (encryptedInputPassword !== profile.hashed_password) {
+    if (!isPasswordValid) {
       throw new Error('Invalid login credentials');
     }
 
@@ -296,8 +298,8 @@ export const authHelpers = {
   // Create user profile after registration
   async createUserProfile(userId, userData) {
     try {
-      // Encrypt the password before storing
-      const encryptedPassword = userData.password ? encryptPassword(userData.password) : null;
+      // Hash the password before storing
+      const hashedPassword = userData.password ? hashPassword(userData.password) : null;
       
       const { data, error } = await supabase
         .from('profiles')
@@ -307,7 +309,7 @@ export const authHelpers = {
           full_name: userData.full_name,
           organization_id: userData.organization_id,
           status_id: 1, // Active status
-          hashed_password: encryptedPassword,
+          hashed_password: hashedPassword,
         }])
         .select()
         .single();
@@ -323,9 +325,9 @@ export const authHelpers = {
   // Update user profile
   async updateUserProfile(userId, updates) {
     try {
-      // If password is being updated, encrypt it
+      // If password is being updated, hash it
       if (updates.password) {
-        updates.hashed_password = encryptPassword(updates.password);
+        updates.hashed_password = hashPassword(updates.password);
         delete updates.password; // Remove plain password from updates
       }
       
