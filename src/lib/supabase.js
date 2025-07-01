@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { fileStorage } from './fileStorage'
 import { analytics } from './analytics'
+import CryptoJS from 'crypto-js'
 import api from './api'
 import aiService from '@/services/aiService'
 import fileService from '@/services/fileService'
@@ -9,6 +10,19 @@ import userManagementService from '@/services/userManagementService'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Encryption configuration
+const ENCRYPTION_SECRET = 'SG_PASSWORD_SECRET_2024'; // In production, use environment variable
+
+// Password encryption helper functions
+const encryptPassword = (password) => {
+  return CryptoJS.AES.encrypt(password, ENCRYPTION_SECRET).toString();
+};
+
+const decryptPassword = (encryptedPassword) => {
+  const bytes = CryptoJS.AES.decrypt(encryptedPassword, ENCRYPTION_SECRET);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
 
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -53,10 +67,10 @@ const initializeUserFromStorage = () => {
 export const authHelpers = {
 
   async loginWithCustomPassword(email, plainPassword) {
-    // 1. Fetch the profile with the stored password
+    // 1. Fetch the profile with the stored encrypted password
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('id, password_hash')
+      .select('id, hashed_password')
       .eq('email', email)
       .single();
 
@@ -64,8 +78,10 @@ export const authHelpers = {
       throw new Error('Invalid login credentials');
     }
 
-    // 2. Directly compare the provided password with the stored password_hash
-    if (plainPassword !== profile.password_hash) {
+    // 2. Encrypt the provided password and compare with stored encrypted password
+    const encryptedInputPassword = encryptPassword(plainPassword);
+    
+    if (encryptedInputPassword !== profile.hashed_password) {
       throw new Error('Invalid login credentials');
     }
 
@@ -280,6 +296,9 @@ export const authHelpers = {
   // Create user profile after registration
   async createUserProfile(userId, userData) {
     try {
+      // Encrypt the password before storing
+      const encryptedPassword = userData.password ? encryptPassword(userData.password) : null;
+      
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
@@ -288,6 +307,7 @@ export const authHelpers = {
           full_name: userData.full_name,
           organization_id: userData.organization_id,
           status_id: 1, // Active status
+          hashed_password: encryptedPassword,
         }])
         .select()
         .single();
@@ -303,6 +323,12 @@ export const authHelpers = {
   // Update user profile
   async updateUserProfile(userId, updates) {
     try {
+      // If password is being updated, encrypt it
+      if (updates.password) {
+        updates.hashed_password = encryptPassword(updates.password);
+        delete updates.password; // Remove plain password from updates
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
