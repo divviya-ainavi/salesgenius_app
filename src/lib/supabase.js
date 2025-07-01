@@ -12,7 +12,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Encryption configuration
-const ENCRYPTION_SECRET = 'SG_PASSWORD_SECRET_2024'; // In production, use environment variable
+const ENCRYPTION_SECRET = 'SG_2025'; // In production, use environment variable
 
 // Password encryption helper functions
 const encryptPassword = (password) => {
