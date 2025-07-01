@@ -260,6 +260,16 @@ export const Settings = () => {
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
+  
+  // Password change state
+  const [passwordChange, setPasswordChange] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
   const {
     userProfileInfo,
     userRole,
@@ -423,6 +433,86 @@ export const Settings = () => {
   console.log(organizationDetails, "Organization settings updated:387");
   const handleSaveSecurity = () => {
     toast.success("Security settings saved successfully");
+  };
+
+  const validatePasswordChange = () => {
+    const errors = {};
+    
+    // Current password validation
+    if (!passwordChange.currentPassword.trim()) {
+      errors.currentPassword = "Current password is required";
+    }
+    
+    // New password validation
+    if (!passwordChange.newPassword.trim()) {
+      errors.newPassword = "New password is required";
+    } else if (passwordChange.newPassword.length < 8) {
+      errors.newPassword = "New password must be at least 8 characters";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordChange.newPassword)) {
+      errors.newPassword = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+    }
+    
+    // Confirm password validation
+    if (!passwordChange.confirmPassword.trim()) {
+      errors.confirmPassword = "Please confirm your new password";
+    } else if (passwordChange.newPassword !== passwordChange.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+    
+    // Check if new password is same as current
+    if (passwordChange.currentPassword === passwordChange.newPassword) {
+      errors.newPassword = "New password must be different from current password";
+    }
+    
+    return errors;
+  };
+
+  const handlePasswordChange = async () => {
+    const errors = validatePasswordChange();
+    setPasswordErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    
+    try {
+      const userId = user?.id || CURRENT_USER?.id;
+      
+      if (!userId) {
+        toast.error("Unable to change password: User session not found");
+        return;
+      }
+      
+      // First verify current password
+      try {
+        await authHelpers.loginWithCustomPassword(user.email, passwordChange.currentPassword);
+      } catch (error) {
+        setPasswordErrors({ currentPassword: "Current password is incorrect" });
+        return;
+      }
+      
+      // Update password in database
+      await dbHelpers.updateUserProfile(userId, {
+        password: passwordChange.newPassword
+      });
+      
+      // Clear form
+      setPasswordChange({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordErrors({});
+      
+      toast.success("Password changed successfully");
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast.error("Failed to change password. Please try again.");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleInviteUser = () => {
@@ -1571,6 +1661,133 @@ export const Settings = () => {
                 <div className="text-xs text-muted-foreground">
                   <p>⚠️ Generating a new key will invalidate the current one</p>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Password Change Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5" />
+                  <span>Change Password</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Current Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.currentPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.currentPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          currentPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your current password"
+                    className={passwordErrors.currentPassword ? "border-red-500" : ""}
+                  />
+                  {passwordErrors.currentPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.currentPassword}
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.newPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.newPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          newPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your new password"
+                    className={passwordErrors.newPassword ? "border-red-500" : ""}
+                  />
+                  {passwordErrors.newPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.newPassword}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Password must be at least 8 characters with uppercase, lowercase, and number
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Confirm New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.confirmPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Confirm your new password"
+                    className={passwordErrors.confirmPassword ? "border-red-500" : ""}
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+                
+                <Button
+                  onClick={handlePasswordChange}
+                  disabled={
+                    isChangingPassword ||
+                    !passwordChange.currentPassword ||
+                    !passwordChange.newPassword ||
+                    !passwordChange.confirmPassword
+                  }
+                  className="w-full"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Changing Password...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
