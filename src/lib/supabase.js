@@ -965,6 +965,21 @@ export const dbHelpers = {
     }
   },
 
+  async getRoleIdByTitleId(titleId) {
+    const { data, error } = await supabase
+      .from("titles")
+      .select("*")
+      .eq("id", titleId)
+      .single(); // ensures we get a single object, not an array
+
+    if (error) {
+      console.error("Error fetching role_id from titles:", error);
+      throw error;
+    }
+
+    return data?.role_id;
+  },
+
   async updateUserProfile(userId, updates) {
     try {
       const { data, error } = await supabase
@@ -977,12 +992,12 @@ export const dbHelpers = {
         .select();
 
       if (error) throw error;
-      
+
       // Check if any rows were updated
       if (!data || data.length === 0) {
         throw new Error('No user found with the provided ID');
       }
-      
+
       return data[0];
     } catch (err) {
       console.error('Error updating user profile:', err);

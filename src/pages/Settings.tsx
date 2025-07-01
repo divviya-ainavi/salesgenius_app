@@ -59,7 +59,7 @@ import {
   setIndustry,
   setSales_methodology,
 } from "../store/slices/orgSlice";
-import { setUser } from "../store/slices/authSlice";
+import { setOrganizationDetails, setUser } from "../store/slices/authSlice";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -320,9 +320,11 @@ export const Settings = () => {
     try {
       // Check if user ID is available
       const userId = user?.id || CURRENT_USER?.id;
-      
+
       if (!userId) {
-        toast.error("Unable to update profile: User session not found. Please try logging out and logging back in.");
+        toast.error(
+          "Unable to update profile: User session not found. Please try logging out and logging back in."
+        );
         return;
       }
 
@@ -363,8 +365,8 @@ export const Settings = () => {
 
   const handleSaveOrgSettings = async () => {
     const dataToUpdate = {
-      name: organizationDetails?.name,
-      domain: organizationDetails?.domain || "",
+      name: orgSettings?.name,
+      domain: orgSettings?.domain || "",
       industry_id: orgSettings.industry,
       company_size_id: orgSettings.size,
       sales_methodology_id: orgSettings.default_methodology,
@@ -375,13 +377,23 @@ export const Settings = () => {
     );
 
     if (response.success) {
-      // setOrganizationDetails(response.data);
+      console.log("Organization settings updated:", response?.data);
+      dispatch(
+        setOrganizationDetails({
+          ...organizationDetails,
+          name: response.data?.name,
+          domain: response.data?.domain || "",
+          industry_id: response.data.industry_id,
+          company_size_id: response.data.company_size_id,
+          sales_methodology_id: response.data.sales_methodology_id,
+        })
+      );
       toast.success("Organization settings updated successfully");
     } else {
       toast.error("Failed to update organization settings");
     }
   };
-
+  console.log(organizationDetails, "Organization settings updated:387");
   const handleSaveSecurity = () => {
     toast.success("Security settings saved successfully");
   };
@@ -556,6 +568,8 @@ export const Settings = () => {
     fetchDropdowns();
   }, []);
 
+  // const isOrgAdmin = roles
+  // console.log(roles, titles)
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -596,7 +610,7 @@ export const Settings = () => {
             <User className="w-4 h-4" />
             <span>Profile</span>
           </TabsTrigger>
-          {canManageOrgSettings && (
+          {canManageOrgSettings && userRoleId == 2 && (
             <TabsTrigger
               value="organization"
               className="flex items-center space-x-2"

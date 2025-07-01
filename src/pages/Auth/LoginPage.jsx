@@ -19,6 +19,7 @@ import {
   setOrganizationDetails,
   setTitleName,
 } from "../../store/slices/authSlice";
+import { dbHelpers } from "../../lib/supabase";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
@@ -113,9 +114,11 @@ const LoginPage = () => {
 
         // Set title & role
         if (profile.title_name) dispatch(setTitleName(profile.title_name));
-        if (profile.role_details) {
-          dispatch(setUserRole(profile.role_details.label));
-          dispatch(setUserRoleId(profile.role_details.id));
+        if (profile.title_id) {
+          const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
+          console.log("Role details:", roleId);
+          // dispatch(setUserRole(roleId));
+          dispatch(setUserRoleId(roleId));
         }
 
         // Save cleaned profile to authHelpers and localStorage
