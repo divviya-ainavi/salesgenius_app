@@ -53,16 +53,16 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
   setCompany_size,
   setIndustry,
   setSales_methodology,
 } from "../store/slices/orgSlice";
-import { 
-  setOrganizationDetails, 
-  setUser, 
-  setHubspotIntegration 
+import {
+  setOrganizationDetails,
+  setUser,
+  setHubspotIntegration,
 } from "../store/slices/authSlice";
 
 // Mock user data - in real app this would come from auth context
@@ -264,7 +264,7 @@ export const Settings = () => {
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
-  
+
   // Password change state
   const [passwordChange, setPasswordChange] = useState({
     currentPassword: "",
@@ -273,7 +273,7 @@ export const Settings = () => {
   });
   const [passwordErrors, setPasswordErrors] = useState({});
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  
+
   const {
     userProfileInfo,
     userRole,
@@ -341,7 +341,7 @@ export const Settings = () => {
     api_access_enabled: true,
     audit_logging: true,
   });
-  
+
   // HubSpot integration state
   const [hubspotToken, setHubspotToken] = useState("");
   const [hubspotError, setHubspotError] = useState("");
@@ -365,18 +365,27 @@ export const Settings = () => {
     const loadHubSpotStatus = async () => {
       if (organizationDetails?.id) {
         try {
-          const hubspotStatus = await dbHelpers.getOrganizationHubSpotStatus(organizationDetails.id);
-          
-          dispatch(setHubspotIntegration({
-            connected: hubspotStatus.connected,
-            lastSync: hubspotStatus.connected ? new Date().toISOString() : null,
-            accountInfo: hubspotStatus.connected ? {
-              maskedToken: hubspotStatus.encryptedToken ? 
-                'xxxxx' + hubspotStatus.encryptedToken.slice(-4) : null
-            } : null,
-          }));
+          const hubspotStatus = await authHelpers.getOrganizationHubSpotStatus(
+            organizationDetails.id
+          );
+
+          dispatch(
+            setHubspotIntegration({
+              connected: hubspotStatus.connected,
+              lastSync: hubspotStatus.connected
+                ? new Date().toISOString()
+                : null,
+              accountInfo: hubspotStatus.connected
+                ? {
+                    maskedToken: hubspotStatus.encryptedToken
+                      ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+                      : null,
+                  }
+                : null,
+            })
+          );
         } catch (error) {
-          console.error('Error loading HubSpot status:', error);
+          console.error("Error loading HubSpot status:", error);
         }
       }
     };
@@ -468,67 +477,74 @@ export const Settings = () => {
 
   const validatePasswordChange = () => {
     const errors = {};
-    
+
     // Current password validation
     if (!passwordChange.currentPassword.trim()) {
       errors.currentPassword = "Current password is required";
     }
-    
+
     // New password validation
     if (!passwordChange.newPassword.trim()) {
       errors.newPassword = "New password is required";
     } else if (passwordChange.newPassword.length < 8) {
       errors.newPassword = "New password must be at least 8 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordChange.newPassword)) {
-      errors.newPassword = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+    } else if (
+      !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordChange.newPassword)
+    ) {
+      errors.newPassword =
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number";
     }
-    
+
     // Confirm password validation
     if (!passwordChange.confirmPassword.trim()) {
       errors.confirmPassword = "Please confirm your new password";
     } else if (passwordChange.newPassword !== passwordChange.confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
     }
-    
+
     // Check if new password is same as current
     if (passwordChange.currentPassword === passwordChange.newPassword) {
-      errors.newPassword = "New password must be different from current password";
+      errors.newPassword =
+        "New password must be different from current password";
     }
-    
+
     return errors;
   };
 
   const handlePasswordChange = async () => {
     const errors = validatePasswordChange();
     setPasswordErrors(errors);
-    
+
     if (Object.keys(errors).length > 0) {
       return;
     }
-    
+
     setIsChangingPassword(true);
-    
+
     try {
       const userId = user?.id || CURRENT_USER?.id;
-      
+
       if (!userId) {
         toast.error("Unable to change password: User session not found");
         return;
       }
-      
+
       // First verify current password
       try {
-        await authHelpers.loginWithCustomPassword(user.email, passwordChange.currentPassword);
+        await authHelpers.loginWithCustomPassword(
+          user.email,
+          passwordChange.currentPassword
+        );
       } catch (error) {
         setPasswordErrors({ currentPassword: "Current password is incorrect" });
         return;
       }
-      
+
       // Update password in database
-      await dbHelpers.updateUserProfile(userId, {
-        password: passwordChange.newPassword
+      await authHelpers.updateUserProfile(userId, {
+        password: passwordChange.newPassword,
       });
-      
+
       // Clear form
       setPasswordChange({
         currentPassword: "",
@@ -536,7 +552,7 @@ export const Settings = () => {
         confirmPassword: "",
       });
       setPasswordErrors({});
-      
+
       toast.success("Password changed successfully");
     } catch (error) {
       console.error("Error changing password:", error);
@@ -681,7 +697,7 @@ export const Settings = () => {
 
     setIsCheckingHubSpot(true);
     setHubspotError("");
-    
+
     try {
       // Create JWT payload with the access token
       const payload = {
@@ -712,25 +728,29 @@ export const Settings = () => {
 
       if (result.success || result.valid) {
         // Save the encrypted token to organization
-        await dbHelpers.updateOrganizationHubSpotToken(
-          organizationDetails.id, 
+        await authHelpers.updateOrganizationHubSpotToken(
+          organizationDetails.id,
           hubspotToken
         );
-        
+
         // Update Redux state
-        dispatch(setHubspotIntegration({
-          connected: true,
-          lastSync: new Date().toISOString(),
-          accountInfo: {
-            maskedToken: 'xxxxx' + hubspotToken.slice(-4),
-            ...result.account_info
-          },
-        }));
-        
+        dispatch(
+          setHubspotIntegration({
+            connected: true,
+            lastSync: new Date().toISOString(),
+            accountInfo: {
+              maskedToken: "xxxxx" + hubspotToken.slice(-4),
+              ...result.account_info,
+            },
+          })
+        );
+
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
       } else {
-        setHubspotError("Invalid HubSpot token. Please check your token and try again.");
+        setHubspotError(
+          "Invalid HubSpot token. Please check your token and try again."
+        );
         toast.error("HubSpot connection is invalid");
       }
     } catch (error) {
@@ -744,14 +764,19 @@ export const Settings = () => {
 
   const disconnectHubSpot = async () => {
     try {
-      await dbHelpers.updateOrganizationHubSpotToken(organizationDetails.id, null);
-      
-      dispatch(setHubspotIntegration({
-        connected: false,
-        lastSync: null,
-        accountInfo: null,
-      }));
-      
+      await dbHelpers.updateOrganizationHubSpotToken(
+        organizationDetails.id,
+        null
+      );
+
+      dispatch(
+        setHubspotIntegration({
+          connected: false,
+          lastSync: null,
+          accountInfo: null,
+        })
+      );
+
       toast.success("HubSpot disconnected successfully");
     } catch (error) {
       console.error("Error disconnecting HubSpot:", error);
@@ -1079,6 +1104,140 @@ export const Settings = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Password Change Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5" />
+                  <span>Change Password</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Current Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.currentPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.currentPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          currentPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your current password"
+                    className={
+                      passwordErrors.currentPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.currentPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.currentPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.newPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.newPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          newPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your new password"
+                    className={
+                      passwordErrors.newPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.newPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.newPassword}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Password must be at least 8 characters with uppercase,
+                    lowercase, and number
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Confirm New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.confirmPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Confirm your new password"
+                    className={
+                      passwordErrors.confirmPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handlePasswordChange}
+                  disabled={
+                    isChangingPassword ||
+                    !passwordChange.currentPassword ||
+                    !passwordChange.newPassword ||
+                    !passwordChange.confirmPassword
+                  }
+                  className="w-full"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Changing Password...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -1292,7 +1451,10 @@ export const Settings = () => {
                   <CardTitle className="flex items-center justify-between">
                     <span>HubSpot Integration</span>
                     {hubspotIntegration.connected && (
-                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                      <Badge
+                        variant="default"
+                        className="bg-green-100 text-green-800 border-green-200"
+                      >
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Connected
                       </Badge>
@@ -1309,36 +1471,41 @@ export const Settings = () => {
                           </p>
                           <CheckCircle className="w-5 h-5 text-green-600" />
                         </div>
-                        
+
                         {hubspotIntegration.accountInfo?.maskedToken && (
                           <div className="mt-3">
-                            <p className="text-xs text-green-700 mb-1">Access Token:</p>
+                            <p className="text-xs text-green-700 mb-1">
+                              Access Token:
+                            </p>
                             <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
                               {hubspotIntegration.accountInfo.maskedToken}
                             </div>
                           </div>
                         )}
-                        
+
                         {hubspotIntegration.lastSync && (
                           <p className="text-xs text-green-700 mt-2">
-                            Last synced: {new Date(hubspotIntegration.lastSync).toLocaleString()}
+                            Last synced:{" "}
+                            {new Date(
+                              hubspotIntegration.lastSync
+                            ).toLocaleString()}
                           </p>
                         )}
                       </div>
-                      
+
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={disconnectHubSpot}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <X className="w-4 h-4 mr-1" />
                           Disconnect
                         </Button>
-                        <Button variant="outline">
+                        {/* <Button variant="outline">
                           <RefreshCw className="w-4 h-4 mr-1" />
                           Test Connection
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   ) : (
@@ -1351,10 +1518,11 @@ export const Settings = () => {
                           </p>
                         </div>
                         <p className="text-xs text-yellow-700">
-                          Connect your HubSpot account to enable CRM integration features.
+                          Connect your HubSpot account to enable CRM integration
+                          features.
                         </p>
                       </div>
-                      
+
                       <div>
                         <label className="text-sm font-medium mb-2 block">
                           HubSpot Access Token
@@ -1369,11 +1537,13 @@ export const Settings = () => {
                           disabled={isCheckingHubSpot}
                         />
                         {hubspotError && (
-                          <p className="text-sm text-red-600 mt-2">{hubspotError}</p>
+                          <p className="text-sm text-red-600 mt-2">
+                            {hubspotError}
+                          </p>
                         )}
                       </div>
-                      
-                      <Button 
+
+                      <Button
                         onClick={validateHubspotToken}
                         disabled={!hubspotToken.trim() || isCheckingHubSpot}
                         className="w-full"
@@ -1395,9 +1565,12 @@ export const Settings = () => {
 
                   <div className="text-xs text-muted-foreground">
                     <p className="mb-1">
-                      <strong>Note:</strong> You can find your HubSpot Access Token in your HubSpot account under:
+                      <strong>Note:</strong> You can find your HubSpot Access
+                      Token in your HubSpot account under:
                     </p>
-                    <p>Settings → Integrations → Private Apps → Create/View Token</p>
+                    <p>
+                      Settings → Integrations → Private Apps → Create/View Token
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -1711,133 +1884,6 @@ export const Settings = () => {
                 <div className="text-xs text-muted-foreground">
                   <p>⚠️ Generating a new key will invalidate the current one</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Password Change Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Lock className="w-5 h-5" />
-                  <span>Change Password</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Current Password *
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordChange.currentPassword}
-                    onChange={(e) => {
-                      setPasswordChange((prev) => ({
-                        ...prev,
-                        currentPassword: e.target.value,
-                      }));
-                      // Clear error when user starts typing
-                      if (passwordErrors.currentPassword) {
-                        setPasswordErrors((prev) => ({
-                          ...prev,
-                          currentPassword: "",
-                        }));
-                      }
-                    }}
-                    placeholder="Enter your current password"
-                    className={passwordErrors.currentPassword ? "border-red-500" : ""}
-                  />
-                  {passwordErrors.currentPassword && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {passwordErrors.currentPassword}
-                    </p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    New Password *
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordChange.newPassword}
-                    onChange={(e) => {
-                      setPasswordChange((prev) => ({
-                        ...prev,
-                        newPassword: e.target.value,
-                      }));
-                      // Clear error when user starts typing
-                      if (passwordErrors.newPassword) {
-                        setPasswordErrors((prev) => ({
-                          ...prev,
-                          newPassword: "",
-                        }));
-                      }
-                    }}
-                    placeholder="Enter your new password"
-                    className={passwordErrors.newPassword ? "border-red-500" : ""}
-                  />
-                  {passwordErrors.newPassword && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {passwordErrors.newPassword}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Password must be at least 8 characters with uppercase, lowercase, and number
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Confirm New Password *
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordChange.confirmPassword}
-                    onChange={(e) => {
-                      setPasswordChange((prev) => ({
-                        ...prev,
-                        confirmPassword: e.target.value,
-                      }));
-                      // Clear error when user starts typing
-                      if (passwordErrors.confirmPassword) {
-                        setPasswordErrors((prev) => ({
-                          ...prev,
-                          confirmPassword: "",
-                        }));
-                      }
-                    }}
-                    placeholder="Confirm your new password"
-                    className={passwordErrors.confirmPassword ? "border-red-500" : ""}
-                  />
-                  {passwordErrors.confirmPassword && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {passwordErrors.confirmPassword}
-                    </p>
-                  )}
-                </div>
-                
-                <Button
-                  onClick={handlePasswordChange}
-                  disabled={
-                    isChangingPassword ||
-                    !passwordChange.currentPassword ||
-                    !passwordChange.newPassword ||
-                    !passwordChange.confirmPassword
-                  }
-                  className="w-full"
-                >
-                  {isChangingPassword ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Changing Password...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
               </CardContent>
             </Card>
           </div>
