@@ -318,15 +318,31 @@ export const Settings = () => {
 
   const handleSaveProfile = async () => {
     try {
-      const updatedProfile = await dbHelpers.updateUserProfile(
-        CURRENT_USER.id,
-        {
-          name: profileSettings.name,
-          email: profileSettings.email,
-          // timezone: profileSettings.timezone,
-          // language: profileSettings.language,
-        }
-      );
+      // Check if user ID is available
+      const userId = user?.id || CURRENT_USER?.id;
+      
+      if (!userId) {
+        toast.error("Unable to update profile: User session not found. Please try logging out and logging back in.");
+        return;
+      }
+
+      // Validate required fields
+      if (!profileSettings.name?.trim()) {
+        toast.error("Name is required");
+        return;
+      }
+
+      if (!profileSettings.email?.trim()) {
+        toast.error("Email is required");
+        return;
+      }
+
+      const updatedProfile = await dbHelpers.updateUserProfile(userId, {
+        name: profileSettings.name,
+        email: profileSettings.email,
+        // timezone: profileSettings.timezone,
+        // language: profileSettings.language,
+      });
 
       // 🔄 Update Redux state
       dispatch(
@@ -340,7 +356,8 @@ export const Settings = () => {
       setIsEditing(false);
       toast.success("Profile settings saved successfully");
     } catch (err) {
-      toast.error("Failed to update profile");
+      console.error("Error updating user profile:", err);
+      toast.error("Failed to update profile. Please try again.");
     }
   };
 
