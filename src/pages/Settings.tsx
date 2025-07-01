@@ -329,6 +329,8 @@ export const Settings = () => {
   const [hubspotToken, setHubspotToken] = useState("");
   const [hubspotInfo, setHubspotInfo] = useState(null); // will hold expiration, etc.
   const [hubspotError, setHubspotError] = useState("");
+  const [isEditingHubspot, setIsEditingHubspot] = useState(false);
+  const [hasExistingToken, setHasExistingToken] = useState(false);
 
   const currentUserRole = userRoles[mockCurrentUser.role];
   const canManageUsers = mockCurrentUser.permissions.includes("manage_users");
@@ -550,40 +552,12 @@ export const Settings = () => {
     toast.success("New API key generated and copied to clipboard");
   };
 
-  // const validateHubspotToken = async () => {
-  //   setHubspotError("");
-  //   setHubspotInfo(null);
-
-  //   try {
-  //     const response = await fetch(
-  //       "https://api.hubapi.com/integrations/v1/me",
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${hubspotToken}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-
-  //     const data = await response.json();
-
-  //     if (!response.ok) {
-  //       throw new Error(data.message || "Invalid access token");
-  //     }
-
-  //     setHubspotInfo(data); // { userId, hubId, appId }
-  //   } catch (error) {
-  //     setHubspotError(error.message);
-  //   }
-  // };
-
   const validateHubspotToken = async () => {
     if (!hubspotToken) {
-      toast.error("No HubSpot access token found");
+      toast.error("Please enter a HubSpot access token");
       return;
     }
 
-    // setIsCheckingConnection(true);
     try {
       // Create JWT payload with the access token
       const payload = {
@@ -613,37 +587,58 @@ export const Settings = () => {
       const result = await response.json();
 
       if (result.success || result.valid) {
-        // setHubspotData((prev) => ({
-        //   ...prev,
-        //   connected: true,
-        //   accountInfo: result.account_info || result.data,
-        // }));
-        toast.success("HubSpot connection verified successfully");
+        // Token is valid, now store the encrypted token in the organization table
+        const dataToUpdate = {
+          hubspot_encrypted_token: jwtToken,
+        };
+
+        const updateResponse = await dbHelpers.updateOrganizationSettings(
+          organizationDetails.id,
+          dataToUpdate
+        );
+
+        if (updateResponse.success) {
+          // Update local state
+          dispatch(
+            setOrganizationDetails({
+              ...organizationDetails,
+              hubspot_encrypted_token: jwtToken,
+            })
+          );
+
+          setHasExistingToken(true);
+          setIsEditingHubspot(false);
+          setHubspotToken(""); // Clear the input field for security
+          
+          toast.success("HubSpot token validated and saved successfully");
+        } else {
+          toast.error("Token validated but failed to save to database");
+        }
       } else {
-        // setHubspotData((prev) => ({
-        //   ...prev,
-        //   connected: false,
-        // }));
-        toast.error("HubSpot connection is invalid");
+        toast.error("HubSpot token is invalid");
       }
     } catch (error) {
-      console.error("Error checking HubSpot connection:", error);
-      toast.error(`Failed to verify HubSpot connection: ${error.message}`);
-
-      // setHubspotData((prev) => ({
-      //   ...prev,
-      //   connected: false,
-      // }));
-    } finally {
-      console.log("HubSpot connection check completed");
-      // setIsCheckingConnection(false);
+      console.error("Error validating HubSpot token:", error);
+      toast.error(`Failed to validate HubSpot token: ${error.message}`);
     }
   };
+
+  const handleEditHubspotToken = () => {
+    setIsEditingHubspot(true);
+    setHubspotToken(""); // Clear the input field
+  };
+
+  const handleCancelEditHubspot = () => {
+    setIsEditingHubspot(false);
+    setHubspotToken(""); // Clear the input field
+  };
+
   console.log(
     user,
     organizationDetails,
     "user and org details in settings page"
   );
+  
   useEffect(() => {
     const fetchDropdowns = async () => {
       const result = await dbHelpers.getOrgDropdownOptions();
@@ -655,6 +650,13 @@ export const Settings = () => {
     };
     fetchDropdowns();
   }, []);
+
+  // Check if organization has existing HubSpot token
+  useEffect(() => {
+    if (organizationDetails?.hubspot_encrypted_token) {
+      setHasExistingToken(true);
+    }
+  }, [organizationDetails]);
 
   // const isOrgAdmin = roles
   // console.log(roles, titles)
@@ -1146,40 +1148,99 @@ export const Settings = () => {
                   </div>
                 </CardContent>
               </Card>
+              
               <Card>
                 <CardHeader>
-                  <CardTitle>HubSpot Integration</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>HubSpot Integration</span>
+                    {hasExistingToken && !isEditingHubspot && (
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEditHubspotToken}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit Token
+                        </Button>
+                      </div>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Access Token
-                    </label>
-                    <Input
-                      value={hubspotToken}
-                      onChange={(e) => setHubspotToken(e.target.value)}
-                      placeholder="Enter your HubSpot Access Token"
-                    />
-                  </div>
-                  <Button onClick={validateHubspotToken}>Validate Token</Button>
+                  {hasExistingToken && !isEditingHubspot ? (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <p className="text-sm font-medium text-green-900">
+                          HubSpot Integration Active
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-700">
+                        Your HubSpot access token has been validated and securely stored.
+                        You can now push data to HubSpot from the application.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Access Token
+                        </label>
+                        <Input
+                          type="password"
+                          value={hubspotToken}
+                          onChange={(e) => setHubspotToken(e.target.value)}
+                          placeholder="Enter your HubSpot Access Token"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your token will be encrypted and securely stored
+                        </p>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={validateHubspotToken}
+                          disabled={!hubspotToken.trim()}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          {hasExistingToken ? "Update Token" : "Validate & Save Token"}
+                        </Button>
+                        
+                        {isEditingHubspot && (
+                          <Button 
+                            variant="outline" 
+                            onClick={handleCancelEditHubspot}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   {hubspotError && (
-                    <p className="text-sm text-red-600">{hubspotError}</p>
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <p className="text-sm text-red-700">{hubspotError}</p>
+                      </div>
+                    </div>
                   )}
 
                   {hubspotInfo && (
-                    <div className="text-sm text-green-700 space-y-1">
-                      <p>Token is valid.</p>
-                      <p>
-                        <strong>User:</strong> {hubspotInfo.user}
-                      </p>
-                      <p>
-                        <strong>Scopes:</strong> {hubspotInfo.scopes.join(", ")}
-                      </p>
-                      <p>
-                        <strong>Expires In:</strong>{" "}
-                        {Math.round(hubspotInfo.expires_in / 3600)} hours
-                      </p>
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="text-sm text-green-700 space-y-1">
+                        <p className="font-medium">Token is valid!</p>
+                        <p><strong>User:</strong> {hubspotInfo.user}</p>
+                        <p><strong>Scopes:</strong> {hubspotInfo.scopes?.join(", ")}</p>
+                        <p><strong>Expires In:</strong> {Math.round(hubspotInfo.expires_in / 3600)} hours</p>
+                      </div>
                     </div>
                   )}
                 </CardContent>
