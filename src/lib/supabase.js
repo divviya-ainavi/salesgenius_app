@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
-import { fileStorage } from './fileStorage.js'
-import { analytics } from './analytics.js'
+import { fileStorage } from './fileStorage'
+import { analytics } from './analytics'
 import CryptoJS from 'crypto-js'
-import api from './api.js'
-import aiService from '@/services/aiService.js'
-import fileService from '@/services/fileService.js'
-import crmService from '@/services/crmService.js'
-import userManagementService from '@/services/userManagementService.js'
+import api from './api'
+import aiService from '@/services/aiService'
+import fileService from '@/services/fileService'
+import crmService from '@/services/crmService'
+import userManagementService from '@/services/userManagementService'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -82,7 +82,7 @@ export const authHelpers = {
 
     // 2. Hash the provided password and compare with stored hashed password
     const isPasswordValid = verifyPassword(plainPassword, profile.hashed_password);
-    
+
     if (!isPasswordValid) {
       throw new Error('Invalid login credentials');
     }
@@ -300,7 +300,7 @@ export const authHelpers = {
     try {
       // Hash the password before storing
       const hashedPassword = userData.password ? hashPassword(userData.password) : null;
-      
+
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
@@ -330,7 +330,7 @@ export const authHelpers = {
         updates.hashed_password = hashPassword(updates.password);
         delete updates.password; // Remove plain password from updates
       }
-      
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
@@ -408,7 +408,7 @@ export const authHelpers = {
         .single();
 
       if (error) throw error;
-      
+
       return {
         connected: !!data.hubspot_encrypted_token,
         encryptedToken: data.hubspot_encrypted_token,
@@ -1100,7 +1100,7 @@ export const dbHelpers = {
       console.error("Unexpected error in updateOrganizationSettings:", err);
       return { success: false, error: err };
     }
-  }
+  },
 
   // Update organization location (country and city)
   async updateOrganizationLocation(organizationId, locationData) {

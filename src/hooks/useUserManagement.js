@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useAnalytics } from './useAnalytics.js';
-import { supabase } from '@/lib/supabase.js';
+import { useAnalytics } from './useAnalytics';
+import { supabase } from '@/lib/supabase';
 
 // Custom hook for user management operations
 export const useUserManagement = () => {

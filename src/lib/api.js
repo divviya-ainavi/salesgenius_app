@@ -1,736 +1,456 @@
-import { useState, useCallback } from 'react';
-import { useAnalytics } from '../hooks/useAnalytics.js';
-import { supabase } from '@/lib/supabase.js';
-
-// Custom hook for user management operations
-export const useUserManagement = () => {
-  // Roles management hook
-  const useRoles = () => {
-    const [roles, setRoles] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { trackFeatureUsage } = useAnalytics();
-
-    const fetchRoles = useCallback(async (params = {}) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'fetch_roles');
-        
-        // Query roles table
-        const { data, error } = await supabase
-          .from('roles')
-          .select('*')
-          .order('id', { ascending: true });
-
-        if (error) throw error;
-
-        setRoles(data || []);
-        return data;
-      } catch (err) {
-        console.error('Error fetching roles:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'fetch_roles_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const getRoleById = useCallback(async (id) => {
-      try {
-        const { data, error } = await supabase
-          .from('roles')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (err) {
-        console.error('Error fetching role by ID:', err);
-        throw err;
-      }
-    }, []);
-
-    const createRole = useCallback(async (roleData) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'create_role');
-        
-        const { data, error } = await supabase
-          .from('roles')
-          .insert([{
-            key: roleData.key,
-            label: roleData.label,
-            description: roleData.description,
-            is_assignable: roleData.isAssignable !== false
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setRoles(prev => [...prev, data]);
-        return data;
-      } catch (err) {
-        console.error('Error creating role:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'create_role_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const updateRole = useCallback(async (id, updates) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'update_role');
-        
-        const { data, error } = await supabase
-          .from('roles')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setRoles(prev => prev.map(role => 
-          role.id === id ? data : role
-        ));
-        
-        return data;
-      } catch (err) {
-        console.error('Error updating role:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'update_role_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const deleteRole = useCallback(async (id) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'delete_role');
-        
-        const { error } = await supabase
-          .from('roles')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        setRoles(prev => prev.filter(role => role.id !== id));
-        return true;
-      } catch (err) {
-        console.error('Error deleting role:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'delete_role_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    return {
-      roles,
-      loading,
-      error,
-      fetchRoles,
-      getRoleById,
-      createRole,
-      updateRole,
-      deleteRole
-    };
-  };
-
-  // Organizations management hook
-  const useOrganizations = () => {
-    const [organizations, setOrganizations] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { trackFeatureUsage } = useAnalytics();
-
-    const fetchOrganizations = useCallback(async (params = {}) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'fetch_organizations');
-        
-        // Query organizations table
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('*')
-          .order('name', { ascending: true });
-
-        if (error) throw error;
-
-        setOrganizations(data || []);
-        return data;
-      } catch (err) {
-        console.error('Error fetching organizations:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'fetch_organizations_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const getOrganizationById = useCallback(async (id) => {
-      try {
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (err) {
-        console.error('Error fetching organization by ID:', err);
-        throw err;
-      }
-    }, []);
-
-    const createOrganization = useCallback(async (orgData) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'create_organization');
-        
-        const { data, error } = await supabase
-          .from('organizations')
-          .insert([{
-            name: orgData.name,
-            domain: orgData.domain,
-            industry: orgData.industry,
-            company_size: orgData.companySize
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setOrganizations(prev => [...prev, data]);
-        return data;
-      } catch (err) {
-        console.error('Error creating organization:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'create_organization_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const updateOrganization = useCallback(async (id, updates) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'update_organization');
-        
-        const { data, error } = await supabase
-          .from('organizations')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setOrganizations(prev => prev.map(org => 
-          org.id === id ? data : org
-        ));
-        
-        return data;
-      } catch (err) {
-        console.error('Error updating organization:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'update_organization_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const deleteOrganization = useCallback(async (id) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'delete_organization');
-        
-        const { error } = await supabase
-          .from('organizations')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        setOrganizations(prev => prev.filter(org => org.id !== id));
-        return true;
-      } catch (err) {
-        console.error('Error deleting organization:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'delete_organization_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const getUsersByOrganization = useCallback(async (organizationId, params = {}) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('organization_id', organizationId);
-
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error('Error fetching users by organization:', err);
-        throw err;
-      }
-    }, []);
-
-    return {
-      organizations,
-      loading,
-      error,
-      fetchOrganizations,
-      getOrganizationById,
-      createOrganization,
-      updateOrganization,
-      deleteOrganization,
-      getUsersByOrganization
-    };
-  };
-
-  // Profiles management hook
-  const useProfiles = () => {
-    const [profiles, setProfiles] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { trackFeatureUsage } = useAnalytics();
-
-    const fetchProfiles = useCallback(async (params = {}) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'fetch_profiles');
-        
-        // Query profiles table
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('full_name', { ascending: true });
-
-        if (error) throw error;
-
-        setProfiles(data || []);
-        return data;
-      } catch (err) {
-        console.error('Error fetching profiles:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'fetch_profiles_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const getProfileById = useCallback(async (id) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (err) {
-        console.error('Error fetching profile by ID:', err);
-        throw err;
-      }
-    }, []);
-
-    const createProfile = useCallback(async (profileData) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'create_profile');
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .insert([{
-            id: profileData.id,
-            full_name: profileData.fullName,
-            email: profileData.email,
-            role_id: profileData.roleId,
-            organization_id: profileData.organizationId,
-            status: profileData.status || 'active',
-            timezone: profileData.timezone || 'UTC',
-            language: profileData.language || 'en'
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setProfiles(prev => [...prev, data]);
-        return data;
-      } catch (err) {
-        console.error('Error creating profile:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'create_profile_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const updateProfile = useCallback(async (id, updates) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'update_profile');
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setProfiles(prev => prev.map(profile => 
-          profile.id === id ? data : profile
-        ));
-        
-        return data;
-      } catch (err) {
-        console.error('Error updating profile:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'update_profile_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const updateProfileRole = useCallback(async (id, roleId) => {
-      return updateProfile(id, { role_id: roleId });
-    }, [updateProfile]);
-
-    const updateProfileStatus = useCallback(async (id, status) => {
-      return updateProfile(id, { status });
-    }, [updateProfile]);
-
-    const deleteProfile = useCallback(async (id) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'delete_profile');
-        
-        const { error } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        setProfiles(prev => prev.filter(profile => profile.id !== id));
-        return true;
-      } catch (err) {
-        console.error('Error deleting profile:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'delete_profile_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    return {
-      profiles,
-      loading,
-      error,
-      fetchProfiles,
-      getProfileById,
-      createProfile,
-      updateProfile,
-      updateProfileRole,
-      updateProfileStatus,
-      deleteProfile
-    };
-  };
-
-  // Invites management hook
-  const useInvites = () => {
-    const [invites, setInvites] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { trackFeatureUsage } = useAnalytics();
-
-    const fetchInvites = useCallback(async (params = {}) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'fetch_invites');
-        
-        // Query invites table
-        const { data, error } = await supabase
-          .from('invites')
-          .select('*')
-          .order('invited_at', { ascending: false });
-
-        if (error) throw error;
-
-        setInvites(data || []);
-        return data;
-      } catch (err) {
-        console.error('Error fetching invites:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'fetch_invites_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const sendInvite = useCallback(async (inviteData) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'send_invite');
-        
-        const { data, error } = await supabase
-          .from('invites')
-          .insert([{
-            email: inviteData.email,
-            organization_id: inviteData.organizationId,
-            role_id: inviteData.roleId,
-            invited_at: new Date().toISOString(),
-            expires_at: inviteData.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            created_by: inviteData.createdBy
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setInvites(prev => [...prev, data]);
-        return data;
-      } catch (err) {
-        console.error('Error sending invite:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'send_invite_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const deleteInvite = useCallback(async (email) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'delete_invite');
-        
-        const { error } = await supabase
-          .from('invites')
-          .delete()
-          .eq('email', email);
-
-        if (error) throw error;
-
-        setInvites(prev => prev.filter(invite => invite.email !== email));
-        return true;
-      } catch (err) {
-        console.error('Error deleting invite:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'delete_invite_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const resendInvite = useCallback(async (email) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'resend_invite');
-        
-        // Update the invited_at and expires_at timestamps
-        const { data, error } = await supabase
-          .from('invites')
-          .update({
-            invited_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          })
-          .eq('email', email)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setInvites(prev => prev.map(invite => 
-          invite.email === email ? data : invite
-        ));
-        
-        return data;
-      } catch (err) {
-        console.error('Error resending invite:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'resend_invite_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    return {
-      invites,
-      loading,
-      error,
-      fetchInvites,
-      sendInvite,
-      deleteInvite,
-      resendInvite
-    };
-  };
-
-  // Search functionality across user management entities
-  const useSearch = () => {
-    const [results, setResults] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { trackFeatureUsage } = useAnalytics();
-
-    const search = useCallback(async (query, entities = ['profiles', 'organizations']) => {
-      if (!query || query.trim().length < 2) {
-        setResults([]);
-        return [];
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        trackFeatureUsage('user_management', 'search', { entities });
-        
-        const searchResults = [];
-        
-        // Search profiles
-        if (entities.includes('profiles')) {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('*')
-            .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
-          
-          if (profilesError) throw profilesError;
-          
-          if (profilesData) {
-            searchResults.push(...profilesData.map(profile => ({
-              ...profile,
-              entityType: 'profile'
-            })));
-          }
-        }
-        
-        // Search organizations
-        if (entities.includes('organizations')) {
-          const { data: orgsData, error: orgsError } = await supabase
-            .from('organizations')
-            .select('*')
-            .or(`name.ilike.%${query}%,domain.ilike.%${query}%,industry.ilike.%${query}%`);
-          
-          if (orgsError) throw orgsError;
-          
-          if (orgsData) {
-            searchResults.push(...orgsData.map(org => ({
-              ...org,
-              entityType: 'organization'
-            })));
-          }
-        }
-        
-        // Search invites
-        if (entities.includes('invites')) {
-          const { data: invitesData, error: invitesError } = await supabase
-            .from('invites')
-            .select('*')
-            .ilike('email', `%${query}%`);
-          
-          if (invitesError) throw invitesError;
-          
-          if (invitesData) {
-            searchResults.push(...invitesData.map(invite => ({
-              ...invite,
-              entityType: 'invite'
-            })));
-          }
-        }
-
-        setResults(searchResults);
-        return searchResults;
-      } catch (err) {
-        console.error('Error searching:', err);
-        setError(err);
-        trackFeatureUsage('user_management', 'search_error', { error: err.message });
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    }, [trackFeatureUsage]);
-
-    const clearResults = useCallback(() => {
-      setResults([]);
-    }, []);
-
-    return {
-      results,
-      loading,
-      error,
-      search,
-      clearResults
-    };
-  };
-
-  return {
-    useRoles,
-    useOrganizations,
-    useProfiles,
-    useInvites,
-    useSearch
-  };
+import { analytics } from './analytics';
+
+// API Configuration
+const API_CONFIG = {
+  baseURL: 'https://salesgenius.ainavi.co.uk/n8n/webhook/',
+  timeout: 30000, // 30 seconds
+  retries: 3,
+  retryDelay: 1000, // 1 second
 };
 
-export default useUserManagement;
+// Token management
+class TokenManager {
+  constructor() {
+    this.token = null;
+    this.refreshToken = null;
+    this.tokenKey = 'salesgenius_auth_token';
+    this.refreshTokenKey = 'salesgenius_refresh_token';
+
+    // Load token from localStorage on initialization
+    this.loadTokenFromStorage();
+  }
+
+  setToken(token, refreshToken = null) {
+    this.token = token;
+    this.refreshToken = refreshToken;
+
+    // Persist to localStorage
+    if (token) {
+      localStorage.setItem(this.tokenKey, token);
+      if (refreshToken) {
+        localStorage.setItem(this.refreshTokenKey, refreshToken);
+      }
+    } else {
+      this.clearToken();
+    }
+  }
+
+  getToken() {
+    return this.token;
+  }
+
+  getRefreshToken() {
+    return this.refreshToken;
+  }
+
+  clearToken() {
+    this.token = null;
+    this.refreshToken = null;
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.refreshTokenKey);
+  }
+
+  loadTokenFromStorage() {
+    this.token = localStorage.getItem(this.tokenKey);
+    this.refreshToken = localStorage.getItem(this.refreshTokenKey);
+  }
+
+  isAuthenticated() {
+    return !!this.token;
+  }
+}
+
+// Create token manager instance
+const tokenManager = new TokenManager();
+
+// Request interceptor to add authentication headers
+const addAuthHeaders = (headers = {}) => {
+  const token = tokenManager.getToken();
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
+// Response error handler
+const handleResponseError = async (response, endpoint, method) => {
+  const errorData = {
+    status: response.status,
+    statusText: response.statusText,
+    endpoint,
+    method,
+  };
+
+  // Try to parse error response
+  try {
+    const errorBody = await response.text();
+    if (errorBody) {
+      try {
+        const parsedError = JSON.parse(errorBody);
+        errorData.message = parsedError.message || parsedError.error || errorBody;
+        errorData.details = parsedError;
+      } catch {
+        errorData.message = errorBody;
+      }
+    }
+  } catch {
+    errorData.message = `HTTP ${response.status}: ${response.statusText}`;
+  }
+
+  // Handle specific status codes
+  switch (response.status) {
+    case 401:
+      // Unauthorized - clear token and redirect to login
+      tokenManager.clearToken();
+      errorData.message = 'Authentication required. Please log in again.';
+      // TODO: Trigger login redirect
+      break;
+    case 403:
+      errorData.message = 'Access forbidden. You don\'t have permission to perform this action.';
+      break;
+    case 404:
+      errorData.message = 'Resource not found.';
+      break;
+    case 429:
+      errorData.message = 'Too many requests. Please try again later.';
+      break;
+    case 500:
+      errorData.message = 'Internal server error. Please try again later.';
+      break;
+    case 503:
+      errorData.message = 'Service temporarily unavailable. Please try again later.';
+      break;
+    default:
+      if (!errorData.message) {
+        errorData.message = `Request failed with status ${response.status}`;
+      }
+  }
+
+  const error = new Error(errorData.message);
+  error.status = response.status;
+  error.details = errorData.details;
+  error.endpoint = endpoint;
+  error.method = method;
+
+  return error;
+};
+
+// Retry logic with exponential backoff
+const retryRequest = async (requestFn, retries = API_CONFIG.retries) => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      // Don't retry on client errors (4xx) except 429 (rate limit)
+      if (error.status >= 400 && error.status < 500 && error.status !== 429) {
+        throw error;
+      }
+
+      // Don't retry on the last attempt
+      if (attempt === retries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = API_CONFIG.retryDelay * Math.pow(2, attempt);
+      console.warn(`Request failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`, error.message);
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
+
+// Core request function
+const makeRequest = async (endpoint, options = {}) => {
+  const startTime = Date.now();
+  const url = `${API_CONFIG.baseURL}${endpoint.replace(/^\//, '')}`;
+  const method = options.method || 'GET';
+
+  // Prepare headers
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  // Add authentication headers
+  addAuthHeaders(headers);
+
+  // Prepare request configuration
+  const requestConfig = {
+    method,
+    headers,
+    signal: AbortSignal.timeout(API_CONFIG.timeout),
+    ...options,
+  };
+
+  // Add body for non-GET requests
+  if (options.body && method !== 'GET') {
+    if (options.body instanceof FormData) {
+      // Remove Content-Type for FormData (browser will set it with boundary)
+      delete headers['Content-Type'];
+      requestConfig.body = options.body;
+    } else if (typeof options.body === 'object') {
+      requestConfig.body = JSON.stringify(options.body);
+    } else {
+      requestConfig.body = options.body;
+    }
+  }
+
+  console.log(`🚀 API Request: ${method} ${url}`, {
+    headers: { ...headers, Authorization: headers.Authorization ? '[REDACTED]' : undefined },
+    body: requestConfig.body instanceof FormData ? '[FormData]' : requestConfig.body,
+  });
+
+  try {
+    const response = await retryRequest(async () => {
+      const res = await fetch(url, requestConfig);
+
+      if (!res.ok) {
+        throw await handleResponseError(res, endpoint, method);
+      }
+
+      return res;
+    });
+
+    const duration = Date.now() - startTime;
+
+    // Parse response with improved error handling
+    let data;
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        // First read the response as text to check if it's empty
+        const responseText = await response.text();
+
+        // Handle empty response body
+        if (!responseText || responseText.trim() === '') {
+          console.warn(`⚠️ Empty JSON response: ${method} ${url}`);
+          data = null; // or {} depending on your preference
+        } else {
+          // Parse the text as JSON
+          data = JSON.parse(responseText);
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, create error without trying to read response body again
+        const error = new Error(`Failed to parse JSON response: ${jsonError.message}`);
+        error.originalError = jsonError;
+        error.endpoint = endpoint;
+        error.method = method;
+        error.status = response.status;
+
+        console.error(`❌ JSON Parse Error: ${method} ${url}`, {
+          originalError: jsonError.message,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+
+        throw error;
+      }
+    } else {
+      data = await response.text();
+    }
+
+    console.log(`✅ API Response: ${method} ${url} (${duration}ms)`, data);
+
+    // Track successful API response
+    analytics.trackApiResponse(endpoint, method, response.status, duration);
+
+    return {
+      data,
+      status: response.status,
+      headers: response.headers,
+      ok: response.ok,
+    };
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+
+    console.error(`❌ API Error: ${method} ${url} (${duration}ms)`, error);
+
+    // Track failed API response
+    analytics.trackApiResponse(
+      endpoint,
+      method,
+      error.status || 0,
+      duration,
+      error.message
+    );
+
+    throw error;
+  }
+};
+
+// API service object with HTTP methods
+const api = {
+  // Authentication methods
+  auth: {
+    setToken: (token, refreshToken) => tokenManager.setToken(token, refreshToken),
+    getToken: () => tokenManager.getToken(),
+    clearToken: () => tokenManager.clearToken(),
+    isAuthenticated: () => tokenManager.isAuthenticated(),
+
+    // Login method
+    login: async (credentials) => {
+      const response = await api.post('/auth/login', credentials);
+      if (response.data.token) {
+        tokenManager.setToken(response.data.token, response.data.refreshToken);
+      }
+      return response;
+    },
+
+    // Logout method
+    logout: async () => {
+      try {
+        await api.post('/auth/logout');
+      } finally {
+        tokenManager.clearToken();
+        analytics.reset(); // Reset analytics on logout
+      }
+    },
+
+    // Refresh token method
+    refreshToken: async () => {
+      const refreshToken = tokenManager.getRefreshToken();
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await api.post('/auth/refresh', { refreshToken });
+      if (response.data.token) {
+        tokenManager.setToken(response.data.token, response.data.refreshToken);
+      }
+      return response;
+    },
+  },
+
+  // HTTP methods
+  get: async (endpoint, params = {}, options = {}) => {
+    const url = new URL(endpoint, API_CONFIG.baseURL);
+
+    // Add query parameters
+    Object.keys(params).forEach(key => {
+      if (params[key] !== undefined && params[key] !== null) {
+        url.searchParams.append(key, params[key]);
+      }
+    });
+
+    return makeRequest(url.pathname + url.search, {
+      method: 'GET',
+      ...options,
+    });
+  },
+
+  post: async (endpoint, body = null, options = {}) => {
+    return makeRequest(endpoint, {
+      method: 'POST',
+      body,
+      ...options,
+    });
+  },
+
+  put: async (endpoint, body = null, options = {}) => {
+    return makeRequest(endpoint, {
+      method: 'PUT',
+      body,
+      ...options,
+    });
+  },
+
+  patch: async (endpoint, body = null, options = {}) => {
+    return makeRequest(endpoint, {
+      method: 'PATCH',
+      body,
+      ...options,
+    });
+  },
+
+  delete: async (endpoint, options = {}) => {
+    return makeRequest(endpoint, {
+      method: 'DELETE',
+      ...options,
+    });
+  },
+
+  // File upload method
+  upload: async (endpoint, file, additionalData = {}, onProgress = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Add additional form data
+    Object.keys(additionalData).forEach(key => {
+      formData.append(key, additionalData[key]);
+    });
+
+    const options = {
+      method: 'POST',
+      body: formData,
+    };
+
+    // Add progress tracking if supported
+    if (onProgress && typeof onProgress === 'function') {
+      // Note: Fetch API doesn't support upload progress natively
+      // This would require a different implementation or library
+      console.warn('Upload progress tracking not implemented with fetch API');
+    }
+
+    return makeRequest(endpoint, options);
+  },
+
+  // Batch requests
+  batch: async (requests) => {
+    const results = await Promise.allSettled(
+      requests.map(({ method, endpoint, body, options }) => {
+        switch (method.toLowerCase()) {
+          case 'get':
+            return api.get(endpoint, body, options);
+          case 'post':
+            return api.post(endpoint, body, options);
+          case 'put':
+            return api.put(endpoint, body, options);
+          case 'patch':
+            return api.patch(endpoint, body, options);
+          case 'delete':
+            return api.delete(endpoint, options);
+          default:
+            throw new Error(`Unsupported method: ${method}`);
+        }
+      })
+    );
+
+    return results.map((result, index) => ({
+      ...requests[index],
+      success: result.status === 'fulfilled',
+      data: result.status === 'fulfilled' ? result.value : null,
+      error: result.status === 'rejected' ? result.reason : null,
+    }));
+  },
+
+  // Health check
+  health: async () => {
+    return api.get('/health');
+  },
+
+  // Configuration
+  config: {
+    setBaseURL: (url) => {
+      API_CONFIG.baseURL = url.endsWith('/') ? url : `${url}/`;
+    },
+    getBaseURL: () => API_CONFIG.baseURL,
+    setTimeout: (timeout) => {
+      API_CONFIG.timeout = timeout;
+    },
+    setRetries: (retries) => {
+      API_CONFIG.retries = retries;
+    },
+  },
+};
+
+export default api;
+
+// Named exports for convenience
+export { api, tokenManager };
+
+// Export specific methods for easier imports
+export const { get, post, put, patch, delete: del, upload, auth } = api;

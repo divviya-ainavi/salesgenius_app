@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase.js';
-import { analytics } from '@/lib/analytics.js';
+import { supabase } from '@/lib/supabase';
+import { analytics } from '@/lib/analytics';
 
 // User Management Service for handling all user-related operations
 class UserManagementService {
