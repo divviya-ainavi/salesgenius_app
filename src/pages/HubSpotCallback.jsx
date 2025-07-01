@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CheckCircle, AlertCircle, Loader2, ExternalLink } from "lucide-react";
 import crmService from "@/services/crmService";
-import { CURRENT_USER } from "@/lib/supabase";
+import { CURRENT_USER } from "@/lib/supabase.js";
 
 const HubSpotCallback = () => {
   const navigate = useNavigate();

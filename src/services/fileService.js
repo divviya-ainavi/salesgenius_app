@@ -1,6 +1,6 @@
-import api from '@/lib/api.jsx';
-import API_ENDPOINTS from '@/lib/apiEndpoints.jsx';
-import { analytics } from '@/lib/analytics.jsx';
+import api from '@/lib/api.js';
+import API_ENDPOINTS from '@/lib/apiEndpoints.js';
+import { analytics } from '@/lib/analytics.js';
 
 // File Service for handling all file operations
 class FileService {

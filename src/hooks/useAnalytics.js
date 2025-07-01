@@ -53,7 +53,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase.jsx";
+import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase.js";
 import {
   setCompany_size,
   setIndustry,
@@ -64,11 +64,11 @@ import {
   setUser, 
   setHubspotIntegration 
 } from "../store/slices/authSlice";
-import { getCountries, getCitiesForCountry, isValidCountry } from "../data/countriesAndCities.jsx";
+import { getCountries, getCitiesForCountry, isValidCountry } from "../data/countriesAndCities.js";
 
 import { useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
-import { analytics } from '@/lib/analytics'
+import { analytics } from '@/lib/analytics.js'
 
 // Custom hook for analytics integration
 export const useAnalytics = () => {

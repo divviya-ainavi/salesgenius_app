@@ -53,7 +53,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase.jsx";
+import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase.js";
 import {
   setCompany_size,
   setIndustry,
@@ -64,7 +64,7 @@ import {
   setUser, 
   setHubspotIntegration 
 } from "../store/slices/authSlice";
-import { getCountries, getCitiesForCountry, isValidCountry } from "../data/countriesAndCities.jsx";
+import { getCountries, getCitiesForCountry, isValidCountry } from "../data/countriesAndCities.js";
 
 // Rest of the code remains the same...
 

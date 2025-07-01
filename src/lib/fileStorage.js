@@ -1,5 +1,5 @@
 // File storage utilities for handling file uploads and generating shareable links
-import { supabase } from './supabase.jsx'
+import { supabase } from './supabase.js'
 
 export const fileStorage = {
   // Upload file to Supabase Storage and return shareable URL

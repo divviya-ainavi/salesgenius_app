@@ -18,7 +18,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
-import { analytics } from "@/lib/analytics.jsx";
+import { analytics } from "@/lib/analytics.js";
 
 const queryClient = new QueryClient();
 

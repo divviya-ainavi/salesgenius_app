@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
-import { fileStorage } from './fileStorage.jsx'
-import { analytics } from './analytics.jsx'
+import { fileStorage } from './fileStorage.js'
+import { analytics } from './analytics.js'
 import CryptoJS from 'crypto-js'
-import api from './api.jsx'
-import aiService from '@/services/aiService.jsx'
-import fileService from '@/services/fileService.jsx'
-import crmService from '@/services/crmService.jsx'
-import userManagementService from '@/services/userManagementService.jsx'
+import api from './api.js'
+import aiService from '@/services/aiService.js'
+import fileService from '@/services/fileService.js'
+import crmService from '@/services/crmService.js'
+import userManagementService from '@/services/userManagementService.js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY

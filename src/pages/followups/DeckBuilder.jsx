@@ -48,8 +48,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase.jsx";
-import { usePageTimer } from "../../hooks/userPageTimer.jsx";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase.js";
+import { usePageTimer } from "../../hooks/userPageTimer.js";
 
 // Sales methodologies
 const salesMethodologies = {

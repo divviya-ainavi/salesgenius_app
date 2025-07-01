@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { authHelpers, userHelpers } from "@/lib/supabase.jsx";
+import { authHelpers, userHelpers } from "@/lib/supabase.js";
 import { Loader2 } from "lucide-react";
-import { CURRENT_USER } from "@/lib/supabase.jsx";
+import { CURRENT_USER } from "@/lib/supabase.js";
 
 const ProtectedRoute = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
