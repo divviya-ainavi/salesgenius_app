@@ -125,6 +125,8 @@ export const authHelpers = {
         status_id,
         created_at,
         hubspot_access_token,
+        country,
+        city,
         company_size:company_size_id (
           id,
           key,
