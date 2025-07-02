@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Command,
   CommandEmpty,
@@ -38,13 +30,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Settings as SettingsIcon,
-  Users,
-  UserPlus,
-  Mail,
-  Crown,
-  Trash2,
-  Edit,
   Shield,
+  Users,
   Brain,
   Upload,
   Download,
@@ -86,15 +73,6 @@ import {
   setCompany_size,
   setIndustry,
   setSales_methodology,
-  
-  // Redux state
-  const { roles } = useSelector((state) => state.org);
-  const { user, organizationDetails, userRoleId } = useSelector((state) => state.auth);
-  
-  // Find current user's role details
-  const currentUserRole = roles?.find(role => role.id === userRoleId);
-  const userRoleKey = currentUserRole?.key;
-  const userRoleLabel = currentUserRole?.label;
 } from "../store/slices/orgSlice";
 import {
   setOrganizationDetails,
@@ -856,16 +834,6 @@ export const Settings = () => {
 
   console.log(
     user,
-  
-  // Users tab state
-  const [users, setUsers] = useState([]);
-  const [titles, setTitles] = useState([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [inviteForm, setInviteForm] = useState({
-    email: "",
-    titleId: "",
-  });
     organizationDetails,
     "user and org details in settings page"
   );
@@ -1447,8 +1415,8 @@ export const Settings = () => {
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0">
                           <Command>
-                            <CommandInput 
-                              placeholder="Search country..." 
+                            <CommandInput
+                              placeholder="Search country..."
                               value={countrySearchValue}
                               onValueChange={setCountrySearchValue}
                             />
@@ -1457,7 +1425,11 @@ export const Settings = () => {
                               <CommandGroup>
                                 {getCountries()
                                   .filter((country) =>
-                                    country.toLowerCase().includes(countrySearchValue.toLowerCase())
+                                    country
+                                      .toLowerCase()
+                                      .includes(
+                                        countrySearchValue.toLowerCase()
+                                      )
                                   )
                                   .map((country) => (
                                     <CommandItem
@@ -1466,7 +1438,10 @@ export const Settings = () => {
                                       onSelect={(currentValue) => {
                                         setOrgSettings((prev) => ({
                                           ...prev,
-                                          country: currentValue === orgSettings.country ? "" : currentValue,
+                                          country:
+                                            currentValue === orgSettings.country
+                                              ? ""
+                                              : currentValue,
                                           city: "", // Reset city when country changes
                                         }));
                                         setCountryOpen(false);
@@ -1476,7 +1451,9 @@ export const Settings = () => {
                                       <Check
                                         className={cn(
                                           "mr-2 h-4 w-4",
-                                          orgSettings.country === country ? "opacity-100" : "opacity-0"
+                                          orgSettings.country === country
+                                            ? "opacity-100"
+                                            : "opacity-0"
                                         )}
                                       />
                                       {country}
@@ -1501,14 +1478,17 @@ export const Settings = () => {
                             className="w-full justify-between"
                             disabled={!orgSettings.country}
                           >
-                            {orgSettings.city || (orgSettings.country ? "Select city..." : "Select country first")}
+                            {orgSettings.city ||
+                              (orgSettings.country
+                                ? "Select city..."
+                                : "Select country first")}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0">
                           <Command>
-                            <CommandInput 
-                              placeholder="Search city..." 
+                            <CommandInput
+                              placeholder="Search city..."
                               value={citySearchValue}
                               onValueChange={setCitySearchValue}
                             />
@@ -1518,7 +1498,9 @@ export const Settings = () => {
                                 {orgSettings.country &&
                                   getCitiesForCountry(orgSettings.country)
                                     .filter((city) =>
-                                      city.toLowerCase().includes(citySearchValue.toLowerCase())
+                                      city
+                                        .toLowerCase()
+                                        .includes(citySearchValue.toLowerCase())
                                     )
                                     .map((city) => (
                                       <CommandItem
@@ -1527,7 +1509,10 @@ export const Settings = () => {
                                         onSelect={(currentValue) => {
                                           setOrgSettings((prev) => ({
                                             ...prev,
-                                            city: currentValue === orgSettings.city ? "" : currentValue,
+                                            city:
+                                              currentValue === orgSettings.city
+                                                ? ""
+                                                : currentValue,
                                           }));
                                           setCityOpen(false);
                                           setCitySearchValue("");
@@ -1536,7 +1521,9 @@ export const Settings = () => {
                                         <Check
                                           className={cn(
                                             "mr-2 h-4 w-4",
-                                            orgSettings.city === city ? "opacity-100" : "opacity-0"
+                                            orgSettings.city === city
+                                              ? "opacity-100"
+                                              : "opacity-0"
                                           )}
                                         />
                                         {city}
@@ -2540,320 +2527,6 @@ export const Settings = () => {
       </Tabs>
     </div>
   );
-  
-  // Check if user should see Users tab
-  const shouldShowUsersTab = userRoleKey && userRoleKey !== 'sales_executive';
-  
-  // Load users based on role
-  useEffect(() => {
-    if (shouldShowUsersTab && activeTab === "users") {
-      loadUsers();
-      loadTitles();
-    }
-  }, [activeTab, userRoleKey, shouldShowUsersTab]);
-  
-  const loadUsers = async () => {
-    if (!userRoleKey) return;
-    
-    setIsLoadingUsers(true);
-    try {
-      let usersData = [];
-      
-      if (userRoleKey === 'super_admin') {
-        // Super Admin: Get all Org Admins
-        const orgAdminRole = roles?.find(role => role.key === 'org_admin');
-        if (orgAdminRole) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-              *,
-              organizations (name),
-              titles (name, roles (label))
-            `)
-            .eq('title_id', orgAdminRole.id);
-          
-          if (!error) {
-            usersData = data || [];
-          }
-        }
-      } else if (userRoleKey === 'org_admin') {
-        // Org Admin: Get all profiles under their organization
-        if (organizationDetails?.id) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-              *,
-              titles (name, roles (label))
-            `)
-            .eq('organization_id', organizationDetails.id);
-          
-          if (!error) {
-            usersData = data || [];
-          }
-        }
-      } else if (userRoleKey === 'sales_director' || userRoleKey === 'sales_manager') {
-        // Sales Director/Manager: Get users reporting to them
-        const { data, error } = await supabase
-          .from('user_teams')
-          .select(`
-            user_id,
-            profiles!user_teams_user_id_fkey (
-              *,
-              titles (name, roles (label))
-            )
-          `)
-          .eq('manager_id', user.id);
-        
-        if (!error) {
-          usersData = data?.map(item => item.profiles) || [];
-        }
-      }
-      
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-  
-  const loadTitles = async () => {
-    try {
-      let titlesQuery = supabase.from('titles').select('*');
-      
-      // Filter titles based on user role
-      if (userRoleKey === 'org_admin' && organizationDetails?.id) {
-        titlesQuery = titlesQuery.eq('organization_id', organizationDetails.id);
-      }
-      
-      const { data, error } = await titlesQuery;
-      
-      if (!error) {
-        setTitles(data || []);
-      }
-    } catch (error) {
-      console.error('Error loading titles:', error);
-    }
-  };
-  
-  const handleInviteUser = async () => {
-    if (!inviteForm.email || !inviteForm.titleId) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      
-      const inviteData = {
-        email: inviteForm.email,
-        title_id: inviteForm.titleId,
-        organization_id: userRoleKey === 'super_admin' ? null : organizationDetails?.id,
-        invited_by: user.id,
-      };
-      
-      const { error } = await supabase
-        .from('invites')
-        .insert([inviteData]);
-      
-      if (error) throw error;
-      
-      toast.success('Invitation sent successfully');
-      setShowInviteDialog(false);
-      setInviteForm({ email: "", titleId: "" });
-      loadUsers(); // Refresh users list
-    } catch (error) {
-      console.error('Error sending invite:', error);
-      toast.error('Failed to send invitation');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const getRoleIcon = (roleKey) => {
-    switch (roleKey) {
-      case 'super_admin':
-        return Crown;
-      case 'org_admin':
-        return Shield;
-      case 'sales_director':
-      case 'sales_manager':
-        return Users;
-      default:
-        return User;
-    }
-  };
-  
-  const getRoleColor = (roleKey) => {
-    switch (roleKey) {
-      case 'super_admin':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'org_admin':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'sales_director':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'sales_manager':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:
-
-        {/* Users Tab */}
-        {shouldShowUsersTab && (
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-5 h-5" />
-                    <span>User Management</span>
-                    <Badge variant="outline" className={cn("text-xs", getRoleColor(userRoleKey))}>
-                      {userRoleLabel}
-                    </Badge>
-                  </div>
-                  <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Invite User
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Invite New User</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="inviteEmail">Email Address</Label>
-                          <Input
-                            id="inviteEmail"
-                            type="email"
-                            placeholder="Enter email address"
-                            value={inviteForm.email}
-                            onChange={(e) =>
-                              setInviteForm({ ...inviteForm, email: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="inviteRole">Role</Label>
-                          <Select
-                            value={inviteForm.titleId}
-                            onValueChange={(value) =>
-                              setInviteForm({ ...inviteForm, titleId: value })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {titles.map((title) => (
-                                <SelectItem key={title.id} value={title.id.toString()}>
-                                  {title.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button onClick={handleInviteUser} disabled={isLoading} className="w-full">
-                          {isLoading ? (
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <Mail className="w-4 h-4 mr-2" />
-                          )}
-                          Send Invitation
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingUsers ? (
-                  <div className="text-center py-8">
-                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                    <p className="text-muted-foreground">Loading users...</p>
-                  </div>
-                ) : users.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="mb-2">No users found</p>
-                    <p className="text-sm">
-                      {userRoleKey === 'super_admin' 
-                        ? 'No organization administrators found'
-                        : userRoleKey === 'org_admin'
-                        ? 'No users in your organization'
-                        : 'No team members reporting to you'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {users.map((user) => {
-                      const RoleIcon = getRoleIcon(user.titles?.roles?.key);
-                      
-                      return (
-                        <div key={user.id} className="border border-border rounded-lg p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-4">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <RoleIcon className="w-5 h-5 text-primary" />
-                              </div>
-                              
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h3 className="font-semibold">{user.full_name || 'Unnamed User'}</h3>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn("text-xs", getRoleColor(user.titles?.roles?.key))}
-                                  >
-                                    {user.titles?.roles?.label || 'No Role'}
-                                  </Badge>
-                                </div>
-                                
-                                <p className="text-sm text-muted-foreground mb-2">{user.email}</p>
-                                
-                                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span className="flex items-center space-x-1">
-                                    <Shield className="w-3 h-3" />
-                                    <span>{user.titles?.name || 'No Title'}</span>
-                                  </span>
-                                  {user.organizations?.name && (
-                                    <span className="flex items-center space-x-1">
-                                      <Building className="w-3 h-3" />
-                                      <span>{user.organizations.name}</span>
-                                    </span>
-                                  )}
-                                  <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              {userRoleKey === 'super_admin' && (
-                                <Button variant="ghost" size="sm" className="text-destructive">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 };
 
 export default Settings;
-          {shouldShowUsersTab && (
-            <TabsTrigger value="users">Users</TabsTrigger>
-          )}
