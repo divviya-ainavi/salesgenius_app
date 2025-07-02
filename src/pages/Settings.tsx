@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,11 +65,13 @@ import {
   Copy,
   Check,
   ChevronsUpDown,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   setCompany_size,
   setIndustry,
@@ -243,7 +246,45 @@ const mockTrainingMaterials = {
   ],
 };
 
-export const Settings = () => {
+const Settings = () => {
+  // Get role information from Redux state
+  const { roles } = useSelector((state) => state.org);
+  const { user, organizationDetails } = useSelector((state) => state.auth);
+  const userRoleId = user?.title_id;
+  
+  // Find current user's role details
+  const [currentUserTitle, setCurrentUserTitle] = useState(null);
+  
+  useEffect(() => {
+    const fetchUserTitle = async () => {
+      if (userRoleId) {
+        try {
+          const { data, error } = await supabase
+            .from('titles')
+            .select('*, roles(*)')
+            .eq('id', userRoleId)
+            .single();
+          
+          if (!error && data) {
+            setCurrentUserTitle(data);
+          }
+        } catch (err) {
+          console.error('Error fetching user title:', err);
+        }
+      }
+    };
+    
+    fetchUserTitle();
+  }, [userRoleId]);
+  
+  const currentUserRole = currentUserTitle?.roles;
+  
+  // Check if Users tab should be visible
+  const shouldShowUsersTab = () => {
+    if (!currentUserRole) return false;
+    return currentUserRole.key !== 'sales_executive';
+  };
+
   const createJWT = (payload, secret = "SG") => {
     const header = {
       alg: "HS256",
@@ -384,6 +425,16 @@ export const Settings = () => {
   );
   const canViewOrgAnalytics =
     mockCurrentUser.permissions.includes("view_org_analytics");
+
+  // Users tab state
+  const [users, setUsers] = useState([]);
+  const [titles, setTitles] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteData, setInviteData] = useState({
+    email: "",
+    titleId: "",
+  });
 
   useEffect(() => {
     if (orgSettings.country) {
@@ -832,6 +883,122 @@ export const Settings = () => {
     setHubspotToken(""); // Clear the input field
   };
 
+  // Load users based on role
+  const loadUsers = async () => {
+    if (!currentUserRole) return;
+    
+    setIsLoadingUsers(true);
+    try {
+      let query;
+      
+      if (currentUserRole.key === 'super_admin') {
+        // Super Admin: Show all Org Admins
+        query = supabase
+          .from('profiles')
+          .select(`
+            *,
+            titles!inner(*, roles!inner(*)),
+            organizations(name)
+          `)
+          .eq('titles.roles.key', 'org_admin');
+      } else if (currentUserRole.key === 'org_admin') {
+        // Org Admin: Show all profiles under their org_id
+        query = supabase
+          .from('profiles')
+          .select(`
+            *,
+            titles(*, roles(*)),
+            organizations(name)
+          `)
+          .eq('organization_id', organizationDetails?.id);
+      } else if (currentUserRole.key === 'sales_director' || currentUserRole.key === 'sales_manager') {
+        // Sales Director/Manager: Show users reporting to them
+        query = supabase
+          .from('user_teams')
+          .select(`
+            user_id,
+            profiles!user_teams_user_id_fkey(
+              *,
+              titles(*, roles(*)),
+              organizations(name)
+            )
+          `)
+          .eq('manager_id', user?.id);
+      }
+      
+      if (query) {
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        // Transform data for sales director/manager
+        if (currentUserRole.key === 'sales_director' || currentUserRole.key === 'sales_manager') {
+          setUsers(data?.map(item => item.profiles) || []);
+        } else {
+          setUsers(data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+  
+  // Load titles for invite dropdown (Org Admin only)
+  const loadTitles = async () => {
+    if (currentUserRole?.key !== 'org_admin') return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('titles')
+        .select('*, roles(*)')
+        .eq('organization_id', organizationDetails?.id);
+      
+      if (error) throw error;
+      setTitles(data || []);
+    } catch (error) {
+      console.error('Error loading titles:', error);
+    }
+  };
+  
+  // Handle user invitation
+  const handleInviteUser = async () => {
+    if (!inviteData.email || !inviteData.titleId) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('invites')
+        .insert([{
+          email: inviteData.email,
+          organization_id: organizationDetails?.id,
+          title_id: inviteData.titleId,
+        }]);
+      
+      if (error) throw error;
+      
+      toast.success('Invitation sent successfully');
+      setShowInviteDialog(false);
+      setInviteData({ email: "", titleId: "" });
+      loadUsers(); // Refresh users list
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Failed to send invitation');
+    }
+  };
+
+  // Load users and titles when role changes
+  useEffect(() => {
+    if (currentUserRole && shouldShowUsersTab()) {
+      loadUsers();
+      loadTitles();
+    }
+  }, [currentUserRole, organizationDetails]);
+
   console.log(
     user,
     organizationDetails,
@@ -909,7 +1076,7 @@ export const Settings = () => {
               <span>Organization</span>
             </TabsTrigger>
           )}
-          {canManageUsers && (
+          {shouldShowUsersTab() && (
             <TabsTrigger value="users" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Users</span>
@@ -1757,139 +1924,62 @@ export const Settings = () => {
         )}
 
         {/* User Management */}
-        {canManageUsers && (
-          <TabsContent value="users" className="mt-6">
-            <div className="space-y-6">
-              {/* Invite User */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Plus className="w-5 h-5" />
-                    <span>Invite New User</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-end space-x-4">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium mb-2 block">
-                        Email Address
-                      </label>
-                      <Input
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                        placeholder="user@acmecorp.com"
-                        type="email"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Role
-                      </label>
-                      <Select
-                        value={newUserRole}
-                        onValueChange={setNewUserRole}
-                      >
-                        <SelectTrigger className="w-48">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="app_user">
-                            Application User
-                          </SelectItem>
-                          <SelectItem value="client_admin">
-                            Organization Admin
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleInviteUser}>
-                      <Plus className="w-4 h-4 mr-1" />
-                      Send Invite
-                    </Button>
+        {shouldShowUsersTab() && (
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>
+                  {currentUserRole?.key === 'super_admin' && 'Organization Administrators'}
+                  {currentUserRole?.key === 'org_admin' && 'Organization Users'}
+                  {(currentUserRole?.key === 'sales_director' || currentUserRole?.key === 'sales_manager') && 'Team Members'}
+                </CardTitle>
+                {(currentUserRole?.key === 'super_admin' || currentUserRole?.key === 'org_admin') && (
+                  <Button onClick={() => setShowInviteDialog(true)}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite User
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isLoadingUsers ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading users...</p>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Users List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Organization Users</span>
-                    <Badge variant="secondary">{orgUsers.length} users</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8">
+                    <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No users found</p>
+                  </div>
+                ) : (
                   <div className="space-y-4">
-                    {orgUsers.map((user) => {
-                      const role = userRoles[user.role];
-                      return (
-                        <div
-                          key={user.id}
-                          className="flex items-center justify-between p-4 border border-border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {user.email}
-                              </p>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <Badge
-                                  variant="outline"
-                                  className={cn("text-xs", role.color)}
-                                >
-                                  <role.icon className="w-3 h-3 mr-1" />
-                                  {role.label}
-                                </Badge>
-                                <Badge
-                                  variant={
-                                    user.status === "active"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="text-xs"
-                                >
-                                  {user.status}
-                                </Badge>
-                              </div>
-                            </div>
+                    {users.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-primary" />
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="text-right text-sm text-muted-foreground">
-                              {user.lastLogin ? (
-                                <p>
-                                  Last login:{" "}
-                                  {new Date(
-                                    user.lastLogin
-                                  ).toLocaleDateString()}
-                                </p>
-                              ) : (
-                                <p>Never logged in</p>
-                              )}
-                              <p>
-                                Joined:{" "}
-                                {new Date(user.joinedAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveUser(user.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div>
+                            <h4 className="font-medium">{user.full_name || user.email}</h4>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            {user.titles && (
+                              <Badge variant="outline" className="text-xs mt-1">
+                                {user.titles.name} ({user.titles.roles?.label})
+                              </Badge>
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={user.status_id === 1 ? "default" : "secondary"}>
+                            {user.status_id === 1 ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 
@@ -2525,6 +2615,51 @@ export const Settings = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Invite User Dialog */}
+      {showInviteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Invite User</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <Input
+                  type="email"
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+              {currentUserRole?.key === 'org_admin' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Role</label>
+                  <Select value={inviteData.titleId} onValueChange={(value) => setInviteData(prev => ({ ...prev, titleId: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {titles.map((title) => (
+                        <SelectItem key={title.id} value={title.id.toString()}>
+                          {title.name} ({title.roles?.label})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleInviteUser}>
+                Send Invitation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
