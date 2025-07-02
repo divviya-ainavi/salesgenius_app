@@ -12,6 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -49,6 +62,8 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -275,6 +290,10 @@ export const Settings = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [availableCities, setAvailableCities] = useState([]);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [countrySearchValue, setCountrySearchValue] = useState("");
+  const [citySearchValue, setCitySearchValue] = useState("");
 
   const {
     userProfileInfo,
@@ -1382,62 +1401,120 @@ export const Settings = () => {
                       <label className="text-sm font-medium mb-2 block">
                         Country
                       </label>
-                      <Select
-                        value={orgSettings.country}
-                        onValueChange={(value) =>
-                          setOrgSettings((prev) => ({
-                            ...prev,
-                            country: value,
-                          }))
-                        }
-                        // value={selectedCountry}
-                        // onValueChange={setSelectedCountry}
-                      >
-                        <SelectTrigger id="country">
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country} value={country}>
-                              {country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={countryOpen}
+                            className="w-full justify-between"
+                          >
+                            {orgSettings.country || "Select country..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search country..." 
+                              value={countrySearchValue}
+                              onValueChange={setCountrySearchValue}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No country found.</CommandEmpty>
+                              <CommandGroup>
+                                {getCountries()
+                                  .filter((country) =>
+                                    country.toLowerCase().includes(countrySearchValue.toLowerCase())
+                                  )
+                                  .map((country) => (
+                                    <CommandItem
+                                      key={country}
+                                      value={country}
+                                      onSelect={(currentValue) => {
+                                        setOrgSettings((prev) => ({
+                                          ...prev,
+                                          country: currentValue === orgSettings.country ? "" : currentValue,
+                                          city: "", // Reset city when country changes
+                                        }));
+                                        setCountryOpen(false);
+                                        setCountrySearchValue("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          orgSettings.country === country ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {country}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium mb-2 block">
                         City
                       </label>
-                      <Select
-                        value={orgSettings.city}
-                        onValueChange={(value) =>
-                          setOrgSettings((prev) => ({
-                            ...prev,
-                            city: value,
-                          }))
-                        }
-                        disabled={
-                          !orgSettings.country || availableCities.length === 0
-                        }
-                      >
-                        <SelectTrigger id="city">
-                          <SelectValue
-                            placeholder={
-                              !orgSettings.country
-                                ? "Select country first"
-                                : "Select city"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableCities.map((city) => (
-                            <SelectItem key={city} value={city}>
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={cityOpen}
+                            className="w-full justify-between"
+                            disabled={!orgSettings.country}
+                          >
+                            {orgSettings.city || (orgSettings.country ? "Select city..." : "Select country first")}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search city..." 
+                              value={citySearchValue}
+                              onValueChange={setCitySearchValue}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No city found.</CommandEmpty>
+                              <CommandGroup>
+                                {orgSettings.country &&
+                                  getCitiesForCountry(orgSettings.country)
+                                    .filter((city) =>
+                                      city.toLowerCase().includes(citySearchValue.toLowerCase())
+                                    )
+                                    .map((city) => (
+                                      <CommandItem
+                                        key={city}
+                                        value={city}
+                                        onSelect={(currentValue) => {
+                                          setOrgSettings((prev) => ({
+                                            ...prev,
+                                            city: currentValue === orgSettings.city ? "" : currentValue,
+                                          }));
+                                          setCityOpen(false);
+                                          setCitySearchValue("");
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            orgSettings.city === city ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {city}
+                                      </CommandItem>
+                                    ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </CardContent>
