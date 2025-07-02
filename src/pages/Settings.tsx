@@ -69,7 +69,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useDispatch, useSelector } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import {
@@ -83,168 +82,6 @@ import {
   setHubspotIntegration,
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
-
-// Mock user data - in real app this would come from auth context
-const mockCurrentUser = {
-  id: "550e8400-e29b-41d4-a716-446655440000",
-  email: "john.smith@acmecorp.com",
-  role: "client_admin", // super_admin, client_admin, app_user
-  organizationId: "org-acme-corp",
-  organizationName: "Acme Corp",
-  permissions: [
-    "manage_users",
-    "manage_org_settings",
-    "upload_org_materials",
-    "view_org_analytics",
-  ],
-};
-
-// User roles configuration
-const userRoles = {
-  super_admin: {
-    label: "Super Admin",
-    icon: Crown,
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-    description: "Platform administrator with global access",
-    permissions: ["all"],
-  },
-  client_admin: {
-    label: "Organization Admin",
-    icon: UserCheck,
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-    description: "Organization-level administrator",
-    permissions: [
-      "manage_users",
-      "manage_org_settings",
-      "upload_org_materials",
-      "view_org_analytics",
-    ],
-  },
-  app_user: {
-    label: "Application User",
-    icon: User,
-    color: "bg-green-100 text-green-800 border-green-200",
-    description: "Individual user with personal access",
-    permissions: [
-      "view_personal_analytics",
-      "upload_personal_materials",
-      "manage_personal_settings",
-    ],
-  },
-};
-
-// Mock organization users
-const mockOrgUsers = [
-  {
-    id: "1",
-    email: "sarah.johnson@acmecorp.com",
-    name: "Sarah Johnson",
-    role: "app_user",
-    status: "active",
-    lastLogin: "2024-01-15T10:30:00Z",
-    joinedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    email: "mike.chen@acmecorp.com",
-    name: "Mike Chen",
-    role: "app_user",
-    status: "active",
-    lastLogin: "2024-01-14T15:45:00Z",
-    joinedAt: "2024-01-02T00:00:00Z",
-  },
-  {
-    id: "3",
-    email: "lisa.rodriguez@acmecorp.com",
-    name: "Lisa Rodriguez",
-    role: "app_user",
-    status: "pending",
-    lastLogin: null,
-    joinedAt: "2024-01-14T00:00:00Z",
-  },
-];
-
-// Mock training materials
-const mockTrainingMaterials = {
-  general: [
-    {
-      id: "1",
-      name: "B2B Sales Best Practices 2024",
-      type: "document",
-      size: "2.4 MB",
-      uploadedAt: "2024-01-10",
-      status: "processed",
-    },
-    {
-      id: "2",
-      name: "Industry Insights - SaaS Sales",
-      type: "video",
-      size: "45.2 MB",
-      uploadedAt: "2024-01-08",
-      status: "processing",
-    },
-    {
-      id: "3",
-      name: "Sales Methodology Frameworks",
-      type: "document",
-      size: "1.8 MB",
-      uploadedAt: "2024-01-05",
-      status: "processed",
-    },
-  ],
-  business: [
-    {
-      id: "4",
-      name: "Acme Corp Sales Playbook",
-      type: "document",
-      size: "5.2 MB",
-      uploadedAt: "2024-01-12",
-      status: "processed",
-    },
-    {
-      id: "5",
-      name: "Product Demo Scripts",
-      type: "document",
-      size: "1.1 MB",
-      uploadedAt: "2024-01-10",
-      status: "processed",
-    },
-    {
-      id: "6",
-      name: "Competitive Analysis 2024",
-      type: "presentation",
-      size: "8.7 MB",
-      uploadedAt: "2024-01-08",
-      status: "processed",
-    },
-    {
-      id: "7",
-      name: "Customer Success Stories",
-      type: "document",
-      size: "3.4 MB",
-      uploadedAt: "2024-01-06",
-      status: "processed",
-    },
-  ],
-  personal: [
-    {
-      id: "8",
-      name: "My Sales Techniques",
-      type: "document",
-      size: "0.8 MB",
-      uploadedAt: "2024-01-14",
-      status: "processed",
-    },
-    {
-      id: "9",
-      name: "Personal Call Notes Template",
-      type: "document",
-      size: "0.3 MB",
-      uploadedAt: "2024-01-12",
-      status: "processed",
-    },
-  ],
-};
 
 const Settings = () => {
   // Get role information from Redux state
@@ -337,11 +174,6 @@ const Settings = () => {
   const [citySearchValue, setCitySearchValue] = useState("");
 
   const {
-    userProfileInfo,
-    userRole,
-    userRoleId,
-    titleName,
-    organizationDetails,
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
@@ -350,16 +182,6 @@ const Settings = () => {
   );
   const dispatch = useDispatch();
 
-  console.log(
-    userProfileInfo,
-    userRole,
-    userRoleId,
-    titleName,
-    organizationDetails,
-    "org details",
-    user,
-    "check user details"
-  );
   // Profile settings state
   const [profileSettings, setProfileSettings] = useState({
     name: user?.full_name,
@@ -374,17 +196,6 @@ const Settings = () => {
     },
   });
 
-  console.log(
-    userProfileInfo,
-    userRole,
-    userRoleId,
-    titleName,
-    organizationDetails,
-    user,
-    "technology details"
-  );
-
-  console.log(organizationDetails, "check org details");
   // Organization settings state
   const [orgSettings, setOrgSettings] = useState({
     name: organizationDetails?.name,
@@ -415,17 +226,6 @@ const Settings = () => {
   const [isEditingHubspot, setIsEditingHubspot] = useState(false);
   const [hasExistingToken, setHasExistingToken] = useState(false);
 
-  const currentUserRole = userRoles[mockCurrentUser.role];
-  const canManageUsers = mockCurrentUser.permissions.includes("manage_users");
-  const canManageOrgSettings = mockCurrentUser.permissions.includes(
-    "manage_org_settings"
-  );
-  const canUploadOrgMaterials = mockCurrentUser.permissions.includes(
-    "upload_org_materials"
-  );
-  const canViewOrgAnalytics =
-    mockCurrentUser.permissions.includes("view_org_analytics");
-
   // Users tab state
   const [users, setUsers] = useState([]);
   const [titles, setTitles] = useState([]);
@@ -434,6 +234,13 @@ const Settings = () => {
   const [inviteData, setInviteData] = useState({
     email: "",
     titleId: "",
+  });
+
+  // Mock training materials
+  const [trainingMaterials, setTrainingMaterials] = useState({
+    general: [],
+    business: [],
+    personal: [],
   });
 
   useEffect(() => {
@@ -559,7 +366,6 @@ const Settings = () => {
       toast.error("Failed to update organization settings");
     }
   };
-  console.log(organizationDetails, "Organization settings updated:387");
   const handleSaveSecurity = () => {
     toast.success("Security settings saved successfully");
   };
@@ -651,7 +457,7 @@ const Settings = () => {
     }
   };
 
-  const handleInviteUser = () => {
+  const handleInviteUserOld = () => {
     if (!newUserEmail.trim()) {
       toast.error("Please enter a valid email address");
       return;
@@ -667,14 +473,12 @@ const Settings = () => {
       joinedAt: new Date().toISOString(),
     };
 
-    setOrgUsers((prev) => [...prev, newUser]);
     setNewUserEmail("");
     setNewUserRole("app_user");
     toast.success(`Invitation sent to ${newUserEmail}`);
   };
 
   const handleRemoveUser = (userId: string) => {
-    setOrgUsers((prev) => prev.filter((user) => user.id !== userId));
     toast.success("User removed from organization");
   };
 
@@ -683,16 +487,6 @@ const Settings = () => {
     category: "general" | "business" | "personal"
   ) => {
     if (!file) return;
-
-    // Check permissions
-    if (category === "general" && mockCurrentUser.role !== "super_admin") {
-      toast.error("Only Super Admins can upload general materials");
-      return;
-    }
-    if (category === "business" && !canUploadOrgMaterials) {
-      toast.error("You do not have permission to upload business materials");
-      return;
-    }
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -999,12 +793,6 @@ const Settings = () => {
     }
   }, [currentUserRole, organizationDetails]);
 
-  console.log(
-    user,
-    organizationDetails,
-    "user and org details in settings page"
-  );
-
   useEffect(() => {
     const fetchDropdowns = async () => {
       const result = await dbHelpers.getOrgDropdownOptions();
@@ -1025,8 +813,7 @@ const Settings = () => {
   }, [organizationDetails]);
 
   const countries = getCountries();
-  // const isOrgAdmin = roles
-  // console.log(roles, titles)
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -1045,9 +832,9 @@ const Settings = () => {
         <div className="flex items-center space-x-3">
           <Badge
             variant="outline"
-            className={cn("text-sm", currentUserRole.color)}
+            className="text-sm"
           >
-            <currentUserRole.icon className="w-4 h-4 mr-2" />
+            <User className="w-4 h-4 mr-2" />
             {user?.title_name || ""}
           </Badge>
           <div className="text-right">
@@ -1067,7 +854,7 @@ const Settings = () => {
             <User className="w-4 h-4" />
             <span>Profile</span>
           </TabsTrigger>
-          {canManageOrgSettings && userRoleId == 2 && (
+          {userRoleId == 2 && (
             <TabsTrigger
               value="organization"
               className="flex items-center space-x-2"
@@ -2183,7 +1970,7 @@ const Settings = () => {
             )}
 
             {/* General B2B Sales Knowledge */}
-            {mockCurrentUser.role === "super_admin" && (
+            {currentUserRole?.key === "super_admin" && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -2285,7 +2072,7 @@ const Settings = () => {
             )}
 
             {/* Business-Specific Knowledge */}
-            {canUploadOrgMaterials && (
+            {currentUserRole?.key !== "sales_executive" && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -2497,7 +2284,7 @@ const Settings = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {mockCurrentUser.role === "super_admin" && (
+                  {currentUserRole?.key === "super_admin" && (
                     <div className="flex items-center justify-between p-3 border border-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Globe className="w-5 h-5 text-purple-600" />
@@ -2517,7 +2304,7 @@ const Settings = () => {
                     </div>
                   )}
 
-                  {canViewOrgAnalytics && (
+                  {currentUserRole?.key !== "sales_executive" && (
                     <div className="flex items-center justify-between p-3 border border-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Building className="w-5 h-5 text-blue-600" />
@@ -2526,7 +2313,7 @@ const Settings = () => {
                             Organization Analytics
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {mockCurrentUser.organizationName} only
+                            {organizationDetails?.name} only
                           </p>
                         </div>
                       </div>
@@ -2579,7 +2366,7 @@ const Settings = () => {
                     </Button>
                   </div>
 
-                  {canViewOrgAnalytics && (
+                  {currentUserRole?.key !== "sales_executive" && (
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">
@@ -2604,7 +2391,7 @@ const Settings = () => {
                   <ul className="space-y-1">
                     <li>• Personal data: Retained until account deletion</li>
                     <li>
-                      • Call transcripts: {orgSettings.data_retention_days} days
+                      • Call transcripts: 365 days
                     </li>
                     <li>• Analytics data: 2 years</li>
                     <li>• Audit logs: 7 years</li>
