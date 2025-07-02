@@ -1128,6 +1128,24 @@ export const dbHelpers = {
       console.error("Unexpected error in updateOrganizationLocation:", err);
       return { success: false, error: err };
     }
+  },
+
+  async getRoles() {
+    try {
+      const { data, error } = await supabase
+        .from("roles")
+        .select("id, key, label, description, is_assignable")
+        .order("id", { ascending: true }); // optional ordering
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error fetching roles:", err.message);
+      return [];
+    }
   }
 }
 
