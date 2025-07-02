@@ -19,16 +19,26 @@ import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
+import { useDispatch } from "react-redux";
+import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { setRoles } from "./store/slices/orgSlice";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const dispatch = useDispatch();
   // Initialize analytics
   useEffect(() => {
     // Track app initialization
     analytics.track("app_initialized", {
       timestamp: new Date().toISOString(),
     });
+    const fetchRoles = async () => {
+      const roles = await dbHelpers.getRoles();
+      dispatch(setRoles(roles)); // assuming you have a Redux slice
+    };
+
+    fetchRoles();
   }, []);
 
   return (
@@ -41,13 +51,16 @@ const App = () => {
             {/* Public Routes */}
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/hubspot-callback" element={<HubSpotCallback />} />
-            
+
             {/* Protected Routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Navigate to="/calls" replace />} />
               <Route path="research" element={<Research />} />
               <Route path="calls" element={<SalesCalls />} />
@@ -68,7 +81,7 @@ const App = () => {
                 <Route path="users" element={<UserManagementPage />} />
               </Route>
             </Route>
-            
+
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
