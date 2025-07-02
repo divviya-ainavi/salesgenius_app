@@ -9,7 +9,6 @@ const initialState = {
     isNewUser: true, // Added to track if user is new or existing
     onboardingComplete: false, // Added to track if onboarding is complete
     userProfileInfo: "",
-    isNewUser: true,
     signupUser: null,
     resetEmail: null,
     userRole: null,
