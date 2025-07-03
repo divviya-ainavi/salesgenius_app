@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase, authHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   setUser,
   setUserProfileInfo,
@@ -20,6 +20,7 @@ import {
   setTitleName,
 } from "../../store/slices/authSlice";
 import { dbHelpers } from "../../lib/supabase";
+import { setAllTitles } from "../../store/slices/orgSlice";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
@@ -32,6 +33,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  // const { roles } = useSelector((state) => state.org);
 
   // Compute form validity
   const isFormValid =
@@ -103,7 +105,8 @@ const LoginPage = () => {
         dispatch(setUser(profileWithoutOrgDetails));
         dispatch(setIsAuthenticated(true));
         dispatch(setUserProfileInfo(profile.full_name || profile.email));
-
+        const titles = await dbHelpers?.getTitles(organization_details?.id);
+        dispatch(setAllTitles(titles));
         // Store organization_details separately
         if (organization_details) {
           dispatch(setOrganizationDetails(organization_details));
@@ -113,12 +116,25 @@ const LoginPage = () => {
         }
 
         // Set title & role
-        if (profile.title_name) dispatch(setTitleName(profile.title_name));
+        if (profile.title_name) {
+          dispatch(setTitleName(profile.title_name));
+        } else {
+          dispatch(setTitleName(""));
+        }
         if (profile.title_id) {
+          const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
-          console.log("Role details:", roleId);
-          // dispatch(setUserRole(roleId));
           dispatch(setUserRoleId(roleId));
+          console.log(
+            "Role details 120:",
+            roles,
+            roles?.filter((x) => x.id == roleId)
+          );
+          if (roles?.length > 0) {
+            dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
+          } else {
+            dispatch(setUserRole(null));
+          }
         }
 
         // Save cleaned profile to authHelpers and localStorage

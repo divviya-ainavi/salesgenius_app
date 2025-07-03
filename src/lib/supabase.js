@@ -1146,6 +1146,23 @@ export const dbHelpers = {
       console.error("Error fetching roles:", err.message);
       return [];
     }
+  },
+  async getTitles() {
+    try {
+      const { data, error } = await supabase
+        .from("titles")
+        .select("id, name, role_id, organization_id")
+        .order("id", { ascending: true }); // optional ordering
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error fetching roles:", err.message);
+      return [];
+    }
   }
 }
 

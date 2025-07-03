@@ -6,6 +6,7 @@ const initialState = {
     sales_methodology: null,
     industry: null,
     roles: null,
+    allTitles: []
 
 };
 
@@ -24,6 +25,9 @@ const orgSlice = createSlice({
         },
         setRoles: (state, action) => {
             state.roles = action.payload;
+        },
+        setAllTitles: (state, action) => {
+            state.allTitles = action.payload;
         }
     },
 });
@@ -32,6 +36,7 @@ export const {
     setCompany_size,
     setSales_methodology,
     setIndustry,
-    setRoles
+    setRoles,
+    setAllTitles
 } = orgSlice.actions;
 export default orgSlice.reducer;

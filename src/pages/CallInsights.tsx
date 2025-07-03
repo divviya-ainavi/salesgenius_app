@@ -343,6 +343,36 @@ const insightTypes = {
     label: "Your Insight",
     color: "bg-yellow-100 text-yellow-800 border-yellow-200",
   },
+  competitor_mention: {
+    icon: Star,
+    label: "Competitive Edge",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+  },
+  decision_maker_identified: {
+    icon: Users,
+    label: "Stakeholder Dynamics",
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+  },
+  budget_insight: {
+    icon: Clock,
+    label: "Urgency Driver",
+    color: "bg-orange-100 text-orange-800 border-orange-200",
+  },
+  timeline_insight: {
+    icon: Lightbulb,
+    label: "Your Insight",
+    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  },
+  risk_or_objection: {
+    icon: Clock,
+    label: "Urgency Driver",
+    color: "bg-orange-100 text-orange-800 border-orange-200",
+  },
+  champion_identified: {
+    icon: Lightbulb,
+    label: "Your Insight",
+    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  },
 };
 
 const communicationStyleConfigs = {
@@ -1026,8 +1056,8 @@ const CallInsights = () => {
 
               {/* Insights List */}
               {insights.map((insight, index) => {
-                const typeConfig = insightTypes[insight.type];
-                const TypeIcon = typeConfig.icon;
+                const typeConfig = insightTypes[insight?.type];
+                const TypeIcon = typeConfig?.icon;
 
                 return (
                   <div
@@ -1038,7 +1068,7 @@ const CallInsights = () => {
                       <div className="flex items-center space-x-3">
                         <Badge
                           variant="outline"
-                          className={cn("text-xs", typeConfig.color)}
+                          className={cn("text-xs", typeConfig?.color)}
                         >
                           <TypeIcon className="w-3 h-3 mr-1" />
                           {typeConfig.label}

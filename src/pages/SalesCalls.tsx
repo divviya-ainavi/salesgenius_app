@@ -533,7 +533,7 @@ const SalesCalls = () => {
 
       // Make API call to process the transcript file
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-data-ai",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-data-ai-v2",
         {
           method: "POST",
           body: formData,
