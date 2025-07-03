@@ -1163,7 +1163,28 @@ export const dbHelpers = {
       console.error("Error fetching roles:", err.message);
       return [];
     }
+  },
+  // Get all users if super admin
+  async getAllOrganizationsWithUsers() {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("id, name, profiles(id, full_name, email, title_id, status)");
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get users for a specific organization (for org admin)
+  async getUsersByOrganizationId(orgId) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("organization_id", orgId);
+
+    if (error) throw error;
+    return data;
   }
+
 }
 
 // User helpers for backward compatibility

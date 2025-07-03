@@ -71,6 +71,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
   setCompany_size,
+  setGetUsersList,
   setIndustry,
   setSales_methodology,
 } from "../store/slices/orgSlice";
@@ -304,8 +305,14 @@ export const Settings = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { company_size, sales_methodology, industry, roles, allTitles } =
-    useSelector((state) => state.org);
+  const {
+    company_size,
+    sales_methodology,
+    industry,
+    roles,
+    allTitles,
+    getUserslist,
+  } = useSelector((state) => state.org);
   const dispatch = useDispatch();
 
   // console.log(
@@ -426,6 +433,42 @@ export const Settings = () => {
 
     loadHubSpotStatus();
   }, [organizationDetails?.id, dispatch]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        let users = [];
+
+        if (user?.title_id == null) {
+          // Super Admin
+          const allOrgs = await dbHelpers.getAllOrganizationsWithUsers();
+          console.log(allOrgs, "all orgs 445");
+          users = allOrgs.flatMap((org) =>
+            org.profiles.map((profile) => ({
+              ...profile,
+              name: profile.full_name,
+              organization: org.name,
+            }))
+          );
+        } else if (userRole?.id === 2 || userRoleId === 2) {
+          // Org Admin
+          const profiles = await dbHelpers.getUsersByOrganizationId(
+            organizationDetails?.id
+          );
+          users = profiles.map((profile) => ({
+            ...profile,
+            name: profile.full_name,
+          }));
+        }
+
+        setGetUsersList(users);
+      } catch (err) {
+        console.error("Error fetching users:", err.message);
+      }
+    };
+
+    fetchUsers();
+  }, [user, userRole, userRoleId, organizationDetails?.id]);
 
   const handleSaveProfile = async () => {
     try {
@@ -1761,8 +1804,13 @@ export const Settings = () => {
           <TabsContent value="users" className="mt-6">
             <div className="space-y-6">
               {/* Invite User */}
-              {console.log(userRoleId, userRole, "check details from settings")}
-              {userRole?.id == 2 && (
+              {console.log(
+                userRoleId,
+                userRole,
+                "check details from settings",
+                user
+              )}
+              {(userRole?.id == 2 || user?.title_id == null) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -1783,33 +1831,36 @@ export const Settings = () => {
                           type="email"
                         />
                       </div>
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Role
-                        </label>
-                        {console.log(
-                          newUserRole,
-                          "check new user role",
-                          allTitles
-                        )}
-                        <Select
-                          value={newUserRole?.toString()}
-                          onValueChange={(value) =>
-                            setNewUserRole(Number(value))
-                          }
-                        >
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allTitles?.map((x) => (
-                              <SelectItem key={x.id} value={x.id.toString()}>
-                                {x.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {user?.title_id != null && (
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Role
+                          </label>
+                          {console.log(
+                            newUserRole,
+                            "check new user role",
+                            allTitles
+                          )}
+                          <Select
+                            value={newUserRole?.toString()}
+                            onValueChange={(value) =>
+                              setNewUserRole(Number(value))
+                            }
+                          >
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allTitles?.map((x) => (
+                                <SelectItem key={x.id} value={x.id.toString()}>
+                                  {x.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
                       <Button onClick={handleInviteUser}>
                         <Plus className="w-4 h-4 mr-1" />
                         Send Invite
@@ -1823,77 +1874,97 @@ export const Settings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Organization Users</span>
-                    <Badge variant="secondary">{orgUsers.length} users</Badge>
+                    <Badge variant="secondary">
+                      {getUserslist?.length} users
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {orgUsers.map((user) => {
-                      const role = userRoles[user.role];
-                      return (
-                        <div
-                          key={user.id}
-                          className="flex items-center justify-between p-4 border border-border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {user.email}
-                              </p>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <Badge
-                                  variant="outline"
-                                  className={cn("text-xs", role.color)}
-                                >
-                                  <role.icon className="w-3 h-3 mr-1" />
-                                  {role.label}
-                                </Badge>
-                                <Badge
-                                  variant={
-                                    user.status === "active"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="text-xs"
-                                >
-                                  {user.status}
-                                </Badge>
+                    {getUserslist?.length > 0 &&
+                      getUserslist?.map((user) => {
+                        const role = userRoles[user.role] || {
+                          label: "Unknown",
+                          icon: User,
+                          color: "bg-gray-100 text-gray-700 border-gray-200",
+                        };
+
+                        return (
+                          <div
+                            key={user.id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                <User className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {user.email}
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn("text-xs", role.color)}
+                                  >
+                                    <role.icon className="w-3 h-3 mr-1" />
+                                    {role.label}
+                                  </Badge>
+                                  {user.status && (
+                                    <Badge
+                                      variant={
+                                        user.status === "active"
+                                          ? "default"
+                                          : "secondary"
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {user.status}
+                                    </Badge>
+                                  )}
+                                  {user.organization && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-muted"
+                                    >
+                                      {user.organization}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="text-right text-sm text-muted-foreground">
-                              {user.lastLogin ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="text-right text-sm text-muted-foreground">
                                 <p>
                                   Last login:{" "}
-                                  {new Date(
-                                    user.lastLogin
-                                  ).toLocaleDateString()}
+                                  {user.lastLogin
+                                    ? new Date(
+                                        user.lastLogin
+                                      ).toLocaleDateString()
+                                    : "Never"}
                                 </p>
-                              ) : (
-                                <p>Never logged in</p>
-                              )}
-                              <p>
-                                Joined:{" "}
-                                {new Date(user.joinedAt).toLocaleDateString()}
-                              </p>
+                                <p>
+                                  Joined:{" "}
+                                  {user.joinedAt
+                                    ? new Date(
+                                        user.joinedAt
+                                      ).toLocaleDateString()
+                                    : "-"}
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRemoveUser(user.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveUser(user.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 </CardContent>
               </Card>

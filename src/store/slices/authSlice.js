@@ -69,13 +69,10 @@ const authSlice = createSlice({
         setHubspotIntegration: (state, action) => {
             state.hubspotIntegration = action.payload;
         },
-        logout: (state) => {
+        resetAuthState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
-            localStorage.clear();
-            Cookies.remove("token");
-            Cookies.remove("userid");
-        },
+        }
     },
 });
 
@@ -83,7 +80,7 @@ export const {
     setUser,
     setLoading,
     setError,
-    logout,
+    resetAuthState,
     setIsNewUser,
     setOnboardingComplete,
     setUserProfileInfo,
