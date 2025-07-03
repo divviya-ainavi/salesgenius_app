@@ -14,6 +14,7 @@ import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import UserManagementPage from "@/pages/admin/UserManagement";
 import LoginPage from "@/pages/Auth/LoginPage";
+import AccountSetup from "@/pages/Auth/AccountSetup";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import HubSpotCallback from "@/pages/HubSpotCallback";
 import NotFound from "./pages/NotFound";
@@ -52,6 +53,7 @@ const App = () => {
           <Routes>
             {/* Public Routes */}
             <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/setup" element={<AccountSetup />} />
             <Route path="/hubspot-callback" element={<HubSpotCallback />} />
 
             {/* Protected Routes */}
