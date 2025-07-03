@@ -1165,10 +1165,10 @@ export const dbHelpers = {
     }
   },
   // Get all users if super admin
-  async getAllOrganizationsWithUsers() {
+  async getAllOrganizationss() {
     const { data, error } = await supabase
       .from("organizations")
-      .select("id, name, profiles(id, full_name, email, title_id, status)");
+      .select("name, domain, country, city");
 
     if (error) throw error;
     return data;

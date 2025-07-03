@@ -71,6 +71,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
   setCompany_size,
+  setGetOrgList,
   setGetUsersList,
   setIndustry,
   setSales_methodology,
@@ -312,6 +313,7 @@ export const Settings = () => {
     roles,
     allTitles,
     getUserslist,
+    getOrgList,
   } = useSelector((state) => state.org);
   const dispatch = useDispatch();
 
@@ -441,27 +443,29 @@ export const Settings = () => {
 
         if (user?.title_id == null) {
           // Super Admin
-          const allOrgs = await dbHelpers.getAllOrganizationsWithUsers();
+          const allOrgs = await dbHelpers.getAllOrganizations();
           console.log(allOrgs, "all orgs 445");
-          users = allOrgs.flatMap((org) =>
-            org.profiles.map((profile) => ({
-              ...profile,
-              name: profile.full_name,
-              organization: org.name,
-            }))
-          );
+          // users = allOrgs.flatMap((org) =>
+          //   org.profiles.map((profile) => ({
+          //     ...profile,
+          //     name: profile.full_name,
+          //     organization: org.name,
+          //   }))
+          // );
+          dispatch(setGetOrgList(allOrgs));
         } else if (userRole?.id === 2 || userRoleId === 2) {
           // Org Admin
           const profiles = await dbHelpers.getUsersByOrganizationId(
             organizationDetails?.id
           );
-          users = profiles.map((profile) => ({
-            ...profile,
-            name: profile.full_name,
-          }));
+          // users = profiles.map((profile) => ({
+          //   ...profile,
+          //   name: profile.full_name,
+          // }));
+          dispatch(setGetUsersList(profiles));
         }
 
-        setGetUsersList(users);
+        // setGetUsersList(users);
       } catch (err) {
         console.error("Error fetching users:", err.message);
       }

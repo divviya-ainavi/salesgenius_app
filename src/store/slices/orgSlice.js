@@ -7,7 +7,8 @@ const initialState = {
     industry: null,
     roles: null,
     allTitles: [],
-    getUserslist: []
+    getUserslist: [],
+    getOrgList: []
 };
 
 const orgSlice = createSlice({
@@ -30,7 +31,10 @@ const orgSlice = createSlice({
             state.allTitles = action.payload;
         },
         setGetUsersList: (state, action) => {
-            state.allTitles = action.payload;
+            state.getUserslist = action.payload;
+        },
+        setGetOrgList: (state, action) => {
+            state.getOrgList = action.payload;
         },
         resetOrgState: (state) => {
             // Reset the entire state to initial values
@@ -46,6 +50,7 @@ export const {
     setRoles,
     setAllTitles,
     resetOrgState,
-    setGetUsersList
+    setGetUsersList,
+    setGetOrgList
 } = orgSlice.actions;
 export default orgSlice.reducer;
