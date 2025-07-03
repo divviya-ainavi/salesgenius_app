@@ -1147,6 +1147,22 @@ export const dbHelpers = {
       return [];
     }
   },
+  async getStatus() {
+    try {
+      const { data, error } = await supabase.from("user_status")
+        .select("*")
+      // .order("id", { ascending: true }); // optional ordering
+      console.log(data, "check get status data")
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error fetching roles:", err.message);
+      return [];
+    }
+  },
   async getTitles() {
     try {
       const { data, error } = await supabase
@@ -1165,10 +1181,10 @@ export const dbHelpers = {
     }
   },
   // Get all users if super admin
-  async getAllOrganizationss() {
+  async getAllOrganizations() {
     const { data, error } = await supabase
       .from("organizations")
-      .select("name, domain, country, city");
+      .select("name, domain, country, city, created_at, status_id, industry_id");
 
     if (error) throw error;
     return data;
