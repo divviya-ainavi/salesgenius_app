@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { useDispatch } from "react-redux";
+import { resetOrgState } from "@/store/slices/orgSlice";
 
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
@@ -59,6 +61,7 @@ const getRoleColor = (roleKey) => {
 
 export const UserDropdown = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,8 +113,11 @@ export const UserDropdown = () => {
   const handleConfirmLogout = async () => {
     try {
       const result = await authHelpers.signOut();
-
+      
       if (result.success) {
+        // Reset org state when user logs out
+        dispatch(resetOrgState());
+        
         toast.success("Logged out successfully");
         setShowLogoutDialog(false);
         localStorage.removeItem("userId");

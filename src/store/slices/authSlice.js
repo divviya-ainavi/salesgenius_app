@@ -70,18 +70,11 @@ const authSlice = createSlice({
             state.hubspotIntegration = action.payload;
         },
         logout: (state) => {
-            state.user = null;
-            state.isAuthenticated = false;
-            state.isNewUser = true;
-            state.onboardingComplete = false;
+            // Reset the entire state to initial values
+            Object.assign(state, initialState);
             localStorage.clear();
             Cookies.remove("token");
             Cookies.remove("userid");
-            state.hubspotIntegration = {
-                connected: false,
-                lastSync: null,
-                accountInfo: null,
-            };
         },
     },
 });
