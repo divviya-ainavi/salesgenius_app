@@ -7,21 +7,21 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Loader2, 
-  User, 
-  Lock, 
-  Building, 
-  Globe, 
-  Eye, 
-  EyeOff, 
+import {
+  Loader2,
+  User,
+  Lock,
+  Building,
+  Globe,
+  Eye,
+  EyeOff,
   AlertCircle,
   CheckCircle,
   Shield,
   Users,
   Mail,
   ArrowRight,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,16 +59,49 @@ const AccountSetup = () => {
   const isOrgAdmin = userRole === "org_admin" || userRole === "super_admin";
 
   // Calculate password strength
-  const passwordStrength = Object.values(passwordValidation).filter(Boolean).length;
+  const passwordStrength =
+    Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
+
+  const decodeJWT = (token, secret = "SG") => {
+    const [encodedHeader, encodedPayload, signature] = token.split(".");
+
+    const base64UrlDecode = (str) => {
+      return JSON.parse(atob(str.replace(/-/g, "+").replace(/_/g, "/")));
+    };
+
+    // Decode header and payload
+    const header = base64UrlDecode(encodedHeader);
+    const payload = base64UrlDecode(encodedPayload);
+
+    // Recreate signature to verify
+    const expectedSignature = btoa(
+      `${encodedHeader}.${encodedPayload}.${secret}`
+    )
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+
+    const isValid = signature === expectedSignature;
+
+    // Optional: Check expiration
+    const now = Math.floor(Date.now() / 1000);
+    const isExpired = payload.exp && payload.exp < now;
+
+    return {
+      email: payload?.email,
+      isExpired,
+    };
+  };
 
   // Load invitation data on component mount
   useEffect(() => {
     const loadInvitationData = async () => {
       const token = searchParams.get("token");
-      const email = searchParams.get("email");
-      
-      if (!token || !email) {
+      // console.log(decodeJWT(), "get token");
+      const email = decodeJWT(token)?.email;
+
+      if (!token || decodeJWT(token)?.isExpired) {
         setError("Invalid invitation link. Please contact your administrator.");
         return;
       }
@@ -85,12 +118,12 @@ const AccountSetup = () => {
 
         setInvitationData(mockInvitationData);
         setUserRole(mockInvitationData.role);
-        
+
         // Pre-fill organization name if available
         if (mockInvitationData.organizationName && isOrgAdmin) {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            companyName: mockInvitationData.organizationName
+            companyName: mockInvitationData.organizationName,
           }));
         }
       } catch (err) {
@@ -115,11 +148,11 @@ const AccountSetup = () => {
   }, [formData.password]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (error) setError("");
   };
@@ -155,7 +188,8 @@ const AccountSetup = () => {
         setError("Domain is required");
         return false;
       }
-      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+      const domainRegex =
+        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
       if (!domainRegex.test(formData.domain)) {
         setError("Please enter a valid domain (e.g., company.com)");
         return false;
@@ -179,18 +213,17 @@ const AccountSetup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateStep(currentStep)) return;
 
     setIsLoading(true);
-    
+
     try {
       // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       toast.success("Account created successfully!");
       navigate("/auth/login");
-      
     } catch (err) {
       console.error("Account setup error:", err);
       setError("Failed to create account. Please try again.");
@@ -201,25 +234,34 @@ const AccountSetup = () => {
 
   const getRoleIcon = (role) => {
     switch (role) {
-      case "super_admin": return Shield;
-      case "org_admin": return Building;
-      default: return Users;
+      case "super_admin":
+        return Shield;
+      case "org_admin":
+        return Building;
+      default:
+        return Users;
     }
   };
 
   const getRoleColor = (role) => {
     switch (role) {
-      case "super_admin": return "bg-purple-100 text-purple-800 border-purple-200";
-      case "org_admin": return "bg-blue-100 text-blue-800 border-blue-200";
-      default: return "bg-green-100 text-green-800 border-green-200";
+      case "super_admin":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "org_admin":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "bg-green-100 text-green-800 border-green-200";
     }
   };
 
   const getRoleLabel = (role) => {
     switch (role) {
-      case "super_admin": return "Super Administrator";
-      case "org_admin": return "Organization Administrator";
-      default: return "User";
+      case "super_admin":
+        return "Super Administrator";
+      case "org_admin":
+        return "Organization Administrator";
+      default:
+        return "User";
     }
   };
 
@@ -246,8 +288,12 @@ const AccountSetup = () => {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Invitation</h3>
-              <p className="text-gray-600">Verifying your invitation details...</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Loading Invitation
+              </h3>
+              <p className="text-gray-600">
+                Verifying your invitation details...
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -273,7 +319,7 @@ const AccountSetup = () => {
           <p className="text-xl text-gray-600 mb-8">
             Let's set up your account and get you started
           </p>
-          
+
           {/* Progress Bar */}
           <div className="max-w-md mx-auto">
             <div className="flex items-center justify-between mb-2">
@@ -285,7 +331,7 @@ const AccountSetup = () => {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progressPercentage}%` }}
               />
@@ -308,12 +354,15 @@ const AccountSetup = () => {
                   <p className="font-semibold text-gray-900 text-lg">
                     {invitationData.email}
                   </p>
-                  <p className="text-gray-600">
+                  {/* <p className="text-gray-600">
                     Invited by {invitationData.invitedBy}
-                  </p>
+                  </p> */}
                 </div>
               </div>
-              <Badge variant="outline" className={cn("text-sm px-3 py-1", getRoleColor(userRole))}>
+              <Badge
+                variant="outline"
+                className={cn("text-sm px-3 py-1", getRoleColor(userRole))}
+              >
                 <RoleIcon className="w-4 h-4 mr-2" />
                 {getRoleLabel(userRole)}
               </Badge>
@@ -328,10 +377,9 @@ const AccountSetup = () => {
               {currentStep === 1 ? "Account Details" : "Organization Setup"}
             </CardTitle>
             <p className="text-center text-gray-600 mt-2">
-              {currentStep === 1 
+              {currentStep === 1
                 ? "Create your secure login credentials"
-                : "Configure your organization settings"
-              }
+                : "Configure your organization settings"}
             </p>
           </CardHeader>
 
@@ -339,9 +387,14 @@ const AccountSetup = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Alert */}
               {error && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50">
+                <Alert
+                  variant="destructive"
+                  className="border-red-200 bg-red-50"
+                >
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-red-800">{error}</AlertDescription>
+                  <AlertDescription className="text-red-800">
+                    {error}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -350,7 +403,10 @@ const AccountSetup = () => {
                 <div className="space-y-6">
                   {/* Username */}
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Username
                     </Label>
                     <div className="relative">
@@ -360,7 +416,9 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="Choose a username"
                         value={formData.username}
-                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -370,7 +428,10 @@ const AccountSetup = () => {
 
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="password"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Password
                     </Label>
                     <div className="relative">
@@ -380,7 +441,9 @@ const AccountSetup = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
                         value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -391,7 +454,11 @@ const AccountSetup = () => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
 
@@ -399,39 +466,71 @@ const AccountSetup = () => {
                     {formData.password && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Password strength:</span>
-                          <span className={cn(
-                            "text-sm font-medium",
-                            passwordStrength <= 2 ? "text-red-600" :
-                            passwordStrength <= 3 ? "text-yellow-600" :
-                            passwordStrength <= 4 ? "text-blue-600" : "text-green-600"
-                          )}>
+                          <span className="text-sm text-gray-600">
+                            Password strength:
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              passwordStrength <= 2
+                                ? "text-red-600"
+                                : passwordStrength <= 3
+                                ? "text-yellow-600"
+                                : passwordStrength <= 4
+                                ? "text-blue-600"
+                                : "text-green-600"
+                            )}
+                          >
                             {getPasswordStrengthLabel()}
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={cn("h-2 rounded-full transition-all duration-300", getPasswordStrengthColor())}
+                          <div
+                            className={cn(
+                              "h-2 rounded-full transition-all duration-300",
+                              getPasswordStrengthColor()
+                            )}
                             style={{ width: `${passwordStrengthPercentage}%` }}
                           />
                         </div>
-                        
+
                         {/* Password Requirements */}
                         <div className="grid grid-cols-1 gap-2 text-sm">
                           {[
-                            { key: 'minLength', label: 'At least 8 characters' },
-                            { key: 'hasUppercase', label: 'One uppercase letter' },
-                            { key: 'hasLowercase', label: 'One lowercase letter' },
-                            { key: 'hasNumber', label: 'One number' },
-                            { key: 'hasSpecialChar', label: 'One special character' },
+                            {
+                              key: "minLength",
+                              label: "At least 8 characters",
+                            },
+                            {
+                              key: "hasUppercase",
+                              label: "One uppercase letter",
+                            },
+                            {
+                              key: "hasLowercase",
+                              label: "One lowercase letter",
+                            },
+                            { key: "hasNumber", label: "One number" },
+                            {
+                              key: "hasSpecialChar",
+                              label: "One special character",
+                            },
                           ].map(({ key, label }) => (
-                            <div key={key} className="flex items-center space-x-2">
+                            <div
+                              key={key}
+                              className="flex items-center space-x-2"
+                            >
                               {passwordValidation[key] ? (
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                               ) : (
                                 <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
                               )}
-                              <span className={passwordValidation[key] ? 'text-green-600' : 'text-gray-500'}>
+                              <span
+                                className={
+                                  passwordValidation[key]
+                                    ? "text-green-600"
+                                    : "text-gray-500"
+                                }
+                              >
                                 {label}
                               </span>
                             </div>
@@ -443,7 +542,10 @@ const AccountSetup = () => {
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Confirm Password
                     </Label>
                     <div className="relative">
@@ -453,32 +555,43 @@ const AccountSetup = () => {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
-                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>Passwords do not match</span>
-                      </p>
-                    )}
-                    {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password && (
-                      <p className="text-sm text-green-600 flex items-center space-x-1">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Passwords match</span>
-                      </p>
-                    )}
+                    {formData.confirmPassword &&
+                      formData.password !== formData.confirmPassword && (
+                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Passwords do not match</span>
+                        </p>
+                      )}
+                    {formData.confirmPassword &&
+                      formData.password === formData.confirmPassword &&
+                      formData.password && (
+                        <p className="text-sm text-green-600 flex items-center space-x-1">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Passwords match</span>
+                        </p>
+                      )}
                   </div>
                 </div>
               )}
@@ -488,7 +601,10 @@ const AccountSetup = () => {
                 <div className="space-y-6">
                   {/* Company Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="companyName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Company Name
                     </Label>
                     <div className="relative">
@@ -498,7 +614,9 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="Enter your company name"
                         value={formData.companyName}
-                        onChange={(e) => handleInputChange("companyName", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("companyName", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -508,7 +626,10 @@ const AccountSetup = () => {
 
                   {/* Domain */}
                   <div className="space-y-2">
-                    <Label htmlFor="domain" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="domain"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Company Domain
                     </Label>
                     <div className="relative">
@@ -518,14 +639,17 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="company.com"
                         value={formData.domain}
-                        onChange={(e) => handleInputChange("domain", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("domain", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
                       />
                     </div>
                     <p className="text-sm text-gray-500">
-                      This will be used for email domain verification and team member invitations
+                      This will be used for email domain verification and team
+                      member invitations
                     </p>
                   </div>
                 </div>
@@ -583,11 +707,17 @@ const AccountSetup = () => {
             <div className="mt-8 pt-6 border-t border-gray-100 text-center">
               <p className="text-sm text-gray-500">
                 By creating an account, you agree to our{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Terms of Service
                 </a>{" "}
                 and{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Privacy Policy
                 </a>
               </p>

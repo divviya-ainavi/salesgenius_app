@@ -246,7 +246,7 @@ const mockTrainingMaterials = {
 };
 
 export const Settings = () => {
-  const createJWT = (payload, secret = "SG") => {
+  const createJWT = (payload, secret = "SG", type) => {
     const header = {
       alg: "HS256",
       typ: "JWT",
@@ -259,11 +259,16 @@ export const Settings = () => {
         .replace(/=/g, "");
     };
 
-    const encodedHeader = base64UrlEncode(header);
-    const encodedPayload = base64UrlEncode(payload);
+    // Set expiration time for 24 hours if type is 'invite'
+    const now = Math.floor(Date.now() / 1000);
+    const payloadWithExp = {
+      ...payload,
+      ...(type === "invite" && { exp: now + 86400 }), // 86400 seconds = 24 hours
+    };
 
-    // Simple HMAC-SHA256 simulation (for demo purposes)
-    // In production, use a proper JWT library like jsonwebtoken
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payloadWithExp);
+
     const signature = btoa(`${encodedHeader}.${encodedPayload}.${secret}`)
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
@@ -271,6 +276,7 @@ export const Settings = () => {
 
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
+
   const {
     userProfileInfo,
     userRole,
@@ -652,26 +658,47 @@ export const Settings = () => {
     }
   };
 
-  const handleInviteUser = () => {
-    if (!newUserEmail.trim()) {
+  const handleInviteUser = async () => {
+    const email = newUserEmail.trim();
+    if (!email) {
       toast.error("Please enter a valid email address");
       return;
     }
 
-    const newUser = {
-      id: Date.now().toString(),
-      email: newUserEmail,
-      name: newUserEmail.split("@")[0],
-      role: newUserRole,
-      status: "pending",
-      lastLogin: null,
-      joinedAt: new Date().toISOString(),
-    };
+    const token = createJWT({ email }, "SG", "invite");
 
-    setOrgUsers((prev) => [...prev, newUser]);
+    const result = await dbHelpers.inviteUserByEmail(
+      email,
+      CURRENT_USER.organization_id || null,
+      newUserRole,
+      token
+    );
+
+    if (result.status === "invited" || result.status === "re-invited") {
+      const formData = new FormData();
+      formData.append("id", result?.id);
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/user-invite",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      console.log(response, "check response");
+      toast.success(
+        `Invitation ${
+          result.status === "re-invited" ? "re-" : ""
+        }sent to ${email}`
+      );
+      console.log("Invite ID:", result.id); // optional for webhook trigger
+    } else if (result.status === "already-invited") {
+      toast.info("User was already invited within the last 24 hours");
+    } else {
+      toast.error(result.message || "Failed to invite user");
+    }
+
     setNewUserEmail("");
     setNewUserRole("app_user");
-    toast.success(`Invitation sent to ${newUserEmail}`);
   };
 
   const handleRemoveUser = (userId: string) => {
