@@ -1,10 +1,10 @@
-import React from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import { 
-  Search, 
-  Phone, 
+import React from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  Search,
+  Phone,
   Sparkles,
-  BarChart3, 
+  BarChart3,
   FileText,
   CheckSquare,
   MessageSquare,
@@ -12,116 +12,118 @@ import {
   Mail,
   Settings,
   Users,
-  Shield
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { CURRENT_USER } from '@/lib/supabase'
+  Shield,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CURRENT_USER } from "@/lib/supabase";
 
 const mainNavItems = [
   {
-    title: 'Research',
-    href: '/research',
+    title: "Research",
+    href: "/research",
     icon: Search,
-    description: 'Customer research and insights'
+    description: "Customer research and insights",
   },
   {
-    title: 'Sales Calls',
-    href: '/calls',
+    title: "Sales Calls",
+    href: "/calls",
     icon: Phone,
-    description: 'Call data loading and management'
+    description: "Call data loading and management",
   },
   {
-    title: 'Call Insights',
-    href: '/call-insights',
+    title: "Call Insights",
+    href: "/call-insights",
     icon: Sparkles,
-    description: 'AI-driven prospect understanding'
+    description: "AI-driven prospect understanding",
   },
   {
-    title: 'Follow Ups',
+    title: "Follow Ups",
     href: null, // Make non-clickable
     icon: FileText,
-    description: 'Post-call follow-up automation',
+    description: "Post-call follow-up automation",
     subItems: [
       {
-        title: 'Email',
-        href: '/follow-ups/emails',
+        title: "Mail and Decks",
+        href: "/follow-ups/emails",
         icon: Mail,
-        description: 'Follow-up email generation'
+        description: "Follow-up email generation",
       },
+      // {
+      //   title: 'Presentation',
+      //   href: '/follow-ups/decks',
+      //   icon: Presentation,
+      //   description: 'Sales presentation prompts'
+      // },
       {
-        title: 'Presentation',
-        href: '/follow-ups/decks',
-        icon: Presentation,
-        description: 'Sales presentation prompts'
-      },
-      {
-        title: 'Actions',
-        href: '/follow-ups/actions',
+        title: "Actions",
+        href: "/follow-ups/actions",
         icon: CheckSquare,
-        description: 'Commitments and tasks'
-      }
-    ]
+        description: "Commitments and tasks",
+      },
+    ],
   },
   {
-    title: 'Analytics',
-    href: '/analytics',
+    title: "Analytics",
+    href: "/analytics",
     icon: BarChart3,
-    description: 'Performance metrics and insights'
+    description: "Performance metrics and insights",
   },
   {
-    title: 'Settings',
-    href: '/settings',
+    title: "Settings",
+    href: "/settings",
     icon: Settings,
-    description: 'Account and application settings'
-  }
-]
+    description: "Account and application settings",
+  },
+];
 
 // Admin navigation items - only shown to admin users
 const adminNavItems = [
   {
-    title: 'User Management',
-    href: '/admin/users',
+    title: "User Management",
+    href: "/admin/users",
     icon: Users,
-    description: 'Manage users, roles, and organizations',
-    requiredRoles: ['super_admin', 'org_admin']
-  }
-]
+    description: "Manage users, roles, and organizations",
+    requiredRoles: ["super_admin", "org_admin"],
+  },
+];
 
 export const Sidebar = () => {
-  const location = useLocation()
-  const userRole = CURRENT_USER.role_key
+  const location = useLocation();
+  const userRole = CURRENT_USER.role_key;
 
   const isActiveRoute = (href) => {
-    if (!href) return false // For non-clickable items
-    return location.pathname === href || location.pathname.startsWith(href + '/')
-  }
+    if (!href) return false; // For non-clickable items
+    return (
+      location.pathname === href || location.pathname.startsWith(href + "/")
+    );
+  };
 
   const isActiveSubRoute = (href) => {
-    return location.pathname === href
-  }
+    return location.pathname === href;
+  };
 
   const shouldShowSubItems = (item) => {
-    if (!item.subItems) return false
-    
-    if (item.title === 'Follow Ups') {
+    if (!item.subItems) return false;
+
+    if (item.title === "Follow Ups") {
       // Always show Follow Ups sub-items
-      return true
+      return true;
     }
-    
-    return false
-  }
+
+    return false;
+  };
 
   const isFollowUpsSectionActive = () => {
-    return location.pathname.startsWith('/follow-ups')
-  }
+    return location.pathname.startsWith("/follow-ups");
+  };
 
   // Filter admin items based on user role
-  const filteredAdminItems = adminNavItems.filter(item => {
-    if (!item.requiredRoles) return true
-    return item.requiredRoles.includes(userRole)
-  })
+  const filteredAdminItems = adminNavItems.filter((item) => {
+    if (!item.requiredRoles) return true;
+    return item.requiredRoles.includes(userRole);
+  });
 
-  const hasAdminAccess = filteredAdminItems.length > 0
+  const hasAdminAccess = filteredAdminItems.length > 0;
 
   return (
     <div className="w-64 bg-card border-r border-border flex flex-col">
@@ -188,13 +190,13 @@ export const Sidebar = () => {
                 <div className="h-px bg-border" />
               </div>
             </div>
-            
+
             <div className="px-3 py-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Administration
               </p>
             </div>
-            
+
             {filteredAdminItems.map((item) => (
               <NavLink
                 key={item.title}
@@ -222,5 +224,5 @@ export const Sidebar = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CURRENT_USER, authHelpers } from "@/lib/supabase";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
 
@@ -66,6 +66,15 @@ export const UserDropdown = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   // Load user profile
   useEffect(() => {
@@ -75,12 +84,12 @@ export const UserDropdown = () => {
         const profile = {
           ...CURRENT_USER,
           role: {
-            key: CURRENT_USER.role_key || "sales_manager",
-            label: "Sales Manager",
-            description: "Sales team management and analytics access",
+            key: user?.title_name || "sales_manager",
+            label: user?.title_name || "Sales Manager",
+            description: "",
           },
           organization: {
-            name: "Demo Sales Company",
+            name: organizationDetails?.name,
             industry: "Technology",
           },
         };
@@ -99,8 +108,7 @@ export const UserDropdown = () => {
 
   const handleProfileClick = () => {
     // Navigate to profile page (to be implemented)
-    toast.info("Profile page coming soon");
-    // navigate('/profile')
+    navigate("/settings");
   };
 
   const handleSettingsClick = () => {

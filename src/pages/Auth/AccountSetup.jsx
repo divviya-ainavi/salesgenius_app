@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
-import CryptoJS from 'crypto-js';
+import CryptoJS from "crypto-js";
 
 const AccountSetup = () => {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ const AccountSetup = () => {
   const [stepperConfig, setStepperConfig] = useState({
     showOrgStep: false,
     showUserStep: true,
-    totalSteps: 1
+    totalSteps: 1,
   });
 
   // Form data state
@@ -62,7 +62,8 @@ const AccountSetup = () => {
   });
 
   // Calculate password strength
-  const passwordStrength = Object.values(passwordValidation).filter(Boolean).length;
+  const passwordStrength =
+    Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
 
   const decodeJWT = (token, secret = "SG") => {
@@ -94,7 +95,7 @@ const AccountSetup = () => {
       return {
         email: payload?.email,
         isExpired,
-        isValid
+        isValid,
       };
     } catch (error) {
       console.error("JWT decode error:", error);
@@ -104,7 +105,7 @@ const AccountSetup = () => {
 
   // Hash password function
   const hashPassword = (password) => {
-    const saltedPassword = password + 'SG_2025';
+    const saltedPassword = password + "SG_2025";
     return CryptoJS.SHA256(saltedPassword).toString();
   };
 
@@ -112,27 +113,33 @@ const AccountSetup = () => {
   useEffect(() => {
     const loadInvitationData = async () => {
       const token = searchParams.get("token");
-      
+
       if (!token) {
         setError("Invalid invitation link. Please contact your administrator.");
         return;
       }
 
       const decodedToken = decodeJWT(token);
-      
-      if (!decodedToken.isValid || decodedToken.isExpired || !decodedToken.email) {
-        setError("Invalid or expired invitation link. Please contact your administrator.");
+
+      if (
+        !decodedToken.isValid ||
+        decodedToken.isExpired ||
+        !decodedToken.email
+      ) {
+        setError(
+          "Invalid or expired invitation link. Please contact your administrator."
+        );
         return;
       }
 
       try {
         setIsLoading(true);
-        
+
         // Fetch invite details from database
         const { data: invite, error: inviteError } = await supabase
-          .from('invites')
-          .select('*')
-          .eq('email', decodedToken.email)
+          .from("invites")
+          .select("*")
+          .eq("email", decodedToken.email)
           .single();
 
         if (inviteError || !invite) {
@@ -143,7 +150,8 @@ const AccountSetup = () => {
         // Check if invite is still valid
         const inviteDate = new Date(invite.invited_at);
         const now = new Date();
-        const hoursSinceInvite = (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60);
+        const hoursSinceInvite =
+          (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60);
 
         if (hoursSinceInvite > 24) {
           setError("Invitation has expired. Please request a new invitation.");
@@ -159,7 +167,7 @@ const AccountSetup = () => {
         let config = {
           showOrgStep: false,
           showUserStep: true,
-          totalSteps: 1
+          totalSteps: 1,
         };
 
         if (hasOrgId && hasTitleId) {
@@ -167,26 +175,25 @@ const AccountSetup = () => {
           config = {
             showOrgStep: false,
             showUserStep: true,
-            totalSteps: 1
+            totalSteps: 1,
           };
         } else if (!hasOrgId && !hasTitleId) {
           // Case 2: Neither organization_id nor title_id - Show Organization Details + User Details
           config = {
             showOrgStep: true,
             showUserStep: true,
-            totalSteps: 2
+            totalSteps: 2,
           };
         } else if (hasOrgId && !hasTitleId) {
           // Case 3: Only organization_id present - Show only User Details
           config = {
             showOrgStep: false,
             showUserStep: true,
-            totalSteps: 1
+            totalSteps: 1,
           };
         }
 
         setStepperConfig(config);
-
       } catch (err) {
         console.error("Error loading invitation data:", err);
         setError("Failed to load invitation details. Please try again.");
@@ -222,7 +229,9 @@ const AccountSetup = () => {
 
   const validateCurrentStep = () => {
     const isOrgStep = stepperConfig.showOrgStep && currentStep === 1;
-    const isUserStep = (stepperConfig.showOrgStep && currentStep === 2) || (!stepperConfig.showOrgStep && currentStep === 1);
+    const isUserStep =
+      (stepperConfig.showOrgStep && currentStep === 2) ||
+      (!stepperConfig.showOrgStep && currentStep === 1);
 
     if (isOrgStep) {
       // Validate Organization Details
@@ -234,7 +243,8 @@ const AccountSetup = () => {
         setError("Domain is required");
         return false;
       }
-      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+      const domainRegex =
+        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
       if (!domainRegex.test(formData.domain)) {
         setError("Please enter a valid domain (e.g., company.com)");
         return false;
@@ -290,12 +300,14 @@ const AccountSetup = () => {
       // Step 1: Create organization if needed
       if (stepperConfig.showOrgStep && !organizationId) {
         const { data: newOrg, error: orgError } = await supabase
-          .from('organizations')
-          .insert([{
-            name: formData.companyName,
-            domain: formData.domain,
-            status_id: 1, // Active status
-          }])
+          .from("organizations")
+          .insert([
+            {
+              name: formData.companyName,
+              domain: formData.domain,
+              status_id: 1, // Active status
+            },
+          ])
           .select()
           .single();
 
@@ -308,17 +320,19 @@ const AccountSetup = () => {
 
       // Step 2: Create user profile
       const hashedPassword = hashPassword(formData.password);
-      
+
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          email: inviteData.email,
-          full_name: formData.username,
-          organization_id: organizationId,
-          title_id: inviteData.title_id || null,
-          status_id: 1, // Active status
-          hashed_password: hashedPassword,
-        }])
+        .from("profiles")
+        .insert([
+          {
+            email: inviteData.email,
+            full_name: formData.username,
+            organization_id: organizationId,
+            title_id: inviteData.title_id || null,
+            status_id: 1, // Active status
+            hashed_password: hashedPassword,
+          },
+        ])
         .select()
         .single();
 
@@ -328,12 +342,12 @@ const AccountSetup = () => {
 
       // Step 3: Update invite status to completed
       const { error: updateError } = await supabase
-        .from('invites')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
+        .from("invites")
+        .update({
+          status: "completed",
+          // updated_at: new Date().toISOString()
         })
-        .eq('email', inviteData.email);
+        .eq("email", inviteData.email);
 
       if (updateError) {
         console.warn("Failed to update invite status:", updateError);
@@ -342,7 +356,6 @@ const AccountSetup = () => {
 
       toast.success("Account created successfully!");
       navigate("/auth/login");
-
     } catch (err) {
       console.error("Account setup error:", err);
       setError(err.message || "Failed to create account. Please try again.");
@@ -361,8 +374,8 @@ const AccountSetup = () => {
 
   const getStepDescription = () => {
     if (stepperConfig.showOrgStep) {
-      return currentStep === 1 
-        ? "Set up your organization information" 
+      return currentStep === 1
+        ? "Set up your organization information"
         : "Create your secure login credentials";
     } else {
       return "Create your secure login credentials";
@@ -496,7 +509,10 @@ const AccountSetup = () => {
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-sm px-3 py-1 bg-blue-100 text-blue-800 border-blue-200">
+              <Badge
+                variant="outline"
+                className="text-sm px-3 py-1 bg-blue-100 text-blue-800 border-blue-200"
+              >
                 <Users className="w-4 h-4 mr-2" />
                 {getRoleLabel()}
               </Badge>
@@ -519,7 +535,10 @@ const AccountSetup = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Alert */}
               {error && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50">
+                <Alert
+                  variant="destructive"
+                  className="border-red-200 bg-red-50"
+                >
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-red-800">
                     {error}
@@ -532,7 +551,10 @@ const AccountSetup = () => {
                 <div className="space-y-6">
                   {/* Company Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="companyName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Company Name
                     </Label>
                     <div className="relative">
@@ -542,7 +564,9 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="Enter your company name"
                         value={formData.companyName}
-                        onChange={(e) => handleInputChange("companyName", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("companyName", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -552,7 +576,10 @@ const AccountSetup = () => {
 
                   {/* Domain */}
                   <div className="space-y-2">
-                    <Label htmlFor="domain" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="domain"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Company Domain
                     </Label>
                     <div className="relative">
@@ -562,25 +589,32 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="company.com"
                         value={formData.domain}
-                        onChange={(e) => handleInputChange("domain", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("domain", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
                       />
                     </div>
                     <p className="text-sm text-gray-500">
-                      This will be used for email domain verification and team member invitations
+                      This will be used for email domain verification and team
+                      member invitations
                     </p>
                   </div>
                 </div>
               )}
 
               {/* User Details Step */}
-              {((stepperConfig.showOrgStep && currentStep === 2) || (!stepperConfig.showOrgStep && currentStep === 1)) && (
+              {((stepperConfig.showOrgStep && currentStep === 2) ||
+                (!stepperConfig.showOrgStep && currentStep === 1)) && (
                 <div className="space-y-6">
                   {/* Username */}
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Username
                     </Label>
                     <div className="relative">
@@ -590,7 +624,9 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="Choose a username"
                         value={formData.username}
-                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -600,7 +636,10 @@ const AccountSetup = () => {
 
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="password"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Password
                     </Label>
                     <div className="relative">
@@ -610,7 +649,9 @@ const AccountSetup = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
                         value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
@@ -621,7 +662,11 @@ const AccountSetup = () => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
 
@@ -629,19 +674,30 @@ const AccountSetup = () => {
                     {formData.password && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Password strength:</span>
-                          <span className={cn(
-                            "text-sm font-medium",
-                            passwordStrength <= 2 ? "text-red-600" :
-                            passwordStrength <= 3 ? "text-yellow-600" :
-                            passwordStrength <= 4 ? "text-blue-600" : "text-green-600"
-                          )}>
+                          <span className="text-sm text-gray-600">
+                            Password strength:
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              passwordStrength <= 2
+                                ? "text-red-600"
+                                : passwordStrength <= 3
+                                ? "text-yellow-600"
+                                : passwordStrength <= 4
+                                ? "text-blue-600"
+                                : "text-green-600"
+                            )}
+                          >
                             {getPasswordStrengthLabel()}
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className={cn("h-2 rounded-full transition-all duration-300", getPasswordStrengthColor())}
+                            className={cn(
+                              "h-2 rounded-full transition-all duration-300",
+                              getPasswordStrengthColor()
+                            )}
                             style={{ width: `${passwordStrengthPercentage}%` }}
                           />
                         </div>
@@ -649,19 +705,40 @@ const AccountSetup = () => {
                         {/* Password Requirements */}
                         <div className="grid grid-cols-1 gap-2 text-sm">
                           {[
-                            { key: "minLength", label: "At least 8 characters" },
-                            { key: "hasUppercase", label: "One uppercase letter" },
-                            { key: "hasLowercase", label: "One lowercase letter" },
+                            {
+                              key: "minLength",
+                              label: "At least 8 characters",
+                            },
+                            {
+                              key: "hasUppercase",
+                              label: "One uppercase letter",
+                            },
+                            {
+                              key: "hasLowercase",
+                              label: "One lowercase letter",
+                            },
                             { key: "hasNumber", label: "One number" },
-                            { key: "hasSpecialChar", label: "One special character" },
+                            {
+                              key: "hasSpecialChar",
+                              label: "One special character",
+                            },
                           ].map(({ key, label }) => (
-                            <div key={key} className="flex items-center space-x-2">
+                            <div
+                              key={key}
+                              className="flex items-center space-x-2"
+                            >
                               {passwordValidation[key] ? (
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                               ) : (
                                 <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
                               )}
-                              <span className={passwordValidation[key] ? "text-green-600" : "text-gray-500"}>
+                              <span
+                                className={
+                                  passwordValidation[key]
+                                    ? "text-green-600"
+                                    : "text-gray-500"
+                                }
+                              >
                                 {label}
                               </span>
                             </div>
@@ -673,7 +750,10 @@ const AccountSetup = () => {
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Confirm Password
                     </Label>
                     <div className="relative">
@@ -683,32 +763,43 @@ const AccountSetup = () => {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
-                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>Passwords do not match</span>
-                      </p>
-                    )}
-                    {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password && (
-                      <p className="text-sm text-green-600 flex items-center space-x-1">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Passwords match</span>
-                      </p>
-                    )}
+                    {formData.confirmPassword &&
+                      formData.password !== formData.confirmPassword && (
+                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Passwords do not match</span>
+                        </p>
+                      )}
+                    {formData.confirmPassword &&
+                      formData.password === formData.confirmPassword &&
+                      formData.password && (
+                        <p className="text-sm text-green-600 flex items-center space-x-1">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Passwords match</span>
+                        </p>
+                      )}
                   </div>
                 </div>
               )}
@@ -765,11 +856,17 @@ const AccountSetup = () => {
             <div className="mt-8 pt-6 border-t border-gray-100 text-center">
               <p className="text-sm text-gray-500">
                 By creating an account, you agree to our{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Terms of Service
                 </a>{" "}
                 and{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Privacy Policy
                 </a>
               </p>
