@@ -149,24 +149,21 @@ export const CallInsights = () => {
 
       setIsLoading(true);
       try {
-        const { data, error } = await dbHelpers.supabase
-          .from('prospect')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
+        const data = await dbHelpers.getProspectData(CURRENT_USER.id);
         if (error) throw error;
 
         // Transform prospect data to match existing card structure
-        const transformedProspects = (data || []).map(prospect => ({
+        const transformedProspects = (data || []).map((prospect) => ({
           id: prospect.id,
           companyName: prospect.company || "Unknown Company",
           prospectName: prospect.name,
           title: prospect.title || "Unknown Title",
-          callDate: new Date(prospect.created_at).toISOString().split('T')[0],
+          callDate: new Date(prospect.created_at).toISOString().split("T")[0],
           callDuration: "Unknown", // Not available in prospect table
           status: "warm", // Default status, could be enhanced
-          dealValue: prospect.deal_value ? `$${prospect.deal_value.toLocaleString()}` : "TBD",
+          dealValue: prospect.deal_value
+            ? `$${prospect.deal_value.toLocaleString()}`
+            : "TBD",
           nextAction: "Follow up required",
           aiScore: 85, // Default score, could be calculated
           keyInsights: [
@@ -180,7 +177,8 @@ export const CallInsights = () => {
           commitments: prospect.calls || 0,
           lastEngagement: "Recently added",
           communication_style_ids: prospect.communication_style_ids || [],
-          sales_insight_priority_list: prospect.sales_insight_priority_list || [],
+          sales_insight_priority_list:
+            prospect.sales_insight_priority_list || [],
           calls: prospect.calls || 0,
           company_id: prospect.company_id,
           user_id: prospect.user_id,
@@ -188,7 +186,7 @@ export const CallInsights = () => {
         }));
 
         setProspects(transformedProspects);
-        
+
         // Auto-select first prospect if available
         if (transformedProspects.length > 0) {
           setSelectedInsight(transformedProspects[0]);
@@ -216,10 +214,9 @@ export const CallInsights = () => {
 
       setIsLoadingStyles(true);
       try {
-        const { data, error } = await dbHelpers.supabase
-          .from('communication_styles')
-          .select('*')
-          .in('id', selectedInsight.communication_style_ids);
+        const data = dbHelpers.getCommunicationStyles(
+          selectedInsight.communication_style_ids
+        );
 
         if (error) throw error;
 
@@ -228,7 +225,7 @@ export const CallInsights = () => {
           // Primary styles come first
           if (a.is_primary && !b.is_primary) return -1;
           if (!a.is_primary && b.is_primary) return 1;
-          
+
           // For non-primary styles, maintain original order based on array index
           const aIndex = selectedInsight.communication_style_ids.indexOf(a.id);
           const bIndex = selectedInsight.communication_style_ids.indexOf(b.id);
@@ -253,7 +250,8 @@ export const CallInsights = () => {
       const matchesSearch =
         prospect.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         prospect.prospectName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || prospect.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || prospect.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -275,7 +273,9 @@ export const CallInsights = () => {
 
   const handleInsightSelect = (prospect) => {
     setSelectedInsight(prospect);
-    toast.success(`Selected ${prospect.companyName} - ${prospect.prospectName}`);
+    toast.success(
+      `Selected ${prospect.companyName} - ${prospect.prospectName}`
+    );
   };
 
   const handleRefresh = async () => {
@@ -487,7 +487,10 @@ export const CallInsights = () => {
                     <Brain className="w-3 h-3 text-muted-foreground" />
                     <span className="text-muted-foreground">AI Score:</span>
                     <span
-                      className={cn("font-medium", getScoreColor(prospect.aiScore))}
+                      className={cn(
+                        "font-medium",
+                        getScoreColor(prospect.aiScore)
+                      )}
                     >
                       {prospect.aiScore}%
                     </span>

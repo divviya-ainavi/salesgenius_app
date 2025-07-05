@@ -1524,9 +1524,26 @@ export const dbHelpers = {
       status: "success",
       callInsight
     };
-  }
+  },
 
+  async getProspectData(userId) {
+    const { data, error } = await supabase
+      .from('prospect')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
 
+  async getProspectData(communication_style_ids) {
+    const { data, error } = await supabase
+      .from("communication_styles")
+      .select("*")
+      .in("id", communication_style_ids);
+    if (error) throw error;
+    return data;
+  },
 
 }
 
