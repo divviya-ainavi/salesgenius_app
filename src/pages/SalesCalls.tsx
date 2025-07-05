@@ -44,6 +44,14 @@ import { jsPDF } from "jspdf";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import firefliesService from "@/services/firefliesService";
 import { usePageTimer } from "../hooks/userPageTimer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useSelector } from "react-redux";
 
 const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -72,6 +80,19 @@ const SalesCalls = () => {
   const [getFirefliessummary, setGetFirefliessummary] = useState(null);
   const [getFirefliestranscript, setGetFirefliestranscript] = useState(null);
   const [processingFirefliesId, setProcessingFirefliesId] = useState(null);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [prospects, setProspects] = useState([]);
+  const [selectedProspectId, setSelectedProspectId] = useState("");
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
@@ -82,6 +103,34 @@ const SalesCalls = () => {
     // Track page visit
     trackFeatureUsage("sales_calls", "page_visit");
   }, []);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const data = await dbHelpers.getCompaniesByUserId(CURRENT_USER.id);
+        setCompanies(data);
+      } catch (err) {
+        toast.error("Failed to load companies");
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCompanyId != "new" && selectedCompanyId != "") {
+      const fetchProspects = async () => {
+        try {
+          const data = await dbHelpers.getProspectsByCompanyId(
+            selectedCompanyId
+          );
+          setProspects(data);
+        } catch (err) {
+          toast.error("Failed to load prospects");
+        }
+      };
+      fetchProspects();
+    }
+  }, [selectedCompanyId]);
 
   // Track tab changes
   useEffect(() => {
@@ -522,11 +571,22 @@ const SalesCalls = () => {
 
       // Create FormData
       const formData = new FormData();
+      const prospectCheck =
+        selectedCompanyId == "new" ||
+        selectedCompanyId == "" ||
+        selectedProspectId == "new" ||
+        selectedProspectId == ""
+          ? true
+          : false;
+      const companyCheck =
+        selectedCompanyId == "new" || selectedCompanyId == "";
       if (source != "fireflies") {
         formData.append("transcript", fileBlob, file.filename);
-        formData.append("user_id", CURRENT_USER.id);
-        formData.append("call_metadata", null);
-        formData.append("previous_interactions", null);
+        // formData.append("user_id", CURRENT_USER.id);
+        // formData.append("call_metadata", null);
+        // formData.append("previous_interactions", null);
+        formData.append("company_new", companyCheck);
+        formData.append("sales_call_prospect_new", prospectCheck);
       } else {
         formData.append("transcript_id", file.id);
       }
@@ -556,75 +616,49 @@ const SalesCalls = () => {
 
       if (data && data.length > 0) {
         const processedData = data[0];
-
-        // Store the processed data in the call_insights table
-        const insightData = {
-          company_details: {
-            name: processedData?.company_details?.[0]?.name || "Company",
-          },
-          prospect_details: processedData?.prospect_details,
-          call_summary: processedData.call_summary,
-          action_items: processedData.action_items,
-          follow_up_email: processedData.follow_up_email,
-          deck_prompt: processedData.deck_prompt,
-          sales_insights: processedData.sales_insights,
-          communication_styles: processedData.communication_styles,
-          call_analysis_overview: processedData.call_analysis_overview,
-          processing_status: processedData.processing_status || "completed",
-          error_message: processedData.error_message,
-          extracted_transcript:
-            processedData.extracted_transcript || file.file_content,
-        };
-        console.log(
-          {
-            uploaded_file_id: isFireflies ? null : file.id,
-            fireflies_id: isFireflies ? file.id : null,
-            type: isFireflies ? "fireflies" : "file_upload",
-          },
+        console.log(processedData, "check processed data");
+        const result = await dbHelpers.processSalesCall(
+          user?.id,
+          user?.organization_id,
           isFireflies,
-          "check data 470"
+          file,
+          processedData,
+          selectedCompanyId,
+          selectedProspectId
         );
-        // Save to call_insights table
-        const savedInsight = await dbHelpers.createCallInsight(
-          CURRENT_USER.id,
-          null, // No uploaded_file_id for fireflies
-          {
-            ...insightData,
-            uploaded_file_id: isFireflies ? null : file.id,
-            fireflies_id: isFireflies ? file.id : null,
-            type: isFireflies ? "fireflies" : "file_upload",
-          }
-        );
+        console.log(result, "check result");
+        if (result?.status === "success") {
+          const savedInsight = result.callInsight;
 
-        // Create a processed call object with the data
-        const processedCall = {
-          id: savedInsight.id,
-          callId: `Call ${savedInsight.id.slice(-5)}`,
-          companyName: insightData.company_details.name,
-          prospectName: insightData.prospect_details.name,
-          date: new Date().toISOString().split("T")[0],
-          duration: "N/A",
-          status: "processed",
-          source: "upload",
-          hasInsights: true,
-          transcript: file.file_content,
-          aiProcessedData: processedData,
-          uploaded_file_id: file.id,
-        };
-
-        // Add to processed calls list
-        setProcessedCalls((prev) => [processedCall, ...prev]);
-
-        toast.success("File processed successfully!");
-
-        // Navigate to Call Insights with the processed data
-        navigate("/call-insights", {
-          state: {
-            selectedCall: processedCall,
-            source: "upload",
+          const processedCall = {
+            id: savedInsight?.id || "",
+            callId: `Call ${savedInsight.id.slice(-5)}`,
+            companyName: processedData?.company_details?.[0]?.name || "Company",
+            prospectName: processedData?.sales_call_prospect || "Prospect",
+            date: new Date().toISOString().split("T")[0],
+            duration: "N/A",
+            status: "processed",
+            source: isFireflies ? "fireflies" : "upload",
+            hasInsights: true,
+            transcript:
+              processedData?.extracted_transcript || file.file_content,
             aiProcessedData: processedData,
-          },
-        });
+            uploaded_file_id: file.id,
+          };
+
+          setProcessedCalls((prev) => [processedCall, ...prev]);
+
+          toast.success("File processed successfully!");
+          navigate("/call-insights", {
+            state: {
+              selectedCall: processedCall,
+              source: processedCall.source,
+              aiProcessedData: processedData,
+            },
+          });
+        } else {
+          toast.error("Failed to store insight data.");
+        }
       } else {
         toast.error("No insights generated from the file");
       }
@@ -742,6 +776,45 @@ const SalesCalls = () => {
 
         {/* Upload Transcript Tab */}
         <TabsContent value="upload" className="mt-6">
+          {companies?.length > 0 && (
+            <div className="flex justify-end gap-4 pb-5">
+              <Select
+                value={selectedCompanyId}
+                onValueChange={(val) => setSelectedCompanyId(val)}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCompanyId != "" && selectedCompanyId != "new" && (
+                <Select
+                  value={selectedProspectId}
+                  onValueChange={(val) => setSelectedProspectId(val)}
+                  disabled={!selectedCompanyId}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Select Prospect" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New </SelectItem>
+                    {prospects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Upload Area */}
             <Card>
@@ -863,6 +936,45 @@ const SalesCalls = () => {
 
         {/* Fireflies.ai Imports Tab */}
         <TabsContent value="fireflies" className="mt-6">
+          {companies?.length > 0 && (
+            <div className="flex justify-end gap-4 pb-5">
+              <Select
+                value={selectedCompanyId}
+                onValueChange={(val) => setSelectedCompanyId(val)}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCompanyId != "" && selectedCompanyId != "new" && (
+                <Select
+                  value={selectedProspectId}
+                  onValueChange={(val) => setSelectedProspectId(val)}
+                  disabled={!selectedCompanyId}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Select Prospect" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New </SelectItem>
+                    {prospects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
