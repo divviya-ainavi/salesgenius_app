@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { ReviewInsights } from "./ReviewInsights";
-import { InsightCard } from "./InsightCard";
-import { CRMConnectionStatus } from "./CRMConnectionStatus";
+// import { ReviewInsights } from "./ReviewInsights";
+// import { InsightCard } from "./InsightCard";
+// import { CRMConnectionStatus } from "./CRMConnectionStatus";
 import { toast } from "sonner";
 
 export const CallInsightsViewer = ({
@@ -50,20 +50,20 @@ export const CallInsightsViewer = ({
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Content - Review Insights Component */}
             <div className="lg:col-span-2">
-              <ReviewInsights
+              {/* <ReviewInsights
                 onSaveInsights={handleSaveInsights}
                 callNotesId={callNotesId}
                 userId={userId}
                 initialInsights={insights.reviewInsights || []}
                 callAnalysisData={insights.callAnalysisData}
                 hideActionItems={false} // Show action items in Review Insights tab
-              />
+              /> */}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               {/* CRM Connection Status */}
-              <CRMConnectionStatus
+              {/* <CRMConnectionStatus
                 status="connected"
                 lastSync="2 minutes ago"
                 accountInfo={{
@@ -72,7 +72,7 @@ export const CallInsightsViewer = ({
                 }}
                 onReconnect={() => toast.success("Connection refreshed")}
                 onSettings={() => toast.info("Opening settings...")}
-              />
+              /> */}
             </div>
           </div>
         </TabsContent>
@@ -81,7 +81,7 @@ export const CallInsightsViewer = ({
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {/* Call Summary Content - Hide action items here for processing history */}
-              <InsightCard
+              {/* <InsightCard
                 title="Call Summary"
                 content={insights.call_summary}
                 type="call_summary"
@@ -91,10 +91,10 @@ export const CallInsightsViewer = ({
                 status={pushStatuses.call_summary || "draft"}
                 isEditable={isEditable}
                 showPushButton={true}
-              />
+              /> */}
 
               {/* Don't show action items in call summary for processing history */}
-              {!isProcessingHistory &&
+              {/* {!isProcessingHistory &&
                 insights.callAnalysisData?.action_items &&
                 insights.callAnalysisData.action_items.length > 0 && (
                   <ReviewInsights
@@ -105,10 +105,10 @@ export const CallInsightsViewer = ({
                     callAnalysisData={insights.callAnalysisData}
                     hideActionItems={true}
                   />
-                )}
+                )} */}
             </div>
             <div className="space-y-6">
-              <CRMConnectionStatus
+              {/* <CRMConnectionStatus
                 status="connected"
                 lastSync="2 minutes ago"
                 accountInfo={{
@@ -117,7 +117,7 @@ export const CallInsightsViewer = ({
                 }}
                 onReconnect={() => toast.success("Connection refreshed")}
                 onSettings={() => toast.info("Opening settings...")}
-              />
+              /> */}
             </div>
           </div>
         </TabsContent>
@@ -125,7 +125,7 @@ export const CallInsightsViewer = ({
         <TabsContent value="email" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <InsightCard
+              {/* <InsightCard
                 title="Follow-up Email"
                 content={insights.follow_up_email}
                 type="follow_up_email"
@@ -137,10 +137,10 @@ export const CallInsightsViewer = ({
                 status={pushStatuses.follow_up_email || "draft"}
                 isEditable={isEditable}
                 showPushButton={true}
-              />
+              /> */}
             </div>
             <div className="space-y-6">
-              <CRMConnectionStatus
+              {/* <CRMConnectionStatus
                 status="connected"
                 lastSync="2 minutes ago"
                 accountInfo={{
@@ -149,7 +149,7 @@ export const CallInsightsViewer = ({
                 }}
                 onReconnect={() => toast.success("Connection refreshed")}
                 onSettings={() => toast.info("Opening settings...")}
-              />
+              /> */}
             </div>
           </div>
         </TabsContent>
@@ -157,7 +157,7 @@ export const CallInsightsViewer = ({
         <TabsContent value="deck" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <InsightCard
+              {/* <InsightCard
                 title="Presentation Prompt"
                 content={insights.deck_prompt}
                 type="deck_prompt"
@@ -171,10 +171,10 @@ export const CallInsightsViewer = ({
                 isEditable={isEditable}
                 showPushButton={true}
                 showExportButton={true}
-              />
+              /> */}
             </div>
             <div className="space-y-6">
-              <CRMConnectionStatus
+              {/* <CRMConnectionStatus
                 status="connected"
                 lastSync="2 minutes ago"
                 accountInfo={{
@@ -183,7 +183,7 @@ export const CallInsightsViewer = ({
                 }}
                 onReconnect={() => toast.success("Connection refreshed")}
                 onSettings={() => toast.info("Opening settings...")}
-              />
+              /> */}
             </div>
           </div>
         </TabsContent>
