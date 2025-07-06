@@ -177,7 +177,11 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [isLoadingProspects, setIsLoadingProspects] = useState(true);
   const [isRefining, setIsRefining] = useState(false);
   const [refinementInput, setRefinementInput] = useState("");
-
+  console.log(
+    selectedPlay,
+    selectedObjectives,
+    "selected play and selected objectives"
+  );
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
     {
@@ -264,25 +268,19 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
 
       setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getEmailProspectInsights(
-          CURRENT_USER.id
-        );
+        const insights = await dbHelpers.getProspectData(CURRENT_USER.id);
         console.log("Fetched email insights:", insights);
 
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
-          companyName: insight.company_details?.name || "Unknown Company",
+          companyName: insight.company?.name || "Unknown Company",
           contact:
             (insight.prospect_details || []).map((p) => p.name).join(", ") ||
             "Unknown",
           dealValue: 100000, // Default value
           crmStage: "Proposal Sent", // Default value
           nextAction: "Follow-up",
-          prospect_details: insight.prospect_details || [],
-          company_details: insight.company_details || {},
-          sales_insights: insight.sales_insights || [],
-          call_summary: insight.call_summary,
-          action_items: insight.action_items || [],
+          communication_style_ids: insight.communication_style_ids || [],
         }));
 
         setProspects(enrichedProspects);
@@ -290,15 +288,32 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         if (enrichedProspects.length > 0) {
           const initialProspect = enrichedProspects[0];
           setSelectedProspect(initialProspect);
+          const styles = await dbHelpers.getCommunicationStylesData(
+            initialProspect.communication_style_ids
+          );
 
-          // Generate stakeholders from prospect details
-          const prospectStakeholders =
-            generateStakeholdersFromProspect(initialProspect);
-          setStakeholders(prospectStakeholders);
+          const mappedStakeholders: Stakeholder[] = styles.map(
+            (style, index) => ({
+              id: style.id,
+              name: style.stakeholder || "Unknown",
+              title: style.role || "Unknown Title",
+              role: style.is_primary ? "primary" : "stakeholder",
+              confidenceScore: Math.round(style.confidence * 100),
+              confidenceJustification:
+                style.evidence || "Inferred from past interactions",
+              communicationStyle: style.style || "Direct",
+              personalityType: style.personality_type || "Analytical",
+              keyTraits: style.preferences || [],
+              communicationPreferences: style.communication_tips || [],
+              prospectId: initialProspect.id,
+            })
+          );
+
+          setStakeholders(mappedStakeholders);
 
           // Set initial recipient if email type
-          if (artefactType === "email" && prospectStakeholders.length > 0) {
-            setSelectedRecipients([prospectStakeholders[0].id]);
+          if (artefactType === "email" && mappedStakeholders.length > 0) {
+            setSelectedRecipients([mappedStakeholders[0].id]);
           }
 
           // Set recommended play and objectives
@@ -322,32 +337,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     };
 
     fetchProspects();
-  }, [artefactType]);
-
-  // Generate stakeholders from prospect data
-  const generateStakeholdersFromProspect = (
-    prospect: Prospect
-  ): Stakeholder[] => {
-    if (!prospect || !prospect.prospect_details) return [];
-
-    return prospect.prospect_details.map((detail, index) => ({
-      id: `stakeholder-${prospect.id}-${index}`,
-      name: detail.name || "Unknown",
-      title: detail.title || "Unknown Title",
-      role: index === 0 ? "primary" : "stakeholder",
-      confidenceScore: 85 + Math.floor(Math.random() * 10),
-      confidenceJustification: "Based on recent interactions and data quality",
-      communicationStyle: detail.communication_style || "Direct & Data-driven",
-      personalityType: detail.personality_type || "Analytical Decision-maker",
-      keyTraits: ["Results-oriented", "Time-conscious", "Detail-focused"],
-      communicationPreferences: [
-        "Prefers concise updates",
-        "Values ROI metrics",
-        "Visual presentations",
-      ],
-      prospectId: prospect.id,
-    }));
-  };
+  }, []);
 
   // Recommendation logic
   const getRecommendedPlay = (crmStage: string): string => {
@@ -418,15 +408,34 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     setSelectedRecipients([]);
     setIsAnalyzing(true);
 
-    // Generate stakeholders from prospect details
-    const prospectStakeholders = generateStakeholdersFromProspect(prospect);
-    setStakeholders(prospectStakeholders);
+    // 🔁 Fetch communication styles
+    const styles = await dbHelpers.getCommunicationStylesData(
+      prospect.communication_style_ids
+    );
 
-    // Set initial recipient if email type
-    if (artefactType === "email" && prospectStakeholders.length > 0) {
-      setSelectedRecipients([prospectStakeholders[0].id]);
+    const mappedStakeholders: Stakeholder[] = styles.map((style, index) => ({
+      id: style.id,
+      name: style.stakeholder || "Unknown",
+      title: style.role || "Unknown Title",
+      role: style.is_primary ? "primary" : "stakeholder",
+      confidenceScore: Math.round(style.confidence * 100),
+      confidenceJustification:
+        style.evidence || "Inferred from past interactions",
+      communicationStyle: style.style || "Direct",
+      personalityType: style.personality_type || "Analytical",
+      keyTraits: style.preferences || [],
+      communicationPreferences: style.communication_tips || [],
+      prospectId: prospect.id,
+    }));
+
+    setStakeholders(mappedStakeholders);
+
+    // Default recipient (for emails)
+    if (artefactType === "email" && mappedStakeholders.length > 0) {
+      setSelectedRecipients([mappedStakeholders[0].id]);
     }
 
+    // Recommendation logic
     setTimeout(() => {
       const recommendedPlayId = getRecommendedPlay(
         prospect.crmStage || "Discovery"
@@ -440,12 +449,15 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       setIsAnalyzing(false);
     }, 1500);
   };
-
+  console.log(selectedProspect, "check selected prospect");
   const handleGenerate = async () => {
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
     setIsLoading(true);
-
+    const getTranscripts = await dbHelpers.getExtractedTranscriptByProspectId(
+      selectedProspect?.id
+    );
+    console.log(getTranscripts, "get transcripts from the previous data");
     // Simulate API call to generate content
     setTimeout(() => {
       if (artefactType === "presentation") {

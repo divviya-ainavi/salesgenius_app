@@ -84,6 +84,7 @@ const SalesCalls = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [prospects, setProspects] = useState([]);
   const [selectedProspectId, setSelectedProspectId] = useState("");
+  const [selectedProComStyles, setSelectedProComStyles] = useState([]);
   const {
     userProfileInfo,
     userRole,
@@ -629,33 +630,136 @@ const SalesCalls = () => {
         console.log(result, "check result");
         if (result?.status === "success") {
           const savedInsight = result.callInsight;
+          if (!prospectCheck) {
+            try {
+              // 1. Get existing styles from Supabase
+              const existingStyles = await dbHelpers.getCommunicationStylesData(
+                selectedProComStyles
+              );
+              console.log(existingStyles, "check existing styles");
+              console.log(
+                processedData?.communication_styles,
+                "check produced communication styles"
+              );
+              // 2. Call cumulative-comm API with existing + current styles
+              const cumulativeRes = await fetch(
+                "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    previous_communication_styles: existingStyles,
+                    current_communication_styles:
+                      processedData?.communication_styles || [],
+                  }),
+                }
+              );
 
-          const processedCall = {
-            id: savedInsight?.id || "",
-            callId: `Call ${savedInsight.id.slice(-5)}`,
-            companyName: processedData?.company_details?.[0]?.name || "Company",
-            prospectName: processedData?.sales_call_prospect || "Prospect",
-            date: new Date().toISOString().split("T")[0],
-            duration: "N/A",
-            status: "processed",
-            source: isFireflies ? "fireflies" : "upload",
-            hasInsights: true,
-            transcript:
-              processedData?.extracted_transcript || file.file_content,
-            aiProcessedData: processedData,
-            uploaded_file_id: file.id,
-          };
+              if (!cumulativeRes.ok) {
+                throw new Error("Failed to call cumulative-comm API");
+              }
 
-          setProcessedCalls((prev) => [processedCall, ...prev]);
+              const rawText = await cumulativeRes.text();
 
-          toast.success("File processed successfully!");
-          navigate("/call-insights", {
-            state: {
-              selectedCall: processedCall,
-              source: processedCall.source,
+              if (!rawText) {
+                throw new Error("Empty response from cumulative-comm API");
+              }
+
+              let cumulativeData;
+              try {
+                cumulativeData = JSON.parse(rawText);
+              } catch (err) {
+                console.error(
+                  "Invalid JSON response from cumulative-comm:",
+                  rawText
+                );
+                throw new Error("Failed to parse cumulative-comm API response");
+              }
+
+              const newStyles = cumulativeData?.[0]?.output || [];
+
+              // 3. Insert new styles into Supabase
+              const newStyleIds = await dbHelpers.insertCommunicationStyles(
+                newStyles,
+                selectedProspectId
+              );
+
+              // 4. Update prospect with the new style IDs
+              if (newStyleIds.length) {
+                await dbHelpers.updateProspectWithNewStyles(
+                  selectedProspectId,
+                  newStyleIds
+                );
+
+                // ✅ 5. Replace the styles in processedData for UI usage
+                processedData.communication_styles = newStyles.map((s, i) => ({
+                  ...s,
+                  id: newStyleIds[i], // map newly inserted ID from Supabase
+                }));
+              }
+              const processedCall = {
+                id: savedInsight?.id || "",
+                callId: `Call ${savedInsight.id.slice(-5)}`,
+                companyName:
+                  processedData?.company_details?.[0]?.name || "Company",
+                prospectName: processedData?.sales_call_prospect || "Prospect",
+                date: new Date().toISOString().split("T")[0],
+                duration: "N/A",
+                status: "processed",
+                source: isFireflies ? "fireflies" : "upload",
+                hasInsights: true,
+                transcript:
+                  processedData?.extracted_transcript || file.file_content,
+                aiProcessedData: processedData,
+                uploaded_file_id: file.id,
+              };
+
+              setProcessedCalls((prev) => [processedCall, ...prev]);
+
+              toast.success("File processed successfully!");
+              navigate("/call-insights", {
+                state: {
+                  selectedCall: processedCall,
+                  source: processedCall.source,
+                  aiProcessedData: processedData,
+                },
+              });
+            } catch (e) {
+              console.error(
+                "Cumulative communication style handling failed:",
+                e
+              );
+              toast.error("Failed to update communication styles");
+            }
+          } else {
+            const processedCall = {
+              id: savedInsight?.id || "",
+              callId: `Call ${savedInsight.id.slice(-5)}`,
+              companyName:
+                processedData?.company_details?.[0]?.name || "Company",
+              prospectName: processedData?.sales_call_prospect || "Prospect",
+              date: new Date().toISOString().split("T")[0],
+              duration: "N/A",
+              status: "processed",
+              source: isFireflies ? "fireflies" : "upload",
+              hasInsights: true,
+              transcript:
+                processedData?.extracted_transcript || file.file_content,
               aiProcessedData: processedData,
-            },
-          });
+              uploaded_file_id: file.id,
+            };
+
+            setProcessedCalls((prev) => [processedCall, ...prev]);
+
+            toast.success("File processed successfully!");
+            navigate("/call-insights", {
+              state: {
+                selectedCall: processedCall,
+                source: processedCall.source,
+                aiProcessedData: processedData,
+              },
+            });
+          }
         } else {
           toast.error("Failed to store insight data.");
         }
@@ -794,17 +898,23 @@ const SalesCalls = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedCompanyId != "" && selectedCompanyId != "new" && (
+              {selectedCompanyId !== "" && selectedCompanyId !== "new" && (
                 <Select
                   value={selectedProspectId}
-                  onValueChange={(val) => setSelectedProspectId(val)}
+                  onValueChange={(val) => {
+                    const selected = prospects.find((p) => p.id === val);
+                    setSelectedProspectId(val);
+                    setSelectedProComStyles(
+                      selected?.communication_style_ids || []
+                    );
+                  }}
                   disabled={!selectedCompanyId}
                 >
                   <SelectTrigger className="w-64">
                     <SelectValue placeholder="Select Prospect" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="new">New </SelectItem>
+                    <SelectItem value="new">New</SelectItem>
                     {prospects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}

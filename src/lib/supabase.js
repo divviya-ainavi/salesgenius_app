@@ -1528,15 +1528,16 @@ export const dbHelpers = {
 
   async getProspectData(userId) {
     const { data, error } = await supabase
-      .from('prospect')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .from("prospect")
+      .select("*, company(name)") // joins company name via foreign key
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
     if (error) throw error;
     return data;
   },
 
-  async getProspectData(communication_style_ids) {
+  async getCommunicationStylesData(communication_style_ids) {
     const { data, error } = await supabase
       .from("communication_styles")
       .select("*")
@@ -1544,6 +1545,103 @@ export const dbHelpers = {
     if (error) throw error;
     return data;
   },
+
+  async getPeopleByProspectId(prospectId) {
+    const { data, error } = await supabase
+      .from("peoples")
+      .select("*")
+      .eq("prospect_id", prospectId);
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get communication styles for a given prospect
+  async getCommunicationStylesForProspect(prospectId) {
+    const { data: prospect, error } = await supabase
+      .from("prospect")
+      .select("communication_style_ids")
+      .eq("id", prospectId)
+      .single();
+
+    if (error || !prospect?.communication_style_ids?.length) return [];
+
+    const { data: styles, error: styleError } = await supabase
+      .from("communication_styles")
+      .select("*")
+      .in("id", prospect.communication_style_ids);
+
+    if (styleError) {
+      console.error("Error fetching styles:", styleError);
+      return [];
+    }
+
+    return styles;
+  },
+
+  // Insert new communication styles returned by cumulative-comm API
+  async insertCommunicationStyles(commStyles, prospectId) {
+    const insertedIds = [];
+
+    for (const style of commStyles) {
+      const { data, error } = await supabase
+        .from("communication_styles")
+        .insert({
+          stakeholder: style.stakeholder,
+          role: style.role,
+          is_primary: style.is_primary === "true",
+          style: style.style,
+          confidence: style.confidence,
+          evidence: style.evidence,
+          preferences: style.preferences,
+          communication_tips: style.communication_tips,
+          personality_type: {
+            type: style.personality_type,
+          },
+          prospect_id: prospectId,
+        })
+        .select()
+        .single();
+
+      if (!error && data?.id) {
+        insertedIds.push(data.id);
+      }
+    }
+
+    return insertedIds;
+  },
+
+  // Update a prospect with new communication style IDs
+  async updateProspectWithNewStyles(prospectId, styleIds) {
+    const { error } = await supabase
+      .from("prospect")
+      .update({ communication_style_ids: styleIds })
+      .eq("id", prospectId);
+
+    if (error) {
+      console.error("Failed to update prospect:", error);
+      throw error;
+    }
+
+    return true;
+  },
+
+  async getExtractedTranscriptByProspectId(prospectId) {
+    try {
+      const { data, error } = await supabase
+        .from("insights")
+        .select("extracted_transcript")
+        .eq("prospect_id", prospectId);
+
+      if (error) throw error;
+
+      // Return all transcripts (array) or filter further as needed
+      return data.map((item) => item.extracted_transcript);
+    } catch (err) {
+      console.error("Error fetching transcripts:", err);
+      return [];
+    }
+  }
 
 }
 
