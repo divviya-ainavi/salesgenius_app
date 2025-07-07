@@ -947,7 +947,7 @@ const CallInsights = () => {
                       ) : (
                         <>
                           {insight?.insights?.map((x) => (
-                            <div key={x.id} className="mb-2 last:mb-0 relative">
+                            <div key={x.id} className="mb-2 last:mb-0">
                               <div className="bg-muted/40 rounded-md p-3 text-sm relative group">
                                 <p>{x.content}</p>
                                 {/* Tooltip on hover */}
@@ -962,51 +962,6 @@ const CallInsights = () => {
                                   </div>
                                   {/* Arrow pointer */}
                                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
-                                </div>
-                                {/* Edit and Delete buttons */}
-                                <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => {
-                                      setEditingId(insight.id);
-                                      setEditContent(x.content);
-                                    }}
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => {
-                                      // Create a new array without this specific insight
-                                      const updatedInsights = insight.insights.filter(
-                                        (item) => item.id !== x.id
-                                      );
-                                      
-                                      // Update the sales_insights table
-                                      dbHelpers.updateSalesInsight(insight.id, {
-                                        insights: updatedInsights
-                                      }).then(() => {
-                                        toast.success("Insight detail removed");
-                                        // Update local state
-                                        setInsights(prev => 
-                                          prev.map(item => 
-                                            item.id === insight.id 
-                                              ? {...item, insights: updatedInsights} 
-                                              : item
-                                          )
-                                        );
-                                      }).catch(err => {
-                                        console.error("Failed to delete insight detail:", err);
-                                        toast.error("Failed to remove insight detail");
-                                      });
-                                    }}
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </Button>
                                 </div>
                               </div>
                             </div>
