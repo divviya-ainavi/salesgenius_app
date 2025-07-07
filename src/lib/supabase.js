@@ -1641,7 +1641,232 @@ export const dbHelpers = {
       console.error("Error fetching transcripts:", err);
       return [];
     }
-  }
+  },
+
+  async getCallSummaryByProspectId(prospectId) {
+    try {
+      const { data, error } = await supabase
+        .from("insights")
+        .select("call_summary")
+        .eq("prospect_id", prospectId);
+
+      if (error) throw error;
+
+      // Return all transcripts (array) or filter further as needed
+      return data.map((item) => item.call_summary);
+    } catch (err) {
+      console.error("Error fetching transcripts:", err);
+      return [];
+    }
+  },
+
+  async getTasksAndSalesInsightsByProspectId(prospectId) {
+    // 1. Get insight data for the given prospect
+    const { data: insightsData, error: insightsError } = await supabase
+      .from("insights")
+      .select("action_item_ids, sales_insight_ids")
+      .eq("prospect_id", prospectId);
+
+    if (insightsError) {
+      console.error("Error fetching insight IDs", insightsError);
+      return null;
+    }
+
+    // Flatten and dedupe all IDs from all insight rows
+    const allActionItemIds = insightsData
+      .flatMap((entry) => entry.action_item_ids || [])
+      .filter((id) => id);
+
+    const allSalesInsightIds = insightsData
+      .flatMap((entry) => entry.sales_insight_ids || [])
+      .filter((id) => id);
+
+    let tasks = [];
+    let contents = [];
+
+    // 2. Get tasks from action_items
+    if (allActionItemIds.length > 0) {
+      const { data: actionItems, error: actionError } = await supabase
+        .from("action_items")
+        .select("task")
+        .in("id", allActionItemIds);
+
+      if (actionError) {
+        console.error("Error fetching action_items", actionError);
+        return null;
+      }
+
+      tasks = actionItems.map((item) => item.task);
+    }
+
+    // 3. Get contents from sales_insights
+    if (allSalesInsightIds.length > 0) {
+      const { data: salesInsights, error: salesError } = await supabase
+        .from("sales_insights")
+        .select("content")
+        .in("id", allSalesInsightIds);
+
+      if (salesError) {
+        console.error("Error fetching sales_insights", salesError);
+        return null;
+      }
+
+      contents = salesInsights.map((item) => item.content);
+    }
+
+    // 4. Return result
+    return {
+      tasks,
+      contents,
+    };
+  },
+
+
+  async upsertEmailTemplate(id, inputData) {
+    try {
+      let query = await supabase
+        .from("email_templates");
+
+      if (id) {
+        // UPDATE existing record
+        const { data, error } = await query
+          .update(inputData)
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error updating deck_prompt:", error.message);
+          return null;
+        }
+
+        return data;
+      } else {
+        // INSERT new record
+        const { data, error } = await query
+          .insert([inputData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error inserting deck_prompt:", error.message);
+          return null;
+        }
+
+        return data;
+      }
+    } catch (err) {
+      console.error("Unexpected error in upsertDeckPrompt:", err);
+      return null;
+    }
+  },
+
+  async upsertDeckPrompt(id, inputData) {
+    try {
+      let query = await supabase
+        .from("presentation_prompt");
+
+      if (id) {
+        // UPDATE existing record
+        const { data, error } = await query
+          .update(inputData)
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error updating deck_prompt:", error.message);
+          return null;
+        }
+
+        return data;
+      } else {
+        // INSERT new record
+        const { data, error } = await query
+          .insert([inputData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error inserting deck_prompt:", error.message);
+          return null;
+        }
+
+        return data;
+      }
+    } catch (err) {
+      console.error("Unexpected error in upsertDeckPrompt:", err);
+      return null;
+    }
+  },
+  async getSalesInsightsByProspectId(prospectId) {
+    console.log("called get sales insights 1647")
+    // Step 1: Get all insights for the given prospect_id
+    const { data: insightsData, error: insightsError } = await supabase
+      .from("insights")
+      .select("sales_insight_ids")
+      .eq("prospect_id", prospectId);
+    console.log(insightsData, "get insights data in supabase", insightsError)
+    if (insightsError) {
+      console.error("Error fetching insights", insightsError);
+      return null;
+    }
+
+    // Collect all sales_insight_ids from all matching rows
+    const allInsightIds = insightsData
+      ?.flatMap((entry) => entry.sales_insight_ids || [])
+      .filter((id) => id); // remove null/undefined
+
+    if (!allInsightIds.length) return [];
+
+    // Step 2: Get full sales insights data
+    const { data: salesInsights, error: insightsDetailError } = await supabase
+      .from("sales_insights")
+      .select("*, type_id")
+      .in("id", allInsightIds);
+
+    if (insightsDetailError) {
+      console.error("Error fetching sales insights", insightsDetailError);
+      return null;
+    }
+    console.log(salesInsights, "get sales insights from 1832")
+    // Step 3: Fetch all sales insight types
+    const { data: insightTypes, error: typeError } = await supabase
+      .from("sales_insight_types")
+      .select("id, key");
+
+    if (typeError) {
+      console.error("Error fetching insight types", typeError);
+      return null;
+    }
+    console.log(insightTypes, "insight types 1842")
+    // Step 4: Group insights by type
+    const grouped = {};
+    for (const insight of salesInsights) {
+      const typeKey =
+        insightTypes.find((t) => t.id === insight.type_id)?.key ||
+        "my_insights";
+      console.log(typeKey, "1849")
+      if (!grouped[typeKey]) grouped[typeKey] = [];
+
+      grouped[typeKey].push(insight);
+    }
+
+    // Step 5: Prepare final sorted result
+    const result = Object.entries(grouped).map(([type, insights]) => {
+      const average =
+        insights.reduce((sum, i) => sum + (i.relevance_score || 0), 0) /
+        insights.length;
+      return {
+        type,
+        average_score: Number(average.toFixed(2)),
+        insights,
+      };
+    });
+
+    return result.sort((a, b) => b.average_score - a.average_score);
+  },
+
 
 }
 

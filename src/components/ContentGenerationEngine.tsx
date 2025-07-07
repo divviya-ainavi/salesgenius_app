@@ -112,6 +112,7 @@ interface GeneratedArtefact {
   subject?: string;
   body?: string;
   fullPrompt?: string;
+  overview?: string;
   blocks?: PresentationBlock[];
 }
 
@@ -177,11 +178,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [isLoadingProspects, setIsLoadingProspects] = useState(true);
   const [isRefining, setIsRefining] = useState(false);
   const [refinementInput, setRefinementInput] = useState("");
-  console.log(
-    selectedPlay,
-    selectedObjectives,
-    "selected play and selected objectives"
-  );
+  const [presentationPromptId, setPresentationPromptId] = useState("");
+  const [emailTemplateId, setEmailTemplateId] = useState("");
+
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
     {
@@ -454,135 +453,113 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
     setIsLoading(true);
-    const getTranscripts = await dbHelpers.getExtractedTranscriptByProspectId(
+    const getCallSummary = await dbHelpers.getCallSummaryByProspectId(
       selectedProspect?.id
     );
-    console.log(getTranscripts, "get transcripts from the previous data");
+    const getTaskAndContent =
+      await dbHelpers.getTasksAndSalesInsightsByProspectId(
+        selectedProspect?.id
+      );
+    console.log(
+      getCallSummary,
+      "get transcripts from the previous data",
+      getTaskAndContent
+    );
     // Simulate API call to generate content
-    setTimeout(() => {
+    setTimeout(async () => {
       if (artefactType === "presentation") {
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-propmt-v2",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              Cumulative_summary: getCallSummary,
+              salesInsights: getTaskAndContent.contents || [],
+              actionItems: getTaskAndContent?.tasks || [],
+              salesPlay: selectedPlay,
+              secondaryObjectives: selectedObjectives,
+            }),
+          }
+        );
+        const json = await response.json(); // Convert response to JSON
+        const output = json?.[0]?.output;
+        console.log(response, "follow up email");
+
+        const postData = {
+          blocks: output?.blocks,
+          sales_play: selectedPlay,
+          overview: output.overview,
+          secondary_objectives: selectedObjectives,
+          prospect_id: selectedProspect?.id,
+          is_refined: false,
+          refinement_text: "",
+        };
+        const storeData = await dbHelpers.upsertDeckPrompt(null, postData);
+        setPresentationPromptId(storeData?.id);
         setGeneratedArtefact({
           title: `Strategic Presentation for ${selectedProspect.companyName}`,
-          fullPrompt: `# Strategic Presentation for ${selectedProspect.companyName}
+          overview: output?.overview,
+          fullPrompt: `# Strategic Presentation for ${
+            selectedProspect.companyName
+          }
 
 ## Overview
-This presentation is designed to address the specific needs and concerns of ${selectedProspect.companyName}, focusing on their current challenges with data management and operational efficiency.
+${output.overview}
 
-### Opening Hook
-- Start with a provocative question about their current operational efficiency challenges
-- Reference key pain points mentioned in previous conversations
-- Establish the agenda and value proposition
-
-### The Cost of Inaction
-- Visualize the hidden costs of their current processes
-- Present industry benchmark data
-- Frame the problem as a business issue, not just a technical one
-
-### Solution Overview
-- Introduce your solution in the context of their specific challenges
-- Highlight key differentiators relevant to their situation
-- Present a clear implementation timeline
-
-### ROI Analysis
-- Present concrete numbers based on their specific situation
-- Show both short-term and long-term benefits
-- Include testimonials from similar companies
-
-### Next Steps
-- Propose a clear action plan with specific dates
-- Outline responsibilities for both parties
-- Set expectations for the next meeting`,
-          blocks: [
-            {
-              id: "block-001",
-              blockType: "intro",
-              title: "Opening Hook",
-              estimatedTime: 2,
-              content: [
-                `Start with a provocative question about ${selectedProspect.companyName}'s current operational efficiency challenges.`,
-                'Reference the key pain point mentioned in the last call: "managing disparate data sources".',
-                "State the agenda: A brief look at a new approach to solving this.",
-              ],
-              strategicRationale:
-                "Capture attention immediately by linking to a known pain point, establishing relevance before introducing the solution.",
-            },
-            {
-              id: "block-002",
-              blockType: "problem",
-              title: "The Cost of Inaction",
-              estimatedTime: 5,
-              content: [
-                "Visualize the hidden costs of their current process (e.g., wasted man-hours, data silos).",
-                "Show industry benchmark data for similar-sized companies.",
-                "Frame the problem not as a technical issue, but as a direct barrier to their business goals.",
-              ],
-              strategicRationale:
-                "Amplify the pain to create urgency. Use data to make the problem tangible and undeniable.",
-            },
-            {
-              id: "block-003",
-              blockType: "solution",
-              title: "Solution Overview",
-              estimatedTime: 7,
-              content: [
-                "Introduce your solution specifically in the context of their data management challenges.",
-                "Highlight the three key differentiators most relevant to their situation.",
-                "Present a clear implementation timeline that addresses their concerns about disruption.",
-              ],
-              strategicRationale:
-                "Position your solution as the bridge between their current pain and future success, with minimal disruption.",
-            },
-            {
-              id: "block-004",
-              blockType: "roi",
-              title: "ROI Analysis",
-              estimatedTime: 5,
-              content: [
-                "Present concrete numbers based on their specific situation: 30% reduction in manual data entry, 45% faster reporting.",
-                "Show both short-term wins (immediate time savings) and long-term benefits (strategic insights).",
-                "Include a brief testimonial from a similar company in their industry that achieved these results.",
-              ],
-              strategicRationale:
-                "Make the ROI tangible and credible with specific metrics and social proof from a peer company.",
-            },
-            {
-              id: "block-005",
-              blockType: "closing",
-              title: "Next Steps",
-              estimatedTime: 3,
-              content: [
-                "Propose a clear action plan with specific dates for the next two weeks.",
-                "Outline responsibilities for both parties to move forward.",
-                "Set expectations for the next meeting, including who should attend and what will be covered.",
-              ],
-              strategicRationale:
-                "Create momentum with a clear path forward that feels achievable and valuable.",
-            },
-          ],
+${output?.blocks
+  ?.map(
+    (prompt) =>
+      `### ${prompt.title}\n${prompt.content.map((x) => `- ${x}`).join("\n")}`
+  )
+  .join("\n\n")}
+`,
+          blocks: output?.blocks,
         });
-        setQualityScore(89);
+        setQualityScore(output?.qualityScore);
       } else {
         // Email generation
-        const recipient = stakeholders.find((s) =>
+        const recipient = stakeholders.filter((s) =>
           selectedRecipients.includes(s.id)
         );
+        console.log(selectedRecipients, "selected recipients", recipient);
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email-v2",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              Cumulative_summary: getCallSummary,
+              prospects: recipient?.map((x) => x.name),
+              salesInsights: getTaskAndContent.contents || [],
+              actionItems: getTaskAndContent?.tasks || [],
+              salesPlay: selectedPlay,
+              secondaryObjectives: selectedObjectives,
+            }),
+          }
+        );
+        const json = await response.json(); // Convert response to JSON
+        const output = json?.[0]?.output;
+        console.log(response, "follow up email");
+
+        const postData = {
+          subject: output?.subject || output?.Subject,
+          body: output?.body || output?.Body,
+          sales_play: selectedPlay,
+          secondary_objectives: selectedObjectives,
+          prospect_id: selectedProspect?.id,
+          is_refined: false,
+          refinement_text: "",
+        };
+        const newTemplate = await dbHelpers.upsertEmailTemplate(null, postData);
+        setEmailTemplateId(newTemplate?.id);
         setGeneratedArtefact({
           title: `Follow-up Email for ${selectedProspect.companyName}`,
-          strategicGoal:
-            "Handle price objection by reframing around long-term value and demonstrating ROI with concrete examples.",
-          subject: "Following up on our conversation about value",
-          body: `Hi ${recipient?.name || selectedProspect.contact},
-
-Thank you for your candor regarding the budget during our call yesterday. It's a critical consideration, and I wanted to follow up on that point specifically.
-
-Often, when we discuss initial investment, it's helpful to look at the other side of the equation: the cost of inaction. Based on the operational challenges we discussed, a conservative estimate suggests your team could reclaim over 20 hours per week in productivity.
-
-Would you be open to a brief 15-minute call next week to walk through a tailored ROI projection? It would provide a clear picture of the long-term value and payback period.
-
-Best regards,
-${CURRENT_USER.full_name || "Your Name"}`,
+          strategicGoal: output?.strategicGoal,
+          subject: output?.subject || output?.Subject,
+          body: output?.body || output?.Body,
         });
-        setQualityScore(92);
+        setQualityScore(output?.qualityScore);
       }
 
       setQuickRefinements([
@@ -612,9 +589,10 @@ ${CURRENT_USER.full_name || "Your Name"}`,
     setRefinementInput("");
 
     // Simulate API call for refinement
-    setTimeout(() => {
+    setTimeout(async () => {
       if (artefactType === "presentation" && blockId) {
         // Refine specific block
+
         setGeneratedArtefact((prev) => {
           if (!prev || !prev.blocks) return prev;
 
@@ -637,6 +615,35 @@ ${CURRENT_USER.full_name || "Your Name"}`,
           };
         });
       } else if (artefactType === "presentation") {
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-presentation-prompt",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              current_prompt_content: {
+                overview: generatedArtefact?.overview,
+                blocks: generatedArtefact?.blocks,
+              },
+              refinement_prompt: refinementPrompt,
+            }),
+          }
+        );
+        const json = await response.json(); // Convert response to JSON
+        const output = json?.[0]?.output;
+        const postData = {
+          blocks: output?.blocks,
+          sales_play: selectedPlay,
+          overview: output.overview,
+          secondary_objectives: selectedObjectives,
+          prospect_id: selectedProspect?.id,
+          is_refined: true,
+          refinement_text: refinementPrompt,
+        };
+        const storeData = await dbHelpers.upsertDeckPrompt(
+          presentationPromptId,
+          postData
+        );
         // Refine entire presentation
         setGeneratedArtefact((prev) => {
           if (!prev) return prev;
@@ -648,17 +655,49 @@ ${CURRENT_USER.full_name || "Your Name"}`,
         });
       } else {
         // Refine email
+
+        const response = await fetch(
+          "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-email",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              current_email_content: generatedArtefact?.body,
+              email_subject: generatedArtefact?.subject,
+              refinement_prompt: refinementPrompt,
+            }),
+          }
+        );
+        const json = await response.json();
+        // console.log(json, "check json data");
+        const output = json?.[0];
+        // console.log(output, "follow up email");
+        const postData = {
+          subject: output?.refined_email_subject,
+          body: output?.refined_email_content,
+          sales_play: selectedPlay,
+          secondary_objectives: selectedObjectives,
+          prospect_id: selectedProspect?.id,
+          is_refined: true,
+          refinement_text: refinementPrompt,
+        };
+        const newTemplate = await dbHelpers.upsertEmailTemplate(
+          emailTemplateId,
+          postData
+        );
+
         setGeneratedArtefact((prev) => {
           if (!prev) return prev;
 
           return {
             ...prev,
-            body: `${prev.body}\n\n[REFINED] ${refinementPrompt}: Additional content based on refinement...`,
+            subject: output?.refined_email_subject,
+            body: output?.refined_email_content,
           };
         });
       }
 
-      setQualityScore((prev) => Math.min(100, prev + 3));
+      //   setQualityScore((prev) => Math.min(100, prev + 3));
       setIsRefining(false);
       toast.success(`Refinement applied: ${refinementPrompt}`);
     }, 1500);
@@ -699,36 +738,65 @@ ${CURRENT_USER.full_name || "Your Name"}`,
     setEditingContent(block.content.join("\n\n"));
   };
 
-  const handleSaveBlock = () => {
+  const handleSaveBlock = async () => {
     if (!editingBlockId || !generatedArtefact || !generatedArtefact.blocks)
       return;
 
     const contentLines = editingContent
       .split("\n\n")
-      .filter((line) => line.trim());
+      .map((line) => line.trim())
+      .filter(Boolean);
 
-    setGeneratedArtefact((prev) => {
-      if (!prev || !prev.blocks) return prev;
-
-      const updatedBlocks = prev.blocks.map((block) => {
-        if (block.id === editingBlockId) {
-          return {
-            ...block,
-            content: contentLines,
-          };
-        }
-        return block;
-      });
-
-      return {
-        ...prev,
-        blocks: updatedBlocks,
-      };
+    // Step 1: Prepare updated blocks
+    const updatedBlocks = generatedArtefact.blocks.map((block) => {
+      if (block.id === editingBlockId) {
+        return {
+          ...block,
+          content: contentLines,
+        };
+      }
+      return block;
     });
 
+    // Step 2: Generate fullPrompt string
+    const fullPrompt = `# Strategic Presentation for ${
+      selectedProspect?.companyName
+    }
+
+## Overview
+${generatedArtefact.overview}
+
+${updatedBlocks
+  .map(
+    (prompt) =>
+      `### ${prompt.title}\n${prompt.content.map((x) => `- ${x}`).join("\n")}`
+  )
+  .join("\n\n")}
+`;
+
+    // Step 3: Update local state
+    setGeneratedArtefact((prev) => ({
+      ...prev,
+      blocks: updatedBlocks,
+      fullPrompt,
+    }));
+
+    // Step 4: Prepare data for backend
+    const postData = {
+      blocks: updatedBlocks,
+    };
+
+    try {
+      await dbHelpers?.upsertDeckPrompt(presentationPromptId, postData);
+      toast.success("Block updated successfully");
+    } catch (error) {
+      console.error("Error saving block:", error);
+      toast.error("Failed to save block.");
+    }
+
+    // Step 5: Reset editing state
     setEditingBlockId(null);
     setEditingContent("");
-    toast.success("Block updated successfully");
   };
 
   const handleCancelEdit = () => {

@@ -222,7 +222,7 @@ const CallInsights = () => {
           );
         }
 
-        if (!defaultInsight && insights.length > 0) {
+        if (!defaultInsight && insights?.length > 0) {
           defaultInsight = insights[0]; // most recent
         }
 
@@ -322,7 +322,10 @@ const CallInsights = () => {
   //   }
   // };
   const loadProspectInsights = async (insightData) => {
-    setInsights(insightData.sales_insights || []);
+    const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+      insightData.id
+    );
+    setInsights(groupedInsights); // You may need to map this to your display structure
 
     const styles = await fetchCommunicationStyles(
       insightData.communication_style_ids
@@ -440,7 +443,7 @@ const CallInsights = () => {
 
   const handleSaveEdit = async () => {
     try {
-      const updatedList = insights.map((insight) =>
+      const updatedList = insights?.map((insight) =>
         insight.id === editingId
           ? { ...insight, content: editContent }
           : insight
@@ -472,7 +475,7 @@ const CallInsights = () => {
 
     if (
       (direction === "up" && currentIndex > 0) ||
-      (direction === "down" && currentIndex < insights.length - 1)
+      (direction === "down" && currentIndex < insights?.length - 1)
     ) {
       const newInsights = [...insights];
       const targetIndex =
@@ -560,7 +563,7 @@ const CallInsights = () => {
         return null;
     }
   };
-
+  console.log(insights, "get list of insights");
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -779,7 +782,7 @@ const CallInsights = () => {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>Sales Insights</span>
-                  <Badge variant="secondary">{insights.length} insights</Badge>
+                  <Badge variant="secondary">{insights?.length} insights</Badge>
                 </div>
                 <Button
                   onClick={() => setIsAddingInsight(true)}
@@ -851,7 +854,7 @@ const CallInsights = () => {
               )}
 
               {/* Insights List */}
-              {insights.map((insight, index) => {
+              {insights?.map((insight, index) => {
                 const typeConfig = insightTypes[insight?.type];
                 const TypeIcon = typeConfig?.icon;
 
@@ -870,12 +873,12 @@ const CallInsights = () => {
                           {typeConfig.label}
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          Score: {insight.relevance_score}
+                          Score: {insight.average_score}
                         </Badge>
-                        {getTrendIcon(insight.trend)}
-                        <span className="text-xs text-muted-foreground">
+                        {/* {getTrendIcon(insight.trend)} */}
+                        {/* <span className="text-xs text-muted-foreground">
                           {insight.source} • {insight.timestamp}
-                        </span>
+                        </span> */}
                       </div>
 
                       <div className="flex items-center space-x-1">
@@ -891,7 +894,7 @@ const CallInsights = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleMoveInsight(insight.id, "down")}
-                          disabled={index === insights.length - 1}
+                          disabled={index === insights?.length - 1}
                         >
                           <ChevronDown className="w-4 h-4" />
                         </Button>
@@ -951,7 +954,7 @@ const CallInsights = () => {
                 );
               })}
 
-              {insights.length === 0 && !isAddingInsight && (
+              {insights?.length === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
