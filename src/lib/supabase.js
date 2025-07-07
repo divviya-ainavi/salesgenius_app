@@ -1074,6 +1074,21 @@ export const dbHelpers = {
       }
 
       return data[0];
+ // Delete sales insight
+ deleteSalesInsight: async (id) => {
+   try {
+     const { error } = await supabase
+       .from('sales_insights')
+       .delete()
+       .eq('id', id);
+
+     if (error) throw error;
+     return true;
+   } catch (error) {
+     console.error('Error deleting sales insight:', error);
+     throw error;
+   }
+ },
     } catch (err) {
       console.error('Error updating user profile:', err);
       throw err;
