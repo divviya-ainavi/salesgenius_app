@@ -51,6 +51,7 @@ import {
   Hand,
   Brain,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -174,6 +175,9 @@ const CallInsights = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [editingInsightId, setEditingInsightId] = useState(null);
+  const [editingInsightContent, setEditingInsightContent] = useState("");
+  const [isSavingInsight, setIsSavingInsight] = useState(false);
   const [allInsights, setAllInsights] = useState([]);
 
   // Company name editing state
@@ -533,6 +537,60 @@ const CallInsights = () => {
     } catch (error) {
       toast.error("Failed to delete insight");
     }
+  };
+
+  const handleEditInsightContent = (insightId, content) => {
+    setEditingInsightId(insightId);
+    setEditingInsightContent(content);
+  };
+
+  const handleSaveInsightContent = async () => {
+    if (!editingInsightContent.trim()) {
+      toast.error("Content cannot be empty");
+      return;
+    }
+
+    setIsSavingInsight(true);
+    try {
+      // Update the insight content in the database
+      await dbHelpers.updateSalesInsight(editingInsightId, {
+        content: editingInsightContent.trim()
+      });
+
+      // Update local state
+      setSelectedProspect(prev => ({
+        ...prev,
+        sales_insights: prev.sales_insights.map(insight => ({
+          ...insight,
+          insights: insight.insights.map(item => 
+            item.id === editingInsightId 
+              ? { ...item, content: editingInsightContent.trim() }
+              : item
+          )
+        }))
+      }));
+
+      // Reset edit state
+      setEditingInsightId(null);
+      setEditingInsightContent("");
+      
+      toast.success("Insight updated successfully");
+    } catch (error) {
+      console.error("Error updating insight:", error);
+      toast.error("Failed to update insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
+  };
+
+  const handleCancelInsightEdit = () => {
+    setEditingInsightId(null);
+    setEditingInsightContent("");
+  };
+
+  const handleDeleteInsightContent = (insightId) => {
+    // TODO: Implement delete functionality for individual insight content
+    console.log("Delete insight content:", insightId);
   };
 
   const filteredProspects = allInsights?.filter(
@@ -906,6 +964,107 @@ const CallInsights = () => {
                           >
                             <ChevronDown className="w-4 h-4" />
                           </Button>
+                        </div>
+                      </div>
+
+                      {/* Insights content */}
+                      <div className="ml-6">
+                        <div className={cn(
+                          "space-y-2",
+                          insight?.insights?.length > 3 && "max-h-64 overflow-y-auto pr-2"
+                        )}>
+                          {insight?.insights?.map((x) => (
+                            <div key={x.id} className="relative">
+                              {editingInsightId === x.id ? (
+                                // Edit Mode
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-md p-3 space-y-3">
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex items-center space-x-4">
+                                      <span><strong>Speaker:</strong> {x.speaker || "Unknown"}</span>
+                                      <span><strong>Score:</strong> {x.relevance_score || "N/A"}</span>
+                                    </div>
+                                  </div>
+                                  <Textarea
+                                    value={editingInsightContent}
+                                    onChange={(e) => setEditingInsightContent(e.target.value)}
+                                    className="min-h-20 text-sm resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveInsightContent}
+                                      disabled={isSavingInsight || !editingInsightContent.trim()}
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      {isSavingInsight ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="w-3 h-3 mr-1" />
+                                          Save
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleCancelInsightEdit}
+                                      disabled={isSavingInsight}
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                // View Mode
+                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group hover:bg-muted/60 transition-colors">
+                                  <p className="pr-16 leading-relaxed">{x.content}</p>
+                                  
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">Speaker:</span>
+                                      <span>{x.speaker || "Unknown"}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">Relevance Score:</span>
+                                      <span>{x.relevance_score || "N/A"}</span>
+                                    </div>
+                                    {/* Arrow pointer */}
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
+                                  </div>
+                                  
+                                  {/* Edit and Delete buttons */}
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-background/80"
+                                      onClick={() => handleEditInsightContent(x.id, x.content)}
+                                      title="Edit insight"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-destructive/20 text-destructive"
+                                      onClick={() => handleDeleteInsightContent(x.id)}
+                                      title="Delete insight"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
 
