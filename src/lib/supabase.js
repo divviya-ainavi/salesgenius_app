@@ -1953,15 +1953,19 @@ export const dbHelpers = {
     }
 
     let sortedResults = [];
-
+    console.log(prospectData, Array.isArray(prospectData?.sales_insight_priority_list), "check prospect data 1956")
     if (
       Array.isArray(prospectData?.sales_insight_priority_list) &&
       prospectData.sales_insight_priority_list.length > 0
     ) {
-      const priorityMap = Object.fromEntries(
-        prospectData.sales_insight_priority_list.map((item) => [item.type_id, item.priority])
+      console.log("1961")
+      const parsedPriorityList = prospectData.sales_insight_priority_list.map((item) =>
+        typeof item === "string" ? JSON.parse(item) : item
       );
-
+      const priorityMap = Object.fromEntries(
+        parsedPriorityList.map((item) => [item.type_id, item.priority])
+      );
+      console.log(priorityMap, "check priority map 1965")
       sortedResults = [...computed].sort((a, b) => {
         const aPriority = priorityMap[a.type_id] || Infinity;
         const bPriority = priorityMap[b.type_id] || Infinity;
@@ -1987,7 +1991,88 @@ export const dbHelpers = {
     }
 
     return sortedResults;
+  },
+
+  async updateSalesInsightContent(id, newContent) {
+    try {
+      const { data, error } = await supabase
+        .from("sales_insights")
+        .update({ content: newContent })
+        .eq("id", id)
+        .select()
+        .single(); // return the updated row
+
+      if (error) {
+        console.error("Error updating sales_insight content:", error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      return null;
+    }
+  },
+
+  async updateSalesInsightPriorityList(prospectId, updatedPriorityList) {
+    try {
+      const { error } = await supabase
+        .from("prospect")
+        .update({ sales_insight_priority_list: updatedPriorityList })
+        .eq("id", prospectId)
+        .select() // 👈 This ensures the updated data is returned
+        .single();
+
+      if (error) {
+        console.error("Failed to update sales_insight_priority_list:", error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Unexpected error updating priority list:", err);
+      return false;
+    }
+  },
+
+  async getSalesInsightPriorityList(prospectId) {
+    try {
+      const { data, error } = await supabase
+        .from("prospect")
+        .select("sales_insight_priority_list")
+        .eq("id", prospectId)
+        .single();
+
+      if (error) {
+        console.error("Failed to fetch sales_insight_priority_list:", error);
+        return null;
+      }
+
+      return data.sales_insight_priority_list || [];
+    } catch (err) {
+      console.error("Unexpected error fetching priority list:", err);
+      return null;
+    }
+  },
+
+  async getSalesInsightTypes() {
+    try {
+      const { data, error } = await supabase
+        .from("sales_insight_types")
+        .select("id, key, label, icon, color");
+
+      if (error) {
+        console.error("Error fetching sales insight types:", error.message);
+        return [];
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Unexpected error fetching sales insight types:", err);
+      return [];
+    }
   }
+
 
 
 }

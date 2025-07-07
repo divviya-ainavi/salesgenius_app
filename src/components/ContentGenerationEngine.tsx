@@ -180,6 +180,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [refinementInput, setRefinementInput] = useState("");
   const [presentationPromptId, setPresentationPromptId] = useState("");
   const [emailTemplateId, setEmailTemplateId] = useState("");
+  const [commStylesData, setCommStylesData] = useState([]);
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -290,6 +291,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           const styles = await dbHelpers.getCommunicationStylesData(
             initialProspect.communication_style_ids
           );
+          setCommStylesData(styles);
 
           const mappedStakeholders: Stakeholder[] = styles.map(
             (style, index) => ({
@@ -411,6 +413,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     const styles = await dbHelpers.getCommunicationStylesData(
       prospect.communication_style_ids
     );
+    setCommStylesData(styles);
 
     const mappedStakeholders: Stakeholder[] = styles.map((style, index) => ({
       id: style.id,
@@ -460,11 +463,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       await dbHelpers.getTasksAndSalesInsightsByProspectId(
         selectedProspect?.id
       );
-    console.log(
-      getCallSummary,
-      "get transcripts from the previous data",
-      getTaskAndContent
-    );
+
     // Simulate API call to generate content
     setTimeout(async () => {
       if (artefactType === "presentation") {
@@ -535,6 +534,7 @@ ${output?.blocks
               actionItems: getTaskAndContent?.tasks || [],
               salesPlay: selectedPlay,
               secondaryObjectives: selectedObjectives,
+              communication_styles: commStylesData,
             }),
           }
         );

@@ -58,74 +58,6 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 
-const insightTypes = {
-  buying_signal: {
-    icon: TrendingUp,
-    label: "Buying Signal",
-    color: "bg-green-100 text-green-800 border-green-200",
-  },
-  pain_point: {
-    icon: Target,
-    label: "Pain Point",
-    color: "bg-red-100 text-red-800 border-red-200",
-  },
-  competitive_advantage: {
-    icon: Star,
-    label: "Competitive Edge",
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-  },
-  stakeholder_dynamics: {
-    icon: Users,
-    label: "Stakeholder Dynamics",
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-  },
-  urgency_driver: {
-    icon: Clock,
-    label: "Urgency Driver",
-    color: "bg-orange-100 text-orange-800 border-orange-200",
-  },
-  user_insight: {
-    icon: Lightbulb,
-    label: "Your Insight",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  },
-  competitor_mention: {
-    icon: Star,
-    label: "Competitive Edge",
-    color: "bg-blue-100 text-blue-800 border-blue-200",
-  },
-  decision_maker_identified: {
-    icon: Users,
-    label: "Stakeholder Dynamics",
-    color: "bg-purple-100 text-purple-800 border-purple-200",
-  },
-  budget_insight: {
-    icon: Clock,
-    label: "Urgency Driver",
-    color: "bg-orange-100 text-orange-800 border-orange-200",
-  },
-  timeline_insight: {
-    icon: Lightbulb,
-    label: "Your Insight",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  },
-  risk_or_objection: {
-    icon: Clock,
-    label: "Urgency Driver",
-    color: "bg-orange-100 text-orange-800 border-orange-200",
-  },
-  champion_identified: {
-    icon: Lightbulb,
-    label: "Your Insight",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  },
-  my_insights: {
-    icon: Lightbulb,
-    label: "My Insight",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  },
-};
-
 const communicationStyleConfigs = {
   Visual: {
     icon: Eye,
@@ -185,6 +117,113 @@ const CallInsights = () => {
   const [editingCompanyName, setEditingCompanyName] = useState("");
   const [researchCompanyCount, setResearchCompanyCount] = useState(null);
   const [people, setPeople] = useState([]);
+
+  const insightTypes = {
+    buying_signal: {
+      icon: TrendingUp,
+      label: "Buying Signal",
+      color: "bg-green-100 text-green-800 border-green-200",
+    },
+    pain_point: {
+      icon: Target,
+      label: "Pain Point",
+      color: "bg-red-100 text-red-800 border-red-200",
+    },
+    competitive_advantage: {
+      icon: Star,
+      label: "Competitive Edge",
+      color: "bg-blue-100 text-blue-800 border-blue-200",
+    },
+    stakeholder_dynamics: {
+      icon: Users,
+      label: "Stakeholder Dynamics",
+      color: "bg-purple-100 text-purple-800 border-purple-200",
+    },
+    urgency_driver: {
+      icon: Clock,
+      label: "Urgency Driver",
+      color: "bg-orange-100 text-orange-800 border-orange-200",
+    },
+    user_insight: {
+      icon: Lightbulb,
+      label: "Your Insight",
+      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    },
+    competitor_mention: {
+      icon: Star,
+      label: "Competitive Edge",
+      color: "bg-blue-100 text-blue-800 border-blue-200",
+    },
+    decision_maker_identified: {
+      icon: Users,
+      label: "Stakeholder Dynamics",
+      color: "bg-purple-100 text-purple-800 border-purple-200",
+    },
+    budget_insight: {
+      icon: Clock,
+      label: "Urgency Driver",
+      color: "bg-orange-100 text-orange-800 border-orange-200",
+    },
+    timeline_insight: {
+      icon: Lightbulb,
+      label: "Your Insight",
+      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    },
+    risk_or_objection: {
+      icon: Clock,
+      label: "Urgency Driver",
+      color: "bg-orange-100 text-orange-800 border-orange-200",
+    },
+    champion_identified: {
+      icon: Lightbulb,
+      label: "Your Insight",
+      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    },
+    my_insights: {
+      icon: Lightbulb,
+      label: "My Insight",
+      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    },
+  };
+
+  const insightIcons = {
+    TrendingUp,
+    Target,
+    Star,
+    Users,
+    Clock,
+    Lightbulb,
+    Eye,
+    MessageSquare,
+    Save,
+    X,
+  };
+
+  function resolveInsightIcon(iconName) {
+    return insightIcons[iconName] || Lightbulb; // default icon fallback
+  }
+
+  function mapInsightTypesToObject(insightTypesArray) {
+    return insightTypesArray.reduce((acc, item) => {
+      acc[item.key] = {
+        id: item.id, // required when saving to sales_insights table
+        icon: resolveInsightIcon(item.icon), // converts string to icon component
+        label: item.label,
+        color: item.color,
+      };
+      return acc;
+    }, {});
+  }
+
+  const getInsightsData = async () => {
+    const data = await mapInsightTypesToObject(dbHelpers.getSalesInsightTypes);
+    console.log(data, "get insight data");
+    return data;
+  };
+
+  useEffect(() => {
+    getInsightsData();
+  }, []);
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -477,45 +516,51 @@ const CallInsights = () => {
     }
   };
 
-  const handleMoveInsight = async (insightId, direction) => {
-    const currentIndex = insights.findIndex(
-      (insight) => insight.id === insightId
+  const handleMoveInsight = async (typeId, direction) => {
+    if (!selectedProspect?.id || !insights || insights.length === 0) return;
+
+    // Clone the current insights array
+    const newInsights = [...insights];
+
+    // Find the index of the block with the matching type_id
+    const currentIndex = newInsights.findIndex(
+      (insight) => insight.type_id === typeId
     );
 
     if (
-      (direction === "up" && currentIndex > 0) ||
-      (direction === "down" && currentIndex < insights?.length - 1)
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === newInsights.length - 1)
     ) {
-      const newInsights = [...insights];
-      const targetIndex =
-        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      // Can't move
+      return;
+    }
 
-      // Swap
-      [newInsights[currentIndex], newInsights[targetIndex]] = [
-        newInsights[targetIndex],
-        newInsights[currentIndex],
-      ];
+    // Swap logic
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    [newInsights[currentIndex], newInsights[targetIndex]] = [
+      newInsights[targetIndex],
+      newInsights[currentIndex],
+    ];
 
-      try {
-        const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
-          sales_insights: newInsights,
-        });
+    // Reassign new priority based on position
+    const updatedPriorityList = newInsights.map((insight, index) => ({
+      type_id: insight.type_id,
+      priority: index + 1,
+      average_score: insight.average_score,
+    }));
 
-        setInsights(updated.sales_insights);
+    // Update in Supabase
+    const success = await dbHelpers.updateSalesInsightPriorityList(
+      selectedProspect.id,
+      updatedPriorityList
+    );
 
-        // ✅ Update memory too
-        setSelectedProspect((prev) => ({
-          ...prev,
-          fullInsight: {
-            ...prev.fullInsight,
-            sales_insights: updated.sales_insights,
-          },
-        }));
-        updateAllInsightsEntry(updated);
-        toast.success("Insight priority updated");
-      } catch (error) {
-        toast.error("Failed to update priority");
-      }
+    if (success) {
+      setInsights(newInsights);
+      toast.success("Insight priority updated");
+    } else {
+      toast.error("Failed to update priority list");
     }
   };
 
@@ -544,36 +589,38 @@ const CallInsights = () => {
     setEditingInsightContent(content);
   };
 
-  const handleSaveInsightContent = async () => {
-    if (!editingInsightContent.trim()) {
+  const handleSaveInsightContent = async (id, content) => {
+    if (!content.trim()) {
       toast.error("Content cannot be empty");
       return;
     }
 
     setIsSavingInsight(true);
     try {
-      // Update the insight content in the database
-      await dbHelpers.updateSalesInsight(editingInsightId, {
-        content: editingInsightContent.trim()
-      });
+      // ✅ Update the insight content in Supabase
+      const updated = await dbHelpers.updateSalesInsightContent(
+        id,
+        content.trim()
+      );
 
-      // Update local state
-      setSelectedProspect(prev => ({
-        ...prev,
-        sales_insights: prev.sales_insights.map(insight => ({
-          ...insight,
-          insights: insight.insights.map(item => 
-            item.id === editingInsightId 
-              ? { ...item, content: editingInsightContent.trim() }
-              : item
-          )
+      if (updated) {
+        console.log("Insight updated successfully:", updated);
+      }
+
+      // ✅ Update local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.map((insight) =>
+            insight.id === id
+              ? { ...insight, content: content.trim() }
+              : insight
+          ),
         }))
-      }));
+      );
 
-      // Reset edit state
       setEditingInsightId(null);
       setEditingInsightContent("");
-      
       toast.success("Insight updated successfully");
     } catch (error) {
       console.error("Error updating insight:", error);
@@ -949,18 +996,21 @@ const CallInsights = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleMoveInsight(insight.id, "up")}
+                            onClick={() =>
+                              handleMoveInsight(insight.type_id, "up")
+                            }
                             disabled={index === 0}
                           >
                             <ChevronUp className="w-4 h-4" />
                           </Button>
+
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleMoveInsight(insight.id, "down")
+                              handleMoveInsight(insight.type_id, "down")
                             }
-                            disabled={index === insights?.length - 1}
+                            disabled={index === insights.length - 1}
                           >
                             <ChevronDown className="w-4 h-4" />
                           </Button>
@@ -969,10 +1019,13 @@ const CallInsights = () => {
 
                       {/* Insights content */}
                       <div className="ml-6">
-                        <div className={cn(
-                          "space-y-2",
-                          insight?.insights?.length > 3 && "max-h-64 overflow-y-auto pr-2"
-                        )}>
+                        <div
+                          className={cn(
+                            "space-y-2",
+                            insight?.insights?.length > 3 &&
+                              "max-h-40 overflow-y-auto pr-2"
+                          )}
+                        >
                           {insight?.insights?.map((x) => (
                             <div key={x.id} className="relative">
                               {editingInsightId === x.id ? (
@@ -980,21 +1033,37 @@ const CallInsights = () => {
                                 <div className="bg-blue-50 border-2 border-blue-200 rounded-md p-3 space-y-3">
                                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                                     <div className="flex items-center space-x-4">
-                                      <span><strong>Speaker:</strong> {x.speaker || "Unknown"}</span>
-                                      <span><strong>Score:</strong> {x.relevance_score || "N/A"}</span>
+                                      <span>
+                                        <strong>Speaker:</strong>{" "}
+                                        {x.speaker || "Unknown"}
+                                      </span>
+                                      <span>
+                                        <strong>Score:</strong>{" "}
+                                        {x.relevance_score || "N/A"}
+                                      </span>
                                     </div>
                                   </div>
                                   <Textarea
                                     value={editingInsightContent}
-                                    onChange={(e) => setEditingInsightContent(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditingInsightContent(e.target.value)
+                                    }
                                     className="min-h-20 text-sm resize-none"
                                     autoFocus
                                   />
                                   <div className="flex items-center space-x-2">
                                     <Button
                                       size="sm"
-                                      onClick={handleSaveInsightContent}
-                                      disabled={isSavingInsight || !editingInsightContent.trim()}
+                                      onClick={() =>
+                                        handleSaveInsightContent(
+                                          x.id,
+                                          editingInsightContent
+                                        )
+                                      }
+                                      disabled={
+                                        isSavingInsight ||
+                                        !editingInsightContent.trim()
+                                      }
                                       className="h-7 px-3 text-xs"
                                     >
                                       {isSavingInsight ? (
@@ -1024,73 +1093,12 @@ const CallInsights = () => {
                               ) : (
                                 // View Mode
                                 <div className="bg-muted/40 rounded-md p-3 text-sm relative group hover:bg-muted/60 transition-colors">
-                                  <p className="pr-16 leading-relaxed">{x.content}</p>
-                                  
+                                  <p className="pr-16 leading-relaxed">
+                                    {x.content}
+                                  </p>
+
                                   {/* Tooltip on hover */}
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="font-medium">Speaker:</span>
-                                      <span>{x.speaker || "Unknown"}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="font-medium">Relevance Score:</span>
-                                      <span>{x.relevance_score || "N/A"}</span>
-                                    </div>
-                                    {/* Arrow pointer */}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
-                                  </div>
-                                  
-                                  {/* Edit and Delete buttons */}
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 hover:bg-background/80"
-                                      onClick={() => handleEditInsightContent(x.id, x.content)}
-                                      title="Edit insight"
-                                    >
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 hover:bg-destructive/20 text-destructive"
-                                      onClick={() => handleDeleteInsightContent(x.id)}
-                                      title="Delete insight"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="ml-6">
-                        {editingId === insight.id ? (
-                          <Textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            className="min-h-20"
-                          />
-                        ) : (
-                          <>
-                            {insight?.insights?.map((x) => (
-                              <div
-                                key={x.id}
-                                className="mb-2 last:mb-0"
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "row",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group">
-                                  <p>{x.content}</p>
-                                  {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10">
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">
                                         Speaker:
@@ -1106,53 +1114,40 @@ const CallInsights = () => {
                                     {/* Arrow pointer */}
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
                                   </div>
+
+                                  {/* Edit and Delete buttons */}
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-background/80"
+                                      onClick={() =>
+                                        handleEditInsightContent(
+                                          x.id,
+                                          x.content
+                                        )
+                                      }
+                                      title="Edit insight"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-destructive/20 text-destructive"
+                                      onClick={() =>
+                                        handleDeleteInsightContent(x.id)
+                                      }
+                                      title="Delete insight"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div>
-                                  {editingId === insight.id ? (
-                                    <div className="flex space-x-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleSaveEdit}
-                                      >
-                                        <Save className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setEditingId(null)}
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                          handleEditInsight(insight.id)
-                                        }
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                          handleDeleteInsight(insight.id)
-                                        }
-                                        className="text-destructive hover:text-destructive"
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )
