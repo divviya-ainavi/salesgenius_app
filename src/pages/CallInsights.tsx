@@ -385,6 +385,19 @@ const CallInsights = () => {
           },
         },
       }));
+      setAllInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === selectedProspect.id
+            ? {
+                ...insight,
+                company: {
+                  ...insight.company,
+                  name: newCompanyName,
+                },
+              }
+            : insight
+        )
+      );
 
       setIsEditingCompanyName(false);
       setEditingCompanyName("");
@@ -769,6 +782,12 @@ const CallInsights = () => {
                           Last Enagement:
                         </span>
                         <span className="font-medium">{lastEngagement}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Opportunity:
+                        </span>
+                        <span className="font-medium">{prospect?.name}</span>
                       </div>
                     </div>
                   </div>

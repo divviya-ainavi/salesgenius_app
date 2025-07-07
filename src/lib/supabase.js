@@ -1314,12 +1314,12 @@ export const dbHelpers = {
         .single();
       companyId = newCompany.id;
     }
-
+    console.log(sales_call_prospect?.split('_')?.[0], "sales call prospect")
     // 2. Handle Prospect
     const { data: existingProspect } = await supabase
       .from("prospect")
       .select("id, calls")
-      .eq("name", sales_call_prospect)
+      .eq("name", sales_call_prospect?.split('_')?.[0])
       .eq("company_id", companyId)
       .maybeSingle();
 
@@ -1328,7 +1328,7 @@ export const dbHelpers = {
       const { data: newProspect } = await supabase
         .from("prospect")
         .insert({
-          name: sales_call_prospect,
+          name: sales_call_prospect?.split('_')?.[0],
           company_id: companyId,
           user_id: userId,
           deal_value: null,
