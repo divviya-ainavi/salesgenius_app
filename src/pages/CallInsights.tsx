@@ -368,28 +368,6 @@ const CallInsights = () => {
         selectedProspect.company_id,
         newCompanyName
       );
-      // Update local state to reflect the change in UI
-      setSelectedInsight(prev => ({
-        ...prev,
-        company_details: {
-          ...prev.company_details,
-          name: editedCompanyName.trim()
-        }
-      }));
-
-      // Also update the insights list if it exists
-      setInsights(prev => prev.map(insight => 
-        insight.id === selectedInsight.id 
-          ? {
-              ...insight,
-              company_details: {
-                ...insight.company_details,
-                name: editedCompanyName.trim()
-              }
-            }
-          : insight
-      ));
-
 
       // Update local state (important: update company.name if used in UI)
       setSelectedProspect((prev) => ({
@@ -414,8 +392,6 @@ const CallInsights = () => {
     } catch (error) {
       console.error("Error updating company name:", error);
       toast.error("Failed to update company name");
-      // Reset the edited name on error
-      setEditedCompanyName(selectedInsight.company_details?.name || "");
     }
   };
 
