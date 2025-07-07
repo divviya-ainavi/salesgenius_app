@@ -174,9 +174,6 @@ const CallInsights = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
- const [editingInsightId, setEditingInsightId] = useState(null);
- const [editingInsightContent, setEditingInsightContent] = useState("");
- const [isSavingInsight, setIsSavingInsight] = useState(false);
   const [allInsights, setAllInsights] = useState([]);
 
   // Company name editing state
@@ -931,178 +928,69 @@ const CallInsights = () => {
                                   justifyContent: "space-between",
                                 }}
                               >
-                              {editingInsightId === x.id ? (
-                                // Edit mode for this specific insight
-                                <div className="bg-muted/40 rounded-md p-3 text-sm border-2 border-primary">
-                                  <Textarea
-                                    value={editingInsightContent}
-                                    onChange={(e) => setEditingInsightContent(e.target.value)}
-                                    className="min-h-20 mb-3 resize-none"
-                                    placeholder="Edit insight content..."
-                                    autoFocus
-                                  />
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                                      <span className="font-medium">Speaker:</span>
-                                      <span>{x.speaker || "Unknown"}</span>
-                                      <span className="mx-2">•</span>
-                                      <span className="font-medium">Score:</span>
-                                      <span>{x.relevance_score || "N/A"}</span>
-                                    </div>
-                                    <div className="flex space-x-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={async () => {
-                                          if (!editingInsightContent.trim()) {
-                                            toast.error("Content cannot be empty");
-                                            return;
-                                          }
-                                          
-                                          setIsSavingInsight(true);
-                                          try {
-                                            // Update the database
-                                            await dbHelpers.updateSalesInsight(x.id, {
-                                              content: editingInsightContent.trim(),
-                                            });
-                                            
-                                            // Update local state
-                                            setInsights(prevInsights => 
-                                              prevInsights.map(prevInsight => 
-                                                prevInsight.type === insight.type 
-                                                  ? {
-                                                      ...prevInsight,
-                                                      insights: prevInsight.insights.map(item =>
-                                                        item.id === x.id
-                                                          ? { ...item, content: editingInsightContent.trim() }
-                                                          : item
-                                                      )
-                                                    }
-                                                  : prevInsight
-                                              )
-                                            );
-                                            
-                                            // Reset editing state
-                                            setEditingInsightId(null);
-                                            setEditingInsightContent("");
-                                            
-                                            toast.success("Insight updated successfully");
-                                          } catch (error) {
-                                            console.error("Error updating insight:", error);
-                                            toast.error("Failed to update insight");
-                                          } finally {
-                                            setIsSavingInsight(false);
-                                          }
-                                        }}
-                                        disabled={isSavingInsight}
-                                      >
-                                        {isSavingInsight ? (
-                                          <>
-                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                            Saving...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Save className="w-3 h-3 mr-1" />
-                                            Save
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setEditingInsightId(null);
-                                          setEditingInsightContent("");
-                                        }}
-                                        disabled={isSavingInsight}
-                                      >
-                                        <X className="w-3 h-3 mr-1" />
-                                        Cancel
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                // View mode for this insight
-                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group hover:bg-muted/60 transition-colors">
-                                  <p className="pr-16">{x.content}</p>
-                                  
+                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group">
+                                  <p>{x.content}</p>
                                   {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10">
                                     <div className="flex items-center space-x-2">
-                                      <span className="font-medium">Speaker:</span>
+                                      <span className="font-medium">
+                                        Speaker:
+                                      </span>
                                       <span>{x.speaker || "Unknown"}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                      <span className="font-medium">Relevance Score:</span>
+                                      <span className="font-medium">
+                                        Relevance Score:
+                                      </span>
                                       <span>{x.relevance_score || "N/A"}</span>
                                     </div>
                                     {/* Arrow pointer */}
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
                                   </div>
-                                  
-                                  {/* Edit and Delete buttons */}
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0 hover:bg-background/80"
-                                      onClick={() => {
-                                        setEditingInsightId(x.id);
-                                        setEditingInsightContent(x.content);
-                                      }}
-                                      title="Edit insight"
-                                    >
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={async () => {
-                                        if (!confirm("Are you sure you want to delete this insight?")) {
-                                          return;
-                                        }
-                                        
-                                        try {
-                                          // Delete from database
-                                          await dbHelpers.deleteSalesInsight(x.id);
-                                          
-                                          // Update local state by filtering out the deleted insight
-                                          setInsights(prevInsights => 
-                                            prevInsights.map(prevInsight => 
-                                              prevInsight.type === insight.type 
-                                                ? { 
-                                                    ...prevInsight, 
-                                                    insights: prevInsight.insights.filter(item => item.id !== x.id),
-                                                    average_score: prevInsight.insights.length > 1 
-                                                      ? prevInsight.insights
-                                                          .filter(item => item.id !== x.id)
-                                                          .reduce((sum, item) => sum + (item.relevance_score || 0), 0) / 
-                                                        (prevInsight.insights.length - 1)
-                                                      : 0
-                                                  }
-                                                : prevInsight
-                                            ).filter(prevInsight => 
-                                              // Remove insight types that have no insights left
-                                              prevInsight.insights.length > 0 || prevInsight.type !== insight.type
-                                            )
-                                          );
-                                          
-                                          toast.success("Insight deleted successfully");
-                                        } catch (error) {
-                                          console.error("Error deleting insight:", error);
-                                          toast.error("Failed to delete insight");
-                                        }
-                                      }}
-                                      title="Delete insight"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </Button>
-                                  </div>
                                 </div>
-                              )}
+                                <div>
+                                  {editingId === insight.id ? (
+                                    <div className="flex space-x-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleSaveEdit}
+                                      >
+                                        <Save className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setEditingId(null)}
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleEditInsight(insight.id)
+                                        }
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleDeleteInsight(insight.id)
+                                        }
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             ))}
                           </>
                         )}
