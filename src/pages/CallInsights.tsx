@@ -945,9 +945,27 @@ const CallInsights = () => {
                           className="min-h-20"
                         />
                       ) : (
-                        <p className="text-sm leading-relaxed">
-                          {insight.content}
-                        </p>
+                        <>
+                          {insight?.insights?.map((x) => (
+                            <div
+                              key={x.id}
+                              className="ml-6 bg-muted/40 rounded-md p-3 text-sm relative group"
+                            >
+                              <p>{x.content}</p>
+                              {/* Tooltip on hover */}
+                              <div className="absolute bottom-full left-0 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs">
+                                <div>
+                                  <strong>Speaker:</strong>{" "}
+                                  {x.speaker || "Unknown"}
+                                </div>
+                                <div>
+                                  <strong>Relevance Score:</strong>{" "}
+                                  {x.relevance_score || "N/A"}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
                       )}
                     </div>
                   </div>
