@@ -1799,6 +1799,7 @@ export const dbHelpers = {
       return null;
     }
   },
+
   // async getSalesInsightsByProspectId(prospectId) {
   //   console.log("called get sales insights 1647")
   //   // Step 1: Get all insights for the given prospect_id
@@ -1866,6 +1867,7 @@ export const dbHelpers = {
 
   //   return result.sort((a, b) => b.average_score - a.average_score);
   // },
+
   async getSalesInsightsByProspectId(prospectId) {
     console.log("called get sales insights");
 
@@ -1884,20 +1886,7 @@ export const dbHelpers = {
       .flatMap((entry) => entry.sales_insight_ids || [])
       .filter((id) => id);
 
-    if (!allInsightIds.length) return [];
-
-    // Step 2: Get full sales_insights data
-    const { data: salesInsights, error: insightsDetailError } = await supabase
-      .from("sales_insights")
-      .select("*, type_id")
-      .in("id", allInsightIds);
-
-    if (insightsDetailError) {
-      console.error("Error fetching sales insights", insightsDetailError);
-      return null;
-    }
-
-    // Step 3: Get type list
+    // Step 2: Get all insight types
     const { data: insightTypes, error: typeError } = await supabase
       .from("sales_insight_types")
       .select("id, key");
@@ -1909,19 +1898,37 @@ export const dbHelpers = {
 
     const typeMap = Object.fromEntries(insightTypes.map((t) => [t.id, t.key]));
 
-    // Step 4: Group by type_key
+    // Step 3: Get full insights if any
+    let salesInsights = [];
+    if (allInsightIds.length > 0) {
+      const { data: insightsData, error: insightsDetailError } = await supabase
+        .from("sales_insights")
+        .select("*, type_id")
+        .in("id", allInsightIds);
+
+      if (insightsDetailError) {
+        console.error("Error fetching sales insights", insightsDetailError);
+        return null;
+      }
+      salesInsights = insightsData;
+    }
+
+    // Step 4: Group all types, even if no insights present
     const grouped = {};
+    for (const type of insightTypes) {
+      grouped[type.key] = []; // initialize all
+    }
+
     for (const insight of salesInsights) {
       const typeKey = typeMap[insight.type_id] || "my_insights";
-      if (!grouped[typeKey]) grouped[typeKey] = [];
       grouped[typeKey].push(insight);
     }
 
-    // Step 5: Compute average scores and prepare result
+    // Step 5: Prepare full results (with average score)
     const computed = Object.entries(grouped).map(([type, insights]) => {
       const average =
         insights.reduce((sum, i) => sum + (i.relevance_score || 0), 0) /
-        insights.length;
+        (insights.length || 1); // avoid NaN
 
       const typeId = insightTypes.find((t) => t.key === type)?.id || null;
 
@@ -1933,7 +1940,7 @@ export const dbHelpers = {
       };
     });
 
-    // Step 6: Get prospect's priority list
+    // Step 6: Get prospect priority list
     const { data: prospectData, error: prospectError } = await supabase
       .from("prospect")
       .select("sales_insight_priority_list")
@@ -1951,7 +1958,6 @@ export const dbHelpers = {
       Array.isArray(prospectData?.sales_insight_priority_list) &&
       prospectData.sales_insight_priority_list.length > 0
     ) {
-      // Sort using existing priority list
       const priorityMap = Object.fromEntries(
         prospectData.sales_insight_priority_list.map((item) => [item.type_id, item.priority])
       );
@@ -1962,23 +1968,18 @@ export const dbHelpers = {
         return aPriority - bPriority;
       });
     } else {
-      // Sort by average_score and update the priority list
-      sortedResults = [...computed].sort(
-        (a, b) => b.average_score - a.average_score
-      );
+      sortedResults = [...computed].sort((a, b) => b.average_score - a.average_score);
 
       const priorityList = sortedResults.map((item, index) => ({
         type_id: item.type_id,
         priority: index + 1,
         average_score: item.average_score,
       }));
-      console.log(priorityList, "get priority list 1975")
-      // Update prospect priority list
+
       const { error: updateError } = await supabase
         .from("prospect")
-        .update({ sales_insight_priority_list: priorityList }) // ✅ store raw objects, not strings
+        .update({ sales_insight_priority_list: priorityList })
         .eq("id", prospectId);
-
 
       if (updateError) {
         console.error("Error updating sales_insight_priority_list:", updateError);
