@@ -173,29 +173,37 @@ export const ActionItems = () => {
 
       setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getEmailProspectInsights(userId);
+        const insights = await dbHelpers.getProspectData(userId);
         console.log("Fetched email insights:", insights);
 
-        const enrichedProspects = insights.map((insight) => ({
-          id: insight.id,
-          companyName: insight.company_details?.name || "Unknown Company",
-          prospectName:
-            (insight.prospect_details || []).map((p) => p.name).join(", ") ||
-            "Unknown",
-          title:
-            (insight.prospect_details || []).map((p) => p.title).join(", ") ||
-            "Unknown",
-          prospect_details: insight.prospect_details || [],
-          status: "new",
-          dealValue: "TBD",
-          probability: 50,
-          nextAction: "Initial follow-up",
-          created_at: insight.created_at,
-          sales_insights: insight.sales_insights || [],
-          fullInsight: insight,
-          call_summary: insight.call_summary,
-          action_items: insight.action_items || [],
-        }));
+        const enrichedProspects = await Promise.all(
+          insights.map(async (insight) => {
+            const people = await dbHelpers.getPeopleByProspectId(insight.id);
+
+            return {
+              id: insight.id,
+              companyName: insight.company?.name || "Unknown Company",
+              peoplesName:
+                (insight.prospect_details || [])
+                  .map((p) => p.name)
+                  .join(", ") || "Unknown",
+              title:
+                (insight.prospect_details || [])
+                  .map((p) => p.title)
+                  .join(", ") || "Unknown",
+              prospect_details: insight.prospect_details || [],
+              people, // <-- Merged from enrichedInsights
+              status: "new",
+              dealValue: "TBD",
+              probability: 50,
+              nextAction: "Initial follow-up",
+              created_at: insight.created_at,
+              sales_insights: insight.sales_insights || [],
+              call_summary: insight.call_summary,
+              action_items: insight.action_items || [],
+            };
+          })
+        );
 
         setProspects(enrichedProspects);
         if (enrichedProspects.length > 0) {
@@ -213,30 +221,36 @@ export const ActionItems = () => {
   }, [userId]);
 
   useEffect(() => {
-    if (selectedProspect?.action_items?.length) {
-      console.log("if called", selectedProspect.action_items);
-      const prospectCommitments = selectedProspect.action_items.map(
-        (item, index) => ({
-          id: `${selectedProspect.id}-${index}`,
+    const loadCommitments = async () => {
+      if (!selectedProspect?.id) return;
+
+      try {
+        const actionItems = await dbHelpers.getActionItemsByProspectId(
+          selectedProspect.id
+        );
+
+        const prospectCommitments = actionItems.map((item, index) => ({
+          id: item.id,
           commitment_text: item.task || item.commitment_text || "Untitled Task",
-          is_selected: true,
-          is_pushed: false || item.is_pushed,
+          is_selected: item.is_selected ?? true,
+          is_pushed: item.is_pushed ?? false,
           owner: item.owner || "Unassigned",
           deadline: item.deadline || null,
           priority: item.priority || "medium",
           hubspot_task_id: item.hubspot_task_id || null,
-          // source: selectedProspect.call_summary || "Call Summary",
-        })
-      );
+          source: item.source || "Call Summary",
+        }));
 
-      setCommitments(prospectCommitments);
-      setPushStatus("draft");
-      toast.success(
-        `Loaded ${prospectCommitments.length} action items for ${selectedProspect.companyName}`
-      );
-    } else {
-      setCommitments([]);
-    }
+        setCommitments(prospectCommitments);
+        setPushStatus("draft");
+        toast.success(`Loaded ${prospectCommitments.length} action items`);
+      } catch (error) {
+        console.error("Failed to fetch action items:", error);
+        toast.error("Could not load action items");
+      }
+    };
+
+    loadCommitments();
   }, [selectedProspect]);
 
   const checkHubSpotConnection = async () => {
@@ -495,49 +509,7 @@ export const ActionItems = () => {
             items to HubSpot as tasks.
           </p>
         </div>
-
-        <div className="flex items-center space-x-3">
-          {getConnectionStatusBadge()}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={checkHubSpotConnection}
-            disabled={isCheckingConnection}
-          >
-            <RefreshCw
-              className={cn(
-                "w-4 h-4 mr-1",
-                isCheckingConnection && "animate-spin"
-              )}
-            />
-            Refresh Connection
-          </Button>
-        </div>
       </div>
-
-      {/* HubSpot Connection Warning */}
-      {hubspotConnectionStatus && !hubspotConnectionStatus.connected && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-orange-900">
-                  HubSpot Connection Required
-                </h4>
-                <p className="text-sm text-orange-700 mt-1">
-                  To push action items to HubSpot, you need to connect your
-                  HubSpot account first.
-                </p>
-                <Button variant="outline" size="sm" className="mt-2">
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Connect HubSpot
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Stats Overview */}
       <div className="grid md:grid-cols-4 gap-4">

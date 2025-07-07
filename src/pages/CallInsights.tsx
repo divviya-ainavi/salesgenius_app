@@ -118,111 +118,65 @@ const CallInsights = () => {
   const [researchCompanyCount, setResearchCompanyCount] = useState(null);
   const [people, setPeople] = useState([]);
 
-  const insightTypes = {
-    buying_signal: {
-      icon: TrendingUp,
-      label: "Buying Signal",
-      color: "bg-green-100 text-green-800 border-green-200",
-    },
-    pain_point: {
-      icon: Target,
-      label: "Pain Point",
-      color: "bg-red-100 text-red-800 border-red-200",
-    },
-    competitive_advantage: {
-      icon: Star,
-      label: "Competitive Edge",
-      color: "bg-blue-100 text-blue-800 border-blue-200",
-    },
-    stakeholder_dynamics: {
-      icon: Users,
-      label: "Stakeholder Dynamics",
-      color: "bg-purple-100 text-purple-800 border-purple-200",
-    },
-    urgency_driver: {
-      icon: Clock,
-      label: "Urgency Driver",
-      color: "bg-orange-100 text-orange-800 border-orange-200",
-    },
-    user_insight: {
-      icon: Lightbulb,
-      label: "Your Insight",
-      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    },
-    competitor_mention: {
-      icon: Star,
-      label: "Competitive Edge",
-      color: "bg-blue-100 text-blue-800 border-blue-200",
-    },
-    decision_maker_identified: {
-      icon: Users,
-      label: "Stakeholder Dynamics",
-      color: "bg-purple-100 text-purple-800 border-purple-200",
-    },
-    budget_insight: {
-      icon: Clock,
-      label: "Urgency Driver",
-      color: "bg-orange-100 text-orange-800 border-orange-200",
-    },
-    timeline_insight: {
-      icon: Lightbulb,
-      label: "Your Insight",
-      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    },
-    risk_or_objection: {
-      icon: Clock,
-      label: "Urgency Driver",
-      color: "bg-orange-100 text-orange-800 border-orange-200",
-    },
-    champion_identified: {
-      icon: Lightbulb,
-      label: "Your Insight",
-      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    },
-    my_insights: {
-      icon: Lightbulb,
-      label: "My Insight",
-      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    },
-  };
-
-  const insightIcons = {
-    TrendingUp,
-    Target,
-    Star,
-    Users,
-    Clock,
-    Lightbulb,
-    Eye,
-    MessageSquare,
-    Save,
-    X,
-  };
+  const [insightTypes, setInsightTypes] = useState({});
 
   function resolveInsightIcon(iconName) {
-    return insightIcons[iconName] || Lightbulb; // default icon fallback
+    const insightIcons = {
+      TrendingUp,
+      Target,
+      Star,
+      Users,
+      Clock,
+      Lightbulb,
+      Eye,
+      MessageSquare,
+      Save,
+      X,
+    };
+    return insightIcons[iconName] || Lightbulb;
   }
 
   function mapInsightTypesToObject(insightTypesArray) {
     return insightTypesArray.reduce((acc, item) => {
       acc[item.key] = {
-        id: item.id, // required when saving to sales_insights table
-        icon: resolveInsightIcon(item.icon), // converts string to icon component
+        id: item.id,
+        icon: resolveInsightIcon(item.icon), // e.g., "Lightbulb"
         label: item.label,
-        color: item.color,
+        description: item.description || "No description",
+        color:
+          item?.key == "buying_signal"
+            ? "bg-green-100 text-green-800 border-green-200"
+            : item?.key == "pain_point"
+            ? "bg-red-100 text-red-800 border-red-200"
+            : item?.key == "competitive_edge"
+            ? "bg-blue-100 text-blue-800 border-blue-200"
+            : item?.key == "stakeholder_dynamics"
+            ? "bg-purple-100 text-purple-800 border-purple-200"
+            : item?.key == "budget_insight"
+            ? "bg-orange-100 text-orange-800 border-orange-200"
+            : item?.key == "champion_identified"
+            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+            : item?.key == "risk_or_objection"
+            ? "bg-orange-100 text-orange-800 border-orange-200"
+            : item?.key == "comptetior_mention"
+            ? "bg-blue-100 text-blue-800 border-blue-200"
+            : item?.key == "decision_maker_identified"
+            ? "bg-purple-100 text-purple-800 border-purple-200"
+            : item?.key == "timeline_insight"
+            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+            : "bg-yellow-100 text-yellow-800 border-yellow-200", // fallback
       };
       return acc;
     }, {});
   }
 
-  const getInsightsData = async () => {
-    const data = await mapInsightTypesToObject(dbHelpers.getSalesInsightTypes);
-    console.log(data, "get insight data");
-    return data;
-  };
-
   useEffect(() => {
-    getInsightsData();
+    const loadInsightTypes = async () => {
+      const types = await dbHelpers.getSalesInsightTypes();
+      const mapped = mapInsightTypesToObject(types);
+      setInsightTypes(mapped);
+    };
+    loadInsightTypes();
   }, []);
 
   useEffect(() => {
@@ -441,44 +395,40 @@ const CallInsights = () => {
   };
 
   const handleAddInsight = async () => {
-    if (!newInsight.content.trim()) return;
+    if (
+      !newInsight.content.trim() ||
+      !selectedProspect?.id ||
+      !newInsight.typeId
+    ) {
+      toast.error("Missing required fields");
+      return;
+    }
 
     try {
       const newEntry = {
-        id: Date.now().toString(),
-        type: newInsight.type,
         content: newInsight.content.trim(),
+        type_id: newInsight.typeId,
         relevance_score: 85,
         is_selected: true,
         source: "User Input",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        trend: "new",
+        timestamp: new Date().toISOString(),
+        prospect_id: selectedProspect.id,
       };
 
-      const updatedSalesInsights = [newEntry, ...insights];
-      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
-        sales_insights: updatedSalesInsights,
-      });
+      const inserted = await dbHelpers.insertSalesInsight(newEntry);
+      if (!inserted) throw new Error("Insert failed");
 
-      setInsights(updated.sales_insights);
-      setNewInsight({ content: "", type: "user_insight" });
+      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+        selectedProspect.id
+      );
+      setInsights(groupedInsights);
+
+      setNewInsight({ content: "", type: "user_insight", typeId: null });
       setIsAddingInsight(false);
-
-      // ✅ Update memory
-      setSelectedProspect((prev) => ({
-        ...prev,
-        fullInsight: {
-          ...prev.fullInsight,
-          sales_insights: updated.sales_insights,
-        },
-      }));
-      updateAllInsightsEntry(updated); // ✅ persist to allInsights
 
       toast.success("Insight added successfully");
     } catch (error) {
+      console.error(error);
       toast.error("Failed to add insight");
     }
   };
@@ -910,9 +860,19 @@ const CallInsights = () => {
                   <div className="flex items-center space-x-3">
                     <Select
                       value={newInsight.type}
-                      onValueChange={(value) =>
-                        setNewInsight((prev) => ({ ...prev, type: value }))
-                      }
+                      onValueChange={(value) => {
+                        const selectedType = Object.entries(insightTypes).find(
+                          ([key]) => key === value
+                        );
+
+                        const selectedTypeId = selectedType?.[1]?.id || null;
+
+                        setNewInsight((prev) => ({
+                          ...prev,
+                          type: value,
+                          typeId: selectedTypeId,
+                        }));
+                      }}
                     >
                       <SelectTrigger className="w-48">
                         <SelectValue />
@@ -965,7 +925,12 @@ const CallInsights = () => {
 
               {/* Insights List */}
               {insights?.map((insight, index) => {
-                const typeConfig = insightTypes[insight?.type || "my_insights"];
+                const typeConfig = insightTypes[insight?.type] || {
+                  label: "My Insight",
+                  color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                  icon: Lightbulb,
+                };
+                console.log(insightTypes, "get insight types 905");
                 const TypeIcon = typeConfig?.icon;
 
                 return (

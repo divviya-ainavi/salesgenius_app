@@ -17,60 +17,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "../../lib/supabase";
 
 // Mock prospects data - in real app, this would come from props or context
-const mockProspects = [
-  {
-    id: "acme_corp",
-    companyName: "Acme Corp",
-    prospectName: "Sarah Johnson",
-    title: "VP of Sales",
-    totalCalls: 4,
-    lastCallDate: "2024-01-15",
-    lastEngagement: "2 hours ago",
-    status: "hot",
-    dealValue: "$120K",
-    probability: 85,
-    nextAction: "Pilot program approval",
-    stakeholders: [
-      { name: "Sarah Johnson", role: "VP Sales", style: "Visual" },
-      { name: "Mike Chen", role: "Sales Ops", style: "Kinesthetic" },
-      { name: "Lisa Rodriguez", role: "Marketing Dir", style: "Auditory" },
-    ],
-  },
-  {
-    id: "techstart_inc",
-    companyName: "TechStart Inc",
-    prospectName: "John Smith",
-    title: "CEO",
-    totalCalls: 2,
-    lastCallDate: "2024-01-14",
-    lastEngagement: "1 day ago",
-    status: "warm",
-    dealValue: "$45K",
-    probability: 65,
-    nextAction: "Technical demo",
-    stakeholders: [
-      { name: "John Smith", role: "CEO", style: "Visual" },
-      { name: "Emma Wilson", role: "CTO", style: "Kinesthetic" },
-    ],
-  },
-  {
-    id: "global_solutions",
-    companyName: "Global Solutions Ltd",
-    prospectName: "Emma Wilson",
-    title: "Director of Operations",
-    totalCalls: 3,
-    lastCallDate: "2024-01-10",
-    lastEngagement: "5 days ago",
-    status: "warm",
-    dealValue: "$85K",
-    probability: 70,
-    nextAction: "Proposal review",
-    stakeholders: [
-      { name: "Emma Wilson", role: "Director Operations", style: "Auditory" },
-      { name: "David Brown", role: "IT Manager", style: "Kinesthetic" },
-    ],
-  },
-];
 
 export const ProspectSelector = ({
   selectedProspect,
@@ -81,12 +27,12 @@ export const ProspectSelector = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(!compact);
-
+  console.log(prospectList, "check prospect list");
   const filteredProspects = prospectList.filter(
     (p) =>
       p.id !== selectedProspect?.id &&
       (p.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.prospectName.toLowerCase().includes(searchTerm.toLowerCase()))
+        p.companyName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status) => {
@@ -114,11 +60,11 @@ export const ProspectSelector = ({
                   {selectedProspect.companyName}
                 </h3>
                 {console.log(
-                  selectedProspect.prospect_details,
+                  selectedProspect?.people,
                   "selected prospect compact"
                 )}
-                {selectedProspect.prospect_details?.length > 0 &&
-                  selectedProspect.prospect_details.map((detail, index) => (
+                {selectedProspect.people?.length > 0 &&
+                  selectedProspect.people.map((detail, index) => (
                     <p className="text-xs text-muted-foreground">
                       {detail.name} {detail.title && "•"} {detail.title}
                     </p>
@@ -192,10 +138,10 @@ export const ProspectSelector = ({
                 </h3>
                 {console.log(selectedProspect, "selected prospect details")}
 
-                {selectedProspect?.prospect_details?.length > 0 &&
-                  selectedProspect.prospect_details.map((detail, index) => (
-                    <p className="text-sm text-muted-foreground">
-                      {detail.name} {detail?.title && "•"} {detail.title}
+                {selectedProspect.people?.length > 0 &&
+                  selectedProspect.people.map((detail, index) => (
+                    <p className="text-xs text-muted-foreground">
+                      {detail.name} {detail.title && "•"} {detail.title}
                     </p>
                   ))}
               </div>
@@ -294,10 +240,10 @@ export const ProspectSelector = ({
                     <h4 className="font-medium text-sm">
                       {prospect.companyName}
                     </h4>
-                    {prospect.prospect_details?.length > 0 &&
-                      prospect.prospect_details.map((detail, index) => (
+                    {prospect.people?.length > 0 &&
+                      prospect.people.map((detail, index) => (
                         <p className="text-xs text-muted-foreground">
-                          {detail.name} {detail?.title && "•"} {detail.title}
+                          {detail.name} {detail.title && "•"} {detail.title}
                         </p>
                       ))}
                   </div>

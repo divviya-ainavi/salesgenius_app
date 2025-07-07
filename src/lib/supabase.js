@@ -2056,22 +2056,69 @@ export const dbHelpers = {
   },
 
   async getSalesInsightTypes() {
-    try {
-      const { data, error } = await supabase
-        .from("sales_insight_types")
-        .select("id, key, label, icon, color");
+    const { data, error } = await supabase.from("sales_insight_types").select("*");
+    if (error) {
+      console.error("Error fetching sales_insight_types:", error);
+      return [];
+    }
+    return data;
+  },
 
-      if (error) {
-        console.error("Error fetching sales insight types:", error.message);
+  async insertSalesInsight(insight) {
+    const { data, error } = await supabase
+      .from("sales_insights")
+      .insert([insight])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Insert error:", error.message);
+      return null;
+    }
+    return data;
+  },
+
+
+  async getActionItemsByProspectId(prospectId) {
+    try {
+      // Step 1: Fetch all action_item_ids from insights table for the prospect
+      const { data: insightRows, error: insightsError } = await supabase
+        .from("insights")
+        .select("action_item_ids")
+        .eq("prospect_id", prospectId);
+
+      if (insightsError) {
+        console.error("Error fetching insights:", insightsError.message);
         return [];
       }
 
-      return data;
+      // Step 2: Flatten all action_item_ids across rows
+      const allActionItemIds = insightRows
+        .flatMap((row) => row.action_item_ids || [])
+        .filter(Boolean);
+
+      if (allActionItemIds.length === 0) {
+        return [];
+      }
+
+      // Step 3: Fetch action item details using the IDs
+      const { data: actionItems, error: actionItemsError } = await supabase
+        .from("action_items")
+        .select("*")
+        .in("id", allActionItemIds);
+
+      if (actionItemsError) {
+        console.error("Error fetching action items:", actionItemsError.message);
+        return [];
+      }
+
+      return actionItems;
     } catch (err) {
-      console.error("Unexpected error fetching sales insight types:", err);
+      console.error("Unexpected error in getActionItemsByProspectId:", err);
       return [];
     }
   }
+
 
 
 
