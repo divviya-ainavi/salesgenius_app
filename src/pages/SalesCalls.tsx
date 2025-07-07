@@ -93,7 +93,7 @@ const SalesCalls = () => {
     organizationDetails,
     user,
     hubspotIntegration,
-      const insights = await dbHelpers.getInsights(userId);
+  } = useSelector((state) => state.auth);
 
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
