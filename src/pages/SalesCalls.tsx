@@ -93,7 +93,7 @@ const SalesCalls = () => {
     organizationDetails,
     user,
     hubspotIntegration,
-      const insights = await dbHelpers.getInsights(userId);
+  } = useSelector((state) => state.auth);
 
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
@@ -190,40 +190,21 @@ const SalesCalls = () => {
       const records = await dbHelpers.getFirefliesFiles(CURRENT_USER.id);
 
       const transformed = records.map((file) => ({
-      const processedCallsData = insights.map((insight) => {
-        // Get prospect and company information
-        const prospectNames = insight.peoples_id && insight.peoples_id.length > 0 
-          ? insight.peoples_id.map(id => `Prospect-${id}`).join(", ")
-          : "Unknown Prospect";
-        
-        const companyName = insight.prospect_id 
-          ? `Company-${insight.prospect_id}`
-          : "Unknown Company";
-
-        return {
-          id: insight.id,
-          callId: `Insight-${insight.id}`,
-          companyName,
-          prospectName: prospectNames,
-          date: new Date(insight.created_at).toISOString().split('T')[0],
-          duration: "Unknown",
-          status: insight.processing_status || "processed",
-          hasTranscript: !!insight.extracted_transcript,
-          hasSummary: !!insight.call_summary,
-          firefliesSummary: insight.call_summary || "No summary available",
-          transcript: insight.extracted_transcript || "No transcript available",
-          audioUrl: null,
-          insights: insight,
-          // Additional insight-specific data
-          actionItems: insight.action_item_ids || [],
-          salesInsights: insight.sales_insight_ids || [],
-          communicationStyles: insight.communication_style_ids || [],
-          callAnalysisOverview: insight.call_analysis_overview_id,
-          firefliesId: insight.fireflies_id,
-          uploadedFileId: insight.uploaded_file_id,
-          type: insight.type,
-        };
-      });
+        id: file.fireflies_id,
+        callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
+        companyName:
+          file.organizer_email?.split("@")[1]?.split(".")[0] || "Unknown",
+        prospectName: file.organizer_email || "Unknown",
+        date: new Date(file.datestring || file.created_at)
+          .toISOString()
+          .split("T")[0],
+        duration: "N/A",
+        status: file.is_processed ? "processed" : "unprocessed",
+        participants: file.participants ? Object.values(file.participants) : [],
+        meetingLink: file.meeting_link,
+        hasSummary: false,
+        hasTranscript: false,
+      }));
 
       setFirefliesCalls(transformed);
       setLastFirefliesSync(new Date());
