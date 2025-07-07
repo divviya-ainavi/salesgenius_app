@@ -947,20 +947,21 @@ const CallInsights = () => {
                       ) : (
                         <>
                           {insight?.insights?.map((x) => (
-                            <div
-                              key={x.id}
-                              className="ml-6 bg-muted/40 rounded-md p-3 text-sm relative group"
-                            >
-                              <p>{x.content}</p>
-                              {/* Tooltip on hover */}
-                              <div className="absolute bottom-full left-0 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs">
-                                <div>
-                                  <strong>Speaker:</strong>{" "}
-                                  {x.speaker || "Unknown"}
-                                </div>
-                                <div>
-                                  <strong>Relevance Score:</strong>{" "}
-                                  {x.relevance_score || "N/A"}
+                            <div key={x.id} className="mb-2 last:mb-0">
+                              <div className="bg-muted/40 rounded-md p-3 text-sm relative group">
+                                <p>{x.content}</p>
+                                {/* Tooltip on hover */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-medium">Speaker:</span>
+                                    <span>{x.speaker || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-medium">Relevance Score:</span>
+                                    <span>{x.relevance_score || "N/A"}</span>
+                                  </div>
+                                  {/* Arrow pointer */}
+                                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
                                 </div>
                               </div>
                             </div>
