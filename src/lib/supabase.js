@@ -1529,13 +1529,14 @@ export const dbHelpers = {
   async getProspectData(userId) {
     const { data, error } = await supabase
       .from("prospect")
-      .select("*, company(name)") // joins company name via foreign key
+      .select("*, company(id, name)") // ✅ Include company.id and company.name
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data;
   },
+
 
   async getCommunicationStylesData(communication_style_ids) {
     const { data, error } = await supabase
@@ -2117,7 +2118,23 @@ export const dbHelpers = {
       console.error("Unexpected error in getActionItemsByProspectId:", err);
       return [];
     }
+  },
+
+  async updateCompanyName(companyId, newName) {
+    const { data, error } = await supabase
+      .from("company")
+      .update({ name: newName })
+      .eq("id", companyId)
+      .select(); // optional: remove if you don't need the updated row
+
+    if (error) {
+      console.error("Error updating company name:", error);
+      throw error;
+    }
+
+    return data;
   }
+
 
 
 

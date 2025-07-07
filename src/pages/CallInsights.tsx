@@ -208,7 +208,7 @@ const CallInsights = () => {
         const enrichedInsights = await Promise.all(
           insights.map(async (insight) => {
             const people = await dbHelpers.getPeopleByProspectId(insight.id);
-            return { ...insight, people };
+            return { ...insight, people, company_id: insight?.company?.id };
           })
         );
 
@@ -240,6 +240,7 @@ const CallInsights = () => {
             id: defaultInsight.id,
             name: defaultInsight?.name,
             companyName,
+            company_id: defaultInsight?.company?.id,
             prospectName:
               people
                 ?.map((p) => p.name)
@@ -287,6 +288,7 @@ const CallInsights = () => {
     fetchInsightsAndSetProspect();
   }, [location.state]);
 
+  console.log(allInsights, "get all insights 290");
   const fetchCommunicationStyles = async (styleIds) => {
     if (!styleIds?.length) return [];
 
@@ -350,6 +352,8 @@ const CallInsights = () => {
     setEditingCompanyName(selectedProspect.companyName);
   };
 
+  console.log(selectedProspect, "check selected prospect");
+
   const handleSaveCompanyName = async () => {
     if (!editingCompanyName.trim()) {
       toast.error("Company name cannot be empty");
@@ -357,28 +361,30 @@ const CallInsights = () => {
     }
 
     try {
-      // Update the company_details in the call_insights table
-      const updatedCompanyDetails = {
-        ...selectedProspect.fullInsight.company_details,
-        name: editingCompanyName.trim(),
-      };
+      const newCompanyName = editingCompanyName.trim();
 
-      const updated = await dbHelpers.updateCallInsight(selectedProspect.id, {
-        company_details: updatedCompanyDetails,
-      });
+      // Update company table
+      await dbHelpers.updateCompanyName(
+        selectedProspect.company_id,
+        newCompanyName
+      );
 
-      // Update local state
+      // Update local state (important: update company.name if used in UI)
       setSelectedProspect((prev) => ({
         ...prev,
-        companyName: editingCompanyName.trim(),
+        companyName: newCompanyName,
+        company: {
+          ...prev.company,
+          name: newCompanyName,
+        },
         fullInsight: {
           ...prev.fullInsight,
-          company_details: updatedCompanyDetails,
+          company_details: {
+            ...prev.fullInsight.company_details,
+            name: newCompanyName,
+          },
         },
       }));
-
-      // Update allInsights array
-      updateAllInsightsEntry(updated);
 
       setIsEditingCompanyName(false);
       setEditingCompanyName("");
@@ -711,6 +717,7 @@ const CallInsights = () => {
                         id: prospect.id,
                         name,
                         companyName,
+                        company_id: prospect?.company_id,
                         prospectNames,
                         titles,
                         totalCalls,
