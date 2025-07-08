@@ -96,7 +96,7 @@ const LoginPage = () => {
         const profile = await authHelpers.getUserProfile(userId);
 
         if (!profile) throw new Error("User profile not found");
-        console.log("User profile:", profile);
+        // console.log("User profile:", profile);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -125,11 +125,11 @@ const LoginPage = () => {
           const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
           dispatch(setUserRoleId(roleId));
-          console.log(
-            "Role details 120:",
-            roles,
-            roles?.filter((x) => x.id == roleId)
-          );
+          // console.log(
+          //   "Role details 120:",
+          //   roles,
+          //   roles?.filter((x) => x.id == roleId)
+          // );
           if (roles?.length > 0) {
             dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
           } else {

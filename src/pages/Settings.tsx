@@ -336,7 +336,7 @@ export const Settings = () => {
   //   user,
   //   "check user details"
   // );
-  console.log(allTitles, "all titles");
+  // console.log(allTitles, "all titles");
   // Profile settings state
   const [profileSettings, setProfileSettings] = useState({
     name: user?.full_name,
@@ -351,17 +351,17 @@ export const Settings = () => {
     },
   });
 
-  console.log(
-    userProfileInfo,
-    userRole,
-    userRoleId,
-    titleName,
-    organizationDetails,
-    user,
-    "technology details"
-  );
+  // console.log(
+  //   userProfileInfo,
+  //   userRole,
+  //   userRoleId,
+  //   titleName,
+  //   organizationDetails,
+  //   user,
+  //   "technology details"
+  // );
 
-  console.log(organizationDetails, "check org details");
+  // console.log(organizationDetails, "check org details");
   // Organization settings state
   const [orgSettings, setOrgSettings] = useState({
     name: organizationDetails?.name,
@@ -453,7 +453,7 @@ export const Settings = () => {
         if (user?.title_id == null) {
           // Super Admin
           const allOrgs = await dbHelpers.getAllOrganizations();
-          console.log(allOrgs, "all orgs 445");
+          // console.log(allOrgs, "all orgs 445");
           // users = allOrgs.flatMap((org) =>
           //   org.profiles.map((profile) => ({
           //     ...profile,
@@ -483,7 +483,7 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
-  console.log(getOrgList, getUserslist, "get org and users list");
+  // console.log(getOrgList, getUserslist, "get org and users list");
 
   const handleSaveProfile = async () => {
     try {
@@ -548,7 +548,7 @@ export const Settings = () => {
     );
 
     if (response.success) {
-      console.log("Organization settings updated:", response?.data);
+      // console.log("Organization settings updated:", response?.data);
       dispatch(
         setOrganizationDetails({
           ...organizationDetails,
@@ -566,7 +566,7 @@ export const Settings = () => {
       toast.error("Failed to update organization settings");
     }
   };
-  console.log(organizationDetails, "Organization settings updated:387");
+  // console.log(organizationDetails, "Organization settings updated:387");
   const handleSaveSecurity = () => {
     toast.success("Security settings saved successfully");
   };
@@ -684,13 +684,13 @@ export const Settings = () => {
           body: formData,
         }
       );
-      console.log(response, "check response");
+      // console.log(response, "check response");
       toast.success(
         `Invitation ${
           result.status === "re-invited" ? "re-" : ""
         }sent to ${email}`
       );
-      console.log("Invite ID:", result.id); // optional for webhook trigger
+      // console.log("Invite ID:", result.id); // optional for webhook trigger
     } else if (result.status === "already-invited") {
       toast.info("User was already invited within the last 24 hours");
     } else {
@@ -911,11 +911,11 @@ export const Settings = () => {
     setHubspotToken(""); // Clear the input field
   };
 
-  console.log(
-    user,
-    organizationDetails,
-    "user and org details in settings page"
-  );
+  // console.log(
+  //   user,
+  //   organizationDetails,
+  //   "user and org details in settings page"
+  // );
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -1840,12 +1840,12 @@ export const Settings = () => {
           <TabsContent value="users" className="mt-6">
             <div className="space-y-6">
               {/* Invite User */}
-              {console.log(
+              {/* {console.log(
                 userRoleId,
                 userRole,
                 "check details from settings",
                 user
-              )}
+              )} */}
               {(userRole?.id == 2 || user?.title_id == null) && (
                 <Card>
                   <CardHeader>
@@ -1872,11 +1872,11 @@ export const Settings = () => {
                           <label className="text-sm font-medium mb-2 block">
                             Role
                           </label>
-                          {console.log(
+                          {/* {console.log(
                             newUserRole,
                             "check new user role",
                             allTitles
-                          )}
+                          )} */}
                           <Select
                             value={newUserRole?.toString()}
                             onValueChange={(value) =>

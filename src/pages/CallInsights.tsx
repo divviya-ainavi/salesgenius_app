@@ -129,6 +129,7 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const { storedProspectId } = useSelector((state) => state.prospect);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -207,7 +208,7 @@ const CallInsights = () => {
     const fetchInsightsAndSetProspect = async () => {
       try {
         let insights = await dbHelpers.getProspectData(user?.id);
-        console.log(insights, "get insights data");
+        // console.log(insights, "get insights data");
 
         // Sort insights by created_at descending
         insights = insights.sort(
@@ -277,12 +278,12 @@ const CallInsights = () => {
             call_summary: defaultInsight?.call_summary || "",
           };
 
-          console.log(
-            prospect,
-            "selected prospect",
-            defaultInsight,
-            "get default insight"
-          );
+          // console.log(
+          //   prospect,
+          //   "selected prospect",
+          //   defaultInsight,
+          //   "get default insight"
+          // );
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
         } else {
@@ -297,7 +298,7 @@ const CallInsights = () => {
     fetchInsightsAndSetProspect();
   }, [location.state]);
 
-  console.log(allInsights, "get all insights 290");
+  // console.log(allInsights, "get all insights 290");
   const fetchCommunicationStyles = async (styleIds) => {
     if (!styleIds?.length) return [];
 
@@ -348,7 +349,7 @@ const CallInsights = () => {
     const peopleList = await dbHelpers.getPeopleByProspectId(insightData.id);
     setPeople(peopleList);
   };
-  console.log(people, "get people list");
+  // console.log(people, "get people list");
 
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
@@ -361,7 +362,7 @@ const CallInsights = () => {
     setEditingCompanyName(selectedProspect.companyName);
   };
 
-  console.log(selectedProspect, "check selected prospect");
+  // console.log(selectedProspect, "check selected prospect");
 
   const handleSaveCompanyName = async () => {
     if (!editingCompanyName.trim()) {
@@ -623,7 +624,7 @@ const CallInsights = () => {
       prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prospect?.prospectName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  console.log(allInsights, "all insights data");
+  // console.log(allInsights, "all insights data");
   const getStatusColor = (status) => {
     switch (status) {
       case "hot":
@@ -651,7 +652,7 @@ const CallInsights = () => {
         return null;
     }
   };
-  console.log(insights, "get list of insights");
+  // console.log(insights, "get list of insights");
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
@@ -705,7 +706,7 @@ const CallInsights = () => {
           <div className="relative">
             <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory scroll-smooth">
               {filteredProspects.map((prospect) => {
-                console.log(prospect, "get prospect details");
+                // console.log(prospect, "get prospect details");
                 const companyName = prospect.company?.name || "Unknown Company";
                 const prospectNames =
                   prospect.people
@@ -967,7 +968,7 @@ const CallInsights = () => {
                   color: "bg-yellow-100 text-yellow-800 border-yellow-200",
                   icon: Lightbulb,
                 };
-                console.log(insightTypes, "get insight types 905");
+                // console.log(insightTypes, "get insight types 905");
                 const TypeIcon = typeConfig?.icon;
 
                 return (

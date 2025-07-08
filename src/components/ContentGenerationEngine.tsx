@@ -66,6 +66,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
+import { useSelector } from "react-redux";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -181,6 +182,15 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [presentationPromptId, setPresentationPromptId] = useState("");
   const [emailTemplateId, setEmailTemplateId] = useState("");
   const [commStylesData, setCommStylesData] = useState([]);
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -260,16 +270,16 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   // Load prospects from database
   useEffect(() => {
     const fetchProspects = async () => {
-      if (!CURRENT_USER.id) {
-        console.log("No user ID available, skipping prospect fetch");
+      if (!user.id) {
+        // console.log("No user ID available, skipping prospect fetch");
         setIsLoadingProspects(false);
         return;
       }
 
       setIsLoadingProspects(true);
       try {
-        const insights = await dbHelpers.getProspectData(CURRENT_USER.id);
-        console.log("Fetched email insights:", insights);
+        const insights = await dbHelpers.getProspectData(user.id);
+        // console.log("Fetched email insights:", insights);
 
         const enrichedProspects = insights.map((insight) => ({
           id: insight.id,
@@ -445,7 +455,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       setIsAnalyzing(false);
     }, 1500);
   };
-  console.log(selectedProspect, "check selected prospect");
+  //   console.log(selectedProspect, "check selected prospect");
   const handleGenerate = async () => {
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
@@ -477,7 +487,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         );
         const json = await response.json(); // Convert response to JSON
         const output = json?.[0]?.output;
-        console.log(response, "follow up email");
+        // console.log(response, "follow up email");
 
         const postData = {
           blocks: output?.blocks,
@@ -515,7 +525,7 @@ ${output?.blocks
         const recipient = stakeholders.filter((s) =>
           selectedRecipients.includes(s.id)
         );
-        console.log(selectedRecipients, "selected recipients", recipient);
+        // console.log(selectedRecipients, "selected recipients", recipient);
         const response = await fetch(
           "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email-v2",
           {
@@ -534,7 +544,7 @@ ${output?.blocks
         );
         const json = await response.json(); // Convert response to JSON
         const output = json?.[0]?.output;
-        console.log(response, "follow up email");
+        // console.log(response, "follow up email");
 
         const postData = {
           subject: output?.subject || output?.Subject,
@@ -696,7 +706,7 @@ ${output?.blocks
       toast.success(`Refinement applied: ${refinementPrompt}`);
     }, 1500);
   };
-  console.log(selectedProspect, "selected prospect");
+  //   console.log(selectedProspect, "selected prospect");
   const handleCopy = () => {
     if (!generatedArtefact) return;
 
@@ -1279,11 +1289,11 @@ ${updatedBlocks
                       >
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            {console.log(
+                            {/* {console.log(
                               play,
                               selectedPlay,
                               "check play title"
-                            )}
+                            )} */}
                             <h4 className="font-medium">{play.title}</h4>
                             {play.title === selectedProspect?.sales_play && (
                               <Tooltip>
@@ -1333,9 +1343,11 @@ ${updatedBlocks
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {availableObjectives.map((objective) => {
                       const isDisabled = isObjectiveDisabled(objective.id);
-                      const isRecommended = isObjectiveRecommended(
-                        objective.id
-                      );
+
+                      const isRecommended =
+                        selectedProspect?.secondary_objectives?.includes(
+                          objective?.label
+                        );
 
                       return (
                         <div

@@ -1152,7 +1152,7 @@ export const dbHelpers = {
       const { data, error } = await supabase.from("user_status")
         .select("*")
       // .order("id", { ascending: true }); // optional ordering
-      console.log(data, "check get status data")
+      // console.log(data, "check get status data")
       if (error) {
         throw error;
       }
@@ -1282,7 +1282,7 @@ export const dbHelpers = {
   },
 
   async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id) {
-    console.log("check response from company", userId, organizationId, isFireflies, file, data, company_id, prospect_id)
+    // console.log("check response from company", userId, organizationId, isFireflies, file, data, company_id, prospect_id)
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -1296,7 +1296,7 @@ export const dbHelpers = {
       processing_status = "completed",
     } = data || {};
     const companyName = company_details?.[0]?.name;
-    console.log(company_details, companyName, "check response from company", data)
+    // console.log(company_details, companyName, "check response from company", data)
     // 1. Handle Company
     const { data: existingCompany } = await supabase
       .from("company")
@@ -1314,7 +1314,7 @@ export const dbHelpers = {
         .single();
       companyId = newCompany.id;
     }
-    console.log(sales_call_prospect?.split('_')?.[0], "sales call prospect")
+    // console.log(sales_call_prospect?.split('_')?.[0], "sales call prospect")
     // 2. Handle Prospect
     const { data: existingProspect } = await supabase
       .from("prospect")
@@ -1441,7 +1441,7 @@ export const dbHelpers = {
       }
     }
 
-    console.log(call_analysis_overview, "check call analysis overview")
+    // console.log(call_analysis_overview, "check call analysis overview")
     // 6. Handle Call Analysis Overview
     const { data: analysis } = await supabase
       .from("call_analysis_overview")
@@ -1519,7 +1519,7 @@ export const dbHelpers = {
         communication_style_ids: communicationStyleIds,
       })
       .eq("id", prospectId);
-    console.log("data will be stored properly")
+    // console.log("data will be stored properly")
     return {
       status: "success",
       callInsight
@@ -1868,7 +1868,7 @@ export const dbHelpers = {
   // },
 
   async getSalesInsightsByProspectId(prospectId) {
-    console.log("called get sales insights");
+    // console.log("called get sales insights");
 
     // Step 1: Get all insights for the given prospect_id
     const { data: insightsData, error: insightsError } = await supabase
@@ -1952,19 +1952,19 @@ export const dbHelpers = {
     }
 
     let sortedResults = [];
-    console.log(prospectData, Array.isArray(prospectData?.sales_insight_priority_list), "check prospect data 1956")
+    // console.log(prospectData, Array.isArray(prospectData?.sales_insight_priority_list), "check prospect data 1956")
     if (
       Array.isArray(prospectData?.sales_insight_priority_list) &&
       prospectData.sales_insight_priority_list.length > 0
     ) {
-      console.log("1961")
+      // console.log("1961")
       const parsedPriorityList = prospectData.sales_insight_priority_list.map((item) =>
         typeof item === "string" ? JSON.parse(item) : item
       );
       const priorityMap = Object.fromEntries(
         parsedPriorityList.map((item) => [item.type_id, item.priority])
       );
-      console.log(priorityMap, "check priority map 1965")
+      // console.log(priorityMap, "check priority map 1965")
       sortedResults = [...computed].sort((a, b) => {
         const aPriority = priorityMap[a.type_id] || Infinity;
         const bPriority = priorityMap[b.type_id] || Infinity;
@@ -2131,7 +2131,38 @@ export const dbHelpers = {
     }
 
     return data;
+  },
+  async getInsightsByUserId(userId) {
+    if (!userId) {
+      console.error("User ID is required to fetch insights.");
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("insights")
+      .select(`
+      *,
+      prospect:prospect_id (
+        id,
+        name,
+        company_id,
+        company:company_id (
+          id,
+          name
+        )
+      )
+    `)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching insights with joins:", error.message);
+      return [];
+    }
+
+    return data;
   }
+
 
 
 

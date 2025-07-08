@@ -104,7 +104,7 @@ const SalesCalls = () => {
     // Track page visit
     trackFeatureUsage("sales_calls", "page_visit");
   }, []);
-
+  // console.log(selectedCompanyId, "check selected company id");
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
@@ -150,13 +150,16 @@ const SalesCalls = () => {
 
   const loadProcessedCalls = async () => {
     try {
-      const insights = await dbHelpers.getUserCallInsights(user?.id);
+      const insights = await dbHelpers.getInsightsByUserId(user?.id);
+      // console.log(insights, "check insights 154");
       setProcessedCalls(
         insights.map((insight) => ({
           id: insight.id,
           callId: `Call ${insight.id.slice(-5)}`,
-          companyName: insight.company_details?.name || "Unknown Company",
-          prospectName: insight.prospect_details?.name || "Unknown Prospect",
+          companyName: insight.prospect?.company?.name || "Unknown Company",
+          prospectName: insight.prospect?.name || "Unknown Prospect",
+          prospect_id: insight.prospect?.id,
+          company_id: insight?.prospect?.company_id,
           date: new Date(insight.created_at).toISOString().split("T")[0],
           duration: "N/A",
           status: insight.processing_status,
@@ -264,7 +267,7 @@ const SalesCalls = () => {
       }
 
       const result = await response.json(); // Optional: log or use the response
-      console.log("Fireflies sync result:", result);
+      // console.log("Fireflies sync result:", result);
 
       // Then reload transcripts
       await loadFirefliesTranscripts();
@@ -617,7 +620,7 @@ const SalesCalls = () => {
 
       if (data && data.length > 0) {
         const processedData = data[0];
-        console.log(processedData, "check processed data");
+        // console.log(processedData, "check processed data");
         const result = await dbHelpers.processSalesCall(
           user?.id,
           user?.organization_id,
@@ -627,7 +630,7 @@ const SalesCalls = () => {
           selectedCompanyId,
           selectedProspectId
         );
-        console.log(result, "check result");
+        // console.log(result, "check result");
         if (result?.status === "success") {
           const savedInsight = result.callInsight;
 
@@ -703,7 +706,7 @@ const SalesCalls = () => {
                 // 4. Update prospect with the new style IDs
 
                 await dbHelpers.updateProspectWithNewStyles(
-                  selectedProspectId,
+                  savedInsight?.prospect_id,
                   {
                     sales_play: cumulativeData?.[0]?.recommended_sales_play,
                     call_summary: processedData?.call_summary,
@@ -742,7 +745,9 @@ const SalesCalls = () => {
             toast.success("File processed successfully!");
             navigate("/call-insights", {
               state: {
-                selectedCall: processedCall,
+                selectedCall: {
+                  id: !prospectCheck ? savedInsight?.id : selectedProspectId,
+                },
                 source: processedCall.source,
                 aiProcessedData: processedData,
               },
@@ -805,7 +810,7 @@ const SalesCalls = () => {
       call.prospectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       call.callId.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  console.log(uploadedFiles, "check uploaded files");
+  // console.log(uploadedFiles, "check uploaded files");
   const filteredUploadedFiles = uploadedFiles.filter(
     (file) =>
       file.filename.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -1291,12 +1296,12 @@ const SalesCalls = () => {
                             )
                           }
                         </div>
-                        {console.log(
+                        {/* {console.log(
                           processingFileId,
                           call?.id,
                           call,
                           "check call data"
-                        )}
+                        )} */}
                         {call.status !== "failed" && (
                           <TrackedButton
                             onClick={() => handleProcessFile(call, "fireflies")}
@@ -1406,7 +1411,7 @@ const SalesCalls = () => {
                               processingFirefliesId == call?.id
                             }
                             onClick={() =>
-                              handleViewTranscript(call, "fireflies")
+                              handleViewTranscript(call, call.type)
                             }
                             trackingName="View Original Transcript"
                             trackingContext={{
@@ -1417,7 +1422,7 @@ const SalesCalls = () => {
                             <FileText className="w-3 h-3 mr-1" />
                             View Original Transcript
                           </TrackedButton>
-                          {console.log("check type", call)}
+                          {/* {console.log("check type", call)} */}
                           {call.type !== "fireflies" && (
                             <TrackedButton
                               variant="outline"
@@ -1434,6 +1439,7 @@ const SalesCalls = () => {
                             </TrackedButton>
                           )}
                         </div>
+                        {/* {console.log(call, "check selected call")} */}
                         <div className="flex items-center space-x-2">
                           {call.hasInsights && (
                             <TrackedButton
@@ -1445,7 +1451,9 @@ const SalesCalls = () => {
                                 });
                                 navigate("/call-insights", {
                                   state: {
-                                    selectedCall: call,
+                                    selectedCall: {
+                                      id: call?.prospect_id,
+                                    },
                                     source: call.source,
                                     aiProcessedData: call.aiProcessedData,
                                     viewMode: "insights",

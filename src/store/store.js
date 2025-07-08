@@ -5,6 +5,8 @@ import { persistStore, persistReducer } from "redux-persist";
 // Reducers
 import authReducer from "./slices/authSlice";
 import orgReducer from "./slices/orgSlice";
+import prospectReducer from "./slices/prospectSlice";
+
 
 // Define unique persist configs for each slice
 const authPersistConfig = {
@@ -17,15 +19,22 @@ const orgPersistConfig = {
     storage,
 };
 
+
+const prospectPersistConfig = {
+    key: "prospect",
+    storage,
+};
 // Wrap reducers with persistReducer
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 const orPersistedgReducer = persistReducer(orgPersistConfig, orgReducer);
+const prospectPersistedgReducer = persistReducer(prospectPersistConfig, prospectReducer);
 
 // Create the store
 export const store = configureStore({
     reducer: {
         auth: persistedAuthReducer,
-        org: orPersistedgReducer
+        org: orPersistedgReducer,
+        prospect: prospectPersistedgReducer
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
