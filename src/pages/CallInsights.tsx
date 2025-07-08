@@ -1208,23 +1208,9 @@ const CallInsights = () => {
                     const ModalityIcon = stakeholder.modality
                       ? communicationModalityIcons[stakeholder.modality.type]
                       : null;
-                             <TooltipProvider>
-                               <Tooltip>
-                                 <TooltipTrigger asChild>
-                                   <Badge
-                                     variant="outline"
-                                     className="text-xs bg-blue-100 text-blue-800 border-blue-200 cursor-help"
-                                   >
-                                     {insight.type_label}
-                                   </Badge>
-                                 </TooltipTrigger>
-                                 <TooltipContent>
-                                   <p className="max-w-xs text-sm">
-                                     {insight.type_description || "No description available"}
-                                   </p>
-                                 </TooltipContent>
-                               </Tooltip>
-                             </TooltipProvider>
+
+                    return (
+                      <div key={stakeholder.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-2">
                             <h3 className="font-semibold flex items-center space-x-2">
@@ -1361,6 +1347,7 @@ const CallInsights = () => {
                           </div>
                         </div>
                       </div>
+                    );
                     );
                   })}
                 </div>
