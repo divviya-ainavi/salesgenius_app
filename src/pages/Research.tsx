@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +9,7 @@ import {
   Search,
   ThumbsUp,
   ThumbsDown,
+  ChevronDown,
   Copy,
   ExternalLink,
   Loader2,
@@ -16,12 +18,18 @@ import {
   Target,
   Lightbulb,
   FileText,
+  CheckSquare,
+  AlertTriangle,
   Plus,
+  TrendingUp,
+  BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface ResearchFormData {
   companyName: string;
@@ -30,10 +38,18 @@ interface ResearchFormData {
 }
 
 interface ResearchResult {
-  companyAnalysis: string;
-  prospectAnalysis?: string;
+  companyName: string;
+  companyOverview: string;
+  sector: string;
+  size: string;
+  geographicScope: string;
+  natureOfBusiness: string;
+  keyPositioning: string;
+  growthOpportunities: string[];
+  marketTrends: string[];
+  summaryNote: string;
   sources: string[];
-  recommendations: string;
+  recommendations: any;
 }
 
 const Research = () => {
@@ -52,10 +68,19 @@ const Research = () => {
   );
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
+  const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
 
   // Form validation
   const isFormValid =
     formData.companyName.trim() !== "" && formData.companyWebsite.trim() !== "";
+
+  const toggleQuestion = (index: number) => {
+    setExpandedQuestions(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
 
   // Extract prospect name from LinkedIn URL
   const extractProspectNameFromLinkedInUrl = (linkedInUrl: string): string => {
@@ -255,15 +280,23 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         throw new Error("Invalid response format");
       }
 
+      const output = result.output || result;
+
       setResearchResult({
-        companyAnalysis:
-          result.companyAnalysis +
-          (result.prospectAnalysis
-            ? `\n\n---\n\n${result.prospectAnalysis}`
-            : ""),
-        sources: result.sources || [],
-        recommendations: result.recommendations || "",
+        companyName: output.companyName || formData.companyName,
+        companyOverview: output.companyOverview || "",
+        sector: output.sector || "",
+        size: output.size || "",
+        geographicScope: output.geographicScope || "",
+        natureOfBusiness: output.natureOfBusiness || "",
+        keyPositioning: output.keyPositioning || "",
+        growthOpportunities: output.growthOpportunities || [],
+        marketTrends: output.marketTrends || [],
+        summaryNote: output.summaryNote || "",
+        sources: output.sources || [],
+        recommendations: output.recommendations || {},
       });
+
       await dbHelpers.saveResearchCompany({
         user_id: CURRENT_USER.id,
         company_name: formData.companyName,
@@ -271,11 +304,12 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         prospect_urls: formData.prospectLinkedIn.filter(
           (url) => url.trim() !== ""
         ),
-        company_analysis: result.companyAnalysis,
-        prospect_analysis: result.prospectAnalysis || "",
-        sources: result.sources || [],
-        recommendations: result.recommendations || "",
+        company_analysis: output.companyOverview,
+        prospect_analysis: "",
+        sources: output.sources || [],
+        recommendations: JSON.stringify(output.recommendations || {}),
       });
+
       setCurrentView("results");
       toast.success(`Research completed for ${formData.companyName}`);
     } catch (error) {
@@ -304,7 +338,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     if (!researchResult) return;
 
     try {
-      await navigator.clipboard.writeText(researchResult.companyAnalysis);
+      await navigator.clipboard.writeText(JSON.stringify(researchResult, null, 2));
       toast.success("Analysis copied to clipboard");
     } catch (error) {
       toast.error("Failed to copy to clipboard");
@@ -511,7 +545,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 className="flex items-center space-x-1"
               >
                 <FileText className="w-4 h-4" />
-                <span>Analysis</span>
+                <span>Company Analysis</span>
               </TabsTrigger>
               <TabsTrigger
                 value="source"
@@ -525,7 +559,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 className="flex items-center space-x-1"
               >
                 <Target className="w-4 h-4" />
-                <span>Recommendation</span>
+                <span>Recommendations</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -556,34 +590,115 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           {activeTab === "analysis" && (
             <div className="space-y-6">
               <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Building className="w-5 h-5" />
+                    <span>{researchResult?.companyName}</span>
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="p-6">
-                  <div className="prose prose-sm max-w-none">
-                    <div
-                      className="whitespace-pre-line leading-relaxed"
-                      // dangerouslySetInnerHTML={{
-                      //   __html:
-                      //     researchResult?.companyAnalysis
-                      //       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      //       .replace(/¹/g, "<sup>1</sup>")
-                      //       .replace(/²/g, "<sup>2</sup>")
-                      //       .replace(/³/g, "<sup>3</sup>")
-                      //       .replace(/⁴/g, "<sup>4</sup>")
-                      //       .replace(/⁵/g, "<sup>5</sup>")
-                      //       .replace(/⁶/g, "<sup>6</sup>")
-                      //       .replace(/⁷/g, "<sup>7</sup>")
-                      //       .replace(/⁸/g, "<sup>8</sup>")
-                      //       .replace(/⁹/g, "<sup>9</sup>") || "",
-                      // }}
-                      dangerouslySetInnerHTML={{
-                        __html:
-                          researchResult?.companyAnalysis
-                            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                            .replace(
-                              /^([A-Za-z\s&]+):/gm,
-                              "<strong>$1:</strong>"
-                            ) || "",
-                      }}
-                    />
+                  <div className="space-y-6">
+                    {/* Company Overview */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Company Overview
+                      </h3>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {researchResult?.companyOverview}
+                      </p>
+                    </div>
+
+                    {/* Key Details Grid */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Sector</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {researchResult?.sector}
+                          </Badge>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Company Size</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {researchResult?.size}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Geographic Scope</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {researchResult?.geographicScope}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Nature of Business</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {researchResult?.natureOfBusiness}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Key Positioning</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {researchResult?.keyPositioning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Growth Opportunities */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Growth Opportunities
+                      </h3>
+                      <ul className="space-y-2">
+                        {researchResult?.growthOpportunities?.map((opportunity, index) => (
+                          <li key={index} className="flex items-start space-x-2">
+                            <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {opportunity}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Market Trends */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Market Trends
+                      </h3>
+                      <ul className="space-y-2">
+                        {researchResult?.marketTrends?.map((trend, index) => (
+                          <li key={index} className="flex items-start space-x-2">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {trend}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Summary Note */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <Lightbulb className="w-4 h-4 mr-2" />
+                        Summary Note
+                      </h3>
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          {researchResult?.summaryNote}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -615,41 +730,138 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
           {activeTab === "source" && (
             <Card>
+              <CardHeader>
+                <CardTitle>Sources</CardTitle>
+              </CardHeader>
               <CardContent className="p-6">
-                <ol className="space-y-2 list-decimal list-inside">
-                  {researchResult?.sources.map((source, index) => (
-                    <li key={index} className="text-sm leading-relaxed">
-                      {source}
-                    </li>
-                  ))}
-                </ol>
+                {researchResult?.sources && researchResult.sources.length > 0 ? (
+                  <ol className="space-y-2 list-decimal list-inside">
+                    {researchResult.sources.map((source, index) => (
+                      <li key={index} className="text-sm leading-relaxed">
+                        {source}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No sources available for this research</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
           {activeTab === "recommendation" && (
             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Sales Recommendations</span>
+                </CardTitle>
+              </CardHeader>
               <CardContent className="p-6">
-                <div className="prose prose-sm max-w-none">
-                  <div
-                    className="whitespace-pre-line leading-relaxed"
-                    // dangerouslySetInnerHTML={{
-                    //   __html:
-                    //     researchResult?.recommendations.replace(
-                    //       /\*\*(.*?)\*\*/g,
-                    //       "<strong>$1</strong>"
-                    //     ) || "",
-                    // }}
-                    dangerouslySetInnerHTML={{
-                      __html:
-                        researchResult?.recommendations
-                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                          .replace(
-                            /^([A-Za-z\s&]+):/gm,
-                            "<strong>$1:</strong>"
-                          ) || "",
-                    }}
-                  />
+                <div className="space-y-6">
+                  {/* Primary Meeting Goal */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Target className="w-4 h-4 mr-2" />
+                      Primary Meeting Goal
+                    </h3>
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                      <p className="text-sm leading-relaxed">
+                        {researchResult?.recommendations?.primaryMeetingGoal}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Key Talking Points */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Key Talking Points
+                    </h3>
+                    <ul className="space-y-2">
+                      {researchResult?.recommendations?.keyTalkingPoints?.map((point, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground leading-relaxed">
+                            {point}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* High-Impact Sales Questions */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Lightbulb className="w-4 h-4 mr-2" />
+                      High-Impact Sales Questions
+                    </h3>
+                    <div className="space-y-2">
+                      {researchResult?.recommendations?.highImpactSalesQuestions?.map((question, index) => (
+                        <Collapsible key={index}>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-between p-3 h-auto text-left"
+                              onClick={() => toggleQuestion(index)}
+                            >
+                              <span className="text-sm font-medium">Q{index + 1}: {question.substring(0, 60)}...</span>
+                              <ChevronDown 
+                                className={cn(
+                                  "w-4 h-4 transition-transform",
+                                  expandedQuestions.includes(index) && "rotate-180"
+                                )}
+                              />
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="px-3 pb-3">
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {question}
+                            </p>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Anticipated Objections */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Anticipated Objections
+                    </h3>
+                    <ul className="space-y-2">
+                      {researchResult?.recommendations?.anticipatedObjections?.map((objection, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground leading-relaxed">
+                            {objection}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Meeting Checklist */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      Meeting Preparation Checklist
+                    </h3>
+                    <ul className="space-y-2">
+                      {researchResult?.recommendations?.meetingChecklist?.map((item, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground leading-relaxed">
+                            {item}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
             </Card>
