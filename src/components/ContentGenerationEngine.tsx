@@ -320,15 +320,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           }
 
           // Set recommended play and objectives
-          const recommendedPlayId = getRecommendedPlay(
-            initialProspect.crmStage
-          );
-          const recommendedObjectiveIds =
-            getRecommendedObjectives(recommendedPlayId);
-
-          setRecommendedPlay(recommendedPlayId);
-          setRecommendedObjectives(recommendedObjectiveIds);
-          setSelectedPlay(recommendedPlayId);
+          setRecommendedPlay(initialProspect.sales_play);
+          setRecommendedObjectives(initialProspect.secondary_objectives || []);
+          setSelectedPlay(initialProspect.sales_play);
         }
       } catch (err) {
         console.error("Failed to load email insights:", err);
@@ -441,15 +435,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
 
     // Recommendation logic
     setTimeout(() => {
-      const recommendedPlayId = getRecommendedPlay(
-        prospect.crmStage || "Discovery"
-      );
-      const recommendedObjectiveIds =
-        getRecommendedObjectives(recommendedPlayId);
-
-      setRecommendedPlay(recommendedPlayId);
-      setRecommendedObjectives(recommendedObjectiveIds);
-      setSelectedPlay(recommendedPlayId);
+      setRecommendedPlay(prospect?.sales_play);
+      setRecommendedObjectives(prospect?.secondary_objectives || []);
+      setSelectedPlay(prospect?.sales_play);
       setIsAnalyzing(false);
     }, 1500);
   };
@@ -1299,9 +1287,7 @@ ${updatedBlocks
                                 <TooltipContent>
                                   <p className="max-w-xs">
                                     Recommended based on the current CRM stage (
-                                    {selectedProspect.crmStage}) and previous
-                                    interactions with{" "}
-                                    {selectedProspect.companyName}.
+                                    {selectedProspect.crmStage})...
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
