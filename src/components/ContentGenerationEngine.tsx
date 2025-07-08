@@ -322,7 +322,10 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           // Set recommended play and objectives
           setRecommendedPlay(initialProspect.sales_play);
           setRecommendedObjectives(initialProspect.secondary_objectives || []);
-          setSelectedPlay(initialProspect.sales_play);
+          const getPlayId = salesPlays?.find(
+            (x) => x.title == initialProspect.sales_play
+          );
+          setSelectedPlay(getPlayId?.id);
         }
       } catch (err) {
         console.error("Failed to load email insights:", err);
@@ -399,7 +402,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     if (!prospect) return;
 
     setSelectedProspect(prospect);
-    setSelectedPlay("");
+
     setSelectedObjectives([]);
     setGeneratedArtefact(null);
     setSelectedRecipients([]);
@@ -437,7 +440,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     setTimeout(() => {
       setRecommendedPlay(prospect?.sales_play);
       setRecommendedObjectives(prospect?.secondary_objectives || []);
-      setSelectedPlay(prospect?.sales_play);
+      const getPlayId = salesPlays?.find((x) => x.title == prospect.sales_play);
+      setSelectedPlay(getPlayId?.id);
       setIsAnalyzing(false);
     }, 1500);
   };
@@ -1275,8 +1279,13 @@ ${updatedBlocks
                       >
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
+                            {console.log(
+                              play,
+                              selectedPlay,
+                              "check play title"
+                            )}
                             <h4 className="font-medium">{play.title}</h4>
-                            {play.id === recommendedPlay && (
+                            {play.title === selectedProspect?.sales_play && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge className="bg-green-100 text-green-800 border-green-200">
