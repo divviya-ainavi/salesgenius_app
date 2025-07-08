@@ -1708,7 +1708,8 @@ export const dbHelpers = {
       const { data: salesInsights, error: salesError } = await supabase
         .from("sales_insights")
         .select("content")
-        .in("id", allSalesInsightIds);
+        .in("id", allSalesInsightIds)
+        .eq("is_active", true);
 
       if (salesError) {
         console.error("Error fetching sales_insights", salesError);
@@ -1908,7 +1909,8 @@ export const dbHelpers = {
       const { data: insightsData, error: insightsDetailError } = await supabase
         .from("sales_insights")
         .select("*, type_id")
-        .in("id", allInsightIds);
+        .in("id", allInsightIds)
+        .eq("is_active", true);
 
       if (insightsDetailError) {
         console.error("Error fetching sales insights", insightsDetailError);
@@ -2003,8 +2005,10 @@ export const dbHelpers = {
         .from("sales_insights")
         .update({ content: newContent })
         .eq("id", id)
+        .eq("is_active", true)
         .select()
-        .single(); // return the updated row
+        .single();
+
 
       if (error) {
         console.error("Error updating sales_insight content:", error);
@@ -2073,7 +2077,7 @@ export const dbHelpers = {
       .from("sales_insights")
       .insert([insight])
       .select()
-      .single();
+      .single()
 
     if (error) {
       console.error("Insert error:", error.message);
@@ -2082,6 +2086,61 @@ export const dbHelpers = {
     return data;
   },
 
+  async deleteSalesInsightContent(insightId, updateFields = {}) {
+    const { data, error } = await supabase
+      .from("sales_insights")
+      .update(updateFields)
+      .eq("id", insightId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase deleteSalesInsightContent error:", error);
+      throw error;
+    }
+
+    return data;
+  },
+
+
+  // Add this inside your dbHelpers or utils file
+  async updateInsightWithNewSalesInsightId(prospectId, salesInsightId) {
+    if (!prospectId || !salesInsightId) return;
+
+    // Step 1: Fetch the latest insights row for this prospect
+    const { data: recentInsight, error: fetchError } = await supabase
+      .from("insights")
+      .select("*")
+      .eq("prospect_id", prospectId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (fetchError || !recentInsight) {
+      console.warn("No insights found to update:", fetchError);
+      return;
+    }
+
+    const existingIds = Array.isArray(recentInsight.sales_insight_ids)
+      ? recentInsight.sales_insight_ids
+      : [];
+
+    // Step 2: Merge and deduplicate IDs
+    const updatedIds = [...new Set([...existingIds, salesInsightId])];
+
+    // Step 3: Update the insight row
+    const { error: updateError } = await supabase
+      .from("insights")
+      .update({ sales_insight_ids: updatedIds })
+      .eq("id", recentInsight.id);
+
+    if (updateError) {
+      console.error("Failed to update communication_style_ids:", updateError);
+      throw updateError;
+    }
+
+    return true;
+  },
 
   async getActionItemsByProspectId(prospectId) {
     try {

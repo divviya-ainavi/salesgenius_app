@@ -58,6 +58,11 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@radix-ui/react-tooltip";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -104,7 +109,8 @@ const CallInsights = () => {
   const [isAddingInsight, setIsAddingInsight] = useState(false);
   const [newInsight, setNewInsight] = useState({
     content: "",
-    type: "user_insight",
+    type: "my_insights",
+    typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
   });
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
@@ -189,7 +195,7 @@ const CallInsights = () => {
     };
     loadInsightTypes();
   }, []);
-
+  console.log(insightTypes, "insight types");
   useEffect(() => {
     const fetchCount = async () => {
       if (!user?.id) return;
@@ -251,12 +257,13 @@ const CallInsights = () => {
           const people = await dbHelpers.getPeopleByProspectId(
             defaultInsight.id
           );
-
+          console.log(defaultInsight, "check default insight");
           const prospect = {
             id: defaultInsight.id,
             name: defaultInsight?.name,
             companyName,
             company_id: defaultInsight?.company?.id,
+            calls: defaultInsight?.calls,
             prospectName:
               people
                 ?.map((p) => p.name)
@@ -444,27 +451,39 @@ const CallInsights = () => {
       const newEntry = {
         content: newInsight.content.trim(),
         type_id: newInsight.typeId,
-        relevance_score: 85,
+        relevance_score: 0,
         is_selected: true,
         source: "User Input",
         timestamp: new Date().toISOString(),
-        prospect_id: selectedProspect.id,
       };
 
+      // 1. Insert into sales_insights
       const inserted = await dbHelpers.insertSalesInsight(newEntry);
       if (!inserted) throw new Error("Insert failed");
 
+      // 2. Update recent insight row by adding this sales_insight id
+      await dbHelpers.updateInsightWithNewSalesInsightId(
+        selectedProspect.id,
+        inserted.id
+      );
+
+      // 3. Refresh insights list for the UI
       const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
         selectedProspect.id
       );
       setInsights(groupedInsights);
 
-      setNewInsight({ content: "", type: "user_insight", typeId: null });
+      // 4. Reset form state
+      setNewInsight({
+        content: "",
+        type: "my_insights",
+        typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035", // Default 'my_insights' typeId
+      });
       setIsAddingInsight(false);
 
       toast.success("Insight added successfully");
     } catch (error) {
-      console.error(error);
+      console.error("Error in handleAddInsight:", error);
       toast.error("Failed to add insight");
     }
   };
@@ -621,15 +640,46 @@ const CallInsights = () => {
     setEditingInsightContent("");
   };
 
-  const handleDeleteInsightContent = (insightId) => {
-    // TODO: Implement delete functionality for individual insight content
-    console.log("Delete insight content:", insightId);
+  const handleDeleteInsightContent = async (insightId) => {
+    if (!insightId) {
+      toast.error("Invalid insight ID");
+      return;
+    }
+
+    try {
+      // ✅ Mark the insight as inactive in Supabase
+      const updated = await dbHelpers.deleteSalesInsightContent(insightId, {
+        is_active: false,
+      });
+
+      if (updated) {
+        console.log("Insight marked as inactive:", updated);
+      }
+
+      // ✅ Remove the insight from local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.filter(
+            (insight) => insight.id !== insightId
+          ),
+        }))
+      );
+
+      toast.success("Insight deleted successfully");
+    } catch (error) {
+      console.log("Error deleting insight:", error);
+      toast.error("Failed to delete insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
   };
 
+  // console.log(allInsights, "check all insights");
   const filteredProspects = allInsights?.filter(
     (prospect) =>
       prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prospect?.prospectName?.toLowerCase().includes(searchTerm.toLowerCase())
+      prospect?.company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   // console.log(allInsights, "all insights data");
   const getStatusColor = (status) => {
@@ -900,6 +950,7 @@ const CallInsights = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add New Insight */}
+              {console.log(newInsight, "newInsight type")}
               {isAddingInsight && (
                 <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
                   <div className="flex items-center space-x-3">
@@ -958,7 +1009,11 @@ const CallInsights = () => {
                       size="sm"
                       onClick={() => {
                         setIsAddingInsight(false);
-                        setNewInsight({ content: "", type: "user_insight" });
+                        setNewInsight({
+                          content: "",
+                          type: "my_insights",
+                          typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
+                        });
                       }}
                     >
                       <X className="w-4 h-4 mr-1" />
@@ -986,15 +1041,31 @@ const CallInsights = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
-                          <Badge
-                            variant="outline"
-                            className={cn("text-xs", typeConfig?.color)}
-                          >
-                            <TypeIcon className="w-3 h-3 mr-1" />
-                            {typeConfig?.label || ""}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs", typeConfig?.color)}
+                              >
+                                <TypeIcon className="w-3 h-3 mr-1" />
+                                {typeConfig?.label || ""}
+                              </Badge>
+                            </TooltipTrigger>
+
+                            <TooltipContent
+                              side="top"
+                              align="center"
+                              className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                            >
+                              <p className="leading-snug">
+                                {typeConfig?.description ||
+                                  "No description available."}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+
                           <Badge variant="secondary" className="text-xs">
-                            Score: {insight?.average_score || ""}
+                            Score: {insight?.average_score || 0}
                           </Badge>
                           {/* {getTrendIcon(insight.trend)} */}
                           {/* <span className="text-xs text-muted-foreground">
@@ -1431,7 +1502,7 @@ const CallInsights = () => {
                   <Badge
                     variant={selectedProspect?.calls ? "default" : "secondary"}
                   >
-                    {selectedProspect?.calls}
+                    {selectedProspect?.calls || 0}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
