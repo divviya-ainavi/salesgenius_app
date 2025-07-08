@@ -593,6 +593,8 @@ const SalesCalls = () => {
         formData.append("sales_call_prospect_new", prospectCheck);
       } else {
         formData.append("transcript_id", file.id);
+        formData.append("company_new", companyCheck);
+        formData.append("sales_call_prospect_new", prospectCheck);
       }
 
       // Make API call to process the transcript file
@@ -635,41 +637,42 @@ const SalesCalls = () => {
           const savedInsight = result.callInsight;
 
           try {
-            // 1. Get existing styles from Supabase
-            const existingStyles = !prospectCheck
-              ? await dbHelpers.getCommunicationStylesData(selectedProComStyles)
-              : [];
-            const call_summaries = !prospectCheck
-              ? await dbHelpers.getCallSummaryByProspectId(selectedProspectId)
-              : [processedData?.call_summary || ""];
-            // 2. Call cumulative-comm API with existing + current styles
-            const cumulativeRes = await fetch(
-              "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  previous_communication_styles: existingStyles,
-                  current_communication_styles: !prospectCheck
-                    ? processedData?.communication_styles || []
-                    : [],
-                  combined_calls_summary: call_summaries,
-                }),
-              }
-            );
-
-            if (!cumulativeRes.ok) {
-              throw new Error("Failed to call cumulative-comm API");
-            }
-
-            const rawText = await cumulativeRes.text();
-
-            if (!rawText) {
-              throw new Error("Empty response from cumulative-comm API");
-            }
-
-            let cumulativeData;
             try {
+              // 1. Get existing styles from Supabase
+              const existingStyles =
+                (await dbHelpers.getCommunicationStylesData(
+                  selectedProComStyles
+                )) || [];
+              const call_summaries =
+                (await dbHelpers.getCallSummaryByProspectId(
+                  selectedProspectId
+                )) || [processedData?.call_summary || ""];
+              // 2. Call cumulative-comm API with existing + current styles
+              const cumulativeRes = await fetch(
+                "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    previous_communication_styles: existingStyles,
+                    current_communication_styles:
+                      processedData?.communication_styles,
+                    combined_calls_summary: call_summaries,
+                  }),
+                }
+              );
+
+              if (!cumulativeRes.ok) {
+                throw new Error("Failed to call cumulative-comm API");
+              }
+
+              const rawText = await cumulativeRes.text();
+
+              if (!rawText) {
+                throw new Error("Empty response from cumulative-comm API");
+              }
+
+              let cumulativeData;
               cumulativeData = JSON.parse(rawText);
               if (!prospectCheck) {
                 const newStyles =
@@ -702,24 +705,9 @@ const SalesCalls = () => {
                     })
                   );
                 }
-              } else {
-                // 4. Update prospect with the new style IDs
-
-                await dbHelpers.updateProspectWithNewStyles(
-                  savedInsight?.prospect_id,
-                  {
-                    sales_play: cumulativeData?.[0]?.recommended_sales_play,
-                    call_summary: processedData?.call_summary,
-                    secondary_objectives:
-                      cumulativeData?.[0]?.recommended_objective,
-                  }
-                );
               }
             } catch (err) {
-              console.error(
-                "Invalid JSON response from cumulative-comm:",
-                rawText
-              );
+              console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
             }
 
@@ -743,10 +731,14 @@ const SalesCalls = () => {
             setProcessedCalls((prev) => [processedCall, ...prev]);
 
             toast.success("File processed successfully!");
+            // console.log(
+            //   !prospectCheck ? savedInsight?.id : selectedProspectId,
+            //   "check passed id"
+            // );
             navigate("/call-insights", {
               state: {
                 selectedCall: {
-                  id: !prospectCheck ? savedInsight?.id : selectedProspectId,
+                  id: savedInsight?.prospect_id,
                 },
                 source: processedCall.source,
                 aiProcessedData: processedData,

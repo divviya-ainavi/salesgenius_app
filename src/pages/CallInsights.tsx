@@ -228,11 +228,18 @@ const CallInsights = () => {
 
         if (location.state?.selectedCall) {
           const selectedCall = location.state.selectedCall;
+          // console.log(selectedCall?.id, "check passed id call insights");
           defaultInsight = insights.find(
-            (insight) => insight.id === selectedCall.id
+            (insight) => insight.id == selectedCall.id
           );
+          // console.log(
+          //   insights.find((insight) => insight.id == selectedCall.id),
+          //   insights,
+          //   selectedCall.id,
+          //   "check default insights 237"
+          // );
         }
-
+        // console.log(defaultInsight, "check default insights");
         if (!defaultInsight && insights?.length > 0) {
           defaultInsight = insights[0]; // most recent
         }

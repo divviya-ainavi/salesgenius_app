@@ -1294,6 +1294,8 @@ export const dbHelpers = {
       call_analysis_overview = {},
       extracted_transcript = "",
       processing_status = "completed",
+      recommended_sales_play = "",
+      recommended_objectives = []
     } = data || {};
     const companyName = company_details?.[0]?.name;
     // console.log(company_details, companyName, "check response from company", data)
@@ -1333,6 +1335,9 @@ export const dbHelpers = {
           user_id: userId,
           deal_value: null,
           calls: 1,
+          call_summary: call_summary,
+          sales_play: recommended_sales_play,
+          secondary_objectives: recommended_objectives
         })
         .select("id")
         .single();
@@ -1478,7 +1483,7 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
-          people_id: person.id || null,
+          people_id: person?.id || null,
         })
         .select("id")
         .single();
