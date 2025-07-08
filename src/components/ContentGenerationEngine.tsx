@@ -281,6 +281,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           crmStage: "Proposal Sent", // Default value
           nextAction: "Follow-up",
           communication_style_ids: insight.communication_style_ids || [],
+          sales_play: insight?.sales_play,
+          secondary_objectives: insight?.secondary_objectives,
         }));
 
         setProspects(enrichedProspects);
@@ -702,7 +704,7 @@ ${output?.blocks
       toast.success(`Refinement applied: ${refinementPrompt}`);
     }, 1500);
   };
-
+  console.log(selectedProspect, "selected prospect");
   const handleCopy = () => {
     if (!generatedArtefact) return;
 

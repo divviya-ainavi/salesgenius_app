@@ -29,7 +29,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useSelector } from "react-redux";
 
 interface ResearchFormData {
   companyName: string;
@@ -69,16 +74,23 @@ const Research = () => {
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   // Form validation
   const isFormValid =
     formData.companyName.trim() !== "" && formData.companyWebsite.trim() !== "";
 
   const toggleQuestion = (index: number) => {
-    setExpandedQuestions(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
+    setExpandedQuestions((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
   };
 
@@ -276,9 +288,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       const data = await response.json();
       const result = data[0]?.output;
 
-      if (!result || !result.companyAnalysis) {
-        throw new Error("Invalid response format");
-      }
+      // if (!result || !result.companyAnalysis) {
+      //   throw new Error("Invalid response format");
+      // }
 
       const output = result.output || result;
 
@@ -298,7 +310,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       });
 
       await dbHelpers.saveResearchCompany({
-        user_id: CURRENT_USER.id,
+        user_id: user?.id,
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
         prospect_urls: formData.prospectLinkedIn.filter(
@@ -308,6 +320,14 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         prospect_analysis: "",
         sources: output.sources || [],
         recommendations: JSON.stringify(output.recommendations || {}),
+        summary_note: output.summaryNote || "",
+        market_trends: output.marketTrends || [],
+        growth_opportunities: output.growthOpportunities || [],
+        key_positioning: output.keyPositioning || "",
+        nature_of_business: output.natureOfBusiness || "",
+        geographic_scope: output.geographicScope || "",
+        size: output.size || "",
+        sector: output.sector || "",
       });
 
       setCurrentView("results");
@@ -338,7 +358,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     if (!researchResult) return;
 
     try {
-      await navigator.clipboard.writeText(JSON.stringify(researchResult, null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(researchResult, null, 2)
+      );
       toast.success("Analysis copied to clipboard");
     } catch (error) {
       toast.error("Failed to copy to clipboard");
@@ -618,32 +640,40 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                             {researchResult?.sector}
                           </Badge>
                         </div>
-                        
+
                         <div>
-                          <h4 className="font-medium text-sm mb-2">Company Size</h4>
+                          <h4 className="font-medium text-sm mb-2">
+                            Company Size
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {researchResult?.size}
                           </p>
                         </div>
-                        
+
                         <div>
-                          <h4 className="font-medium text-sm mb-2">Geographic Scope</h4>
+                          <h4 className="font-medium text-sm mb-2">
+                            Geographic Scope
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {researchResult?.geographicScope}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div>
-                          <h4 className="font-medium text-sm mb-2">Nature of Business</h4>
+                          <h4 className="font-medium text-sm mb-2">
+                            Nature of Business
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {researchResult?.natureOfBusiness}
                           </p>
                         </div>
-                        
+
                         <div>
-                          <h4 className="font-medium text-sm mb-2">Key Positioning</h4>
+                          <h4 className="font-medium text-sm mb-2">
+                            Key Positioning
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {researchResult?.keyPositioning}
                           </p>
@@ -658,14 +688,19 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                         Growth Opportunities
                       </h3>
                       <ul className="space-y-2">
-                        {researchResult?.growthOpportunities?.map((opportunity, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {opportunity}
-                            </span>
-                          </li>
-                        ))}
+                        {researchResult?.growthOpportunities?.map(
+                          (opportunity, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start space-x-2"
+                            >
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground leading-relaxed">
+                                {opportunity}
+                              </span>
+                            </li>
+                          )
+                        )}
                       </ul>
                     </div>
 
@@ -677,7 +712,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       </h3>
                       <ul className="space-y-2">
                         {researchResult?.marketTrends?.map((trend, index) => (
-                          <li key={index} className="flex items-start space-x-2">
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                             <span className="text-sm text-muted-foreground leading-relaxed">
                               {trend}
@@ -734,7 +772,8 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 <CardTitle>Sources</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {researchResult?.sources && researchResult.sources.length > 0 ? (
+                {researchResult?.sources &&
+                researchResult.sources.length > 0 ? (
                   <ol className="space-y-2 list-decimal list-inside">
                     {researchResult.sources.map((source, index) => (
                       <li key={index} className="text-sm leading-relaxed">
@@ -782,14 +821,19 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       Key Talking Points
                     </h3>
                     <ul className="space-y-2">
-                      {researchResult?.recommendations?.keyTalkingPoints?.map((point, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground leading-relaxed">
-                            {point}
-                          </span>
-                        </li>
-                      ))}
+                      {researchResult?.recommendations?.keyTalkingPoints?.map(
+                        (point, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {point}
+                            </span>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
 
@@ -800,30 +844,35 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       High-Impact Sales Questions
                     </h3>
                     <div className="space-y-2">
-                      {researchResult?.recommendations?.highImpactSalesQuestions?.map((question, index) => (
-                        <Collapsible key={index}>
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-between p-3 h-auto text-left"
-                              onClick={() => toggleQuestion(index)}
-                            >
-                              <span className="text-sm font-medium">Q{index + 1}: {question.substring(0, 60)}...</span>
-                              <ChevronDown 
-                                className={cn(
-                                  "w-4 h-4 transition-transform",
-                                  expandedQuestions.includes(index) && "rotate-180"
-                                )}
-                              />
-                            </Button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="px-3 pb-3">
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {question}
-                            </p>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ))}
+                      {researchResult?.recommendations?.highImpactSalesQuestions?.map(
+                        (question, index) => (
+                          <Collapsible key={index}>
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-between p-3 h-auto text-left"
+                                onClick={() => toggleQuestion(index)}
+                              >
+                                <span className="text-sm font-medium">
+                                  Q{index + 1}: {question.substring(0, 60)}...
+                                </span>
+                                <ChevronDown
+                                  className={cn(
+                                    "w-4 h-4 transition-transform",
+                                    expandedQuestions.includes(index) &&
+                                      "rotate-180"
+                                  )}
+                                />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="px-3 pb-3">
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {question}
+                              </p>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )
+                      )}
                     </div>
                   </div>
 
@@ -834,14 +883,19 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       Anticipated Objections
                     </h3>
                     <ul className="space-y-2">
-                      {researchResult?.recommendations?.anticipatedObjections?.map((objection, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground leading-relaxed">
-                            {objection}
-                          </span>
-                        </li>
-                      ))}
+                      {researchResult?.recommendations?.anticipatedObjections?.map(
+                        (objection, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {objection}
+                            </span>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
 
@@ -852,14 +906,19 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       Meeting Preparation Checklist
                     </h3>
                     <ul className="space-y-2">
-                      {researchResult?.recommendations?.meetingChecklist?.map((item, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground leading-relaxed">
-                            {item}
-                          </span>
-                        </li>
-                      ))}
+                      {researchResult?.recommendations?.meetingChecklist?.map(
+                        (item, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
+                            <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground leading-relaxed">
+                              {item}
+                            </span>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
                 </div>

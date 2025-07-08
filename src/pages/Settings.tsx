@@ -669,7 +669,7 @@ export const Settings = () => {
 
     const result = await dbHelpers.inviteUserByEmail(
       email,
-      CURRENT_USER.organization_id || null,
+      organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
       token
     );

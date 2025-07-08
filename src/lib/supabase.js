@@ -1596,10 +1596,8 @@ export const dbHelpers = {
           evidence: style.evidence,
           preferences: style.preferences,
           communication_tips: style.communication_tips,
-          personality_type: {
-            type: style.personality_type,
-          },
-          prospect_id: prospectId,
+          personality_type: style.personality_type,
+          // prospect_id: prospectId,
         })
         .select()
         .single();
@@ -1613,10 +1611,10 @@ export const dbHelpers = {
   },
 
   // Update a prospect with new communication style IDs
-  async updateProspectWithNewStyles(prospectId, styleIds) {
+  async updateProspectWithNewStyles(prospectId, data) {
     const { error } = await supabase
       .from("prospect")
-      .update({ communication_style_ids: styleIds })
+      .update(data)
       .eq("id", prospectId);
 
     if (error) {

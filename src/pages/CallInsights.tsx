@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
+import { useSelector } from "react-redux";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -119,6 +120,15 @@ const CallInsights = () => {
   const [people, setPeople] = useState([]);
 
   const [insightTypes, setInsightTypes] = useState({});
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -181,11 +191,9 @@ const CallInsights = () => {
 
   useEffect(() => {
     const fetchCount = async () => {
-      if (!CURRENT_USER.id) return;
+      if (!user?.id) return;
       try {
-        const result = await dbHelpers?.getResearchCompanyCountByUser(
-          CURRENT_USER.id
-        );
+        const result = await dbHelpers?.getResearchCompanyCountByUser(user?.id);
         setResearchCompanyCount(result);
       } catch (error) {
         console.error("Failed to load research count:", error);
@@ -198,7 +206,7 @@ const CallInsights = () => {
     fetchCount();
     const fetchInsightsAndSetProspect = async () => {
       try {
-        let insights = await dbHelpers.getProspectData(CURRENT_USER.id);
+        let insights = await dbHelpers.getProspectData(user?.id);
         console.log(insights, "get insights data");
 
         // Sort insights by created_at descending
@@ -266,6 +274,7 @@ const CallInsights = () => {
             },
             fullInsight: defaultInsight,
             people, // ✅ attach people to selectedProspect
+            call_summary: defaultInsight?.call_summary || "",
           };
 
           console.log(
@@ -747,7 +756,9 @@ const CallInsights = () => {
                           emails: 0,
                         },
                         fullInsight: prospect,
+                        calls: prospect?.calls || 1,
                         people: prospect.people, // ✅ add this
+                        call_summary: prospect?.call_summary,
                       })
                     }
                   >
@@ -1014,7 +1025,7 @@ const CallInsights = () => {
                           className={cn(
                             "space-y-2",
                             insight?.insights?.length > 3 &&
-                              "max-h-40 overflow-y-auto pr-2"
+                              "max-h-60 overflow-y-auto pr-2"
                           )}
                         >
                           {insight?.insights?.map((x) => (
@@ -1408,10 +1419,11 @@ const CallInsights = () => {
                     )}
                   />
                   <span className="text-sm">Calls:</span>
+                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
                   <Badge
-                    variant={insights?.length > 0 ? "default" : "secondary"}
+                    variant={selectedProspect?.calls ? "default" : "secondary"}
                   >
-                    {insights?.length}
+                    {selectedProspect?.calls}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1473,10 +1485,7 @@ const CallInsights = () => {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                These insights represent an amalgamation of data from all
-                interactions with {selectedProspect.companyName}, providing a
-                comprehensive and evolving understanding of the prospect
-                relationship.
+                {selectedProspect?.call_summary || ""}
               </p>
             </CardContent>
           </Card>
