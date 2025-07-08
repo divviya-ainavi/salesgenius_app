@@ -223,7 +223,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setIsLoading(true);
     try {
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/company-research",
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/company-research-v2",
         {
           method: "POST",
           headers: {
