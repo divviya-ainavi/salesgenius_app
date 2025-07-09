@@ -52,10 +52,6 @@ import {
   Brain,
   ChevronRight,
   Loader2,
-  Phone,
-  Video,
-  Mail,
-  Headphones,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1273,118 +1269,157 @@ const CallInsights = () => {
             <CardContent>
               {communicationStyles.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles.map((stakeholder, index) => (
-                    <div
-                      key={index}
-                      className="border border-border rounded-lg p-4 space-y-3"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold flex items-center space-x-2">
-                            <span>{stakeholder.stakeholder}</span>
-                            {stakeholder.is_primary && (
-                              <Badge
-                                variant="default"
-                                className="text-xs bg-blue-100 text-blue-800 border-blue-200"
-                              >
-                                Primary
-                              </Badge>
-                            )}
-                          </h3>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {stakeholder.role}
-                        </Badge>
-                      </div>
+                  {communicationStyles.map((stakeholder) => {
+                    const styleConfig =
+                      communicationStyleConfigs[stakeholder.style];
+                    const PersonalityIcon = stakeholder.personality_type
+                      ? personalityTypeIcons[stakeholder.personality_type.key]
+                      : null;
+                    const ModalityIcon = stakeholder.modality
+                      ? communicationModalityIcons[stakeholder.modality.type]
+                      : null;
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                            Communication Style
-                          </h4>
+                    return (
+                      <div
+                        key={stakeholder.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                              <span>{stakeholder.stakeholder}</span>
+                              {PersonalityIcon && (
+                                <PersonalityIcon className="w-4 h-4 text-primary" />
+                              )}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.role}
+                            </p>
+                          </div>
                           <div className="flex items-center space-x-2">
                             <Badge
                               variant="outline"
-                              className="text-xs bg-purple-100 text-purple-800 border-purple-200"
+                              className={cn("text-xs", styleConfig?.color)}
                             >
-                              {stakeholder.style}
+                              {stakeholder.style
+                                ? stakeholder.style.charAt(0).toUpperCase() +
+                                  stakeholder.style.slice(1)
+                                : ""}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {Math.round(stakeholder.confidence * 100)}%
+                              confidence
                             </Badge>
                           </div>
                         </div>
 
-                        <div>
-                          <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                            Personality Type
-                          </h4>
-                          <div className="flex items-center space-x-2">
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-green-100 text-green-800 border-green-200"
-                            >
-                              {stakeholder.personality_type}
-                            </Badge>
+                        <div className="space-y-4">
+                          {/* Personality Type Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              <Brain className="w-4 h-4" />
+                              <span>Personality Type : </span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.personality_type ||
+                                  "Data not available"}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.personality_type ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.personality_type}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Personality Type: Data not available
+                              </p>
+                            )} */}
                           </div>
-                        </div>
-                      </div>
 
-                      <div>
-                        <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                          Preferences
-                        </h4>
-                        <div className="flex flex-wrap gap-1">
-                          {stakeholder.preferences?.map((pref, prefIndex) => (
-                            <div key={prefIndex} className="flex items-center space-x-1">
-                              {pref.toLowerCase().includes('email') && <Mail className="w-3 h-3 text-blue-600" />}
-                              {pref.toLowerCase().includes('phone') && <Phone className="w-3 h-3 text-green-600" />}
-                              {pref.toLowerCase().includes('video') && <Video className="w-3 h-3 text-purple-600" />}
-                              {pref.toLowerCase().includes('text') && <MessageSquare className="w-3 h-3 text-orange-600" />}
-                              {pref.toLowerCase().includes('meeting') && <Users className="w-3 h-3 text-red-600" />}
-                              {!pref.toLowerCase().includes('email') && 
-                               !pref.toLowerCase().includes('phone') && 
-                               !pref.toLowerCase().includes('video') && 
-                               !pref.toLowerCase().includes('text') && 
-                               !pref.toLowerCase().includes('meeting') && <Headphones className="w-3 h-3 text-gray-600" />}
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                              >
-                                {pref}
-                              </Badge>
+                          {/* Communication Modality Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              {ModalityIcon && (
+                                <ModalityIcon className="w-4 h-4" />
+                              )}
+                              <span>Preferred Communication Modality:</span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.style
+                                  ? stakeholder.style.charAt(0).toUpperCase() +
+                                    stakeholder.style.slice(1)
+                                  : ""}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.style ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.style}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stakeholder.guidance}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Communication Modality: Data not available
+                              </p>
+                            )} */}
+                          </div>
+
+                          {/* Evidence Section */}
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Evidence
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.evidence}
+                            </p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Preferences
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start space-x-2"
+                                  >
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                          ))}
-                        </div>
-                      </div>
 
-                      <div>
-                        <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                          Communication Tips
-                        </h4>
-                        <div className="flex flex-wrap gap-1">
-                          {stakeholder.communication_tips?.map(
-                            (tip, tipIndex) => (
-                              <Badge
-                                key={tipIndex}
-                                variant="outline"
-                                className="text-xs bg-yellow-50 text-yellow-800 border-yellow-200"
-                              >
-                                <Lightbulb className="w-3 h-3 mr-1" />
-                                {tip}
-                              </Badge>
-                            )
-                          )}
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Communication Tips
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map(
+                                  (tip, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start space-x-2"
+                                    >
+                                      <span className="text-primary mt-1">
+                                        •
+                                      </span>
+                                      <span>{tip}</span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="pt-3 border-t border-border">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>
-                            Confidence: {stakeholder.confidence}%
-                          </span>
-                          <span>Evidence: {stakeholder.evidence}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
