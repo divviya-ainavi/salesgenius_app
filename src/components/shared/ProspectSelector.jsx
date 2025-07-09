@@ -182,7 +182,7 @@ export const ProspectSelector = ({
                 <User className="w-3 h-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Stakeholders:</span>
                 <span className="font-medium">
-                  {selectedProspect.stakeholders?.length || 0}
+                  {selectedProspect.people?.length || 0}
                 </span>
               </div>
             </div>

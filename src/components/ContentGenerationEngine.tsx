@@ -314,7 +314,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               confidenceScore: Math.round(style.confidence * 100),
               confidenceJustification:
                 style.evidence || "Inferred from past interactions",
-              communicationStyle: style.style || "Direct",
+              communicationStyle: style.style
+                ? style.style.charAt(0).toUpperCase() + style.style.slice(1)
+                : "Direct",
               personalityType: style.personality_type || "Analytical",
               keyTraits: style.preferences || [],
               communicationPreferences: style.communication_tips || [],

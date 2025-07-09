@@ -1301,7 +1301,10 @@ const CallInsights = () => {
                               variant="outline"
                               className={cn("text-xs", styleConfig?.color)}
                             >
-                              {stakeholder.style}
+                              {stakeholder.style
+                                ? stakeholder.style.charAt(0).toUpperCase() +
+                                  stakeholder.style.slice(1)
+                                : ""}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               {Math.round(stakeholder.confidence * 100)}%
@@ -1315,34 +1318,23 @@ const CallInsights = () => {
                           <div className="bg-muted/50 rounded-lg p-3">
                             <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
                               <Brain className="w-4 h-4" />
-                              <span>Personality Type</span>
+                              <span>Personality Type : </span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.personality_type ||
+                                  "Data not available"}
+                              </p>
                             </h4>
-                            {stakeholder.personality_type ? (
+                            {/* {stakeholder.personality_type ? (
                               <div>
                                 <p className="font-medium text-sm mb-2">
                                   {stakeholder.personality_type}
                                 </p>
-                                {/* <ul className="text-sm text-muted-foreground space-y-1">
-                                  {stakeholder.personality_type.traits.map(
-                                    (trait, index) => (
-                                      <li
-                                        key={index}
-                                        className="flex items-start space-x-2"
-                                      >
-                                        <span className="text-primary mt-1">
-                                          •
-                                        </span>
-                                        <span>{trait}</span>
-                                      </li>
-                                    )
-                                  )}
-                                </ul> */}
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
                                 Personality Type: Data not available
                               </p>
-                            )}
+                            )} */}
                           </div>
 
                           {/* Communication Modality Section */}
@@ -1351,22 +1343,28 @@ const CallInsights = () => {
                               {ModalityIcon && (
                                 <ModalityIcon className="w-4 h-4" />
                               )}
-                              <span>Preferred Communication Modality</span>
+                              <span>Preferred Communication Modality:</span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.style
+                                  ? stakeholder.style.charAt(0).toUpperCase() +
+                                    stakeholder.style.slice(1)
+                                  : ""}
+                              </p>
                             </h4>
-                            {stakeholder.style ? (
+                            {/* {stakeholder.style ? (
                               <div>
                                 <p className="font-medium text-sm mb-2">
                                   {stakeholder.style}
                                 </p>
-                                {/* <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                   {stakeholder.guidance}
-                                </p> */}
+                                </p>
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
                                 Communication Modality: Data not available
                               </p>
-                            )}
+                            )} */}
                           </div>
 
                           {/* Evidence Section */}
