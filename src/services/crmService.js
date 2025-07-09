@@ -61,7 +61,9 @@ class CRMService {
           redirect_uri: config.hubspot.redirectUri,
           client_id: config.hubspot.clientId,
           client_secret: config.hubspot.clientSecret,
-      });
+              }        );
+      }
+      )
 
       if (!response.ok) {
         const errorText = await response.text();
