@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CheckCircle, AlertCircle, Loader2, ExternalLink } from "lucide-react";
 import crmService from "@/services/crmService";
 import { CURRENT_USER } from "@/lib/supabase";
+import { config } from "@/lib/config";
 
 const HubSpotCallback = () => {
   const navigate = useNavigate();
@@ -72,15 +73,10 @@ const HubSpotCallback = () => {
   }, [searchParams, navigate]);
 
   const handleRetry = () => {
-    const clientId = import.meta.env.VITE_HUBSPOT_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_HUBSPOT_REDIRECT_URI;
-    const scopes =
-      "crm.objects.contacts.write crm.dealsplits.read_write crm.lists.write crm.lists.read crm.objects.deals.read crm.objects.deals.write crm.objects.contacts.read";
-    const authUrl =
-      "https://app-na2.hubspot.com/oauth/authorize?client_id=06c6567b-5020-44c0-8d19-86535f8e2002&redirect_uri=http://localhost:5173/hubspot-callback&scope=crm.objects.contacts.write%20crm.dealsplits.read_write%20oauth%20crm.lists.write%20crm.lists.read%20crm.objects.deals.read%20crm.objects.deals.write%20crm.objects.contacts.read";
-    // `https://app-na2.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    //   redirectUri
-    // )}&scope=${encodeURIComponent(scopes)}`;
+    const authUrl = `${config.hubspot.authUrl}?client_id=${config.hubspot.clientId}&redirect_uri=${encodeURIComponent(
+      config.hubspot.redirectUri
+    )}&scope=${encodeURIComponent(config.hubspot.scopes)}`;
+    
     window.location.href = authUrl;
   };
 

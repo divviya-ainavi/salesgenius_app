@@ -63,6 +63,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
+import { config } from "@/lib/config";
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -738,12 +739,16 @@ const Analytics = () => {
   const IndividualDashboard = () => {
     const [durations, setDurations] = useState({});
     const [error, setError] = useState(null);
-    const posthogToken = import.meta.env.VITE_POSTHOG_KEY;
+    const posthogToken = config.posthog.apiKey;
     const userEmail = CURRENT_USER.email || "";
     console.log("User Email:", userEmail, posthogToken);
     useEffect(() => {
       const fetchPageTimes = async () => {
         try {
+          if (!posthogToken) {
+            throw new Error('PostHog API key not configured');
+          }
+          
           const res = await fetch(
             `https://eu.posthog.com/api/event?distinct_id=${userEmail}&event=page_time_spent`,
             {

@@ -2,6 +2,7 @@ import api from '@/lib/api';
 import API_ENDPOINTS from '@/lib/apiEndpoints';
 import { analytics } from '@/lib/analytics';
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
+import { config } from '@/lib/config';
 
 // CRM Service for handling all CRM integrations with user-specific credentials
 class CRMService {
@@ -45,6 +46,10 @@ class CRMService {
   // Refresh access token using refresh token
   async refreshAccessToken(userId, refreshToken) {
     try {
+      if (!config.hubspot.clientId || !config.hubspot.clientSecret) {
+        throw new Error('HubSpot client credentials not configured');
+      }
+      
       const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
         method: 'POST',
         headers: {
@@ -53,9 +58,9 @@ class CRMService {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
-          client_id: import.meta.env.VITE_HUBSPOT_CLIENT_ID,
-          client_secret: import.meta.env.VITE_HUBSPOT_CLIENT_SECRET,
-        }),
+          redirect_uri: config.hubspot.redirectUri,
+          client_id: config.hubspot.clientId,
+          client_secret: config.hubspot.clientSecret,
       });
 
       if (!response.ok) {
@@ -94,6 +99,10 @@ class CRMService {
     // Connect to HubSpot with user credentials
     connect: async (authCode, userId = CURRENT_USER.id) => {
       try {
+        if (!config.hubspot.clientId || !config.hubspot.clientSecret) {
+          throw new Error('HubSpot client credentials not configured');
+        }
+        
         console.log('Starting HubSpot connection with auth code:', authCode);
         
         // Exchange auth code for tokens

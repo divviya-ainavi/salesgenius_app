@@ -8,6 +8,7 @@ import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase, authHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
+import { config } from "@/lib/config";
 import {
   setUser,
   setUserProfileInfo,
