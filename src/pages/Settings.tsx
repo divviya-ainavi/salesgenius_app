@@ -351,6 +351,7 @@ export const Settings = () => {
     },
   });
 
+  console.log(newUserRole, "new user role");
   // console.log(
   //   userProfileInfo,
   //   userRole,
@@ -698,7 +699,7 @@ export const Settings = () => {
     }
 
     setNewUserEmail("");
-    setNewUserRole("app_user");
+    setNewUserRole(null);
   };
 
   const handleRemoveUser = (userId: string) => {

@@ -52,6 +52,7 @@ import {
   Brain,
   ChevronRight,
   Loader2,
+  Headphones,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1299,14 +1300,20 @@ const CallInsights = () => {
                           <div className="flex items-center space-x-2">
                             <Badge
                               variant="outline"
-                              className={cn("text-xs", styleConfig?.color)}
+                              className={cn(
+                                "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                styleConfig?.color
+                              )}
                             >
                               {stakeholder.style
                                 ? stakeholder.style.charAt(0).toUpperCase() +
                                   stakeholder.style.slice(1)
                                 : ""}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-green-100 text-green-800 border-green-200"
+                            >
                               {Math.round(stakeholder.confidence * 100)}%
                               confidence
                             </Badge>
@@ -1340,9 +1347,9 @@ const CallInsights = () => {
                           {/* Communication Modality Section */}
                           <div className="bg-muted/50 rounded-lg p-3">
                             <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
-                              {ModalityIcon && (
-                                <ModalityIcon className="w-4 h-4" />
-                              )}
+                              {/* {ModalityIcon && ( */}
+                              <Headphones className="w-4 h-4" />
+                              {/* )} */}
                               <span>Preferred Communication Modality:</span>
                               <p className="font-medium text-sm">
                                 {stakeholder.style

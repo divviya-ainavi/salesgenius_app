@@ -1163,12 +1163,13 @@ export const dbHelpers = {
       return [];
     }
   },
-  async getTitles() {
+  async getTitles(organizationId) {
     try {
       const { data, error } = await supabase
         .from("titles")
         .select("id, name, role_id, organization_id")
-        .order("id", { ascending: true }); // optional ordering
+        .eq("organization_id", organizationId)
+        .order("id", { ascending: true });
 
       if (error) {
         throw error;
@@ -1176,10 +1177,11 @@ export const dbHelpers = {
 
       return data;
     } catch (err) {
-      console.error("Error fetching roles:", err.message);
+      console.error("Error fetching titles:", err.message);
       return [];
     }
   },
+
   // Get all users if super admin
   async getAllOrganizations() {
     const { data, error } = await supabase
@@ -1211,7 +1213,8 @@ export const dbHelpers = {
         .from("invites")
         .select("*")
         .eq("email", trimmedEmail)
-        .single();
+        .maybeSingle(); // <-- this is the fix
+
 
       if (fetchError && fetchError.code !== "PGRST116") {
         throw fetchError;

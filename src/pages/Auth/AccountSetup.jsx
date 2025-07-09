@@ -163,7 +163,7 @@ const AccountSetup = () => {
         // Determine stepper configuration based on invite data
         const hasOrgId = !!invite.organization_id;
         const hasTitleId = !!invite.title_id;
-
+        console.log(hasOrgId, hasTitleId, "has org id", invite);
         let config = {
           showOrgStep: false,
           showUserStep: true,
@@ -192,7 +192,7 @@ const AccountSetup = () => {
             totalSteps: 1,
           };
         }
-
+        console.log(config, "195");
         setStepperConfig(config);
       } catch (err) {
         console.error("Error loading invitation data:", err);
@@ -286,7 +286,7 @@ const AccountSetup = () => {
     setError("");
     setCurrentStep(1);
   };
-
+  console.log(inviteData, "check invite data");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -316,6 +316,45 @@ const AccountSetup = () => {
         }
 
         organizationId = newOrg.id;
+
+        // Step 1.1: Insert 4 titles for this new organization
+        const titleData = [
+          { name: "Org Admin", role_id: 2, organization_id: organizationId },
+          {
+            name: "Sales Director",
+            role_id: 3,
+            organization_id: organizationId,
+          },
+          {
+            name: "Sales Manager",
+            role_id: 4,
+            organization_id: organizationId,
+          },
+          {
+            name: "Sales Executive",
+            role_id: 5,
+            organization_id: organizationId,
+          },
+        ];
+
+        const { data: insertedTitles, error: titleError } = await supabase
+          .from("titles")
+          .insert(titleData)
+          .select();
+
+        if (titleError) {
+          throw new Error(`Failed to insert titles: ${titleError.message}`);
+        }
+
+        // Step 1.2: Get the ID of the Org Admin title
+        const orgAdminTitle = insertedTitles.find(
+          (title) => title.name === "Org Admin"
+        );
+        if (!orgAdminTitle) {
+          throw new Error("Org Admin title not found after insertion.");
+        }
+
+        inviteData.title_id = orgAdminTitle.id; // Assign it for use in profile creation
       }
 
       // Step 2: Create user profile
@@ -345,13 +384,11 @@ const AccountSetup = () => {
         .from("invites")
         .update({
           status: "completed",
-          // updated_at: new Date().toISOString()
         })
         .eq("email", inviteData.email);
 
       if (updateError) {
         console.warn("Failed to update invite status:", updateError);
-        // Don't throw error as account creation was successful
       }
 
       toast.success("Account created successfully!");

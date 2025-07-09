@@ -1482,7 +1482,7 @@ ${updatedBlocks
                     Copy
                   </Button>
 
-                  <Button size="sm" onClick={handleExport}>
+                  <Button size="sm" onClick={handleExport} disabled>
                     <ExternalLink className="w-4 h-4 mr-1" />
                     Export to {artefactType === "email" ? "Outlook" : "Gamma"}
                   </Button>
