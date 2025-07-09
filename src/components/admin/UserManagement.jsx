@@ -31,6 +31,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import useUserManagement from '@/hooks/useUserManagement';
+import { config } from '@/lib/config';
 
 const UserManagement = () => {
   const [activeTab, setActiveTab] = useState('profiles');

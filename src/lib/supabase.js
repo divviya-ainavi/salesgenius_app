@@ -7,6 +7,7 @@ import aiService from '@/services/aiService'
 import fileService from '@/services/fileService'
 import crmService from '@/services/crmService'
 import userManagementService from '@/services/userManagementService'
+import { config } from './config'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -17,7 +18,7 @@ const ENCRYPTION_SECRET = 'SG_2025'; // In production, use environment variable
 // Password hashing helper functions
 const hashPassword = (password) => {
   // Use SHA256 with salt for consistent hashing
-  const saltedPassword = password + ENCRYPTION_SECRET;
+  const saltedPassword = password + config.passwordSalt;
   return CryptoJS.SHA256(saltedPassword).toString();
 };
 
