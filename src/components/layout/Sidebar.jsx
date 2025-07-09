@@ -43,17 +43,17 @@ const mainNavItems = [
     description: "Post-call follow-up automation",
     subItems: [
       {
-        title: "Mail and Decks",
+        title: "Email",
         href: "/follow-ups/emails",
         icon: Mail,
         description: "Follow-up email generation",
       },
-      // {
-      //   title: 'Presentation',
-      //   href: '/follow-ups/decks',
-      //   icon: Presentation,
-      //   description: 'Sales presentation prompts'
-      // },
+      {
+        title: "Presentation",
+        href: "/follow-ups/decks",
+        icon: Presentation,
+        description: "Sales presentation prompts",
+      },
       {
         title: "Actions",
         href: "/follow-ups/actions",

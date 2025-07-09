@@ -709,7 +709,7 @@ export const ActionItems = () => {
           )}
 
           {/* Quick Actions */}
-          {selectedProspect && (
+          {/* {selectedProspect && (
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -733,7 +733,7 @@ export const ActionItems = () => {
                 </Button>
               </CardContent>
             </Card>
-          )}
+          )} */}
         </div>
 
         {/* Main Content */}
@@ -870,7 +870,14 @@ export const ActionItems = () => {
                         </div>
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-3 h-3" />
-                          <span>Due: {item.deadline || "No deadline"}</span>
+                          <span>
+                            Due:{" "}
+                            {item.deadline
+                              ? new Date(item.deadline).toLocaleDateString(
+                                  "en-GB"
+                                )
+                              : "No deadline"}
+                          </span>
                         </div>
                       </div>
 
