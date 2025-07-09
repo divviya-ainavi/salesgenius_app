@@ -52,6 +52,10 @@ import {
   Brain,
   ChevronRight,
   Loader2,
+  Mail,
+  Phone,
+  Video,
+  Headphones,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1297,6 +1301,69 @@ const CallInsights = () => {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium">Confidence:</span>
+                                <Badge variant="outline" className={cn(
+                                  "text-xs",
+                                  stakeholder.confidence >= 80 ? "bg-green-100 text-green-800 border-green-200" :
+                                  stakeholder.confidence >= 60 ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
+                                  "bg-red-100 text-red-800 border-red-200"
+                                )}>
+                                  {stakeholder.confidence}%
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium">Style:</span>
+                                <Badge variant="outline" className={cn(
+                                  "text-xs",
+                                  stakeholder.style?.toLowerCase() === 'direct' ? "bg-red-100 text-red-800 border-red-200" :
+                                  stakeholder.style?.toLowerCase() === 'analytical' ? "bg-blue-100 text-blue-800 border-blue-200" :
+                                  stakeholder.style?.toLowerCase() === 'expressive' ? "bg-orange-100 text-orange-800 border-orange-200" :
+                                  stakeholder.style?.toLowerCase() === 'amiable' ? "bg-green-100 text-green-800 border-green-200" :
+                                  "bg-purple-100 text-purple-800 border-purple-200"
+                                )}>
+                                  {stakeholder.style}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium">Preferred Communication:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {stakeholder.preferences?.map((pref, prefIndex) => {
+                                    const getPreferenceIcon = (preference) => {
+                                      const prefLower = preference.toLowerCase();
+                                      if (prefLower.includes('email')) return <Mail className="w-3 h-3" />;
+                                      if (prefLower.includes('phone') || prefLower.includes('call')) return <Phone className="w-3 h-3" />;
+                                      if (prefLower.includes('video') || prefLower.includes('zoom') || prefLower.includes('teams')) return <Video className="w-3 h-3" />;
+                                      if (prefLower.includes('text') || prefLower.includes('message') || prefLower.includes('chat')) return <MessageSquare className="w-3 h-3" />;
+                                      if (prefLower.includes('meeting') || prefLower.includes('person')) return <Users className="w-3 h-3" />;
+                                      if (prefLower.includes('written') || prefLower.includes('document')) return <FileText className="w-3 h-3" />;
+                                      return <Headphones className="w-3 h-3" />;
+                                    };
+
+                                    const getPreferenceColor = (preference) => {
+                                      const prefLower = preference.toLowerCase();
+                                      if (prefLower.includes('email')) return "bg-blue-100 text-blue-800 border-blue-200";
+                                      if (prefLower.includes('phone') || prefLower.includes('call')) return "bg-green-100 text-green-800 border-green-200";
+                                      if (prefLower.includes('video') || prefLower.includes('zoom') || prefLower.includes('teams')) return "bg-purple-100 text-purple-800 border-purple-200";
+                                      if (prefLower.includes('text') || prefLower.includes('message') || prefLower.includes('chat')) return "bg-orange-100 text-orange-800 border-orange-200";
+                                      if (prefLower.includes('meeting') || prefLower.includes('person')) return "bg-red-100 text-red-800 border-red-200";
+                                      if (prefLower.includes('written') || prefLower.includes('document')) return "bg-indigo-100 text-indigo-800 border-indigo-200";
+                                      return "bg-gray-100 text-gray-800 border-gray-200";
+                                    };
+
+                                    return (
+                                      <Badge key={prefIndex} variant="outline" className={cn("text-xs flex items-center space-x-1", getPreferenceColor(pref))}>
+                                        {getPreferenceIcon(pref)}
+                                        <span>
+                                        {pref}
+                                        </span>
+                                      </Badge>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
                             <Badge
                               variant="outline"
                               className={cn("text-xs", styleConfig?.color)}
