@@ -287,12 +287,13 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           contact:
             (insight.prospect_details || []).map((p) => p.name).join(", ") ||
             "Unknown",
-          dealValue: 100000, // Default value
+          dealValue: "-", // Default value
           crmStage: "Proposal Sent", // Default value
           nextAction: "Follow-up",
           communication_style_ids: insight.communication_style_ids || [],
           sales_play: insight?.sales_play,
           secondary_objectives: insight?.secondary_objectives,
+          name: insight?.name,
         }));
 
         setProspects(enrichedProspects);
