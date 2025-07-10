@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
 import CryptoJS from "crypto-js";
+import { config } from "@/lib/config";
 
 const AccountSetup = () => {
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ const AccountSetup = () => {
     Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
 
-  const decodeJWT = (token, secret = "SG") => {
+  const decodeJWT = (token, secret = config.jwtSecret) => {
     try {
       const [encodedHeader, encodedPayload, signature] = token.split(".");
 
@@ -105,7 +106,7 @@ const AccountSetup = () => {
 
   // Hash password function
   const hashPassword = (password) => {
-    const saltedPassword = password + "SG_2025";
+    const saltedPassword = password + config.passwordSalt;
     return CryptoJS.SHA256(saltedPassword).toString();
   };
 

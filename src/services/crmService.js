@@ -2,6 +2,7 @@ import api from '@/lib/api';
 import API_ENDPOINTS from '@/lib/apiEndpoints';
 import { analytics } from '@/lib/analytics';
 import { dbHelpers, CURRENT_USER } from '@/lib/supabase';
+import { config } from '@/lib/config';
 
 // CRM Service for handling all CRM integrations with user-specific credentials
 class CRMService {
@@ -20,7 +21,7 @@ class CRMService {
   async ensureValidToken(userId = CURRENT_USER.id) {
     try {
       const credentials = await this.getUserCredentials(userId);
-      
+
       if (!credentials || !credentials.hubspot_access_token) {
         throw new Error('No HubSpot credentials found for user');
       }
@@ -45,6 +46,10 @@ class CRMService {
   // Refresh access token using refresh token
   async refreshAccessToken(userId, refreshToken) {
     try {
+      if (!config.hubspot.clientId || !config.hubspot.clientSecret) {
+        throw new Error('HubSpot client credentials not configured');
+      }
+
       const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
         method: 'POST',
         headers: {
@@ -53,10 +58,12 @@ class CRMService {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
-          client_id: import.meta.env.VITE_HUBSPOT_CLIENT_ID,
-          client_secret: import.meta.env.VITE_HUBSPOT_CLIENT_SECRET,
-        }),
-      });
+          redirect_uri: config.hubspot.redirectUri,
+          client_id: config.hubspot.clientId,
+          client_secret: config.hubspot.clientSecret,
+        })
+      }
+      )
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -94,8 +101,12 @@ class CRMService {
     // Connect to HubSpot with user credentials
     connect: async (authCode, userId = CURRENT_USER.id) => {
       try {
+        if (!config.hubspot.clientId || !config.hubspot.clientSecret) {
+          throw new Error('HubSpot client credentials not configured');
+        }
+
         console.log('Starting HubSpot connection with auth code:', authCode);
-        
+
         // Exchange auth code for tokens
         const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/token', {
           method: 'POST',
@@ -117,9 +128,9 @@ class CRMService {
         }
 
         const tokenData = await tokenResponse.json();
-        console.log('Token exchange successful:', { 
+        console.log('Token exchange successful:', {
           expires_in: tokenData.expires_in,
-          scope: tokenData.scope 
+          scope: tokenData.scope
         });
 
         // Get account info
@@ -471,7 +482,7 @@ class CRMService {
     try {
       if (platform === 'hubspot') {
         const credentials = await this.getUserCredentials(userId);
-        
+
         if (!credentials || !credentials.hubspot_access_token) {
           return {
             connected: false,

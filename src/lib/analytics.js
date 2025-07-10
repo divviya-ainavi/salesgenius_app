@@ -1,9 +1,10 @@
 import posthog from 'posthog-js'
+import { config } from './config'
 
 // PostHog configuration
 const POSTHOG_CONFIG = {
-  api_host: 'https://eu.i.posthog.com',
-  api_key: 'phc_OwCAqcaP8ahG4awoddGdb3FvhWkZ5gM4wFBSbbtFe65',
+  api_host: config.posthog.apiHost,
+  api_key: config.posthog.apiKey,
   // Additional configuration options
   loaded: (posthog) => {
     if (import.meta.env.DEV) {
@@ -28,6 +29,11 @@ const POSTHOG_CONFIG = {
 // Initialize PostHog
 export const initializeAnalytics = () => {
   if (typeof window !== 'undefined') {
+    if (!config.posthog.apiKey) {
+      console.warn('PostHog API key not found. Analytics will not be initialized.');
+      return;
+    }
+    
     posthog.init(POSTHOG_CONFIG.api_key, {
       api_host: POSTHOG_CONFIG.api_host,
       ...POSTHOG_CONFIG,
@@ -49,6 +55,10 @@ export const analytics = {
   // User identification - now dynamic
   identify: (userId, traits = {}) => {
     if (userId) {
+      if (!config.posthog.apiKey) {
+        console.warn('PostHog not initialized. Skipping user identification.');
+        return;
+      }
       posthog.identify(traits?.email, traits)
       console.log('PostHog: User identified', { userId, traits })
     }
@@ -56,6 +66,10 @@ export const analytics = {
 
   // Event tracking
   track: (eventName, properties = {}) => {
+    if (!config.posthog.apiKey) {
+      console.warn('PostHog not initialized. Skipping event tracking.');
+      return;
+    }
     posthog.capture(eventName, {
       timestamp: new Date().toISOString(),
       ...properties,
@@ -173,6 +187,10 @@ export const analytics = {
 
   // Reset user (for logout)
   reset: () => {
+    if (!config.posthog.apiKey) {
+      console.warn('PostHog not initialized. Skipping reset.');
+      return;
+    }
     posthog.reset()
     console.log('PostHog: User session reset')
   },
