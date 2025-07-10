@@ -185,15 +185,14 @@ export const ProspectSelector = ({
                   {selectedProspect.people?.length || 0}
                 </span>
               </div>
-              {/* <div className="flex items-center space-x-2">
-                <User className="w-3 h-3 text-muted-foreground" />
-                <span className="text-muted-foreground">Opportunity:</span>
-                <span className="font-medium">
-                  {selectedProspect.name || ""}
-                </span>
-              </div> */}
             </div>
-
+            <div className="flex items-center space-x-2">
+              <User className="w-3 h-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Opportunity:</span>
+              <span className="font-medium text-sm truncate max-w-xs">
+                {selectedProspect.name || ""}
+              </span>
+            </div>
             {showStakeholders && selectedProspect.stakeholders && (
               <div className="pt-3 border-t border-primary/20">
                 <h4 className="text-sm font-medium mb-2">Key Stakeholders</h4>
