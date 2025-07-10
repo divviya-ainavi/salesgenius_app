@@ -182,6 +182,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [presentationPromptId, setPresentationPromptId] = useState("");
   const [emailTemplateId, setEmailTemplateId] = useState("");
   const [commStylesData, setCommStylesData] = useState([]);
+  const [getTaskAndContent, setGetTaskAndContent] = useState([]);
+  const [allSummary, setAllSummary] = useState([""]);
   const {
     userProfileInfo,
     userRole,
@@ -458,57 +460,75 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       setIsAnalyzing(false);
     }, 1500);
   };
+
+  const getCummulativeData = async () => {
+    if (selectedProspect?.id != undefined) {
+      const getCallSummary = await dbHelpers.getCallSummaryByProspectId(
+        selectedProspect?.id
+      );
+      const getTaskAndContent =
+        await dbHelpers.getTasksAndSalesInsightsByProspectId(
+          selectedProspect?.id
+        );
+      setAllSummary(getCallSummary);
+      setGetTaskAndContent(getTaskAndContent);
+    }
+  };
+  useEffect(() => {
+    getCummulativeData();
+  }, [selectedProspect]);
   //   console.log(selectedProspect, "check selected prospect");
   const handleGenerate = async () => {
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
     setIsLoading(true);
-    const getCallSummary = await dbHelpers.getCallSummaryByProspectId(
-      selectedProspect?.id
-    );
-    const getTaskAndContent =
-      await dbHelpers.getTasksAndSalesInsightsByProspectId(
-        selectedProspect?.id
-      );
+    const getCallSummary = allSummary;
+    // await dbHelpers.getCallSummaryByProspectId(
+    //   selectedProspect?.id
+    // );
+    // const getTaskAndContent =
+    //   await dbHelpers.getTasksAndSalesInsightsByProspectId(
+    //     selectedProspect?.id
+    //   );
 
     // Simulate API call to generate content
-    setTimeout(async () => {
-      if (artefactType === "presentation") {
-        const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-propmt-v2",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              Cumulative_summary: getCallSummary,
-              salesInsights: getTaskAndContent.contents || [],
-              actionItems: getTaskAndContent?.tasks || [],
-              salesPlay: selectedPlay,
-              secondaryObjectives: selectedObjectives,
-            }),
-          }
-        );
-        const json = await response.json(); // Convert response to JSON
-        const output = json?.[0]?.output;
-        // console.log(response, "follow up email");
+    // setTimeout(async () => {
+    if (artefactType === "presentation") {
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-propmt-v2",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            Cumulative_summary: getCallSummary,
+            salesInsights: getTaskAndContent.contents || [],
+            actionItems: getTaskAndContent?.tasks || [],
+            salesPlay: selectedPlay,
+            secondaryObjectives: selectedObjectives,
+          }),
+        }
+      );
+      const json = await response.json(); // Convert response to JSON
+      const output = json?.[0]?.output;
+      // console.log(response, "follow up email");
 
-        const postData = {
-          blocks: output?.blocks,
-          sales_play: selectedPlay,
-          overview: output.overview,
-          secondary_objectives: selectedObjectives,
-          prospect_id: selectedProspect?.id,
-          is_refined: false,
-          refinement_text: "",
-        };
-        const storeData = await dbHelpers.upsertDeckPrompt(null, postData);
-        setPresentationPromptId(storeData?.id);
-        setGeneratedArtefact({
-          title: `Strategic Presentation for ${selectedProspect.companyName}`,
-          overview: output?.overview,
-          fullPrompt: `# Strategic Presentation for ${
-            selectedProspect.companyName
-          }
+      const postData = {
+        blocks: output?.blocks,
+        sales_play: selectedPlay,
+        overview: output.overview,
+        secondary_objectives: selectedObjectives,
+        prospect_id: selectedProspect?.id,
+        is_refined: false,
+        refinement_text: "",
+      };
+      const storeData = await dbHelpers.upsertDeckPrompt(null, postData);
+      setPresentationPromptId(storeData?.id);
+      setGeneratedArtefact({
+        title: `Strategic Presentation for ${selectedProspect.companyName}`,
+        overview: output?.overview,
+        fullPrompt: `# Strategic Presentation for ${
+          selectedProspect.companyName
+        }
 
 ## Overview
 ${output.overview}
@@ -520,70 +540,70 @@ ${output?.blocks
   )
   .join("\n\n")}
 `,
-          blocks: output?.blocks,
-        });
-        setQualityScore(output?.qualityScore);
-      } else {
-        // Email generation
-        const recipient = stakeholders.filter((s) =>
-          selectedRecipients.includes(s.id)
-        );
-        // console.log(selectedRecipients, "selected recipients", recipient);
-        const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email-v2",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              Cumulative_summary: getCallSummary,
-              prospects: recipient?.map((x) => x.name),
-              salesInsights: getTaskAndContent.contents || [],
-              actionItems: getTaskAndContent?.tasks || [],
-              salesPlay: selectedPlay,
-              secondaryObjectives: selectedObjectives,
-              communication_styles: commStylesData,
-            }),
-          }
-        );
-        const json = await response.json(); // Convert response to JSON
-        const output = json?.[0]?.output;
-        // console.log(response, "follow up email");
+        blocks: output?.blocks,
+      });
+      setQualityScore(output?.qualityScore);
+    } else {
+      // Email generation
+      const recipient = stakeholders.filter((s) =>
+        selectedRecipients.includes(s.id)
+      );
+      // console.log(selectedRecipients, "selected recipients", recipient);
+      const response = await fetch(
+        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email-v2",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            Cumulative_summary: getCallSummary,
+            prospects: recipient?.map((x) => x.name),
+            salesInsights: getTaskAndContent.contents || [],
+            actionItems: getTaskAndContent?.tasks || [],
+            salesPlay: selectedPlay,
+            secondaryObjectives: selectedObjectives,
+            communication_styles: commStylesData,
+          }),
+        }
+      );
+      const json = await response.json(); // Convert response to JSON
+      const output = json?.[0]?.output;
+      // console.log(response, "follow up email");
 
-        const postData = {
-          subject: output?.subject || output?.Subject,
-          body: output?.body || output?.Body,
-          sales_play: selectedPlay,
-          secondary_objectives: selectedObjectives,
-          prospect_id: selectedProspect?.id,
-          is_refined: false,
-          refinement_text: "",
-        };
-        const newTemplate = await dbHelpers.upsertEmailTemplate(null, postData);
-        setEmailTemplateId(newTemplate?.id);
-        setGeneratedArtefact({
-          title: `Follow-up Email for ${selectedProspect.companyName}`,
-          strategicGoal: output?.strategicGoal,
-          subject: output?.subject || output?.Subject,
-          body: output?.body || output?.Body,
-        });
-        setQualityScore(output?.qualityScore);
-      }
+      const postData = {
+        subject: output?.subject || output?.Subject,
+        body: output?.body || output?.Body,
+        sales_play: selectedPlay,
+        secondary_objectives: selectedObjectives,
+        prospect_id: selectedProspect?.id,
+        is_refined: false,
+        refinement_text: "",
+      };
+      const newTemplate = await dbHelpers.upsertEmailTemplate(null, postData);
+      setEmailTemplateId(newTemplate?.id);
+      setGeneratedArtefact({
+        title: `Follow-up Email for ${selectedProspect.companyName}`,
+        strategicGoal: output?.strategicGoal,
+        subject: output?.subject || output?.Subject,
+        body: output?.body || output?.Body,
+      });
+      setQualityScore(output?.qualityScore);
+    }
 
-      setQuickRefinements([
-        { id: "concise", label: "Make it more concise" },
-        { id: "urgency", label: "Add more urgency" },
-        { id: "technical", label: "Add more technical details" },
-        { id: "roi", label: "Emphasize ROI more" },
-        { id: "objections", label: "Address potential objections" },
-        { id: "social-proof", label: "Add more social proof" },
-        { id: "next-steps", label: "Clarify next steps" },
-        { id: "personalize", label: "Make it more personalized" },
-      ]);
+    setQuickRefinements([
+      { id: "concise", label: "Make it more concise" },
+      { id: "urgency", label: "Add more urgency" },
+      { id: "technical", label: "Add more technical details" },
+      { id: "roi", label: "Emphasize ROI more" },
+      { id: "objections", label: "Address potential objections" },
+      { id: "social-proof", label: "Add more social proof" },
+      { id: "next-steps", label: "Clarify next steps" },
+      { id: "personalize", label: "Make it more personalized" },
+    ]);
 
-      setIsLoading(false);
-      setCurrentView("canvas");
-      toast.success("Content generated successfully!");
-    }, 2500);
+    setIsLoading(false);
+    setCurrentView("canvas");
+    toast.success("Content generated successfully!");
+    // }, 2500);
   };
 
   const handleRefine = async (
