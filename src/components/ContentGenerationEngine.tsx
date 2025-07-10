@@ -287,12 +287,13 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           contact:
             (insight.prospect_details || []).map((p) => p.name).join(", ") ||
             "Unknown",
-          dealValue: 100000, // Default value
+          dealValue: "", // Default value
           crmStage: "Proposal Sent", // Default value
           nextAction: "Follow-up",
           communication_style_ids: insight.communication_style_ids || [],
           sales_play: insight?.sales_play,
           secondary_objectives: insight?.secondary_objectives,
+          name: insight?.name,
         }));
 
         setProspects(enrichedProspects);
@@ -923,8 +924,12 @@ ${updatedBlocks
                           Deal Value:
                         </span>
                         <span className="font-medium">
-                          <DollarSign className="inline-block w-4 h-4 mr-1" />
-                          {selectedProspect.dealValue.toLocaleString()}
+                          {selectedProspect.dealValue && (
+                            <DollarSign className="inline-block w-4 h-4 mr-1" />
+                          )}
+                          {selectedProspect.dealValue
+                            ? selectedProspect.dealValue.toLocaleString()
+                            : "-"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -1593,7 +1598,10 @@ ${updatedBlocks
                                   variant="outline"
                                   className="ml-2 text-xs"
                                 >
-                                  {block.blockType}
+                                  {block.blockType
+                                    ? block.blockType.charAt(0).toUpperCase() +
+                                      block.blockType.slice(1)
+                                    : ""}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
                                   <Clock className="w-3 h-3 mr-1" />

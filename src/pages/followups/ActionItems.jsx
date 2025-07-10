@@ -201,6 +201,7 @@ export const ActionItems = () => {
               sales_insights: insight.sales_insights || [],
               call_summary: insight.call_summary,
               action_items: insight.action_items || [],
+              name: insight?.name,
             };
           })
         );
