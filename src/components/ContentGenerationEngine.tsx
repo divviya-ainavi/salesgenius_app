@@ -895,7 +895,7 @@ ${updatedBlocks
                     <SelectContent>
                       {prospects.map((prospect) => (
                         <SelectItem key={prospect.id} value={prospect.id}>
-                          {prospect.companyName}
+                          {prospect.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
