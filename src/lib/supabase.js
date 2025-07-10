@@ -11,7 +11,7 @@ import { config } from './config'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
+console.log(supabaseUrl, "supabase url")
 // Password hashing configuration
 const ENCRYPTION_SECRET = 'SG_2025'; // In production, use environment variable
 
@@ -432,7 +432,7 @@ export const authHelpers = {
         .from('organizations')
         .update({
           hubspot_encrypted_token: encryptedToken,
-          updated_at: new Date().toISOString(),
+          // updated_at: new Date().toISOString(),
         })
         .eq('id', organizationId)
         .select()

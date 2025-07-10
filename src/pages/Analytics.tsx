@@ -740,20 +740,21 @@ const Analytics = () => {
     const [durations, setDurations] = useState({});
     const [error, setError] = useState(null);
     const posthogToken = config.posthog.apiKey;
+    const analyticsKey = config.posthog.analyticsKey;
     const userEmail = CURRENT_USER.email || "";
     console.log("User Email:", userEmail, posthogToken);
     useEffect(() => {
       const fetchPageTimes = async () => {
         try {
           if (!posthogToken) {
-            throw new Error('PostHog API key not configured');
+            throw new Error("PostHog API key not configured");
           }
-          
+
           const res = await fetch(
             `https://eu.posthog.com/api/event?distinct_id=${userEmail}&event=page_time_spent`,
             {
               headers: {
-                Authorization: `Bearer ${posthogToken}`,
+                Authorization: `Bearer ${analyticsKey}`,
               },
             }
           );
