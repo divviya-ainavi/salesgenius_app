@@ -1244,7 +1244,10 @@ ${updatedBlocks
                         </div>
                       ) : (
                         stakeholders.map((stakeholder) => (
-                          <div
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">{prospect.companyName}</span>
+                              <span className="text-xs text-muted-foreground">{prospect.name}</span>
+                            </div>
                             key={stakeholder.id}
                             className="flex items-center space-x-3"
                           >
