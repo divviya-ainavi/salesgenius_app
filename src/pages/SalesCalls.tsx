@@ -1586,6 +1586,9 @@ const SalesCalls = () => {
       {/* Processing Modal */}
       <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
         <DialogContent className="sm:max-w-md text-center p-6 bg-gradient-to-b from-background to-background/95 border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Processing File</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col items-center justify-center space-y-6">
             {/* Animated Icon Container */}
             <div className="relative w-24 h-24 mb-2">
