@@ -1578,14 +1578,7 @@ const SalesCalls = () => {
               Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
             </p>
             
-            {/* Progress dots */}
-            <div className="flex space-x-2 justify-center">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-            </div>
+           
           </div>
         </DialogContent>
       </Dialog>
