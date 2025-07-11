@@ -110,3 +110,78 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Custom animations for processing modal */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes orbit-1 {
+  0% { transform: rotate(0deg) translateX(30px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(30px) rotate(-360deg); }
+}
+
+@keyframes orbit-2 {
+  0% { transform: rotate(90deg) translateX(30px) rotate(-90deg); }
+  100% { transform: rotate(450deg) translateX(30px) rotate(-450deg); }
+}
+
+@keyframes orbit-3 {
+  0% { transform: rotate(180deg) translateX(30px) rotate(-180deg); }
+  100% { transform: rotate(540deg) translateX(30px) rotate(-540deg); }
+}
+
+@keyframes orbit-4 {
+  0% { transform: rotate(270deg) translateX(30px) rotate(-270deg); }
+  100% { transform: rotate(630deg) translateX(30px) rotate(-630deg); }
+}
+
+.animate-blink {
+  animation: blink 2s ease-in-out infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+.animate-orbit-1 {
+  animation: orbit-1 4s linear infinite;
+}
+
+.animate-orbit-2 {
+  animation: orbit-2 5s linear infinite;
+}
+
+.animate-orbit-3 {
+  animation: orbit-3 6s linear infinite;
+}
+
+.animate-orbit-4 {
+  animation: orbit-4 7s linear infinite;
+}
+
+.animate-pulse-delay-1 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-delay-2 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s;
+}
+
+.animate-pulse-delay-3 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.8s;
+}
+
+.animate-pulse-delay-4 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.2s;
+}
+
+.animate-pulse-delay-5 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.6s;
+}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,9 @@ const SalesCalls = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingFileId, setProcessingFileId] = useState(null);
   const [processedCalls, setProcessedCalls] = useState([]);
+
+  // Processing modal state
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
 
   // Processing modal state
   const [showProcessingModal, setShowProcessingModal] = useState(false);
@@ -542,6 +546,7 @@ const SalesCalls = () => {
     // Show the processing modal
     setShowProcessingModal(true);
     setIsProcessing(true);
+    setShowProcessingModal(true);
     setProcessingFileId(file.id);
     trackButtonClick(
       source == "fireflies" ? "Process Fireflies" : "Process File",
@@ -769,6 +774,7 @@ const SalesCalls = () => {
     } catch (error) {
       console.error("Error processing file:", error);
       toast.error(`Failed to process file: ${error.message}`);
+      setShowProcessingModal(false);
       setShowProcessingModal(false);
     } finally {
       setIsProcessing(false);
@@ -1584,6 +1590,54 @@ const SalesCalls = () => {
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.8s' }}></div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Processing Modal */}
+      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
+        <DialogContent className="sm:max-w-md text-center p-6 bg-gradient-to-b from-background to-background/95 border-primary/20">
+          <div className="flex flex-col items-center justify-center space-y-6">
+            {/* Animated Icon Container */}
+            <div className="relative w-24 h-24 mb-2">
+              {/* Glowing background circle */}
+              <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-pulse"></div>
+              
+              {/* Orbiting particles */}
+              <div className="absolute inset-0">
+                <div className="absolute w-3 h-3 bg-blue-500 rounded-full top-0 left-1/2 transform -translate-x-1/2 animate-orbit-1"></div>
+                <div className="absolute w-2 h-2 bg-indigo-500 rounded-full bottom-0 left-1/2 transform -translate-x-1/2 animate-orbit-2"></div>
+                <div className="absolute w-2 h-2 bg-purple-500 rounded-full left-0 top-1/2 transform -translate-y-1/2 animate-orbit-3"></div>
+                <div className="absolute w-3 h-3 bg-blue-400 rounded-full right-0 top-1/2 transform -translate-y-1/2 animate-orbit-4"></div>
+              </div>
+              
+              {/* Center icon with blinking effect */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-blue-500 animate-bounce-slow animate-blink" />
+              </div>
+            </div>
+            
+            <div>
+              <DialogTitle className="text-xl font-bold mb-2">Analyzing File</DialogTitle>
+              <p className="text-muted-foreground mb-6">
+                Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
+              </p>
+            </div>
+            
+            {/* Progress indicators */}
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse-delay-1"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse-delay-2"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse-delay-3"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-300 animate-pulse-delay-4"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-200 animate-pulse-delay-5"></div>
+            </div>
+            
+            {/* Circular progress spinner similar to the image */}
+            <div className="relative w-16 h-16 mt-2">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
             </div>
           </div>
         </DialogContent>
