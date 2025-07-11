@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ import {
   Copy,
   AlertCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
@@ -51,7 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setCummulativeSpin } from "../store/slices/prospectSlice";
 
 const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -71,6 +74,10 @@ const SalesCalls = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingFileId, setProcessingFileId] = useState(null);
   const [processedCalls, setProcessedCalls] = useState([]);
+
+  // Processing modal state
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -94,7 +101,7 @@ const SalesCalls = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
+  const dispatch = useDispatch();
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
     loadUploadedFiles();
@@ -533,8 +540,9 @@ const SalesCalls = () => {
       return;
     }
 
+    // Show the processing modal
+    setShowProcessingModal(true);
     setIsProcessing(true);
-    // if (source != "fireflies") {
     setProcessingFileId(file.id);
     trackButtonClick(
       source == "fireflies" ? "Process Fireflies" : "Process File",
@@ -543,6 +551,7 @@ const SalesCalls = () => {
         filename: file.filename,
       }
     );
+
     // }
     try {
       // Get file blob from URL
@@ -560,6 +569,7 @@ const SalesCalls = () => {
         } catch (fetchError) {
           console.error("Error fetching file blob:", fetchError);
           toast.error("Failed to fetch file for sending");
+          setShowProcessingModal(false);
           setIsProcessing(false);
           setProcessingFileId(null);
           return;
@@ -568,6 +578,7 @@ const SalesCalls = () => {
 
       if (!fileBlob && source != "fireflies") {
         toast.error("No file content available for processing");
+        setShowProcessingModal(false);
         setIsProcessing(false);
         setProcessingFileId(null);
         return;
@@ -637,44 +648,77 @@ const SalesCalls = () => {
           const savedInsight = result.callInsight;
 
           try {
+            const processedCall = {
+              id: savedInsight?.id || "",
+              callId: `Call ${savedInsight.id.slice(-5)}`,
+              companyName:
+                processedData?.company_details?.[0]?.name || "Company",
+              prospectName: processedData?.sales_call_prospect || "Prospect",
+              date: new Date().toISOString().split("T")[0],
+              duration: "N/A",
+              status: "processed",
+              source: isFireflies ? "fireflies" : "upload",
+              hasInsights: true,
+              transcript:
+                processedData?.extracted_transcript || file.file_content,
+              aiProcessedData: processedData,
+              uploaded_file_id: file.id,
+            };
+
+            setProcessedCalls((prev) => [processedCall, ...prev]);
+
+            toast.success("File processed successfully!");
+
+            navigate("/call-insights", {
+              state: {
+                selectedCall: {
+                  id: savedInsight?.prospect_id,
+                },
+                source: processedCall.source,
+                aiProcessedData: processedData,
+              },
+            });
             try {
-              // 1. Get existing styles from Supabase
-              const existingStyles =
-                (await dbHelpers.getCommunicationStylesData(
-                  selectedProComStyles
-                )) || [];
-              const call_summaries =
-                (await dbHelpers.getCallSummaryByProspectId(
-                  selectedProspectId
-                )) || [processedData?.call_summary || ""];
-              // 2. Call cumulative-comm API with existing + current styles
-              const cumulativeRes = await fetch(
-                "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    previous_communication_styles: existingStyles,
-                    current_communication_styles:
-                      processedData?.communication_styles,
-                    combined_calls_summary: call_summaries,
-                  }),
-                }
-              );
-
-              if (!cumulativeRes.ok) {
-                throw new Error("Failed to call cumulative-comm API");
-              }
-
-              const rawText = await cumulativeRes.text();
-
-              if (!rawText) {
-                throw new Error("Empty response from cumulative-comm API");
-              }
-
-              let cumulativeData;
-              cumulativeData = JSON.parse(rawText);
               if (!prospectCheck) {
+                dispatch(setCummulativeSpin(true));
+                const [existingStyles, call_summariesRaw] = await Promise.all([
+                  dbHelpers.getCommunicationStylesData(selectedProComStyles),
+                  dbHelpers.getCallSummaryByProspectId(selectedProspectId),
+                ]);
+
+                const existing = existingStyles || [];
+                const call_summaries =
+                  call_summariesRaw?.length > 0
+                    ? call_summariesRaw
+                    : [processedData?.call_summary || ""];
+
+                // 2. Call cumulative-comm API with existing + current styles
+                const cumulativeRes = await fetch(
+                  "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      previous_communication_styles: existing,
+                      current_communication_styles:
+                        processedData?.communication_styles,
+                      combined_calls_summary: call_summaries,
+                    }),
+                  }
+                );
+
+                if (!cumulativeRes.ok) {
+                  dispatch(setCummulativeSpin(false));
+                  throw new Error("Failed to call cumulative-comm API");
+                }
+
+                const rawText = await cumulativeRes.text();
+
+                if (!rawText) {
+                  throw new Error("Empty response from cumulative-comm API");
+                }
+
+                const cumulativeData = JSON.parse(rawText);
                 const newStyles =
                   cumulativeData?.[0]?.communication_styles || [];
 
@@ -696,54 +740,23 @@ const SalesCalls = () => {
                         cumulativeData?.[0]?.recommended_objective,
                     }
                   );
-
+                  dispatch(setCummulativeSpin(false));
                   // ✅ 5. Replace the styles in processedData for UI usage
                   processedData.communication_styles = newStyles.map(
                     (s, i) => ({
                       ...s,
-                      id: newStyleIds[i], // map newly inserted ID from Supabase
+                      id: newStyleIds[i],
                     })
                   );
+                } else {
+                  dispatch(setCummulativeSpin(false));
                 }
               }
             } catch (err) {
               console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
+              dispatch(setCummulativeSpin(false));
             }
-
-            const processedCall = {
-              id: savedInsight?.id || "",
-              callId: `Call ${savedInsight.id.slice(-5)}`,
-              companyName:
-                processedData?.company_details?.[0]?.name || "Company",
-              prospectName: processedData?.sales_call_prospect || "Prospect",
-              date: new Date().toISOString().split("T")[0],
-              duration: "N/A",
-              status: "processed",
-              source: isFireflies ? "fireflies" : "upload",
-              hasInsights: true,
-              transcript:
-                processedData?.extracted_transcript || file.file_content,
-              aiProcessedData: processedData,
-              uploaded_file_id: file.id,
-            };
-
-            setProcessedCalls((prev) => [processedCall, ...prev]);
-
-            toast.success("File processed successfully!");
-            // console.log(
-            //   !prospectCheck ? savedInsight?.id : selectedProspectId,
-            //   "check passed id"
-            // );
-            navigate("/call-insights", {
-              state: {
-                selectedCall: {
-                  id: savedInsight?.prospect_id,
-                },
-                source: processedCall.source,
-                aiProcessedData: processedData,
-              },
-            });
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);
             toast.error("Failed to update communication styles");
@@ -757,7 +770,8 @@ const SalesCalls = () => {
     } catch (error) {
       console.error("Error processing file:", error);
       toast.error(`Failed to process file: ${error.message}`);
-    } finally {
+      setShowProcessingModal(false);
+      } finally {
       setIsProcessing(false);
       setProcessingFileId(null);
     }
@@ -1533,6 +1547,89 @@ const SalesCalls = () => {
             <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
               {modalContent}
             </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Processing Modal */}
+      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
+        <DialogContent className="sm:max-w-md text-center">
+          <div className="py-6 flex flex-col items-center">
+            {/* Animated glowing circle with stars */}
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-20 animate-pulse"></div>
+              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-white animate-bounce-soft" />
+              </div>
+              {/* Orbiting stars */}
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '8s' }}>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-yellow-300 rounded-full"></div>
+              </div>
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '12s' }}>
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-2 h-2 bg-blue-300 rounded-full"></div>
+              </div>
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '10s', animationDirection: 'reverse' }}>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-purple-300 rounded-full"></div>
+              </div>
+            </div>
+            
+            <h2 className="text-xl font-bold mb-2">Analyzing File</h2>
+            <p className="text-muted-foreground mb-6 max-w-xs">
+              Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
+            </p>
+            
+           
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Processing Modal */}
+      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
+        <DialogContent className="sm:max-w-md text-center p-6 bg-gradient-to-b from-background to-background/95 border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Processing File</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-6">
+            {/* Animated Icon Container */}
+            <div className="relative w-24 h-24 mb-2">
+              {/* Glowing background circle */}
+              <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-pulse"></div>
+              
+              {/* Orbiting particles */}
+              <div className="absolute inset-0">
+                <div className="absolute w-3 h-3 bg-blue-500 rounded-full top-0 left-1/2 transform -translate-x-1/2 animate-orbit-1"></div>
+                <div className="absolute w-2 h-2 bg-indigo-500 rounded-full bottom-0 left-1/2 transform -translate-x-1/2 animate-orbit-2"></div>
+                <div className="absolute w-2 h-2 bg-purple-500 rounded-full left-0 top-1/2 transform -translate-y-1/2 animate-orbit-3"></div>
+                <div className="absolute w-3 h-3 bg-blue-400 rounded-full right-0 top-1/2 transform -translate-y-1/2 animate-orbit-4"></div>
+              </div>
+              
+              {/* Center icon with blinking effect */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-blue-500 animate-bounce-slow animate-blink" />
+              </div>
+            </div>
+            
+            <div>
+              <DialogTitle className="text-xl font-bold mb-2">Analyzing File</DialogTitle>
+              <p className="text-muted-foreground mb-6">
+                Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
+              </p>
+            </div>
+            
+            {/* Progress indicators */}
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse-delay-1"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse-delay-2"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse-delay-3"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-300 animate-pulse-delay-4"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-200 animate-pulse-delay-5"></div>
+            </div>
+            
+            {/* Circular progress spinner similar to the image */}
+            <div className="relative w-16 h-16 mt-2">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

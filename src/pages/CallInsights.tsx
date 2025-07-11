@@ -59,6 +59,7 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -136,7 +137,8 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { storedProspectId } = useSelector((state) => state.prospect);
+  const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const [cummulativeSummary, setCummulativeSummary] = useState("");
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -291,6 +293,7 @@ const CallInsights = () => {
             fullInsight: defaultInsight,
             people, // ✅ attach people to selectedProspect
             call_summary: defaultInsight?.call_summary || "",
+            communication_style_ids: defaultInsight?.communication_style_ids,
           };
 
           // console.log(
@@ -299,6 +302,7 @@ const CallInsights = () => {
           //   defaultInsight,
           //   "get default insight"
           // );
+          setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
         } else {
@@ -366,8 +370,36 @@ const CallInsights = () => {
   };
   // console.log(people, "get people list");
 
+  const refreshCommunicationStyles = async () => {
+    const styles = await fetchCommunicationStyles(
+      selectedProspect?.communication_style_ids
+    );
+
+    setCommunicationStyles(styles);
+  };
+
+  const refreshCummulativeSummary = async () => {
+    // console.log(selectedProspect?.id, "check spin summary");
+    if (selectedProspect?.id != undefined) {
+      const summary = await dbHelpers.getProspectSummary(selectedProspect?.id);
+      // console.log(summary, "check spin summary");
+      setCummulativeSummary(summary?.call_summary);
+    }
+  };
+
+  useEffect(() => {
+    refreshCommunicationStyles();
+    refreshCummulativeSummary();
+  }, [cummulativeSpinner]);
+  // console.log(
+  //   communicationStyles,
+  //   cummulativeSpinner,
+  //   selectedProspect?.communication_style_ids,
+  //   "check spin"
+  // );
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
+    setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
@@ -818,6 +850,8 @@ const CallInsights = () => {
                         calls: prospect?.calls || 1,
                         people: prospect.people, // ✅ add this
                         call_summary: prospect?.call_summary,
+                        communication_style_ids:
+                          prospect?.communication_style_ids,
                       })
                     }
                   >
@@ -1268,9 +1302,74 @@ const CallInsights = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {communicationStyles.length > 0 ? (
+              {cummulativeSpinner ? (
                 <div className="space-y-6">
-                  {communicationStyles.map((stakeholder) => {
+                  {/* Skeleton for stakeholder cards */}
+                  {[1, 2].map((index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-16" />
+                          <Skeleton className="h-5 w-20" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Personality Type Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        </div>
+
+                        {/* Communication Modality Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-4 w-20" />
+                          </div>
+                        </div>
+
+                        {/* Evidence Section Skeleton */}
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-2" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4 mt-1" />
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Skeleton className="h-4 w-20 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Skeleton className="h-4 w-28 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles?.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
                     const PersonalityIcon = stakeholder.personality_type
@@ -1568,9 +1667,13 @@ const CallInsights = () => {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                {selectedProspect?.call_summary || ""}
-              </p>
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
+              )}
             </CardContent>
           </Card>
         </>
