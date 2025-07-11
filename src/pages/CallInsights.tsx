@@ -1667,9 +1667,13 @@ const CallInsights = () => {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                {cummulativeSummary || ""}
-              </p>
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
+              )}
             </CardContent>
           </Card>
         </>
