@@ -138,6 +138,7 @@ const CallInsights = () => {
     hubspotIntegration,
   } = useSelector((state) => state.auth);
   const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const [cummulativeSummary, setCummulativeSummary] = useState("");
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -292,6 +293,7 @@ const CallInsights = () => {
             fullInsight: defaultInsight,
             people, // ✅ attach people to selectedProspect
             call_summary: defaultInsight?.call_summary || "",
+            communication_style_ids: defaultInsight?.communication_style_ids,
           };
 
           // console.log(
@@ -300,6 +302,7 @@ const CallInsights = () => {
           //   defaultInsight,
           //   "get default insight"
           // );
+          setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
         } else {
@@ -371,14 +374,32 @@ const CallInsights = () => {
     const styles = await fetchCommunicationStyles(
       selectedProspect?.communication_style_ids
     );
+
     setCommunicationStyles(styles);
   };
+
+  const refreshCummulativeSummary = async () => {
+    // console.log(selectedProspect?.id, "check spin summary");
+    if (selectedProspect?.id != undefined) {
+      const summary = await dbHelpers.getProspectSummary(selectedProspect?.id);
+      // console.log(summary, "check spin summary");
+      setCummulativeSummary(summary?.call_summary);
+    }
+  };
+
   useEffect(() => {
     refreshCommunicationStyles();
+    refreshCummulativeSummary();
   }, [cummulativeSpinner]);
-
+  // console.log(
+  //   communicationStyles,
+  //   cummulativeSpinner,
+  //   selectedProspect?.communication_style_ids,
+  //   "check spin"
+  // );
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
+    setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
@@ -829,6 +850,8 @@ const CallInsights = () => {
                         calls: prospect?.calls || 1,
                         people: prospect.people, // ✅ add this
                         call_summary: prospect?.call_summary,
+                        communication_style_ids:
+                          prospect?.communication_style_ids,
                       })
                     }
                   >
@@ -1346,7 +1369,7 @@ const CallInsights = () => {
                 </div>
               ) : communicationStyles.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles.map((stakeholder) => {
+                  {communicationStyles?.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
                     const PersonalityIcon = stakeholder.personality_type
@@ -1645,7 +1668,7 @@ const CallInsights = () => {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {selectedProspect?.call_summary || ""}
+                {cummulativeSummary || ""}
               </p>
             </CardContent>
           </Card>

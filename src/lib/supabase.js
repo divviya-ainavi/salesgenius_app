@@ -2327,6 +2327,20 @@ export const dbHelpers = {
     return data;
   },
 
+  async getProspectSummary(prospectId) {
+    const { data, error } = await supabase
+      .from("prospect")
+      .select("call_summary")
+      .eq("id", prospectId)
+      .single(); // assuming prospectId is unique
+    if (error) {
+      console.error("Supabase get prospect summary error:", error);
+      throw error;
+    }
+
+    return data;
+  },
+
   async deleteSalesInsightContent(insightId, updateFields = {}) {
     const { data, error } = await supabase
       .from("sales_insights")
