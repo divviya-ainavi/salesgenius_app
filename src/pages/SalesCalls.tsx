@@ -36,7 +36,6 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-  Sparkles,
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
