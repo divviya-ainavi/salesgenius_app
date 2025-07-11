@@ -1381,6 +1381,18 @@ ${updatedBlocks
 
                       return (
                         <div
+                          key={stakeholder.id}
+                          className="flex items-center space-x-3"
+                        >
+                          <Checkbox
+                            id={`recipient-${stakeholder.id}`}
+                            checked={selectedRecipients.includes(
+                              stakeholder.id
+                            )}
+                            onCheckedChange={() =>
+                              handleRecipientToggle(stakeholder.id)
+                            }
+                          />
                           key={objective.id}
                           className={cn(
                             "flex items-center space-x-3 p-3 rounded-md border",
@@ -1656,22 +1668,7 @@ ${updatedBlocks
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditBlock(block.id)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </CardHeader>
-
-                          <CardContent>
-                            {editingBlockId === block.id ? (
-                              <Textarea
-                                value={editingContent}
-                                onChange={(e) =>
-                                  setEditingContent(e.target.value)
-                                }
-                                className="min-h-[200px] font-mono text-sm"
-                              />
+                              {prospect.companyName}
                             ) : (
                               <div className="space-y-4">
                                 <ul className="space-y-2 list-disc pl-5">
