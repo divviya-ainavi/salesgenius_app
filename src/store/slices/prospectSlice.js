@@ -2,7 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import Cookies from 'js-cookie'
 
 const initialState = {
-    storedProspectId: ""
+    storedProspectId: "",
+    cummulativeSpinner: false
 };
 
 const prospectSlice = createSlice({
@@ -10,12 +11,16 @@ const prospectSlice = createSlice({
     initialState,
     reducers: {
         setStoredProspectId: (state, action) => {
-            state.storedProspectId = action.storedProspectId;
+            state.storedProspectId = action.payload;
+        },
+        setCummulativeSpin: (state, action) => {
+            state.cummulativeSpinner = action.payload;
         },
     },
 });
 
 export const {
-    setStoredProspectId
+    setStoredProspectId,
+    setCummulativeSpin
 } = prospectSlice.actions;
 export default prospectSlice.reducer;

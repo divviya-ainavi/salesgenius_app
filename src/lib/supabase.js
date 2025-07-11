@@ -1285,8 +1285,257 @@ export const dbHelpers = {
     return data;
   },
 
+  // async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id) {
+  //   // console.log("check response from company", userId, organizationId, isFireflies, file, data, company_id, prospect_id)
+  //   const {
+  //     company_details = [],
+  //     sales_call_prospect = "",
+  //     Attendees = [],
+  //     call_summary = "",
+  //     action_items = [],
+  //     sales_insights = [],
+  //     communication_styles = [],
+  //     call_analysis_overview = {},
+  //     extracted_transcript = "",
+  //     processing_status = "completed",
+  //     recommended_sales_play = "",
+  //     recommended_objectives = []
+  //   } = data || {};
+  //   const companyName = company_details?.[0]?.name;
+  //   // console.log(company_details, companyName, "check response from company", data)
+  //   // 1. Handle Company
+  //   const { data: existingCompany } = await supabase
+  //     .from("company")
+  //     .select("id")
+  //     .eq("name", companyName)
+  //     .eq("user_id", userId)
+  //     .maybeSingle();
+
+  //   let companyId = company_id;
+  //   if (companyId == "" || company_id == "new") {
+  //     const { data: newCompany } = await supabase
+  //       .from("company")
+  //       .insert({ name: companyName, user_id: userId, organization_id: organizationId })
+  //       .select("id")
+  //       .single();
+  //     companyId = newCompany.id;
+  //   }
+  //   // console.log(sales_call_prospect?.split('_')?.[0], "sales call prospect")
+  //   // 2. Handle Prospect
+  //   const { data: existingProspect } = await supabase
+  //     .from("prospect")
+  //     .select("id, calls")
+  //     .eq("name", sales_call_prospect?.split('_')?.[0])
+  //     .eq("company_id", companyId)
+  //     .maybeSingle();
+
+  //   let prospectId;
+  //   if (companyId == "" || company_id == "new" || prospect_id == "" || prospect_id == "new") {
+  //     const { data: newProspect } = await supabase
+  //       .from("prospect")
+  //       .insert({
+  //         name: sales_call_prospect?.split('_')?.[0],
+  //         company_id: companyId,
+  //         user_id: userId,
+  //         deal_value: null,
+  //         calls: 1,
+  //         call_summary: call_summary,
+  //         sales_play: recommended_sales_play,
+  //         secondary_objectives: recommended_objectives
+  //       })
+  //       .select("id")
+  //       .single();
+  //     prospectId = newProspect.id;
+  //   } else {
+  //     prospectId = prospect_id;
+  //   }
+
+  //   // 3. Handle People
+  //   const peopleIds = [];
+  //   for (const person of Attendees) {
+  //     const { data: existingPerson } = await supabase
+  //       .from("peoples")
+  //       .select("id")
+  //       .eq("prospect_id", prospectId)
+  //       .eq("name", person.name)
+  //       .maybeSingle();
+
+  //     if (!existingPerson) {
+  //       const { data: newPerson } = await supabase
+  //         .from("peoples")
+  //         .insert({
+  //           name: person.name,
+  //           title: person.title,
+  //           prospect_id: prospectId,
+  //         })
+  //         .select("id")
+  //         .single();
+  //       peopleIds.push(newPerson.id);
+  //     } else {
+  //       peopleIds.push(existingPerson.id);
+  //     }
+  //   }
+
+  //   // 4. Handle Action Items
+  //   const actionItemIds = [];
+  //   for (const item of action_items) {
+  //     // const { data: person } = await supabase
+  //     //   .from("peoples")
+  //     //   .select("id")
+  //     //   .eq("name", item.owner)
+  //     //   .eq("prospect_id", prospectId)
+  //     //   .single();
+
+  //     // const { data: insertedItem } = await supabase
+  //     //   .from("action_items")
+  //     //   .insert({
+  //     //     task: item.task,
+  //     //     owner: item.owner,
+  //     //     deadline: item.deadline,
+  //     //     priority: item.priority,
+  //     //     people_id: person?.id,
+  //     //   })
+  //     //   .select("id")
+  //     //   .single();
+  //     const { data: person } = await supabase
+  //       .from("peoples")
+  //       .select("id")
+  //       .eq("name", item.owner)
+  //       .eq("prospect_id", prospectId)
+  //       .maybeSingle();
+
+  //     const { data: insertedItem } = await supabase
+  //       .from("action_items")
+  //       .insert({
+  //         task: item.task,
+  //         owner: item.owner,
+  //         deadline: item.deadline,
+  //         priority: item.priority,
+  //         people_id: person?.id || null, // handle null safely
+  //       })
+  //       .select("id")
+  //       .single();
+
+  //     actionItemIds.push(insertedItem.id);
+  //   }
+
+  //   // 5. Handle Sales Insights
+  //   const salesInsightIds = [];
+  //   for (const insight of sales_insights) {
+  //     const { data: type } = await supabase
+  //       .from("sales_insight_types")
+  //       .select("id")
+  //       .eq("key", insight.type)
+  //       .maybeSingle(); // safer than .single()
+
+  //     if (type) {
+  //       const { data: insertedInsight } = await supabase
+  //         .from("sales_insights")
+  //         .insert({
+  //           type_id: type.id,
+  //           content: insight.content,
+  //           relevance_score: insight.relevance_score,
+  //           is_selected: insight.is_selected,
+  //           source: insight.source,
+  //           timestamp: insight.timestamp,
+  //           trend: insight.trend,
+  //           speaker: insight.speaker,
+  //         })
+  //         .select("id")
+  //         .single();
+
+  //       salesInsightIds.push(insertedInsight.id);
+  //     } else {
+  //       console.warn(`Insight type "${insight.type}" not found — skipping insert.`);
+  //     }
+  //   }
+
+  //   // console.log(call_analysis_overview, "check call analysis overview")
+  //   // 6. Handle Call Analysis Overview
+  //   const { data: analysis } = await supabase
+  //     .from("call_analysis_overview")
+  //     .insert({
+  //       specific_user: call_analysis_overview?.specific_user,
+  //       sentiment_score: call_analysis_overview.sentiment_score,
+  //       key_points: call_analysis_overview.key_points,
+  //       processing_status: call_analysis_overview.processing_status,
+  //       error_message: call_analysis_overview.error_message,
+  //     })
+  //     .select("id")
+  //     .single();
+  //   const analysisId = analysis?.id;
+
+  //   // 7. Handle Communication Styles
+  //   const communicationStyleIds = [];
+  //   for (const style of communication_styles) {
+  //     const { data: person } = await supabase
+  //       .from("peoples")
+  //       .select("id")
+  //       .eq("name", style.stakeholder)
+  //       .eq("prospect_id", prospectId)
+  //       .single();
+
+  //     const { data: insertedStyle } = await supabase
+  //       .from("communication_styles")
+  //       .insert({
+  //         stakeholder: style.stakeholder,
+  //         role: style.role,
+  //         is_primary: style.is_primary,
+  //         style: style.style,
+  //         confidence: style.confidence,
+  //         evidence: style.evidence,
+  //         preferences: style.preferences,
+  //         communication_tips: style.communication_tips,
+  //         personality_type: style.personality_type,
+  //         people_id: person?.id || null,
+  //       })
+  //       .select("id")
+  //       .single();
+  //     communicationStyleIds.push(insertedStyle.id);
+  //   }
+
+  //   // 8. Final: Insert into Call Insights
+  //   const { data: callInsight } = await supabase
+  //     .from("insights")
+  //     .insert({
+  //       prospect_id: prospectId,
+  //       peoples_id: peopleIds,
+  //       call_summary,
+  //       action_item_ids: actionItemIds,
+  //       call_analysis_overview_id: analysisId,
+  //       sales_insight_ids: salesInsightIds,
+  //       extracted_transcript,
+  //       processing_status,
+  //       communication_style_ids: communicationStyleIds,
+  //       user_id: userId,
+  //       uploaded_file_id: isFireflies ? null : file.id,
+  //       fireflies_id: isFireflies ? file.id : null,
+  //       type: isFireflies ? "fireflies" : "file_upload",
+  //     })
+  //     .select()
+  //     .single();
+
+  //   // 9. Update Prospect call count and comm style ids
+  //   const { data: insightsCount } = await supabase
+  //     .from("insights")
+  //     .select("id", { count: "exact" })
+  //     .eq("prospect_id", prospectId);
+
+  //   await supabase
+  //     .from("prospect")
+  //     .update({
+  //       calls: insightsCount?.length || 1,
+  //       communication_style_ids: communicationStyleIds,
+  //     })
+  //     .eq("id", prospectId);
+  //   // console.log("data will be stored properly")
+  //   return {
+  //     status: "success",
+  //     callInsight
+  //   };
+  // },
+
   async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id) {
-    // console.log("check response from company", userId, organizationId, isFireflies, file, data, company_id, prospect_id)
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -1301,181 +1550,168 @@ export const dbHelpers = {
       recommended_sales_play = "",
       recommended_objectives = []
     } = data || {};
-    const companyName = company_details?.[0]?.name;
-    // console.log(company_details, companyName, "check response from company", data)
+
+    const companyName = company_details?.[0]?.name || "";
+
     // 1. Handle Company
-    const { data: existingCompany } = await supabase
-      .from("company")
-      .select("id")
-      .eq("name", companyName)
-      .eq("user_id", userId)
-      .maybeSingle();
-
     let companyId = company_id;
-    if (companyId == "" || company_id == "new") {
-      const { data: newCompany } = await supabase
+    if (!companyId || company_id === "new") {
+      const { data: existingCompany } = await supabase
         .from("company")
-        .insert({ name: companyName, user_id: userId, organization_id: organizationId })
         .select("id")
-        .single();
-      companyId = newCompany.id;
+        .eq("name", companyName)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existingCompany) {
+        companyId = existingCompany.id;
+      } else {
+        const { data: newCompany } = await supabase
+          .from("company")
+          .insert({
+            name: companyName,
+            user_id: userId,
+            organization_id: organizationId
+          })
+          .select("id")
+          .single();
+        companyId = newCompany.id;
+      }
     }
-    // console.log(sales_call_prospect?.split('_')?.[0], "sales call prospect")
+
     // 2. Handle Prospect
-    const { data: existingProspect } = await supabase
-      .from("prospect")
-      .select("id, calls")
-      .eq("name", sales_call_prospect?.split('_')?.[0])
-      .eq("company_id", companyId)
-      .maybeSingle();
+    const prospectName = sales_call_prospect?.split('_')?.[0] || "";
+    let prospectId = prospect_id;
 
-    let prospectId;
-    if (companyId == "" || company_id == "new" || prospect_id == "" || prospect_id == "new") {
-      const { data: newProspect } = await supabase
+    if (!prospectId || prospect_id === "new") {
+      const { data: existingProspect } = await supabase
         .from("prospect")
-        .insert({
-          name: sales_call_prospect?.split('_')?.[0],
-          company_id: companyId,
-          user_id: userId,
-          deal_value: null,
-          calls: 1,
-          call_summary: call_summary,
-          sales_play: recommended_sales_play,
-          secondary_objectives: recommended_objectives
-        })
         .select("id")
-        .single();
-      prospectId = newProspect.id;
-    } else {
-      prospectId = prospect_id;
+        .eq("name", prospectName)
+        .eq("company_id", companyId)
+        .maybeSingle();
+
+      if (existingProspect) {
+        prospectId = existingProspect.id;
+      } else {
+        const { data: newProspect } = await supabase
+          .from("prospect")
+          .insert({
+            name: prospectName,
+            company_id: companyId,
+            user_id: userId,
+            deal_value: null,
+            calls: 1,
+            call_summary,
+            sales_play: recommended_sales_play,
+            secondary_objectives: recommended_objectives
+          })
+          .select("id")
+          .single();
+        prospectId = newProspect.id;
+      }
     }
 
-    // 3. Handle People
-    const peopleIds = [];
-    for (const person of Attendees) {
-      const { data: existingPerson } = await supabase
+    // 3. Handle Attendees (People)
+    const peopleIds = await Promise.all(Attendees.map(async (person) => {
+      const { data: existing } = await supabase
         .from("peoples")
         .select("id")
         .eq("prospect_id", prospectId)
         .eq("name", person.name)
         .maybeSingle();
 
-      if (!existingPerson) {
-        const { data: newPerson } = await supabase
-          .from("peoples")
-          .insert({
-            name: person.name,
-            title: person.title,
-            prospect_id: prospectId,
-          })
-          .select("id")
-          .single();
-        peopleIds.push(newPerson.id);
-      } else {
-        peopleIds.push(existingPerson.id);
-      }
-    }
+      if (existing) return existing.id;
+
+      const { data: created } = await supabase
+        .from("peoples")
+        .insert({
+          name: person.name,
+          title: person.title,
+          prospect_id: prospectId
+        })
+        .select("id")
+        .single();
+
+      return created.id;
+    }));
 
     // 4. Handle Action Items
-    const actionItemIds = [];
-    for (const item of action_items) {
-      // const { data: person } = await supabase
-      //   .from("peoples")
-      //   .select("id")
-      //   .eq("name", item.owner)
-      //   .eq("prospect_id", prospectId)
-      //   .single();
-
-      // const { data: insertedItem } = await supabase
-      //   .from("action_items")
-      //   .insert({
-      //     task: item.task,
-      //     owner: item.owner,
-      //     deadline: item.deadline,
-      //     priority: item.priority,
-      //     people_id: person?.id,
-      //   })
-      //   .select("id")
-      //   .single();
-      const { data: person } = await supabase
+    const actionItemIds = await Promise.all(action_items.map(async (item) => {
+      const { data: owner } = await supabase
         .from("peoples")
         .select("id")
         .eq("name", item.owner)
         .eq("prospect_id", prospectId)
         .maybeSingle();
 
-      const { data: insertedItem } = await supabase
+      const { data: inserted } = await supabase
         .from("action_items")
         .insert({
           task: item.task,
           owner: item.owner,
           deadline: item.deadline,
           priority: item.priority,
-          people_id: person?.id || null, // handle null safely
+          people_id: owner?.id || null
         })
         .select("id")
         .single();
 
-      actionItemIds.push(insertedItem.id);
-    }
+      return inserted.id;
+    }));
 
     // 5. Handle Sales Insights
-    const salesInsightIds = [];
-    for (const insight of sales_insights) {
+    const salesInsightIds = (await Promise.all(sales_insights.map(async (insight) => {
       const { data: type } = await supabase
         .from("sales_insight_types")
         .select("id")
         .eq("key", insight.type)
-        .maybeSingle(); // safer than .single()
+        .maybeSingle();
 
-      if (type) {
-        const { data: insertedInsight } = await supabase
-          .from("sales_insights")
-          .insert({
-            type_id: type.id,
-            content: insight.content,
-            relevance_score: insight.relevance_score,
-            is_selected: insight.is_selected,
-            source: insight.source,
-            timestamp: insight.timestamp,
-            trend: insight.trend,
-            speaker: insight.speaker,
-          })
-          .select("id")
-          .single();
+      if (!type) return null;
 
-        salesInsightIds.push(insertedInsight.id);
-      } else {
-        console.warn(`Insight type "${insight.type}" not found — skipping insert.`);
-      }
-    }
+      const { data: inserted } = await supabase
+        .from("sales_insights")
+        .insert({
+          type_id: type.id,
+          content: insight.content,
+          relevance_score: insight.relevance_score,
+          is_selected: insight.is_selected,
+          source: insight.source,
+          timestamp: insight.timestamp,
+          trend: insight.trend,
+          speaker: insight.speaker
+        })
+        .select("id")
+        .single();
 
-    // console.log(call_analysis_overview, "check call analysis overview")
+      return inserted.id;
+    }))).filter(Boolean);
+
     // 6. Handle Call Analysis Overview
     const { data: analysis } = await supabase
       .from("call_analysis_overview")
       .insert({
         specific_user: call_analysis_overview?.specific_user,
-        sentiment_score: call_analysis_overview.sentiment_score,
-        key_points: call_analysis_overview.key_points,
-        processing_status: call_analysis_overview.processing_status,
-        error_message: call_analysis_overview.error_message,
+        sentiment_score: call_analysis_overview?.sentiment_score,
+        key_points: call_analysis_overview?.key_points,
+        processing_status: call_analysis_overview?.processing_status,
+        error_message: call_analysis_overview?.error_message
       })
       .select("id")
       .single();
     const analysisId = analysis?.id;
 
     // 7. Handle Communication Styles
-    const communicationStyleIds = [];
-    for (const style of communication_styles) {
+    const communicationStyleIds = await Promise.all(communication_styles.map(async (style) => {
       const { data: person } = await supabase
         .from("peoples")
         .select("id")
         .eq("name", style.stakeholder)
         .eq("prospect_id", prospectId)
-        .single();
+        .maybeSingle();
 
-      const { data: insertedStyle } = await supabase
+      const { data: inserted } = await supabase
         .from("communication_styles")
         .insert({
           stakeholder: style.stakeholder,
@@ -1487,14 +1723,15 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
-          people_id: person?.id || null,
+          people_id: person?.id || null
         })
         .select("id")
         .single();
-      communicationStyleIds.push(insertedStyle.id);
-    }
 
-    // 8. Final: Insert into Call Insights
+      return inserted.id;
+    }));
+
+    // 8. Create Final Insight
     const { data: callInsight } = await supabase
       .from("insights")
       .insert({
@@ -1508,15 +1745,15 @@ export const dbHelpers = {
         processing_status,
         communication_style_ids: communicationStyleIds,
         user_id: userId,
-        uploaded_file_id: isFireflies ? null : file.id,
-        fireflies_id: isFireflies ? file.id : null,
-        type: isFireflies ? "fireflies" : "file_upload",
+        uploaded_file_id: isFireflies ? null : file?.id,
+        fireflies_id: isFireflies ? file?.id : null,
+        type: isFireflies ? "fireflies" : "file_upload"
       })
       .select()
       .single();
 
-    // 9. Update Prospect call count and comm style ids
-    const { data: insightsCount } = await supabase
+    // 9. Update Prospect Call Count and Communication Styles
+    const { count } = await supabase
       .from("insights")
       .select("id", { count: "exact" })
       .eq("prospect_id", prospectId);
@@ -1524,11 +1761,11 @@ export const dbHelpers = {
     await supabase
       .from("prospect")
       .update({
-        calls: insightsCount?.length || 1,
-        communication_style_ids: communicationStyleIds,
+        calls: count || 1,
+        communication_style_ids: communicationStyleIds
       })
       .eq("id", prospectId);
-    // console.log("data will be stored properly")
+
     return {
       status: "success",
       callInsight

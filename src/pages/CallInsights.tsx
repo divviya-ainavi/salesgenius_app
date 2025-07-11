@@ -136,7 +136,7 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { storedProspectId } = useSelector((state) => state.prospect);
+  const { cummulativeSpinner } = useSelector((state) => state.prospect);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -365,6 +365,16 @@ const CallInsights = () => {
     setPeople(peopleList);
   };
   // console.log(people, "get people list");
+
+  const refreshCommunicationStyles = async () => {
+    const styles = await fetchCommunicationStyles(
+      selectedProspect?.communication_style_ids
+    );
+    setCommunicationStyles(styles);
+  };
+  useEffect(() => {
+    refreshCommunicationStyles();
+  }, [cummulativeSpinner]);
 
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);

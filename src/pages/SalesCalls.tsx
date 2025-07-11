@@ -51,7 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setCummulativeSpin } from "../store/slices/prospectSlice";
 
 const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -94,7 +95,7 @@ const SalesCalls = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
+  const dispatch = useDispatch();
   // Load uploaded files, processed calls, and Fireflies data on component mount
   useEffect(() => {
     loadUploadedFiles();
@@ -637,44 +638,77 @@ const SalesCalls = () => {
           const savedInsight = result.callInsight;
 
           try {
+            const processedCall = {
+              id: savedInsight?.id || "",
+              callId: `Call ${savedInsight.id.slice(-5)}`,
+              companyName:
+                processedData?.company_details?.[0]?.name || "Company",
+              prospectName: processedData?.sales_call_prospect || "Prospect",
+              date: new Date().toISOString().split("T")[0],
+              duration: "N/A",
+              status: "processed",
+              source: isFireflies ? "fireflies" : "upload",
+              hasInsights: true,
+              transcript:
+                processedData?.extracted_transcript || file.file_content,
+              aiProcessedData: processedData,
+              uploaded_file_id: file.id,
+            };
+
+            setProcessedCalls((prev) => [processedCall, ...prev]);
+
+            toast.success("File processed successfully!");
+
+            navigate("/call-insights", {
+              state: {
+                selectedCall: {
+                  id: savedInsight?.prospect_id,
+                },
+                source: processedCall.source,
+                aiProcessedData: processedData,
+              },
+            });
             try {
-              // 1. Get existing styles from Supabase
-              const existingStyles =
-                (await dbHelpers.getCommunicationStylesData(
-                  selectedProComStyles
-                )) || [];
-              const call_summaries =
-                (await dbHelpers.getCallSummaryByProspectId(
-                  selectedProspectId
-                )) || [processedData?.call_summary || ""];
-              // 2. Call cumulative-comm API with existing + current styles
-              const cumulativeRes = await fetch(
-                "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    previous_communication_styles: existingStyles,
-                    current_communication_styles:
-                      processedData?.communication_styles,
-                    combined_calls_summary: call_summaries,
-                  }),
-                }
-              );
-
-              if (!cumulativeRes.ok) {
-                throw new Error("Failed to call cumulative-comm API");
-              }
-
-              const rawText = await cumulativeRes.text();
-
-              if (!rawText) {
-                throw new Error("Empty response from cumulative-comm API");
-              }
-
-              let cumulativeData;
-              cumulativeData = JSON.parse(rawText);
               if (!prospectCheck) {
+                dispatch(setCummulativeSpin(true));
+                const [existingStyles, call_summariesRaw] = await Promise.all([
+                  dbHelpers.getCommunicationStylesData(selectedProComStyles),
+                  dbHelpers.getCallSummaryByProspectId(selectedProspectId),
+                ]);
+
+                const existing = existingStyles || [];
+                const call_summaries =
+                  call_summariesRaw?.length > 0
+                    ? call_summariesRaw
+                    : [processedData?.call_summary || ""];
+
+                // 2. Call cumulative-comm API with existing + current styles
+                const cumulativeRes = await fetch(
+                  "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      previous_communication_styles: existing,
+                      current_communication_styles:
+                        processedData?.communication_styles,
+                      combined_calls_summary: call_summaries,
+                    }),
+                  }
+                );
+
+                if (!cumulativeRes.ok) {
+                  dispatch(setCummulativeSpin(false));
+                  throw new Error("Failed to call cumulative-comm API");
+                }
+
+                const rawText = await cumulativeRes.text();
+
+                if (!rawText) {
+                  throw new Error("Empty response from cumulative-comm API");
+                }
+
+                const cumulativeData = JSON.parse(rawText);
                 const newStyles =
                   cumulativeData?.[0]?.communication_styles || [];
 
@@ -696,54 +730,23 @@ const SalesCalls = () => {
                         cumulativeData?.[0]?.recommended_objective,
                     }
                   );
-
+                  dispatch(setCummulativeSpin(false));
                   // ✅ 5. Replace the styles in processedData for UI usage
                   processedData.communication_styles = newStyles.map(
                     (s, i) => ({
                       ...s,
-                      id: newStyleIds[i], // map newly inserted ID from Supabase
+                      id: newStyleIds[i],
                     })
                   );
+                } else {
+                  dispatch(setCummulativeSpin(false));
                 }
               }
             } catch (err) {
               console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
+              dispatch(setCummulativeSpin(false));
             }
-
-            const processedCall = {
-              id: savedInsight?.id || "",
-              callId: `Call ${savedInsight.id.slice(-5)}`,
-              companyName:
-                processedData?.company_details?.[0]?.name || "Company",
-              prospectName: processedData?.sales_call_prospect || "Prospect",
-              date: new Date().toISOString().split("T")[0],
-              duration: "N/A",
-              status: "processed",
-              source: isFireflies ? "fireflies" : "upload",
-              hasInsights: true,
-              transcript:
-                processedData?.extracted_transcript || file.file_content,
-              aiProcessedData: processedData,
-              uploaded_file_id: file.id,
-            };
-
-            setProcessedCalls((prev) => [processedCall, ...prev]);
-
-            toast.success("File processed successfully!");
-            // console.log(
-            //   !prospectCheck ? savedInsight?.id : selectedProspectId,
-            //   "check passed id"
-            // );
-            navigate("/call-insights", {
-              state: {
-                selectedCall: {
-                  id: savedInsight?.prospect_id,
-                },
-                source: processedCall.source,
-                aiProcessedData: processedData,
-              },
-            });
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);
             toast.error("Failed to update communication styles");

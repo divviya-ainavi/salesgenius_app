@@ -22,7 +22,11 @@ import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
-import { setGetAllStatus, setRoles } from "./store/slices/orgSlice";
+import {
+  setGetAllStatus,
+  setInsightTypes,
+  setRoles,
+} from "./store/slices/orgSlice";
 
 const queryClient = new QueryClient();
 
@@ -37,8 +41,10 @@ const App = () => {
     const fetchRoles = async () => {
       const roles = await dbHelpers.getRoles();
       const statuses = await dbHelpers.getStatus();
+      const getInsightTypes = await dbHelpers.getSalesInsightTypes();
       dispatch(setRoles(roles)); // assuming you have a Redux slice
       dispatch(setGetAllStatus(statuses));
+      dispatch(setInsightTypes(getInsightTypes));
     };
 
     fetchRoles();
