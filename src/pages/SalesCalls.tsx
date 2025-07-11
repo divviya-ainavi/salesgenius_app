@@ -35,6 +35,7 @@ import {
   Copy,
   AlertCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
