@@ -915,7 +915,16 @@ ${updatedBlocks
                     <SelectContent>
                       {prospects.map((prospect) => (
                         <SelectItem key={prospect.id} value={prospect.id}>
-                          {prospect.name}
+                          <div
+                            style={{ display: "flex", flexDirection: "column" }}
+                          >
+                            <span className="font-semibold">
+                              {prospect.companyName}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {prospect.name}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
