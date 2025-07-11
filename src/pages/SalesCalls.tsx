@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+  Sparkles,
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
@@ -72,6 +74,9 @@ const SalesCalls = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingFileId, setProcessingFileId] = useState(null);
   const [processedCalls, setProcessedCalls] = useState([]);
+
+  // Processing modal state
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -534,8 +539,9 @@ const SalesCalls = () => {
       return;
     }
 
+    // Show the processing modal
+    setShowProcessingModal(true);
     setIsProcessing(true);
-    // if (source != "fireflies") {
     setProcessingFileId(file.id);
     trackButtonClick(
       source == "fireflies" ? "Process Fireflies" : "Process File",
@@ -544,6 +550,7 @@ const SalesCalls = () => {
         filename: file.filename,
       }
     );
+
     // }
     try {
       // Get file blob from URL
@@ -561,6 +568,7 @@ const SalesCalls = () => {
         } catch (fetchError) {
           console.error("Error fetching file blob:", fetchError);
           toast.error("Failed to fetch file for sending");
+          setShowProcessingModal(false);
           setIsProcessing(false);
           setProcessingFileId(null);
           return;
@@ -569,6 +577,7 @@ const SalesCalls = () => {
 
       if (!fileBlob && source != "fireflies") {
         toast.error("No file content available for processing");
+        setShowProcessingModal(false);
         setIsProcessing(false);
         setProcessingFileId(null);
         return;
@@ -760,6 +769,7 @@ const SalesCalls = () => {
     } catch (error) {
       console.error("Error processing file:", error);
       toast.error(`Failed to process file: ${error.message}`);
+      setShowProcessingModal(false);
     } finally {
       setIsProcessing(false);
       setProcessingFileId(null);
@@ -1536,6 +1546,45 @@ const SalesCalls = () => {
             <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
               {modalContent}
             </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Processing Modal */}
+      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
+        <DialogContent className="sm:max-w-md text-center">
+          <div className="py-6 flex flex-col items-center">
+            {/* Animated glowing circle with stars */}
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-20 animate-pulse"></div>
+              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-white animate-bounce-soft" />
+              </div>
+              {/* Orbiting stars */}
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '8s' }}>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-yellow-300 rounded-full"></div>
+              </div>
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '12s' }}>
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-2 h-2 bg-blue-300 rounded-full"></div>
+              </div>
+              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '10s', animationDirection: 'reverse' }}>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-purple-300 rounded-full"></div>
+              </div>
+            </div>
+            
+            <h2 className="text-xl font-bold mb-2">Analyzing File</h2>
+            <p className="text-muted-foreground mb-6 max-w-xs">
+              Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
+            </p>
+            
+            {/* Progress dots */}
+            <div className="flex space-x-2 justify-center">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.8s' }}></div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
