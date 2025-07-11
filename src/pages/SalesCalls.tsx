@@ -78,8 +78,6 @@ const SalesCalls = () => {
   // Processing modal state
   const [showProcessingModal, setShowProcessingModal] = useState(false);
 
-  // Processing modal state
-  const [showProcessingModal, setShowProcessingModal] = useState(false);
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -545,7 +543,6 @@ const SalesCalls = () => {
     // Show the processing modal
     setShowProcessingModal(true);
     setIsProcessing(true);
-    setShowProcessingModal(true);
     setProcessingFileId(file.id);
     trackButtonClick(
       source == "fireflies" ? "Process Fireflies" : "Process File",
@@ -774,8 +771,7 @@ const SalesCalls = () => {
       console.error("Error processing file:", error);
       toast.error(`Failed to process file: ${error.message}`);
       setShowProcessingModal(false);
-      setShowProcessingModal(false);
-    } finally {
+      } finally {
       setIsProcessing(false);
       setProcessingFileId(null);
     }
