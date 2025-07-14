@@ -35,6 +35,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useSelector } from "react-redux";
+import { config } from "@/lib/config";
 
 interface ResearchFormData {
   companyName: string;
@@ -260,7 +261,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setIsLoading(true);
     try {
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/company-research-v2",
+        `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
           method: "POST",
           headers: {
