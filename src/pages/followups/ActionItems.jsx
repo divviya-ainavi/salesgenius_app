@@ -852,14 +852,6 @@ export const ActionItems = () => {
                           {item.commitment_text}
                         </p>
                         <div className="flex items-center space-x-2 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteActionItem(item.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
                           <Badge
                             variant="outline"
                             className={cn(
@@ -889,6 +881,14 @@ export const ActionItems = () => {
                                 Push Failed
                               </Badge>
                             )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteActionItem(item.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
 
@@ -909,7 +909,6 @@ export const ActionItems = () => {
                           </span>
                         </div>
                       </div>
-
 
                       {item.hubspot_task_id && (
                         <div className="mt-2 text-xs text-muted-foreground">
