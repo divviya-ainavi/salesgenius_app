@@ -82,6 +82,7 @@ import {
   setHubspotIntegration,
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
+import { config } from "@/lib/config";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -679,7 +680,7 @@ export const Settings = () => {
       const formData = new FormData();
       formData.append("id", result?.id);
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/user-invite",
+        `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
         {
           method: "POST",
           body: formData,
@@ -829,7 +830,7 @@ export const Settings = () => {
 
       // Send encrypted token to n8n API
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/hubspotconnection-check",
+        `${config.api.baseUrl}${config.api.endpoints.hubspotConnectionCheck}`,
         {
           method: "POST",
           body: formData,
@@ -989,12 +990,16 @@ export const Settings = () => {
               <span>Organization</span>
             </TabsTrigger>
           )}
-          {canManageUsers && (
-            <TabsTrigger value="users" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span>Users</span>
-            </TabsTrigger>
-          )}
+          {userRoleId == 2 ||
+            (userRoleId == 1 && (
+              <TabsTrigger
+                value="users"
+                className="flex items-center space-x-2"
+              >
+                <Users className="w-4 h-4" />
+                <span>Users</span>
+              </TabsTrigger>
+            ))}
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
             <span>Security</span>

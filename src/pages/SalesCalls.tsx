@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { useDispatch, useSelector } from "react-redux";
 import { setCummulativeSpin } from "../store/slices/prospectSlice";
+import { config } from "@/lib/config";
 
 const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -77,7 +78,6 @@ const SalesCalls = () => {
 
   // Processing modal state
   const [showProcessingModal, setShowProcessingModal] = useState(false);
-
 
   // Fireflies state
   const [firefliesCalls, setFirefliesCalls] = useState([]);
@@ -257,7 +257,7 @@ const SalesCalls = () => {
 
       // Call your external API directly
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcript",
+        `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscript}`,
         {
           method: "POST",
           headers: {
@@ -368,7 +368,7 @@ const SalesCalls = () => {
       setProcessingFirefliesId(call.id);
       try {
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -401,7 +401,7 @@ const SalesCalls = () => {
       setProcessingFirefliesId(call.id);
       try {
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -610,7 +610,7 @@ const SalesCalls = () => {
 
       // Make API call to process the transcript file
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-data-ai-v2",
+        `${config.api.baseUrl}${config.api.endpoints.processSalesCall}`,
         {
           method: "POST",
           body: formData,
@@ -694,7 +694,7 @@ const SalesCalls = () => {
 
                 // 2. Call cumulative-comm API with existing + current styles
                 const cumulativeRes = await fetch(
-                  "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                  `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -771,7 +771,7 @@ const SalesCalls = () => {
       console.error("Error processing file:", error);
       toast.error(`Failed to process file: ${error.message}`);
       setShowProcessingModal(false);
-      } finally {
+    } finally {
       setIsProcessing(false);
       setProcessingFileId(null);
     }
@@ -1553,7 +1553,10 @@ const SalesCalls = () => {
 
       {/* AI Processing Modal */}
       <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
-        <DialogContent className="sm:max-w-md text-center">
+        <DialogContent
+          className="sm:max-w-md text-center [&>button]:hidden"
+          overlayClassName="bg-transparent backdrop-blur-sm"
+        >
           <div className="py-6 flex flex-col items-center">
             {/* Animated glowing circle with stars */}
             <div className="relative w-24 h-24 mb-6">
@@ -1562,73 +1565,41 @@ const SalesCalls = () => {
                 <Sparkles className="w-10 h-10 text-white animate-bounce-soft" />
               </div>
               {/* Orbiting stars */}
-              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '8s' }}>
+              <div
+                className="absolute w-full h-full animate-spin"
+                style={{ animationDuration: "8s" }}
+              >
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-yellow-300 rounded-full"></div>
               </div>
-              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '12s' }}>
+              <div
+                className="absolute w-full h-full animate-spin"
+                style={{ animationDuration: "12s" }}
+              >
                 <div className="absolute top-1/2 right-0 -translate-y-1/2 w-2 h-2 bg-blue-300 rounded-full"></div>
               </div>
-              <div className="absolute w-full h-full animate-spin" style={{ animationDuration: '10s', animationDirection: 'reverse' }}>
+              <div
+                className="absolute w-full h-full animate-spin"
+                style={{
+                  animationDuration: "10s",
+                  animationDirection: "reverse",
+                }}
+              >
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-purple-300 rounded-full"></div>
               </div>
             </div>
-            
+
             <h2 className="text-xl font-bold mb-2">Analyzing File</h2>
             <p className="text-muted-foreground mb-6 max-w-xs">
-              Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
+              Our AI is processing the uploaded file, extracting insights, and
+              generating results. Please hold on...
             </p>
-            
-           
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Processing Modal */}
-      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
-        <DialogContent className="sm:max-w-md text-center p-6 bg-gradient-to-b from-background to-background/95 border-primary/20">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Processing File</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center space-y-6">
-            {/* Animated Icon Container */}
-            <div className="relative w-24 h-24 mb-2">
-              {/* Glowing background circle */}
-              <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-pulse"></div>
-              
-              {/* Orbiting particles */}
-              <div className="absolute inset-0">
-                <div className="absolute w-3 h-3 bg-blue-500 rounded-full top-0 left-1/2 transform -translate-x-1/2 animate-orbit-1"></div>
-                <div className="absolute w-2 h-2 bg-indigo-500 rounded-full bottom-0 left-1/2 transform -translate-x-1/2 animate-orbit-2"></div>
-                <div className="absolute w-2 h-2 bg-purple-500 rounded-full left-0 top-1/2 transform -translate-y-1/2 animate-orbit-3"></div>
-                <div className="absolute w-3 h-3 bg-blue-400 rounded-full right-0 top-1/2 transform -translate-y-1/2 animate-orbit-4"></div>
-              </div>
-              
-              {/* Center icon with blinking effect */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-10 h-10 text-blue-500 animate-bounce-slow animate-blink" />
-              </div>
-            </div>
-            
-            <div>
-              <DialogTitle className="text-xl font-bold mb-2">Analyzing File</DialogTitle>
-              <p className="text-muted-foreground mb-6">
-                Our AI is processing the uploaded file, extracting insights, and generating results. Please hold on...
-              </p>
-            </div>
-            
-            {/* Progress indicators */}
             <div className="flex items-center justify-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse-delay-1"></div>
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse-delay-2"></div>
               <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse-delay-3"></div>
               <div className="w-2 h-2 rounded-full bg-blue-300 animate-pulse-delay-4"></div>
               <div className="w-2 h-2 rounded-full bg-blue-200 animate-pulse-delay-5"></div>
-            </div>
-            
-            {/* Circular progress spinner similar to the image */}
-            <div className="relative w-16 h-16 mt-2">
-              <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
             </div>
           </div>
         </DialogContent>

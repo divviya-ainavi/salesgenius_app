@@ -67,6 +67,7 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import { config } from "@/lib/config";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -495,7 +496,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     // setTimeout(async () => {
     if (artefactType === "presentation") {
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-propmt-v2",
+        `${config.api.baseUrl}${config.api.endpoints.generatePrompt}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -550,7 +551,7 @@ ${output?.blocks
       );
       // console.log(selectedRecipients, "selected recipients", recipient);
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/generate-followup-email-v2",
+        `${config.api.baseUrl}${config.api.endpoints.generateFollowupEmail}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -643,7 +644,7 @@ ${output?.blocks
         });
       } else if (artefactType === "presentation") {
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-presentation-prompt",
+          `${config.api.baseUrl}${config.api.endpoints.refinePresentationPrompt}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -699,7 +700,7 @@ ${output?.blocks
         // Refine email
 
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/refine-email",
+          `${config.api.baseUrl}${config.api.endpoints.refineEmail}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

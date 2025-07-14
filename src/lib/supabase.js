@@ -1676,10 +1676,10 @@ export const dbHelpers = {
           type_id: type.id,
           content: insight.content,
           relevance_score: insight.relevance_score,
-          is_selected: insight.is_selected,
-          source: insight.source,
-          timestamp: insight.timestamp,
-          trend: insight.trend,
+          is_selected: insight?.is_selected || false,
+          source: insight?.source || "Call Transcript",
+          timestamp: insight?.timestamp || "",
+          trend: insight?.trend || "new",
           speaker: insight.speaker
         })
         .select("id")
@@ -1689,18 +1689,18 @@ export const dbHelpers = {
     }))).filter(Boolean);
 
     // 6. Handle Call Analysis Overview
-    const { data: analysis } = await supabase
-      .from("call_analysis_overview")
-      .insert({
-        specific_user: call_analysis_overview?.specific_user,
-        sentiment_score: call_analysis_overview?.sentiment_score,
-        key_points: call_analysis_overview?.key_points,
-        processing_status: call_analysis_overview?.processing_status,
-        error_message: call_analysis_overview?.error_message
-      })
-      .select("id")
-      .single();
-    const analysisId = analysis?.id;
+    // const { data: analysis } = await supabase
+    //   .from("call_analysis_overview")
+    //   .insert({
+    //     specific_user: call_analysis_overview?.specific_user,
+    //     sentiment_score: call_analysis_overview?.sentiment_score,
+    //     key_points: call_analysis_overview?.key_points,
+    //     processing_status: call_analysis_overview?.processing_status,
+    //     error_message: call_analysis_overview?.error_message
+    //   })
+    //   .select("id")
+    //   .single();
+    // const analysisId = analysis?.id;
 
     // 7. Handle Communication Styles
     const communicationStyleIds = await Promise.all(communication_styles.map(async (style) => {
@@ -1739,10 +1739,10 @@ export const dbHelpers = {
         peoples_id: peopleIds,
         call_summary,
         action_item_ids: actionItemIds,
-        call_analysis_overview_id: analysisId,
+        call_analysis_overview_id: null,
         sales_insight_ids: salesInsightIds,
         extracted_transcript,
-        processing_status,
+        processing_status: "completed",
         communication_style_ids: communicationStyleIds,
         user_id: userId,
         uploaded_file_id: isFireflies ? null : file?.id,
@@ -2397,6 +2397,22 @@ export const dbHelpers = {
     return true;
   },
 
+  // Update action item status (active/inactive)
+  updateActionItemStatus: async (actionItemId, isActive = true) => {
+    try {
+      const { data, error } = await supabase
+        .from('action_items')
+        .update({ is_active: isActive })
+        .eq('id', actionItemId);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating action item status:', error);
+      throw error;
+    }
+  },
+
   async getActionItemsByProspectId(prospectId) {
     try {
       // Step 1: Fetch all action_item_ids from insights table for the prospect
@@ -2423,6 +2439,7 @@ export const dbHelpers = {
       const { data: actionItems, error: actionItemsError } = await supabase
         .from("action_items")
         .select("*")
+        .eq("is_active", true)
         .in("id", allActionItemIds);
 
       if (actionItemsError) {
