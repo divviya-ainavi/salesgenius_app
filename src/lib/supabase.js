@@ -2397,6 +2397,22 @@ export const dbHelpers = {
     return true;
   },
 
+  // Update action item status (active/inactive)
+  updateActionItemStatus: async (actionItemId, isActive = true) => {
+    try {
+      const { data, error } = await supabase
+        .from('action_items')
+        .update({ is_active: isActive })
+        .eq('id', actionItemId);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating action item status:', error);
+      throw error;
+    }
+  },
+
   async getActionItemsByProspectId(prospectId) {
     try {
       // Step 1: Fetch all action_item_ids from insights table for the prospect
