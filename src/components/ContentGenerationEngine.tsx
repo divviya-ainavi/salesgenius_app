@@ -677,7 +677,22 @@ ${output?.blocks
 
           return {
             ...prev,
-            fullPrompt: `${prev.fullPrompt}\n\n[REFINED] ${refinementPrompt}: Additional content based on refinement...`,
+            overview: output?.overview,
+            fullPrompt: `# Strategic Presentation for ${
+              selectedProspect?.companyName
+            }
+
+## Overview
+${output.overview}
+
+${output?.blocks
+  ?.map(
+    (prompt) =>
+      `### ${prompt.title}\n${prompt.content.map((x) => `- ${x}`).join("\n")}`
+  )
+  .join("\n\n")}
+`,
+            blocks: output?.blocks,
           };
         });
       } else {
