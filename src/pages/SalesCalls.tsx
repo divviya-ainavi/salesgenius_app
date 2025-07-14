@@ -1551,7 +1551,7 @@ const SalesCalls = () => {
       </Dialog>
 
       {/* AI Processing Modal */}
-      <Dialog open={true} onOpenChange={setShowProcessingModal}>
+      <Dialog open={showProcessingModal} onOpenChange={setShowProcessingModal}>
         <DialogContent
           className="sm:max-w-md text-center [&>button]:hidden"
           overlayClassName="bg-transparent backdrop-blur-sm"
