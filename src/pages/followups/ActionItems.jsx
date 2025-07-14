@@ -15,6 +15,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  AlertOctagon,
   RefreshCw,
   FileText,
   Building,
@@ -404,6 +405,22 @@ export const ActionItems = () => {
       console.error("Error pushing commitments to HubSpot:", error);
       setPushStatus("error");
       toast.error(`Failed to push commitments to HubSpot: ${error.message}`);
+    }
+  };
+
+  const handleDeleteActionItem = async (actionItemId) => {
+    try {
+      // Update the action item's is_active field to false in the database
+      await dbHelpers.updateActionItemStatus(actionItemId, false);
+      
+      // Update local state to remove the deleted item
+      const updatedCommitments = commitments.filter(item => item.id !== actionItemId);
+      setCommitments(updatedCommitments);
+      
+      toast.success("Action item deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete action item:", error);
+      toast.error("Failed to delete action item");
     }
   };
 
@@ -880,6 +897,17 @@ export const ActionItems = () => {
                               : "No deadline"}
                           </span>
                         </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteActionItem(item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
 
                       {item.hubspot_task_id && (
