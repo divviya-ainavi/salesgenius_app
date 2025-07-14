@@ -19,6 +19,7 @@ import {
   RefreshCw,
   FileText,
   Building,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
@@ -412,11 +413,13 @@ export const ActionItems = () => {
     try {
       // Update the action item's is_active field to false in the database
       await dbHelpers.updateActionItemStatus(actionItemId, false);
-      
+
       // Update local state to remove the deleted item
-      const updatedCommitments = commitments.filter(item => item.id !== actionItemId);
+      const updatedCommitments = commitments.filter(
+        (item) => item.id !== actionItemId
+      );
       setCommitments(updatedCommitments);
-      
+
       toast.success("Action item deleted successfully");
     } catch (error) {
       console.error("Failed to delete action item:", error);
@@ -900,8 +903,8 @@ export const ActionItems = () => {
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeleteActionItem(item.id)}
