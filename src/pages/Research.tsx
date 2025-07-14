@@ -758,7 +758,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 </div>
 
                 {!prospectInCRM && (
-                  <Button onClick={handlePushToHubSpot}>
+                  <Button onClick={handlePushToHubSpot} disabled={true}>
                     <ExternalLink className="w-4 h-4 mr-1" />
                     Push to HubSpot
                   </Button>

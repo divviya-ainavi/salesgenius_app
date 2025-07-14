@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { useDispatch, useSelector } from "react-redux";
 import { setCummulativeSpin } from "../store/slices/prospectSlice";
+import { config } from "@/lib/config";
 
 const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -256,7 +257,7 @@ const SalesCalls = () => {
 
       // Call your external API directly
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcript",
+        `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscript}`,
         {
           method: "POST",
           headers: {
@@ -367,7 +368,7 @@ const SalesCalls = () => {
       setProcessingFirefliesId(call.id);
       try {
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -400,7 +401,7 @@ const SalesCalls = () => {
       setProcessingFirefliesId(call.id);
       try {
         const response = await fetch(
-          "https://salesgenius.ainavi.co.uk/n8n/webhook/get-fireflies-transcripts-byid",
+          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -609,7 +610,7 @@ const SalesCalls = () => {
 
       // Make API call to process the transcript file
       const response = await fetch(
-        "https://salesgenius.ainavi.co.uk/n8n/webhook/process-call-data-ai-v2",
+        `${config.api.baseUrl}${config.api.endpoints.processSalesCall}`,
         {
           method: "POST",
           body: formData,
@@ -693,7 +694,7 @@ const SalesCalls = () => {
 
                 // 2. Call cumulative-comm API with existing + current styles
                 const cumulativeRes = await fetch(
-                  "https://salesgenius.ainavi.co.uk/n8n/webhook/cumulative-comm",
+                  `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

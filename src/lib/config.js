@@ -33,11 +33,17 @@ export const config = {
     baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://salesgenius.ainavi.co.uk/n8n/webhook/',
     // Specific endpoints
     endpoints: {
-      companyResearch: '/company-research-v2',
-      generatePrompt: '/generate-propmt-v2',
-      generateFollowupEmail: '/generate-followup-email-v2',
-      refinePresentationPrompt: '/refine-presentation-prompt',
-      refineEmail: '/refine-email'
+      companyResearch: 'company-research-v2',
+      generatePrompt: 'generate-propmt-v2',
+      generateFollowupEmail: 'generate-followup-email-v2',
+      refinePresentationPrompt: 'refine-presentation-prompt',
+      refineEmail: 'refine-email',
+      getFirefliesTranscript: 'get-fireflies-transcript',
+      getFirefliesTranscriptById: 'get-fireflies-transcripts-byid',
+      processSalesCall: 'process-call-data-ai-v2',
+      cummulativeSalesData: 'cumulative-comm',
+      userInvite: 'user-invite',
+      hubspotConnectionCheck: 'hubspotconnection-check'
     }
   }
 };
