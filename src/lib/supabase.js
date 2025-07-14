@@ -2423,6 +2423,7 @@ export const dbHelpers = {
       const { data: actionItems, error: actionItemsError } = await supabase
         .from("action_items")
         .select("*")
+        .eq("is_active", true)
         .in("id", allActionItemIds);
 
       if (actionItemsError) {
