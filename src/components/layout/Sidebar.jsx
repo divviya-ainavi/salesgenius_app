@@ -219,8 +219,8 @@ export const Sidebar = () => {
       {/* Footer */}
       <div className="p-4 border-t border-border">
         <div className="text-xs text-muted-foreground text-center">
-          <p>© 2024 SalesGenius.ai</p>
-          <p>Version 1.0.0</p>
+          <p>© 2025 SalesGenius.ai</p>
+          <p>Version 1.1.0</p>
         </div>
       </div>
     </div>
