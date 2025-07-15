@@ -27,7 +27,7 @@ export const ProspectSelector = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(!compact);
-  console.log(prospectList, "check prospect list");
+  // console.log(prospectList, "check prospect list");
   const filteredProspects = prospectList.filter(
     (p) =>
       p.id !== selectedProspect?.id &&

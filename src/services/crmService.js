@@ -105,7 +105,7 @@ class CRMService {
           throw new Error('HubSpot client credentials not configured');
         }
 
-        console.log('Starting HubSpot connection with auth code:', authCode);
+        // console.log('Starting HubSpot connection with auth code:', authCode);
 
         // Exchange auth code for tokens
         const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/token', {
@@ -128,10 +128,10 @@ class CRMService {
         }
 
         const tokenData = await tokenResponse.json();
-        console.log('Token exchange successful:', {
-          expires_in: tokenData.expires_in,
-          scope: tokenData.scope
-        });
+        // console.log('Token exchange successful:', {
+        //   expires_in: tokenData.expires_in,
+        //   scope: tokenData.scope
+        // });
 
         // Get account info
         const accountResponse = await fetch('https://api.hubapi.com/account-info/v3/details', {

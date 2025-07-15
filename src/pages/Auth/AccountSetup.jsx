@@ -164,7 +164,7 @@ const AccountSetup = () => {
         // Determine stepper configuration based on invite data
         const hasOrgId = !!invite.organization_id;
         const hasTitleId = !!invite.title_id;
-        console.log(hasOrgId, hasTitleId, "has org id", invite);
+        // console.log(hasOrgId, hasTitleId, "has org id", invite);
         let config = {
           showOrgStep: false,
           showUserStep: true,
@@ -193,7 +193,7 @@ const AccountSetup = () => {
             totalSteps: 1,
           };
         }
-        console.log(config, "195");
+        // console.log(config, "195");
         setStepperConfig(config);
       } catch (err) {
         console.error("Error loading invitation data:", err);
@@ -287,7 +287,7 @@ const AccountSetup = () => {
     setError("");
     setCurrentStep(1);
   };
-  console.log(inviteData, "check invite data");
+  // console.log(inviteData, "check invite data");
   const handleSubmit = async (e) => {
     e.preventDefault();
 

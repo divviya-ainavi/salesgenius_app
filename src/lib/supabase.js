@@ -11,7 +11,7 @@ import { config } from './config'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-console.log(supabaseUrl, "supabase url")
+// console.log(supabaseUrl, "supabase url")
 // Password hashing configuration
 const ENCRYPTION_SECRET = 'SG_2025'; // In production, use environment variable
 
@@ -1288,7 +1288,7 @@ export const dbHelpers = {
     }
 
     const { data, error } = await query;
-    console.log(data, "check company data from user id",)
+    // console.log(data, "check company data from user id",)
     if (error) throw error;
     return data;
   },
@@ -1780,7 +1780,8 @@ export const dbHelpers = {
       .from("prospect")
       .update({
         calls: count || 1,
-        communication_style_ids: communicationStyleIds
+        communication_style_ids: communicationStyleIds,
+        call_summary
       })
       .eq("id", prospectId);
 

@@ -168,7 +168,7 @@ export const ActionItems = () => {
   useEffect(() => {
     const fetchProspects = async () => {
       if (!userId) {
-        console.log("No user ID available, skipping prospect fetch");
+        // console.log("No user ID available, skipping prospect fetch");
         setIsLoadingProspects(false);
         return;
       }
@@ -176,36 +176,38 @@ export const ActionItems = () => {
       setIsLoadingProspects(true);
       try {
         const insights = await dbHelpers.getProspectData(userId);
-        console.log("Fetched email insights:", insights);
+        // console.log("Fetched email insights:", insights);
 
         const enrichedProspects = await Promise.all(
-          insights.map(async (insight) => {
-            const people = await dbHelpers.getPeopleByProspectId(insight.id);
+          (insights || [])
+            .filter((x) => x.communication_style_ids != null)
+            .map(async (insight) => {
+              const people = await dbHelpers.getPeopleByProspectId(insight.id);
 
-            return {
-              id: insight.id,
-              companyName: insight.company?.name || "Unknown Company",
-              peoplesName:
-                (insight.prospect_details || [])
-                  .map((p) => p.name)
-                  .join(", ") || "Unknown",
-              title:
-                (insight.prospect_details || [])
-                  .map((p) => p.title)
-                  .join(", ") || "Unknown",
-              prospect_details: insight.prospect_details || [],
-              people, // <-- Merged from enrichedInsights
-              status: "new",
-              dealValue: "TBD",
-              probability: 50,
-              nextAction: "Initial follow-up",
-              created_at: insight.created_at,
-              sales_insights: insight.sales_insights || [],
-              call_summary: insight.call_summary,
-              action_items: insight.action_items || [],
-              name: insight?.name,
-            };
-          })
+              return {
+                id: insight.id,
+                companyName: insight.company?.name || "Unknown Company",
+                peoplesName:
+                  (insight.prospect_details || [])
+                    .map((p) => p.name)
+                    .join(", ") || "Unknown",
+                title:
+                  (insight.prospect_details || [])
+                    .map((p) => p.title)
+                    .join(", ") || "Unknown",
+                prospect_details: insight.prospect_details || [],
+                people,
+                status: "new",
+                dealValue: "TBD",
+                probability: 50,
+                nextAction: "Initial follow-up",
+                created_at: insight.created_at,
+                sales_insights: insight.sales_insights || [],
+                call_summary: insight.call_summary,
+                action_items: insight.action_items || [],
+                name: insight?.name,
+              };
+            })
         );
 
         setProspects(enrichedProspects);

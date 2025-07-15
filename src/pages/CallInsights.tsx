@@ -198,7 +198,7 @@ const CallInsights = () => {
     };
     loadInsightTypes();
   }, []);
-  console.log(insightTypes, "insight types");
+  // console.log(insightTypes, "insight types");
   useEffect(() => {
     const fetchCount = async () => {
       if (!user?.id) return;
@@ -260,7 +260,7 @@ const CallInsights = () => {
           const people = await dbHelpers.getPeopleByProspectId(
             defaultInsight.id
           );
-          console.log(defaultInsight, "check default insight");
+          // console.log(defaultInsight, "check default insight");
           const prospect = {
             id: defaultInsight.id,
             name: defaultInsight?.name,
@@ -742,6 +742,13 @@ const CallInsights = () => {
         return null;
     }
   };
+  const totalInsightsCount = insights?.reduce(
+    (sum, item) => sum + item?.insights?.length,
+    0
+  );
+
+  // console.log("Total insights count:", totalInsightsCount);
+
   // console.log(insights, "get list of insights");
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -972,7 +979,9 @@ const CallInsights = () => {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span>Sales Insights</span>
-                  <Badge variant="secondary">{insights?.length} insights</Badge>
+                  <Badge variant="secondary">
+                    {totalInsightsCount} insights
+                  </Badge>
                 </div>
                 <Button
                   onClick={() => setIsAddingInsight(true)}
@@ -1270,7 +1279,8 @@ const CallInsights = () => {
                 );
               })}
 
-              {insights?.length === 0 && !isAddingInsight && (
+              {console.log(insights, "isAddingInsight state")}
+              {totalInsightsCount === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
@@ -1606,7 +1616,9 @@ const CallInsights = () => {
                   <Badge
                     variant={selectedProspect?.calls ? "default" : "secondary"}
                   >
-                    {selectedProspect?.calls || 0}
+                    {(selectedProspect?.communication_style_ids != null &&
+                      selectedProspect?.calls) ||
+                      0}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
