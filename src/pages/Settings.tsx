@@ -352,7 +352,7 @@ export const Settings = () => {
     },
   });
 
-  // console.log(newUserRole, "new user role");
+  // console.log(userRoleId, "new user role");
   // console.log(
   //   userProfileInfo,
   //   userRole,
@@ -990,17 +990,12 @@ export const Settings = () => {
               <span>Organization</span>
             </TabsTrigger>
           )}
-          {userRoleId == 2 ||
-            userRoleId == 1 ||
-            (userRoleId == null && (
-              <TabsTrigger
-                value="users"
-                className="flex items-center space-x-2"
-              >
-                <Users className="w-4 h-4" />
-                <span>Users</span>
-              </TabsTrigger>
-            ))}
+          {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
+            <TabsTrigger value="users" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Users</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
             <span>Security</span>
