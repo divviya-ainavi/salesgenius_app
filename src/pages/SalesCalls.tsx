@@ -296,20 +296,20 @@ export const SalesCalls = () => {
     setShowProcessModal(true);
     setSource(source);
   };
-  console.log(processingFileId, "processing file id");
+  // console.log(processingFileId, "processing file id");
   const handleConfirmAssociation = async (
     file,
     companyId,
     prospectId,
     prospectDetails
   ) => {
-    console.log(
-      file,
-      companyId,
-      prospectId,
-      prospectDetails,
-      "check file and company and prospect"
-    );
+    // console.log(
+    //   file,
+    //   companyId,
+    //   prospectId,
+    //   prospectDetails,
+    //   "check file and company and prospect"
+    // );
     if (!file) {
       toast.error("Please select a file to process");
       return;
@@ -413,8 +413,8 @@ export const SalesCalls = () => {
         // console.log(result, "check result");
         if (result?.status === "success") {
           const savedInsight = result.callInsight;
-          console.log(result, "check result after processing");
-          console.log(savedInsight, "check saved insight");
+          // console.log(result, "check result after processing");
+          // console.log(savedInsight, "check saved insight");
           try {
             const processedCall = {
               id: savedInsight?.id || "",
@@ -589,7 +589,7 @@ export const SalesCalls = () => {
     }
   };
 
-  console.log(firefliesData, "fireflies data");
+  // console.log(firefliesData, "fireflies data");
   // Filter functions for tab-specific searches
   const filteredFirefliesData = firefliesData.filter((call) => {
     if (!firefliesSearch.trim()) return true;

@@ -284,20 +284,22 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         const insights = await dbHelpers.getProspectData(user.id);
         // console.log("Fetched email insights:", insights);
 
-        const enrichedProspects = insights.map((insight) => ({
-          id: insight.id,
-          companyName: insight.company?.name || "Unknown Company",
-          contact:
-            (insight.prospect_details || []).map((p) => p.name).join(", ") ||
-            "Unknown",
-          dealValue: "", // Default value
-          crmStage: "Proposal Sent", // Default value
-          nextAction: "Follow-up",
-          communication_style_ids: insight.communication_style_ids || [],
-          sales_play: insight?.sales_play,
-          secondary_objectives: insight?.secondary_objectives,
-          name: insight?.name,
-        }));
+        const enrichedProspects = insights
+          ?.filter((x) => x.communication_style_ids != null)
+          ?.map((insight) => ({
+            id: insight.id,
+            companyName: insight.company?.name || "Unknown Company",
+            contact:
+              (insight.prospect_details || []).map((p) => p.name).join(", ") ||
+              "Unknown",
+            dealValue: "", // Default value
+            crmStage: "Proposal Sent", // Default value
+            nextAction: "Follow-up",
+            communication_style_ids: insight.communication_style_ids || [],
+            sales_play: insight?.sales_play,
+            secondary_objectives: insight?.secondary_objectives,
+            name: insight?.name,
+          }));
 
         setProspects(enrichedProspects);
 

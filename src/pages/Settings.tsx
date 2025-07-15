@@ -352,7 +352,7 @@ export const Settings = () => {
     },
   });
 
-  console.log(newUserRole, "new user role");
+  // console.log(newUserRole, "new user role");
   // console.log(
   //   userProfileInfo,
   //   userRole,

@@ -33,7 +33,7 @@ export const initializeAnalytics = () => {
       console.warn('PostHog API key not found. Analytics will not be initialized.');
       return;
     }
-    
+
     posthog.init(POSTHOG_CONFIG.api_key, {
       api_host: POSTHOG_CONFIG.api_host,
       ...POSTHOG_CONFIG,
@@ -60,7 +60,7 @@ export const analytics = {
         return;
       }
       posthog.identify(traits?.email, traits)
-      console.log('PostHog: User identified', { userId, traits })
+      // console.log('PostHog: User identified', { userId, traits })
     }
   },
 
@@ -192,7 +192,7 @@ export const analytics = {
       return;
     }
     posthog.reset()
-    console.log('PostHog: User session reset')
+    // console.log('PostHog: User session reset')
   },
 
   // Get feature flags
