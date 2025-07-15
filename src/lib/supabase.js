@@ -1266,11 +1266,29 @@ export const dbHelpers = {
     }
   },
   // Get all companies created by this user
-  async getCompaniesByUserId(userId) {
-    const { data, error } = await supabase
+  // async getCompaniesByUserId(userId) {
+  //   const { data, error } = await supabase
+  //     .from("company")
+  //     .select("*")
+  //     .eq("user_id", userId);
+  //   if (error) throw error;
+  //   return data;
+  // },
+
+  async getCompaniesByUserId(userId, companySearch = "") {
+    let query = supabase
       .from("company")
       .select("*")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .order("name", { ascending: true })
+      .limit(10);
+
+    if (companySearch.trim()) {
+      query = query.ilike("name", `%${companySearch.trim()}%`);
+    }
+
+    const { data, error } = await query;
+    console.log(data, "check company data from user id",)
     if (error) throw error;
     return data;
   },

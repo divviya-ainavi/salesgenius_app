@@ -991,7 +991,8 @@ export const Settings = () => {
             </TabsTrigger>
           )}
           {userRoleId == 2 ||
-            (userRoleId == 1 && (
+            userRoleId == 1 ||
+            (userRoleId == null && (
               <TabsTrigger
                 value="users"
                 className="flex items-center space-x-2"
