@@ -185,3 +185,13 @@
 .animate-pulse-delay-5 {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.6s;
 }
+/* Text wrapping utility for consistent list item heights */
+.line-clamp-2-wrap {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
