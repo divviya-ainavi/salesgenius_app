@@ -677,7 +677,8 @@ export const Settings = () => {
       email,
       organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
-      token
+      token,
+      user?.id
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
