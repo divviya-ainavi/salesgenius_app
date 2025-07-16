@@ -1242,7 +1242,7 @@ const CallInsights = () => {
                                   <Edit className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </Badge>
                               )}
-                            </TooltipTrigger>
+                           
 
                             <TooltipContent
                               side="top"
