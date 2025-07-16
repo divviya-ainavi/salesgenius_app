@@ -43,7 +43,6 @@ import {
   RefreshCw,
   ExternalLink,
   Plus,
-  Edit,
   ChevronUp,
   ChevronDown,
   Search,
