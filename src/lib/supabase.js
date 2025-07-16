@@ -2438,6 +2438,22 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleRole(styleId, newRole) {
+    try {
+      const { data, error } = await supabase
+        .rpc('update_communication_style_role', {
+          style_id: styleId,
+          new_role: newRole
+        });
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating communication style role:', error);
+      throw error;
+    }
+  },
+
   async getActionItemsByProspectId(prospectId) {
     try {
       // Step 1: Fetch all action_item_ids from insights table for the prospect
