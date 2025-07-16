@@ -1220,20 +1220,33 @@ ${updatedBlocks
                                 <span className="text-sm text-muted-foreground">
                                   Communication Style:
                                 </span>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm font-medium flex items-center">
+                                {(() => {
+                                  const matchedStyle =
+                                    communicationStylesOptions.find(
+                                      (opt) =>
+                                        opt.style?.toLowerCase() ===
+                                        primaryStakeholder.communicationStyle?.toLowerCase()
+                                    );
+                                  return matchedStyle ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium flex items-center cursor-help">
+                                          {matchedStyle.style}
+                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">
+                                          {matchedStyle.description}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium">
                                       {primaryStakeholder.communicationStyle}
-                                      <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                     </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Based on language patterns and interaction
-                                      style from previous communications.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">
@@ -1404,9 +1417,33 @@ ${updatedBlocks
                                 <span className="text-sm text-muted-foreground">
                                   Communication Style:
                                 </span>
-                                <span className="text-sm font-medium">
-                                  {stakeholder.communicationStyle}
-                                </span>
+                                {(() => {
+                                  const matchedStyle =
+                                    communicationStylesOptions.find(
+                                      (opt) =>
+                                        opt.style ===
+                                        stakeholder.communicationStyle
+                                    );
+                                  return matchedStyle ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium flex items-center cursor-help">
+                                          {matchedStyle.style}
+                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">
+                                          {matchedStyle.description}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium">
+                                      {stakeholder.communicationStyle}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">

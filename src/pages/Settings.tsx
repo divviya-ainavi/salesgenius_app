@@ -698,6 +698,9 @@ export const Settings = () => {
       );
       setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
+    } else if (result.status === "registered") {
+      toast.info("User is already registered.");
+      setIsLoading(false);
     } else if (result.status === "already-invited") {
       toast.info("User was already invited within the last 24 hours");
       setIsLoading(false);

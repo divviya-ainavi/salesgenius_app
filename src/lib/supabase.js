@@ -1239,6 +1239,10 @@ export const dbHelpers = {
         if (insertError) throw insertError;
         return { status: "invited", id: inserted.id };
       } else {
+
+        if (existingInvite.status === "completed") {
+          return { status: "registered", id: existingInvite.id };
+        }
         const invitedAt = new Date(existingInvite.invited_at);
         const hoursSinceInvite = (now.getTime() - invitedAt.getTime()) / (1000 * 60 * 60);
 
