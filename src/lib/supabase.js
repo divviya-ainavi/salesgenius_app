@@ -1566,9 +1566,14 @@ export const dbHelpers = {
       extracted_transcript = "",
       processing_status = "completed",
       recommended_sales_play = "",
-      recommended_objectives = []
+      recommended_objectives = [],
+      recommended_objectives_reason = "",
+      recommended_sales_play_reason = ""
     } = data || {};
-
+    console.log(recommended_sales_play,
+      recommended_objectives,
+      recommended_objectives_reason,
+      recommended_sales_play_reason, "check recommended data", data)
     const companyName = company_details?.[0]?.name || "";
 
     // 1. Handle Company
@@ -1620,9 +1625,6 @@ export const dbHelpers = {
             user_id: userId,
             deal_value: null,
             calls: 1,
-            call_summary,
-            sales_play: recommended_sales_play,
-            secondary_objectives: recommended_objectives
           })
           .select("id")
           .single();
@@ -1781,7 +1783,11 @@ export const dbHelpers = {
       .update({
         calls: count || 1,
         communication_style_ids: communicationStyleIds,
-        call_summary
+        call_summary,
+        sales_play: recommended_sales_play,
+        secondary_objectives: recommended_objectives,
+        recommended_objectives_reason: recommended_objectives_reason,
+        recommended_sales_play_reason: recommended_sales_play_reason
       })
       .eq("id", prospectId);
 

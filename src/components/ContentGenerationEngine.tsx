@@ -299,6 +299,10 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
             sales_play: insight?.sales_play,
             secondary_objectives: insight?.secondary_objectives,
             name: insight?.name,
+            recommended_objectives_reason:
+              insight?.recommended_objectives_reason || "",
+            recommended_sales_play_reason:
+              insight?.recommended_sales_play_reason || "",
           }));
 
         setProspects(enrichedProspects);
@@ -1352,17 +1356,24 @@ ${updatedBlocks
                             {play.title === selectedProspect?.sales_play && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  <Badge
+                                    className="bg-green-100 text-green-800 border-green-200"
+                                    variant="outline"
+                                    // className="bg-blue-100 text-blue-800 border-blue-200"
+                                  >
                                     Recommended
                                     <Info className="ml-1 w-3 h-3" />
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Recommended based on the current CRM stage (
-                                    {selectedProspect.crmStage})...
-                                  </p>
-                                </TooltipContent>
+                                {selectedProspect?.recommended_sales_play_reason && (
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      {
+                                        selectedProspect?.recommended_sales_play_reason
+                                      }
+                                    </p>
+                                  </TooltipContent>
+                                )}
                               </Tooltip>
                             )}
                           </div>
@@ -1446,12 +1457,15 @@ ${updatedBlocks
                                     <Info className="ml-1 w-3 h-3" />
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    This objective works well with the{" "}
-                                    {selectedPlayData?.title} play.
-                                  </p>
-                                </TooltipContent>
+                                {selectedProspect?.recommended_objectives_reason && (
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      {
+                                        selectedProspect?.recommended_objectives_reason
+                                      }
+                                    </p>
+                                  </TooltipContent>
+                                )}
                               </Tooltip>
                             )}
                           </Label>

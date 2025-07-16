@@ -53,6 +53,7 @@ import {
   ChevronRight,
   Loader2,
   Headphones,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -747,6 +748,83 @@ const CallInsights = () => {
     0
   );
 
+  const communicationStylesOptions = [
+    {
+      style: "Analytical",
+      description: "Focused on details, data, logic, and structured thinking",
+    },
+    {
+      style: "Collaborative",
+      description: "Seeks consensus, includes others, open to dialogue",
+    },
+    {
+      style: "Directive",
+      description:
+        "To-the-point, action-oriented, expects ownership and results",
+    },
+    {
+      style: "Consultative",
+      description: "Offers guidance, reflective, asks strategic questions",
+    },
+    {
+      style: "Visionary",
+      description: "Talks about transformation, long-term outcomes, innovation",
+    },
+    {
+      style: "Storytelling",
+      description: "Communicates with examples, metaphors, narratives",
+    },
+    {
+      style: "Skeptical",
+      description:
+        "Cautious, challenges assumptions, resistant until convinced",
+    },
+    {
+      style: "Pragmatic",
+      description: "Realistic, efficient, focused on what works now",
+    },
+    {
+      style: "Transactional",
+      description: "Concerned with cost, timelines, and ROI",
+    },
+    {
+      style: "Supportive",
+      description: "Warm, people-focused, encourages harmony and clarity",
+    },
+    {
+      style: "Evaluative",
+      description: "Compares vendors, rates options, methodical",
+    },
+    {
+      style: "Innovative",
+      description: "Curious, open to new tech or approaches",
+    },
+    {
+      style: "Solution-Oriented",
+      description: "Fixes problems efficiently, focused on resolving blockers",
+    },
+    {
+      style: "Task-Focused",
+      description: "Goal-driven, deadline-bound, focused on execution",
+    },
+    {
+      style: "Technical",
+      description: "Speaks in terms of system architecture, tech requirements",
+    },
+    {
+      style: "Feedback-Oriented",
+      description: "Gives or seeks regular performance feedback",
+    },
+    {
+      style: "Process-Oriented",
+      description: "Interested in defined steps, consistency, governance",
+    },
+    {
+      style: "Execution-Driven",
+      description: "Wants to see action, ownership, and delivery commitment",
+    },
+  ];
+
   // console.log("Total insights count:", totalInsightsCount);
 
   // console.log(insights, "get list of insights");
@@ -1091,7 +1169,8 @@ const CallInsights = () => {
                                 variant="outline"
                                 className={cn("text-xs", typeConfig?.color)}
                               >
-                                <TypeIcon className="w-3 h-3 mr-1" />
+                                {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
+                                <Info className="mr-1 w-3 h-3" />
                                 {typeConfig?.label || ""}
                               </Badge>
                             </TooltipTrigger>
@@ -1389,6 +1468,14 @@ const CallInsights = () => {
                       ? communicationModalityIcons[stakeholder.modality.type]
                       : null;
 
+                    const formattedStyle =
+                      stakeholder?.style?.charAt(0).toUpperCase() +
+                      stakeholder?.style?.slice(1);
+                    console.log(formattedStyle, "formatted style");
+                    const styleMatch = communicationStylesOptions?.find(
+                      (s) =>
+                        s.style?.toLowerCase() === formattedStyle?.toLowerCase()
+                    );
                     return (
                       <div
                         key={stakeholder.id}
@@ -1407,18 +1494,65 @@ const CallInsights = () => {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Badge
+                            {/* <Badge
                               variant="outline"
                               className={cn(
                                 "text-xs bg-blue-100 text-blue-800 border-blue-200",
                                 styleConfig?.color
                               )}
                             >
+                              <Info className="mr-1 w-3 h-3" />
                               {stakeholder.style
                                 ? stakeholder.style.charAt(0).toUpperCase() +
                                   stakeholder.style.slice(1)
                                 : ""}
-                            </Badge>
+                            </Badge> */}
+                            {/* <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
+                                </Badge>
+                              </TooltipTrigger>
+                              {styleMatch && (
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    {styleMatch?.description}
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip> */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
+                                </Badge>
+                              </TooltipTrigger>
+
+                              <TooltipContent
+                                side="top"
+                                align="center"
+                                className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                              >
+                                <p className="leading-snug">
+                                  {styleMatch?.description ||
+                                    "No description available."}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                             <Badge
                               variant="outline"
                               className="text-xs bg-green-100 text-green-800 border-green-200"
@@ -1652,9 +1786,10 @@ const CallInsights = () => {
                   />
                   <span className="text-sm">Research:</span>
                   <Badge
-                    variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
                   >
-                    {researchCompanyCount}
+                    0{/* {researchCompanyCount} */}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1666,7 +1801,7 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">Internal datas:</span>
+                  <span className="text-sm">Internal data:</span>
                   <Badge
                     variant={
                       selectedProspect.dataSources.emails > 0

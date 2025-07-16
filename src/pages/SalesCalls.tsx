@@ -1192,7 +1192,7 @@ export const SalesCalls = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredPastCalls.map((call) => (
+                    {filteredPastCalls.map((call, index) => (
                       <div
                         key={call.id}
                         className="border border-border rounded-lg p-4"
@@ -1200,7 +1200,9 @@ export const SalesCalls = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="font-semibold">{call.callId}</h3>
+                              <h3 className="font-semibold">
+                                Call - {index + 1}
+                              </h3>
                               <Badge variant="default">Processed</Badge>
                               {call.hasInsights && (
                                 <Badge
