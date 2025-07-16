@@ -214,8 +214,14 @@ export const CallAssociationSelector = ({
               </div>
 
               {/* Company Results */}
-              {(companySearch || companies.length > 0) && (
-                <div className="border border-gray-200 rounded-md max-h-48 min-h-48 overflow-y-auto">
+              {
+                <div
+                  className={
+                    companySearch || companies.length > 0
+                      ? "border border-gray-200 rounded-md max-h-48 min-h-48 overflow-y-auto"
+                      : "border border-gray-200 rounded-md overflow-y-auto"
+                  }
+                >
                   <>
                     <Button
                       variant="ghost"
@@ -226,29 +232,30 @@ export const CallAssociationSelector = ({
                       Create New Company...
                     </Button>
 
-                    {companies.map((company) => (
-                      <Button
-                        key={company.id}
-                        variant="ghost"
-                        className="w-full justify-start p-3 hover:bg-gray-50"
-                        onClick={() => handleCompanySelect(company)}
-                      >
-                        <Building className="w-4 h-4 mr-2 text-gray-400" />
-                        <div className="text-left">
-                          <div className="font-medium line-clamp-2-wrap">
-                            {company.name}
-                          </div>
-                          {company.domain && (
-                            <div className="text-sm text-gray-500">
-                              {company.domain}
+                    {(companySearch || companies.length > 0) &&
+                      companies.map((company) => (
+                        <Button
+                          key={company.id}
+                          variant="ghost"
+                          className="w-full justify-start p-3 hover:bg-gray-50"
+                          onClick={() => handleCompanySelect(company)}
+                        >
+                          <Building className="w-4 h-4 mr-2 text-gray-400" />
+                          <div className="text-left">
+                            <div className="font-medium line-clamp-2-wrap">
+                              {company.name}
                             </div>
-                          )}
-                        </div>
-                      </Button>
-                    ))}
+                            {company.domain && (
+                              <div className="text-sm text-gray-500">
+                                {company.domain}
+                              </div>
+                            )}
+                          </div>
+                        </Button>
+                      ))}
                   </>
                 </div>
-              )}
+              }
             </div>
           )}
 
