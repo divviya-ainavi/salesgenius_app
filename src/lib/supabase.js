@@ -2438,21 +2438,43 @@ export const dbHelpers = {
     }
   },
 
-  async updateCommunicationStyleRole(styleId, newRole) {
+  async updateCommunicationStyleRole(styleId, newRole, prospectId) {
     try {
-      const { data, error } = await supabase
-        .rpc('update_communication_style_role', {
-          style_id: styleId,
-          new_role: newRole
-        });
-      
-      if (error) throw error;
-      return data;
+      // Step 1: Get the current communication style entry (to get the name)
+      const { data: styleData, error: fetchError } = await supabase
+        .from("communication_styles")
+        .select("stakeholder")
+        .eq("id", styleId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      const name = styleData?.stakeholder;
+
+      // Step 2: Update the communication_styles table with new role
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ role: newRole })
+        .eq("id", styleId);
+
+      if (updateError) throw updateError;
+
+      // Step 3: Update the peoples table (title) where name and prospect_id match
+      const { data: updatedPeople, error: peopleError } = await supabase
+        .from("peoples")
+        .update({ title: newRole })
+        .eq("name", name)
+        .eq("prospect_id", prospectId);
+
+      if (peopleError) throw peopleError;
+
+      // console.log("Updated peoples:", updatedPeople);
+      return updatedStyle;
     } catch (error) {
-      console.error('Error updating communication style role:', error);
+      console.error("Error updating communication style role and peoples title:", error);
       throw error;
     }
   },
+
 
   async getActionItemsByProspectId(prospectId) {
     try {

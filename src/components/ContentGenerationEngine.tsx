@@ -1037,7 +1037,82 @@ ${updatedBlocks
                               <Badge>Primary Decision Maker</Badge>
                             </div>
                             <CardDescription>
-                              {primaryStakeholder.title}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Role:
+                                </span>
+                                {editingRoleId === primaryStakeholder.id ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Input
+                                      value={editingRoleText}
+                                      onChange={(e) =>
+                                        setEditingRoleText(e.target.value)
+                                      }
+                                      className="h-7 text-xs w-40"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          dbHelpers
+                                            .updateCommunicationStyleRole(
+                                              primaryStakeholder.id,
+                                              editingRoleText,
+                                              selectedProspect.id
+                                            )
+                                            .then(() => {
+                                              // Update local state
+                                              setStakeholders((prev) =>
+                                                prev.map((s) =>
+                                                  s.id === primaryStakeholder.id
+                                                    ? {
+                                                        ...s,
+                                                        title: editingRoleText,
+                                                      }
+                                                    : s
+                                                )
+                                              );
+                                              setEditingRoleId(null);
+                                              toast.success(
+                                                "Role updated successfully"
+                                              );
+                                            })
+                                            .catch((err) => {
+                                              console.error(
+                                                "Failed to update role:",
+                                                err
+                                              );
+                                              toast.error(
+                                                "Failed to update role"
+                                              );
+                                            });
+                                        } else if (e.key === "Escape") {
+                                          setEditingRoleId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => setEditingRoleId(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRoleId(primaryStakeholder.id);
+                                      setEditingRoleText(
+                                        primaryStakeholder.title
+                                      );
+                                    }}
+                                  >
+                                    {primaryStakeholder.title}
+                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                                  </span>
+                                )}
+                              </div>
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3 pt-0">
@@ -1091,64 +1166,6 @@ ${updatedBlocks
                                   {primaryStakeholder.personalityType}
                                 </span>
                               </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-muted-foreground">
-                                Role:
-                              </span>
-                              {editingRoleId === primaryStakeholder.id ? (
-                                <div className="flex items-center space-x-1">
-                                  <Input
-                                    value={editingRoleText}
-                                    onChange={(e) => setEditingRoleText(e.target.value)}
-                                    className="h-7 text-xs w-40"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        dbHelpers.updateCommunicationStyleRole(
-                                          primaryStakeholder.id,
-                                          editingRoleText
-                                        ).then(() => {
-                                          // Update local state
-                                          setStakeholders(prev => 
-                                            prev.map(s => s.id === primaryStakeholder.id 
-                                              ? {...s, title: editingRoleText} 
-                                              : s
-                                            )
-                                          );
-                                          setEditingRoleId(null);
-                                          toast.success("Role updated successfully");
-                                        }).catch(err => {
-                                          console.error("Failed to update role:", err);
-                                          toast.error("Failed to update role");
-                                        });
-                                      } else if (e.key === 'Escape') {
-                                        setEditingRoleId(null);
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => setEditingRoleId(null)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <span 
-                                  className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
-                                  onClick={() => {
-                                    setEditingRoleId(primaryStakeholder.id);
-                                    setEditingRoleText(primaryStakeholder.title);
-                                  }}
-                                >
-                                  {primaryStakeholder.title}
-                                  <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
-                                </span>
-                              )}
                             </div>
 
                             <Collapsible className="border-t border-primary/10 pt-2">
@@ -1206,7 +1223,80 @@ ${updatedBlocks
                               <Badge variant="outline">Stakeholder</Badge>
                             </div>
                             <CardDescription>
-                              {stakeholder.title}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Role:
+                                </span>
+                                {editingRoleId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Input
+                                      value={editingRoleText}
+                                      onChange={(e) =>
+                                        setEditingRoleText(e.target.value)
+                                      }
+                                      className="h-7 text-xs w-40"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          dbHelpers
+                                            .updateCommunicationStyleRole(
+                                              stakeholder.id,
+                                              editingRoleText,
+                                              selectedProspect?.id
+                                            )
+                                            .then(() => {
+                                              // Update local state
+                                              setStakeholders((prev) =>
+                                                prev.map((s) =>
+                                                  s.id === stakeholder.id
+                                                    ? {
+                                                        ...s,
+                                                        title: editingRoleText,
+                                                      }
+                                                    : s
+                                                )
+                                              );
+                                              setEditingRoleId(null);
+                                              toast.success(
+                                                "Role updated successfully"
+                                              );
+                                            })
+                                            .catch((err) => {
+                                              console.error(
+                                                "Failed to update role:",
+                                                err
+                                              );
+                                              toast.error(
+                                                "Failed to update role"
+                                              );
+                                            });
+                                        } else if (e.key === "Escape") {
+                                          setEditingRoleId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => setEditingRoleId(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRoleId(stakeholder.id);
+                                      setEditingRoleText(stakeholder.title);
+                                    }}
+                                  >
+                                    {stakeholder.title}
+                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                                  </span>
+                                )}
+                              </div>
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3 pt-0">
@@ -1249,64 +1339,6 @@ ${updatedBlocks
                                   {stakeholder.personalityType}
                                 </span>
                               </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-muted-foreground">
-                                Role:
-                              </span>
-                              {editingRoleId === stakeholder.id ? (
-                                <div className="flex items-center space-x-1">
-                                  <Input
-                                    value={editingRoleText}
-                                    onChange={(e) => setEditingRoleText(e.target.value)}
-                                    className="h-7 text-xs w-40"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        dbHelpers.updateCommunicationStyleRole(
-                                          stakeholder.id,
-                                          editingRoleText
-                                        ).then(() => {
-                                          // Update local state
-                                          setStakeholders(prev => 
-                                            prev.map(s => s.id === stakeholder.id 
-                                              ? {...s, title: editingRoleText} 
-                                              : s
-                                            )
-                                          );
-                                          setEditingRoleId(null);
-                                          toast.success("Role updated successfully");
-                                        }).catch(err => {
-                                          console.error("Failed to update role:", err);
-                                          toast.error("Failed to update role");
-                                        });
-                                      } else if (e.key === 'Escape') {
-                                        setEditingRoleId(null);
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => setEditingRoleId(null)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <span 
-                                  className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
-                                  onClick={() => {
-                                    setEditingRoleId(stakeholder.id);
-                                    setEditingRoleText(stakeholder.title);
-                                  }}
-                                >
-                                  {stakeholder.title}
-                                  <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
-                                </span>
-                              )}
                             </div>
 
                             <Collapsible className="border-t border-border pt-2">
