@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -24,6 +25,9 @@ import {
   Users,
   Target,
   Lightbulb,
+  Edit,
+  Save,
+  X,
   Star,
   Eye,
   MessageSquare,
@@ -57,7 +61,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, updateCommunicationStyleRole } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,6 +111,8 @@ const CallInsights = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [insights, setInsights] = useState([]);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [editRoleValue, setEditRoleValue] = useState("");
   const [communicationStyles, setCommunicationStyles] = useState([]);
   const [howToEngageSummary, setHowToEngageSummary] = useState(null);
   const [isAddingInsight, setIsAddingInsight] = useState(false);
@@ -402,6 +408,37 @@ const CallInsights = () => {
     setSelectedProspect(prospect);
     setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
+  const handleRoleEdit = (commStyle) => {
+    setEditingRoleId(commStyle.id);
+    setEditRoleValue(commStyle.role || "");
+  };
+
+  const handleRoleSave = async (commStyleId) => {
+    try {
+      await updateCommunicationStyleRole(commStyleId, editRoleValue);
+      
+      // Update local state
+      setSelectedProspect(prev => ({
+        ...prev,
+        communication_styles: prev.communication_styles.map(style =>
+          style.id === commStyleId ? { ...style, role: editRoleValue } : style
+        )
+      }));
+      
+      setEditingRoleId(null);
+      setEditRoleValue("");
+      toast.success("Role updated successfully");
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleRoleCancel = () => {
+    setEditingRoleId(null);
+    setEditRoleValue("");
+  };
+
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
 
@@ -1170,9 +1207,45 @@ const CallInsights = () => {
                                 className={cn("text-xs", typeConfig?.color)}
                               >
                                 {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
-                                <Info className="mr-1 w-3 h-3" />
-                                {typeConfig?.label || ""}
-                              </Badge>
+                              {editingRoleId === commStyle.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editRoleValue}
+                                    onChange={(e) => setEditRoleValue(e.target.value)}
+                                    className="h-6 text-xs px-2 w-32"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleRoleSave(commStyle.id);
+                                      if (e.key === "Escape") handleRoleCancel();
+                                    }}
+                                    autoFocus
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleRoleSave(commStyle.id)}
+                                  >
+                                    <Save className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleRoleCancel}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs cursor-pointer hover:bg-accent group"
+                                  onClick={() => handleRoleEdit(commStyle)}
+                                >
+                                  {commStyle.role || "Unknown Role"}
+                                  <Edit className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </Badge>
+                              )}
                             </TooltipTrigger>
 
                             <TooltipContent
