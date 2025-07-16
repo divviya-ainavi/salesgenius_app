@@ -24,9 +24,6 @@ import {
   Users,
   Target,
   Lightbulb,
-  Edit,
-  Save,
-  X,
   Star,
   Eye,
   MessageSquare,
@@ -43,6 +40,9 @@ import {
   RefreshCw,
   ExternalLink,
   Plus,
+  Edit,
+  Save,
+  X,
   ChevronUp,
   ChevronDown,
   Search,
@@ -57,7 +57,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dbHelpers, CURRENT_USER, updateCommunicationStyleRole } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,8 +107,6 @@ const CallInsights = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [insights, setInsights] = useState([]);
-  const [editingRoleId, setEditingRoleId] = useState(null);
-  const [editRoleValue, setEditRoleValue] = useState("");
   const [communicationStyles, setCommunicationStyles] = useState([]);
   const [howToEngageSummary, setHowToEngageSummary] = useState(null);
   const [isAddingInsight, setIsAddingInsight] = useState(false);
@@ -142,6 +140,8 @@ const CallInsights = () => {
   } = useSelector((state) => state.auth);
   const { cummulativeSpinner } = useSelector((state) => state.prospect);
   const [cummulativeSummary, setCummulativeSummary] = useState("");
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [editRoleValue, setEditRoleValue] = useState("");
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -404,37 +404,6 @@ const CallInsights = () => {
     setSelectedProspect(prospect);
     setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
-  const handleRoleEdit = (commStyle) => {
-    setEditingRoleId(commStyle.id);
-    setEditRoleValue(commStyle.role || "");
-  };
-
-  const handleRoleSave = async (commStyleId) => {
-    try {
-      await updateCommunicationStyleRole(commStyleId, editRoleValue);
-      
-      // Update local state
-      setSelectedProspect(prev => ({
-        ...prev,
-        communication_styles: prev.communication_styles.map(style =>
-          style.id === commStyleId ? { ...style, role: editRoleValue } : style
-        )
-      }));
-      
-      setEditingRoleId(null);
-      setEditRoleValue("");
-      toast.success("Role updated successfully");
-    } catch (error) {
-      console.error("Error updating role:", error);
-      toast.error("Failed to update role");
-    }
-  };
-
-  const handleRoleCancel = () => {
-    setEditingRoleId(null);
-    setEditRoleValue("");
-  };
-
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
 
@@ -555,39 +524,6 @@ const CallInsights = () => {
     }
   };
 
-  const handleEditInsight = (insightId) => {
-    const insight = insights.find((i) => i.id === insightId);
-    setEditingId(insightId);
-    setEditContent(insight.content);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      const updatedList = insights?.map((insight) =>
-        insight.id === editingId
-          ? { ...insight, content: editContent }
-          : insight
-      );
-
-      const payload = {
-        sales_insights: updatedList,
-      };
-
-      const updated = await dbHelpers.updateCallInsight(
-        selectedProspect.id,
-        payload
-      );
-      setInsights(updated.sales_insights);
-
-      setEditingId(null);
-      setEditContent("");
-      updateAllInsightsEntry(updated);
-      toast.success("Insight updated");
-    } catch (error) {
-      toast.error("Failed to update insight");
-    }
-  };
-
   const handleMoveInsight = async (typeId, direction) => {
     if (!selectedProspect?.id || !insights || insights.length === 0) return;
 
@@ -633,26 +569,6 @@ const CallInsights = () => {
       toast.success("Insight priority updated");
     } else {
       toast.error("Failed to update priority list");
-    }
-  };
-
-  const handleDeleteInsight = async (insightId) => {
-    try {
-      const filtered = insights.filter((i) => i.id !== insightId);
-
-      const payload = {
-        sales_insights: filtered,
-      };
-
-      const updated = await dbHelpers.updateCallInsight(
-        selectedProspect.id,
-        payload
-      );
-      setInsights(updated.sales_insights);
-      updateAllInsightsEntry(updated);
-      toast.success("Insight removed");
-    } catch (error) {
-      toast.error("Failed to delete insight");
     }
   };
 
@@ -857,6 +773,41 @@ const CallInsights = () => {
       description: "Wants to see action, ownership, and delivery commitment",
     },
   ];
+
+  const handleRoleEdit = (commStyle) => {
+    setEditingRoleId(commStyle.id);
+    setEditRoleValue(commStyle.role || "");
+  };
+
+  console.log(communicationStyles, "communication styles data");
+  const handleRoleSave = async (commStyleId) => {
+    try {
+      await dbHelpers?.updateCommunicationStyleRole(
+        commStyleId,
+        editRoleValue,
+        selectedProspect?.id
+      );
+
+      // Update local state
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === commStyleId ? { ...style, role: editRoleValue } : style
+        )
+      );
+
+      setEditingRoleId(null);
+      setEditRoleValue("");
+      toast.success("Role updated successfully");
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleRoleCancel = () => {
+    setEditingRoleId(null);
+    setEditRoleValue("");
+  };
 
   // console.log("Total insights count:", totalInsightsCount);
 
@@ -1203,47 +1154,11 @@ const CallInsights = () => {
                                 className={cn("text-xs", typeConfig?.color)}
                               >
                                 {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
-                              {editingRoleId === commStyle.id ? (
-                                <div className="flex items-center space-x-2">
-                                  <Input
-                                    value={editRoleValue}
-                                    onChange={(e) => setEditRoleValue(e.target.value)}
-                                    className="h-6 text-xs px-2 w-32"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleRoleSave(commStyle.id);
-                                      if (e.key === "Escape") handleRoleCancel();
-                                    }}
-                                    autoFocus
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => handleRoleSave(commStyle.id)}
-                                  >
-                                    <Save className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={handleRoleCancel}
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs cursor-pointer hover:bg-accent group"
-                                  onClick={() => handleRoleEdit(commStyle)}
-                                >
-                                  {commStyle.role || "Unknown Role"}
-                                  <Edit className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </Badge>
-                              )}
-                           
-<Tooltip>
+                                <Info className="mr-1 w-3 h-3" />
+                                {typeConfig?.label || ""}
+                              </Badge>
+                            </TooltipTrigger>
+
                             <TooltipContent
                               side="top"
                               align="center"
@@ -1558,9 +1473,51 @@ const CallInsights = () => {
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
                             </h3>
-                            <p className="text-sm text-muted-foreground">
+                            {/* <p className="text-sm text-muted-foreground">
                               {stakeholder.role}
-                            </p>
+                            </p> */}
+                            {editingRoleId === stakeholder.id ? (
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  value={editRoleValue}
+                                  onChange={(e) =>
+                                    setEditRoleValue(e.target.value)
+                                  }
+                                  className="h-6 text-xs px-2 w-32"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      handleRoleSave(stakeholder.id);
+                                    if (e.key === "Escape") handleRoleCancel();
+                                  }}
+                                  autoFocus
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRoleSave(stakeholder.id)}
+                                >
+                                  <Save className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={handleRoleCancel}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs cursor-pointer hover:bg-accent group"
+                                onClick={() => handleRoleEdit(stakeholder)}
+                              >
+                                {stakeholder.role || "Unknown Role"}
+                                <Edit className="w-3 h-3 ml-1" />
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             {/* <Badge
