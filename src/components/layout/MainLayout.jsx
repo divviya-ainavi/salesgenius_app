@@ -48,7 +48,7 @@ export const MainLayout = () => {
               className="text-xs bg-green-100 text-green-800 border-green-200"
             >
               <Zap className="w-3 h-3 mr-1" />
-              {user?.title_name || "Sales Manager"}
+              {user?.title_name || "Super Admin"}
             </Badge>
           </div>
 

@@ -1204,7 +1204,7 @@ export const dbHelpers = {
     return data;
   },
 
-  async inviteUserByEmail(email, organizationId, roleId, token) {
+  async inviteUserByEmail(email, organizationId, roleId, token, invitedBy) {
     try {
       const trimmedEmail = email.trim().toLowerCase();
       const now = new Date();
@@ -1232,6 +1232,7 @@ export const dbHelpers = {
             token,
             invited_at: now.toISOString(),
             status: "pending",
+            invited_by: invitedBy || null,
           })
           .select("id")
           .single();
@@ -1239,6 +1240,10 @@ export const dbHelpers = {
         if (insertError) throw insertError;
         return { status: "invited", id: inserted.id };
       } else {
+
+        if (existingInvite.status === "completed") {
+          return { status: "registered", id: existingInvite.id };
+        }
         const invitedAt = new Date(existingInvite.invited_at);
         const hoursSinceInvite = (now.getTime() - invitedAt.getTime()) / (1000 * 60 * 60);
 
@@ -1566,9 +1571,14 @@ export const dbHelpers = {
       extracted_transcript = "",
       processing_status = "completed",
       recommended_sales_play = "",
-      recommended_objectives = []
+      recommended_objectives = [],
+      recommended_objectives_reason = "",
+      recommended_sales_play_reason = ""
     } = data || {};
-
+    console.log(recommended_sales_play,
+      recommended_objectives,
+      recommended_objectives_reason,
+      recommended_sales_play_reason, "check recommended data", data)
     const companyName = company_details?.[0]?.name || "";
 
     // 1. Handle Company
@@ -1620,9 +1630,6 @@ export const dbHelpers = {
             user_id: userId,
             deal_value: null,
             calls: 1,
-            call_summary,
-            sales_play: recommended_sales_play,
-            secondary_objectives: recommended_objectives
           })
           .select("id")
           .single();
@@ -1781,7 +1788,11 @@ export const dbHelpers = {
       .update({
         calls: count || 1,
         communication_style_ids: communicationStyleIds,
-        call_summary
+        call_summary,
+        sales_play: recommended_sales_play,
+        secondary_objectives: recommended_objectives,
+        recommended_objectives_reason: recommended_objectives_reason,
+        recommended_sales_play_reason: recommended_sales_play_reason
       })
       .eq("id", prospectId);
 
@@ -2431,6 +2442,44 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+  async updateCommunicationStyleRole(styleId, newRole, prospectId) {
+    try {
+      // Step 1: Get the current communication style entry (to get the name)
+      const { data: styleData, error: fetchError } = await supabase
+        .from("communication_styles")
+        .select("stakeholder")
+        .eq("id", styleId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      const name = styleData?.stakeholder;
+
+      // Step 2: Update the communication_styles table with new role
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ role: newRole })
+        .eq("id", styleId);
+
+      if (updateError) throw updateError;
+
+      // Step 3: Update the peoples table (title) where name and prospect_id match
+      const { data: updatedPeople, error: peopleError } = await supabase
+        .from("peoples")
+        .update({ title: newRole })
+        .eq("name", name)
+        .eq("prospect_id", prospectId);
+
+      if (peopleError) throw peopleError;
+
+      // console.log("Updated peoples:", updatedPeople);
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style role and peoples title:", error);
+      throw error;
+    }
+  },
+
 
   async getActionItemsByProspectId(prospectId) {
     try {

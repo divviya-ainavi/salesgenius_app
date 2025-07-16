@@ -185,6 +185,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [commStylesData, setCommStylesData] = useState([]);
   const [getTaskAndContent, setGetTaskAndContent] = useState([]);
   const [allSummary, setAllSummary] = useState([""]);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [editingRoleText, setEditingRoleText] = useState("");
   const {
     userProfileInfo,
     userRole,
@@ -299,6 +301,10 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
             sales_play: insight?.sales_play,
             secondary_objectives: insight?.secondary_objectives,
             name: insight?.name,
+            recommended_objectives_reason:
+              insight?.recommended_objectives_reason || "",
+            recommended_sales_play_reason:
+              insight?.recommended_sales_play_reason || "",
           }));
 
         setProspects(enrichedProspects);
@@ -892,6 +898,83 @@ ${updatedBlocks
     .map(getObjectiveById)
     .filter(Boolean);
 
+  const communicationStylesOptions = [
+    {
+      style: "Analytical",
+      description: "Focused on details, data, logic, and structured thinking",
+    },
+    {
+      style: "Collaborative",
+      description: "Seeks consensus, includes others, open to dialogue",
+    },
+    {
+      style: "Directive",
+      description:
+        "To-the-point, action-oriented, expects ownership and results",
+    },
+    {
+      style: "Consultative",
+      description: "Offers guidance, reflective, asks strategic questions",
+    },
+    {
+      style: "Visionary",
+      description: "Talks about transformation, long-term outcomes, innovation",
+    },
+    {
+      style: "Storytelling",
+      description: "Communicates with examples, metaphors, narratives",
+    },
+    {
+      style: "Skeptical",
+      description:
+        "Cautious, challenges assumptions, resistant until convinced",
+    },
+    {
+      style: "Pragmatic",
+      description: "Realistic, efficient, focused on what works now",
+    },
+    {
+      style: "Transactional",
+      description: "Concerned with cost, timelines, and ROI",
+    },
+    {
+      style: "Supportive",
+      description: "Warm, people-focused, encourages harmony and clarity",
+    },
+    {
+      style: "Evaluative",
+      description: "Compares vendors, rates options, methodical",
+    },
+    {
+      style: "Innovative",
+      description: "Curious, open to new tech or approaches",
+    },
+    {
+      style: "Solution-Oriented",
+      description: "Fixes problems efficiently, focused on resolving blockers",
+    },
+    {
+      style: "Task-Focused",
+      description: "Goal-driven, deadline-bound, focused on execution",
+    },
+    {
+      style: "Technical",
+      description: "Speaks in terms of system architecture, tech requirements",
+    },
+    {
+      style: "Feedback-Oriented",
+      description: "Gives or seeks regular performance feedback",
+    },
+    {
+      style: "Process-Oriented",
+      description: "Interested in defined steps, consistency, governance",
+    },
+    {
+      style: "Execution-Driven",
+      description: "Wants to see action, ownership, and delivery commitment",
+    },
+  ];
+
   // Render the appropriate view
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -1031,7 +1114,82 @@ ${updatedBlocks
                               <Badge>Primary Decision Maker</Badge>
                             </div>
                             <CardDescription>
-                              {primaryStakeholder.title}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Role:
+                                </span>
+                                {editingRoleId === primaryStakeholder.id ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Input
+                                      value={editingRoleText}
+                                      onChange={(e) =>
+                                        setEditingRoleText(e.target.value)
+                                      }
+                                      className="h-7 text-xs w-40"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          dbHelpers
+                                            .updateCommunicationStyleRole(
+                                              primaryStakeholder.id,
+                                              editingRoleText,
+                                              selectedProspect.id
+                                            )
+                                            .then(() => {
+                                              // Update local state
+                                              setStakeholders((prev) =>
+                                                prev.map((s) =>
+                                                  s.id === primaryStakeholder.id
+                                                    ? {
+                                                        ...s,
+                                                        title: editingRoleText,
+                                                      }
+                                                    : s
+                                                )
+                                              );
+                                              setEditingRoleId(null);
+                                              toast.success(
+                                                "Role updated successfully"
+                                              );
+                                            })
+                                            .catch((err) => {
+                                              console.error(
+                                                "Failed to update role:",
+                                                err
+                                              );
+                                              toast.error(
+                                                "Failed to update role"
+                                              );
+                                            });
+                                        } else if (e.key === "Escape") {
+                                          setEditingRoleId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => setEditingRoleId(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRoleId(primaryStakeholder.id);
+                                      setEditingRoleText(
+                                        primaryStakeholder.title
+                                      );
+                                    }}
+                                  >
+                                    {primaryStakeholder.title}
+                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                                  </span>
+                                )}
+                              </div>
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3 pt-0">
@@ -1062,20 +1220,33 @@ ${updatedBlocks
                                 <span className="text-sm text-muted-foreground">
                                   Communication Style:
                                 </span>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-sm font-medium flex items-center">
+                                {(() => {
+                                  const matchedStyle =
+                                    communicationStylesOptions.find(
+                                      (opt) =>
+                                        opt.style?.toLowerCase() ===
+                                        primaryStakeholder.communicationStyle?.toLowerCase()
+                                    );
+                                  return matchedStyle ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium flex items-center cursor-help">
+                                          {matchedStyle.style}
+                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">
+                                          {matchedStyle.description}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium">
                                       {primaryStakeholder.communicationStyle}
-                                      <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                     </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Based on language patterns and interaction
-                                      style from previous communications.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">
@@ -1142,7 +1313,80 @@ ${updatedBlocks
                               <Badge variant="outline">Stakeholder</Badge>
                             </div>
                             <CardDescription>
-                              {stakeholder.title}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Role:
+                                </span>
+                                {editingRoleId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Input
+                                      value={editingRoleText}
+                                      onChange={(e) =>
+                                        setEditingRoleText(e.target.value)
+                                      }
+                                      className="h-7 text-xs w-40"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          dbHelpers
+                                            .updateCommunicationStyleRole(
+                                              stakeholder.id,
+                                              editingRoleText,
+                                              selectedProspect?.id
+                                            )
+                                            .then(() => {
+                                              // Update local state
+                                              setStakeholders((prev) =>
+                                                prev.map((s) =>
+                                                  s.id === stakeholder.id
+                                                    ? {
+                                                        ...s,
+                                                        title: editingRoleText,
+                                                      }
+                                                    : s
+                                                )
+                                              );
+                                              setEditingRoleId(null);
+                                              toast.success(
+                                                "Role updated successfully"
+                                              );
+                                            })
+                                            .catch((err) => {
+                                              console.error(
+                                                "Failed to update role:",
+                                                err
+                                              );
+                                              toast.error(
+                                                "Failed to update role"
+                                              );
+                                            });
+                                        } else if (e.key === "Escape") {
+                                          setEditingRoleId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => setEditingRoleId(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRoleId(stakeholder.id);
+                                      setEditingRoleText(stakeholder.title);
+                                    }}
+                                  >
+                                    {stakeholder.title}
+                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                                  </span>
+                                )}
+                              </div>
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3 pt-0">
@@ -1173,9 +1417,33 @@ ${updatedBlocks
                                 <span className="text-sm text-muted-foreground">
                                   Communication Style:
                                 </span>
-                                <span className="text-sm font-medium">
-                                  {stakeholder.communicationStyle}
-                                </span>
+                                {(() => {
+                                  const matchedStyle =
+                                    communicationStylesOptions.find(
+                                      (opt) =>
+                                        opt.style ===
+                                        stakeholder.communicationStyle
+                                    );
+                                  return matchedStyle ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium flex items-center cursor-help">
+                                          {matchedStyle.style}
+                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">
+                                          {matchedStyle.description}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium">
+                                      {stakeholder.communicationStyle}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">
@@ -1352,17 +1620,24 @@ ${updatedBlocks
                             {play.title === selectedProspect?.sales_play && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  <Badge
+                                    className="bg-green-100 text-green-800 border-green-200"
+                                    variant="outline"
+                                    // className="bg-blue-100 text-blue-800 border-blue-200"
+                                  >
                                     Recommended
                                     <Info className="ml-1 w-3 h-3" />
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Recommended based on the current CRM stage (
-                                    {selectedProspect.crmStage})...
-                                  </p>
-                                </TooltipContent>
+                                {selectedProspect?.recommended_sales_play_reason && (
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      {
+                                        selectedProspect?.recommended_sales_play_reason
+                                      }
+                                    </p>
+                                  </TooltipContent>
+                                )}
                               </Tooltip>
                             )}
                           </div>
@@ -1446,12 +1721,15 @@ ${updatedBlocks
                                     <Info className="ml-1 w-3 h-3" />
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    This objective works well with the{" "}
-                                    {selectedPlayData?.title} play.
-                                  </p>
-                                </TooltipContent>
+                                {selectedProspect?.recommended_objectives_reason && (
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      {
+                                        selectedProspect?.recommended_objectives_reason
+                                      }
+                                    </p>
+                                  </TooltipContent>
+                                )}
                               </Tooltip>
                             )}
                           </Label>

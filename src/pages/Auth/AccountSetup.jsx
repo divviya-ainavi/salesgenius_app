@@ -384,6 +384,8 @@ const AccountSetup = () => {
       const { error: updateError } = await supabase
         .from("invites")
         .update({
+          organization_id: organizationId,
+          title_id: inviteData.title_id || null,
           status: "completed",
         })
         .eq("email", inviteData.email);

@@ -64,6 +64,7 @@ import {
   Copy,
   Check,
   ChevronsUpDown,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -324,6 +325,7 @@ export const Settings = () => {
   const [cityOpen, setCityOpen] = useState(false);
   const [countrySearchValue, setCountrySearchValue] = useState("");
   const [citySearchValue, setCitySearchValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -661,8 +663,10 @@ export const Settings = () => {
   };
 
   const handleInviteUser = async () => {
+    setIsLoading(true);
     const email = newUserEmail.trim();
     if (!email) {
+      setIsLoading(false);
       toast.error("Please enter a valid email address");
       return;
     }
@@ -673,7 +677,8 @@ export const Settings = () => {
       email,
       organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
-      token
+      token,
+      user?.id
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
@@ -692,11 +697,17 @@ export const Settings = () => {
           result.status === "re-invited" ? "re-" : ""
         }sent to ${email}`
       );
+      setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
+    } else if (result.status === "registered") {
+      toast.info("User is already registered.");
+      setIsLoading(false);
     } else if (result.status === "already-invited") {
       toast.info("User was already invited within the last 24 hours");
+      setIsLoading(false);
     } else {
       toast.error(result.message || "Failed to invite user");
+      setIsLoading(false);
     }
 
     setNewUserEmail("");
@@ -1904,9 +1915,18 @@ export const Settings = () => {
                         </div>
                       )}
 
-                      <Button onClick={handleInviteUser}>
-                        <Plus className="w-4 h-4 mr-1" />
-                        Send Invite
+                      <Button onClick={handleInviteUser} disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Sending invite ...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Send Invite
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>

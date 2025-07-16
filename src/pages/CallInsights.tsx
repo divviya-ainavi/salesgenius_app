@@ -53,6 +53,7 @@ import {
   ChevronRight,
   Loader2,
   Headphones,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -139,6 +140,8 @@ const CallInsights = () => {
   } = useSelector((state) => state.auth);
   const { cummulativeSpinner } = useSelector((state) => state.prospect);
   const [cummulativeSummary, setCummulativeSummary] = useState("");
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [editRoleValue, setEditRoleValue] = useState("");
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -521,39 +524,6 @@ const CallInsights = () => {
     }
   };
 
-  const handleEditInsight = (insightId) => {
-    const insight = insights.find((i) => i.id === insightId);
-    setEditingId(insightId);
-    setEditContent(insight.content);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      const updatedList = insights?.map((insight) =>
-        insight.id === editingId
-          ? { ...insight, content: editContent }
-          : insight
-      );
-
-      const payload = {
-        sales_insights: updatedList,
-      };
-
-      const updated = await dbHelpers.updateCallInsight(
-        selectedProspect.id,
-        payload
-      );
-      setInsights(updated.sales_insights);
-
-      setEditingId(null);
-      setEditContent("");
-      updateAllInsightsEntry(updated);
-      toast.success("Insight updated");
-    } catch (error) {
-      toast.error("Failed to update insight");
-    }
-  };
-
   const handleMoveInsight = async (typeId, direction) => {
     if (!selectedProspect?.id || !insights || insights.length === 0) return;
 
@@ -599,26 +569,6 @@ const CallInsights = () => {
       toast.success("Insight priority updated");
     } else {
       toast.error("Failed to update priority list");
-    }
-  };
-
-  const handleDeleteInsight = async (insightId) => {
-    try {
-      const filtered = insights.filter((i) => i.id !== insightId);
-
-      const payload = {
-        sales_insights: filtered,
-      };
-
-      const updated = await dbHelpers.updateCallInsight(
-        selectedProspect.id,
-        payload
-      );
-      setInsights(updated.sales_insights);
-      updateAllInsightsEntry(updated);
-      toast.success("Insight removed");
-    } catch (error) {
-      toast.error("Failed to delete insight");
     }
   };
 
@@ -746,6 +696,118 @@ const CallInsights = () => {
     (sum, item) => sum + item?.insights?.length,
     0
   );
+
+  const communicationStylesOptions = [
+    {
+      style: "Analytical",
+      description: "Focused on details, data, logic, and structured thinking",
+    },
+    {
+      style: "Collaborative",
+      description: "Seeks consensus, includes others, open to dialogue",
+    },
+    {
+      style: "Directive",
+      description:
+        "To-the-point, action-oriented, expects ownership and results",
+    },
+    {
+      style: "Consultative",
+      description: "Offers guidance, reflective, asks strategic questions",
+    },
+    {
+      style: "Visionary",
+      description: "Talks about transformation, long-term outcomes, innovation",
+    },
+    {
+      style: "Storytelling",
+      description: "Communicates with examples, metaphors, narratives",
+    },
+    {
+      style: "Skeptical",
+      description:
+        "Cautious, challenges assumptions, resistant until convinced",
+    },
+    {
+      style: "Pragmatic",
+      description: "Realistic, efficient, focused on what works now",
+    },
+    {
+      style: "Transactional",
+      description: "Concerned with cost, timelines, and ROI",
+    },
+    {
+      style: "Supportive",
+      description: "Warm, people-focused, encourages harmony and clarity",
+    },
+    {
+      style: "Evaluative",
+      description: "Compares vendors, rates options, methodical",
+    },
+    {
+      style: "Innovative",
+      description: "Curious, open to new tech or approaches",
+    },
+    {
+      style: "Solution-Oriented",
+      description: "Fixes problems efficiently, focused on resolving blockers",
+    },
+    {
+      style: "Task-Focused",
+      description: "Goal-driven, deadline-bound, focused on execution",
+    },
+    {
+      style: "Technical",
+      description: "Speaks in terms of system architecture, tech requirements",
+    },
+    {
+      style: "Feedback-Oriented",
+      description: "Gives or seeks regular performance feedback",
+    },
+    {
+      style: "Process-Oriented",
+      description: "Interested in defined steps, consistency, governance",
+    },
+    {
+      style: "Execution-Driven",
+      description: "Wants to see action, ownership, and delivery commitment",
+    },
+  ];
+
+  const handleRoleEdit = (commStyle) => {
+    setEditingRoleId(commStyle.id);
+    setEditRoleValue(commStyle.role || "");
+  };
+
+  console.log(communicationStyles, "communication styles data");
+  const handleRoleSave = async (commStyleId) => {
+    try {
+      await dbHelpers?.updateCommunicationStyleRole(
+        commStyleId,
+        editRoleValue,
+        selectedProspect?.id
+      );
+
+      // Update local state
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === commStyleId ? { ...style, role: editRoleValue } : style
+        )
+      );
+
+      setEditingRoleId(null);
+      setEditRoleValue("");
+      toast.success("Role updated successfully");
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleRoleCancel = () => {
+    setEditingRoleId(null);
+    setEditRoleValue("");
+  };
 
   // console.log("Total insights count:", totalInsightsCount);
 
@@ -1091,7 +1153,8 @@ const CallInsights = () => {
                                 variant="outline"
                                 className={cn("text-xs", typeConfig?.color)}
                               >
-                                <TypeIcon className="w-3 h-3 mr-1" />
+                                {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
+                                <Info className="mr-1 w-3 h-3" />
                                 {typeConfig?.label || ""}
                               </Badge>
                             </TooltipTrigger>
@@ -1389,6 +1452,14 @@ const CallInsights = () => {
                       ? communicationModalityIcons[stakeholder.modality.type]
                       : null;
 
+                    const formattedStyle =
+                      stakeholder?.style?.charAt(0).toUpperCase() +
+                      stakeholder?.style?.slice(1);
+                    console.log(formattedStyle, "formatted style");
+                    const styleMatch = communicationStylesOptions?.find(
+                      (s) =>
+                        s.style?.toLowerCase() === formattedStyle?.toLowerCase()
+                    );
                     return (
                       <div
                         key={stakeholder.id}
@@ -1402,23 +1473,112 @@ const CallInsights = () => {
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
                             </h3>
-                            <p className="text-sm text-muted-foreground">
+                            {/* <p className="text-sm text-muted-foreground">
                               {stakeholder.role}
-                            </p>
+                            </p> */}
+                            {editingRoleId === stakeholder.id ? (
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  value={editRoleValue}
+                                  onChange={(e) =>
+                                    setEditRoleValue(e.target.value)
+                                  }
+                                  className="h-6 text-xs px-2 w-32"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      handleRoleSave(stakeholder.id);
+                                    if (e.key === "Escape") handleRoleCancel();
+                                  }}
+                                  autoFocus
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRoleSave(stakeholder.id)}
+                                >
+                                  <Save className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={handleRoleCancel}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs cursor-pointer hover:bg-accent group"
+                                onClick={() => handleRoleEdit(stakeholder)}
+                              >
+                                {stakeholder.role || "Unknown Role"}
+                                <Edit className="w-3 h-3 ml-1" />
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Badge
+                            {/* <Badge
                               variant="outline"
                               className={cn(
                                 "text-xs bg-blue-100 text-blue-800 border-blue-200",
                                 styleConfig?.color
                               )}
                             >
+                              <Info className="mr-1 w-3 h-3" />
                               {stakeholder.style
                                 ? stakeholder.style.charAt(0).toUpperCase() +
                                   stakeholder.style.slice(1)
                                 : ""}
-                            </Badge>
+                            </Badge> */}
+                            {/* <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
+                                </Badge>
+                              </TooltipTrigger>
+                              {styleMatch && (
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    {styleMatch?.description}
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip> */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
+                                </Badge>
+                              </TooltipTrigger>
+
+                              <TooltipContent
+                                side="top"
+                                align="center"
+                                className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                              >
+                                <p className="leading-snug">
+                                  {styleMatch?.description ||
+                                    "No description available."}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                             <Badge
                               variant="outline"
                               className="text-xs bg-green-100 text-green-800 border-green-200"
@@ -1652,9 +1812,10 @@ const CallInsights = () => {
                   />
                   <span className="text-sm">Research:</span>
                   <Badge
-                    variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
                   >
-                    {researchCompanyCount}
+                    0{/* {researchCompanyCount} */}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1666,7 +1827,7 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">Internal datas:</span>
+                  <span className="text-sm">Internal data:</span>
                   <Badge
                     variant={
                       selectedProspect.dataSources.emails > 0
