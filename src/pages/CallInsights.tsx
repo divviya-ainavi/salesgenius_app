@@ -44,8 +44,6 @@ import {
   ExternalLink,
   Plus,
   Edit,
-  Save,
-  X,
   ChevronUp,
   ChevronDown,
   Search,
