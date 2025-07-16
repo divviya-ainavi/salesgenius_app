@@ -1243,7 +1243,7 @@ const CallInsights = () => {
                                 </Badge>
                               )}
                            
-
+<Tooltip>
                             <TooltipContent
                               side="top"
                               align="center"
