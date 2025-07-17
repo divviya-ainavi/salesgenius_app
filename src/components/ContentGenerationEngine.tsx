@@ -1155,15 +1155,18 @@ ${updatedBlocks
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.label}
+                                          {matchedStyle?.label ||
+                                            primaryStakeholder.communicationStyle}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="max-w-xs">
-                                          {matchedStyle.description}
-                                        </p>
-                                      </TooltipContent>
+                                      {matchedStyle.description && (
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            {matchedStyle.description}
+                                          </p>
+                                        </TooltipContent>
+                                      )}
                                     </Tooltip>
                                   ) : (
                                     <span className="text-sm font-medium">
@@ -1352,15 +1355,18 @@ ${updatedBlocks
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.label}
+                                          {matchedStyle.label ||
+                                            stakeholder.communicationStyle}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="max-w-xs">
-                                          {matchedStyle.description}
-                                        </p>
-                                      </TooltipContent>
+                                      {matchedStyle.description && (
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            {matchedStyle.description}
+                                          </p>
+                                        </TooltipContent>
+                                      )}
                                     </Tooltip>
                                   ) : (
                                     <span className="text-sm font-medium">

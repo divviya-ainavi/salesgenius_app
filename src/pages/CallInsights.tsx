@@ -980,7 +980,7 @@ const CallInsights = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Add New Insight */}
-              {console.log(newInsight, "newInsight type")}
+              {/* {console.log(newInsight, "newInsight type")} */}
               {isAddingInsight && (
                 <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
                   <div className="flex items-center space-x-3">
@@ -1267,7 +1267,7 @@ const CallInsights = () => {
                 );
               })}
 
-              {console.log(insights, "isAddingInsight state")}
+              {/* {console.log(insights, "isAddingInsight state")} */}
               {totalInsightsCount === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1380,7 +1380,7 @@ const CallInsights = () => {
                     const formattedStyle =
                       stakeholder?.style?.charAt(0).toUpperCase() +
                       stakeholder?.style?.slice(1);
-                    console.log(formattedStyle, "formatted style");
+                    // console.log(formattedStyle, "formatted style");
                     const styleMatch = communicationStyleTypes?.find(
                       (s) =>
                         s.key?.toLowerCase() === formattedStyle?.toLowerCase()
