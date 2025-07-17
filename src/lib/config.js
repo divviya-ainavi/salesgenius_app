@@ -44,7 +44,8 @@ export const config = {
       cummulativeSalesData: 'cumulative-comm',
       userInvite: 'user-invite',
       hubspotConnectionCheck: 'hubspotconnection-check',
-      firefliesConnectionCheck: 'FF-check'
+      firefliesConnectionCheck: 'FF-check',
+      getFirefliesFiles: 'get-FF-transcripts',
     }
   }
 };

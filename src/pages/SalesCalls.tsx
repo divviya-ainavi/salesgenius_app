@@ -148,24 +148,28 @@ export const SalesCalls = () => {
     setIsLoadingFireflies(true);
     try {
       const records = await dbHelpers.getFirefliesFiles(user?.id);
-
-      const transformed = records.map((file) => ({
-        id: file.fireflies_id,
-        callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
-        companyName:
-          file.organizer_email?.split("@")[1]?.split(".")[0] || "Unknown",
-        prospectName: file.organizer_email || "Unknown",
-        date: new Date(file.datestring || file.created_at)
-          .toISOString()
-          .split("T")[0],
-        duration: "N/A",
-        status: file.is_processed ? "processed" : "unprocessed",
-        participants: file.participants ? Object.values(file.participants) : [],
-        meetingLink: file.meeting_link,
-        hasSummary: false,
-        hasTranscript: false,
-      }));
-      setFirefliesData(transformed);
+      if (records.length === 0) {
+      } else {
+        const transformed = records.map((file) => ({
+          id: file.fireflies_id,
+          callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
+          companyName:
+            file.organizer_email?.split("@")[1]?.split(".")[0] || "Unknown",
+          prospectName: file.organizer_email || "Unknown",
+          date: new Date(file.datestring || file.created_at)
+            .toISOString()
+            .split("T")[0],
+          duration: "N/A",
+          status: file.is_processed ? "processed" : "unprocessed",
+          participants: file.participants
+            ? Object.values(file.participants)
+            : [],
+          meetingLink: file.meeting_link,
+          hasSummary: false,
+          hasTranscript: false,
+        }));
+        setFirefliesData(transformed);
+      }
     } catch (error) {
       console.error("Error loading Fireflies data:", error);
       toast.error("Failed to load Fireflies data");
