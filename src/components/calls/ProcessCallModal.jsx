@@ -70,7 +70,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="w-[480px] max-w-[90vw]"
+        className="w-[480px] max-w-[90vw] min-w-[35vw]"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>

@@ -196,6 +196,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const { communicationStyleTypes } = useSelector((state) => state.org);
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -898,83 +899,6 @@ ${updatedBlocks
     .map(getObjectiveById)
     .filter(Boolean);
 
-  const communicationStylesOptions = [
-    {
-      style: "Analytical",
-      description: "Focused on details, data, logic, and structured thinking",
-    },
-    {
-      style: "Collaborative",
-      description: "Seeks consensus, includes others, open to dialogue",
-    },
-    {
-      style: "Directive",
-      description:
-        "To-the-point, action-oriented, expects ownership and results",
-    },
-    {
-      style: "Consultative",
-      description: "Offers guidance, reflective, asks strategic questions",
-    },
-    {
-      style: "Visionary",
-      description: "Talks about transformation, long-term outcomes, innovation",
-    },
-    {
-      style: "Storytelling",
-      description: "Communicates with examples, metaphors, narratives",
-    },
-    {
-      style: "Skeptical",
-      description:
-        "Cautious, challenges assumptions, resistant until convinced",
-    },
-    {
-      style: "Pragmatic",
-      description: "Realistic, efficient, focused on what works now",
-    },
-    {
-      style: "Transactional",
-      description: "Concerned with cost, timelines, and ROI",
-    },
-    {
-      style: "Supportive",
-      description: "Warm, people-focused, encourages harmony and clarity",
-    },
-    {
-      style: "Evaluative",
-      description: "Compares vendors, rates options, methodical",
-    },
-    {
-      style: "Innovative",
-      description: "Curious, open to new tech or approaches",
-    },
-    {
-      style: "Solution-Oriented",
-      description: "Fixes problems efficiently, focused on resolving blockers",
-    },
-    {
-      style: "Task-Focused",
-      description: "Goal-driven, deadline-bound, focused on execution",
-    },
-    {
-      style: "Technical",
-      description: "Speaks in terms of system architecture, tech requirements",
-    },
-    {
-      style: "Feedback-Oriented",
-      description: "Gives or seeks regular performance feedback",
-    },
-    {
-      style: "Process-Oriented",
-      description: "Interested in defined steps, consistency, governance",
-    },
-    {
-      style: "Execution-Driven",
-      description: "Wants to see action, ownership, and delivery commitment",
-    },
-  ];
-
   // Render the appropriate view
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -1222,9 +1146,9 @@ ${updatedBlocks
                                 </span>
                                 {(() => {
                                   const matchedStyle =
-                                    communicationStylesOptions.find(
+                                    communicationStyleTypes.find(
                                       (opt) =>
-                                        opt.style?.toLowerCase() ===
+                                        opt.key?.toLowerCase() ===
                                         primaryStakeholder.communicationStyle?.toLowerCase()
                                     );
                                   return matchedStyle ? (
@@ -1419,9 +1343,9 @@ ${updatedBlocks
                                 </span>
                                 {(() => {
                                   const matchedStyle =
-                                    communicationStylesOptions.find(
+                                    communicationStyleTypes.find(
                                       (opt) =>
-                                        opt.style ===
+                                        opt.key ===
                                         stakeholder.communicationStyle
                                     );
                                   return matchedStyle ? (

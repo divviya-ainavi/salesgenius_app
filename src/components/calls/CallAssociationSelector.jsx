@@ -218,8 +218,8 @@ export const CallAssociationSelector = ({
                 <div
                   className={
                     companySearch || companies.length > 0
-                      ? "border border-gray-200 rounded-md max-h-48 min-h-48 overflow-y-auto"
-                      : "border border-gray-200 rounded-md overflow-y-auto"
+                      ? "border border-gray-200 rounded-md max-h-40 min-h-40 overflow-y-auto"
+                      : "border border-gray-200 rounded-md overflow-y-auto max-h-40 min-h-40"
                   }
                 >
                   <>
@@ -309,7 +309,7 @@ export const CallAssociationSelector = ({
                 </Button>
 
                 {/* Prospects List */}
-                <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                <div className="border border-gray-200 rounded-md min-h-40 max-h-40 overflow-y-auto">
                   {loadingProspects ? (
                     <div className="p-3 space-y-3">
                       <Skeleton className="h-12 w-full" />
