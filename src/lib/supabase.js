@@ -1011,6 +1011,68 @@ export const dbHelpers = {
     }
   },
 
+  // Fireflies Integration Functions
+  async saveUserFirefliesToken(userId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fireflies_encrypted_token: encryptedToken,
+          fireflies_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving Fireflies token:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFirefliesToken(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fireflies_encrypted_token: null,
+          fireflies_connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting Fireflies token:', error);
+      throw error;
+    }
+  },
+
+  async getUserFirefliesStatus(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('fireflies_connected, fireflies_encrypted_token')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return {
+        connected: data?.fireflies_connected || false,
+        hasToken: !!data?.fireflies_encrypted_token
+      };
+    } catch (error) {
+      console.error('Error getting Fireflies status:', error);
+      return { connected: false, hasToken: false };
+    }
+  },
+
   //get org dropdown details
   async getOrgDropdownOptions() {
     try {
