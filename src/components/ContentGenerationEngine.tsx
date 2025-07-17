@@ -946,7 +946,7 @@ ${updatedBlocks
                             <span className="font-semibold">
                               {prospect.companyName}
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-muted-foreground text-left">
                               {prospect.name}
                             </span>
                           </div>
@@ -1155,7 +1155,7 @@ ${updatedBlocks
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.style}
+                                          {matchedStyle.label}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
@@ -1352,7 +1352,7 @@ ${updatedBlocks
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.style}
+                                          {matchedStyle.label}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
