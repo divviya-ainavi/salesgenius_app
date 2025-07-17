@@ -335,7 +335,8 @@ export const Settings = () => {
   const [showFirefliesToken, setShowFirefliesToken] = useState(false);
   const [firefliesStatus, setFirefliesStatus] = useState(null);
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
-  const [isDisconnectingFireflies, setIsDisconnectingFireflies] = useState(false);
+  const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
+    useState(false);
 
   const dispatch = useDispatch();
 
@@ -447,26 +448,39 @@ export const Settings = () => {
       return;
     }
 
+    const payload = {
+      pat: firefliesToken.trim(),
+    };
+
+    // Encrypt the token using JWT
+    const jwtToken = createJWT(payload);
+    const formData = new FormData();
+    formData.append("token", jwtToken);
     setIsConnectingFireflies(true);
 
     try {
       // Validate token with Fireflies API
-      const response = await fetch(`${config.api.baseUrl}FF-check`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: firefliesToken.trim(),
-        }),
-      });
+      // const response = await fetch(`${config.api.baseUrl}FF-check`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: formData,
+      // });
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.firefliesConnectionCheck}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Invalid Fireflies token or API error");
       }
 
       const result = await response.json();
-      
+
       // Check if the token validation was successful
       if (!result.success && !result.valid) {
         throw new Error("Invalid Fireflies token");
@@ -484,7 +498,7 @@ export const Settings = () => {
       // Update local state
       setFirefliesStatus({ connected: true, hasToken: true });
       setFirefliesToken("");
-      
+
       toast.success("Fireflies integration connected successfully!");
     } catch (error) {
       console.error("Error connecting Fireflies:", error);
@@ -1465,7 +1479,9 @@ export const Settings = () => {
 
             {/* Fireflies Integration */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Fireflies Integration</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Fireflies Integration
+              </h3>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -1477,7 +1493,10 @@ export const Settings = () => {
                         Connected
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
                         <AlertCircle className="w-3 h-3 mr-1" />
                         Not Connected
                       </Badge>
@@ -1486,13 +1505,16 @@ export const Settings = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Connect your Fireflies.ai account to automatically sync meeting transcripts and recordings.
+                    Connect your Fireflies.ai account to automatically sync
+                    meeting transcripts and recordings.
                   </p>
 
                   {!firefliesStatus?.connected ? (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="fireflies-token">Fireflies API Token</Label>
+                        <Label htmlFor="fireflies-token">
+                          Fireflies API Token
+                        </Label>
                         <div className="relative">
                           <Input
                             id="fireflies-token"
@@ -1507,7 +1529,9 @@ export const Settings = () => {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowFirefliesToken(!showFirefliesToken)}
+                            onClick={() =>
+                              setShowFirefliesToken(!showFirefliesToken)
+                            }
                           >
                             {showFirefliesToken ? (
                               <EyeOff className="h-4 w-4" />
@@ -1517,13 +1541,16 @@ export const Settings = () => {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          You can find your API token in your Fireflies.ai account settings.
+                          You can find your API token in your Fireflies.ai
+                          account settings.
                         </p>
                       </div>
-                      
+
                       <Button
                         onClick={handleFirefliesConnect}
-                        disabled={isConnectingFireflies || !firefliesToken.trim()}
+                        disabled={
+                          isConnectingFireflies || !firefliesToken.trim()
+                        }
                         className="w-full"
                       >
                         {isConnectingFireflies ? (
@@ -1549,7 +1576,8 @@ export const Settings = () => {
                           </span>
                         </div>
                         <p className="text-sm text-green-700">
-                          Your Fireflies.ai account is connected and ready to sync meeting data.
+                          Your Fireflies.ai account is connected and ready to
+                          sync meeting data.
                         </p>
                       </div>
 
