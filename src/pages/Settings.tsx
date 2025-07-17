@@ -487,10 +487,7 @@ export const Settings = () => {
       }
 
       // Encrypt the token using the same method as HubSpot
-      const encryptedToken = CryptoJS.AES.encrypt(
-        firefliesToken.trim(),
-        config.passwordSalt
-      ).toString();
+      const encryptedToken = jwtToken;
 
       // Save encrypted token to database
       await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
@@ -1001,7 +998,7 @@ export const Settings = () => {
 
   const disconnectHubSpot = async () => {
     try {
-      await dbHelpers.updateOrganizationHubSpotToken(
+      await authHelpers.updateOrganizationHubSpotToken(
         organizationDetails.id,
         null
       );
