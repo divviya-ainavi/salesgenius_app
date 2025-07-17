@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -65,6 +66,7 @@ import {
   Check,
   ChevronsUpDown,
   Loader2,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -84,6 +86,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import CryptoJS from "crypto-js";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -327,6 +330,13 @@ export const Settings = () => {
   const [citySearchValue, setCitySearchValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fireflies integration state
+  const [firefliesToken, setFirefliesToken] = useState("");
+  const [showFirefliesToken, setShowFirefliesToken] = useState(false);
+  const [firefliesStatus, setFirefliesStatus] = useState(null);
+  const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
+  const [isDisconnectingFireflies, setIsDisconnectingFireflies] = useState(false);
+
   const dispatch = useDispatch();
 
   // console.log(
@@ -415,6 +425,89 @@ export const Settings = () => {
       setAvailableCities([]);
     }
   }, [orgSettings.country]);
+
+  // Load initial data
+  useEffect(() => {
+    checkFirefliesStatus();
+  }, []);
+
+  const checkFirefliesStatus = async () => {
+    try {
+      const status = await dbHelpers.getUserFirefliesStatus(user?.id);
+      setFirefliesStatus(status);
+    } catch (error) {
+      console.error("Error checking Fireflies status:", error);
+      setFirefliesStatus({ connected: false, hasToken: false });
+    }
+  };
+
+  const handleFirefliesConnect = async () => {
+    if (!firefliesToken.trim()) {
+      toast.error("Please enter a valid Fireflies API token");
+      return;
+    }
+
+    setIsConnectingFireflies(true);
+
+    try {
+      // Validate token with Fireflies API
+      const response = await fetch(`${config.api.baseUrl}FF-check`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: firefliesToken.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid Fireflies token or API error");
+      }
+
+      const result = await response.json();
+      
+      // Check if the token validation was successful
+      if (!result.success && !result.valid) {
+        throw new Error("Invalid Fireflies token");
+      }
+
+      // Encrypt the token using the same method as HubSpot
+      const encryptedToken = CryptoJS.AES.encrypt(
+        firefliesToken.trim(),
+        config.passwordSalt
+      ).toString();
+
+      // Save encrypted token to database
+      await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
+
+      // Update local state
+      setFirefliesStatus({ connected: true, hasToken: true });
+      setFirefliesToken("");
+      
+      toast.success("Fireflies integration connected successfully!");
+    } catch (error) {
+      console.error("Error connecting Fireflies:", error);
+      toast.error(`Failed to connect Fireflies: ${error.message}`);
+    } finally {
+      setIsConnectingFireflies(false);
+    }
+  };
+
+  const handleFirefliesDisconnect = async () => {
+    setIsDisconnectingFireflies(true);
+
+    try {
+      await dbHelpers.deleteUserFirefliesToken(user?.id);
+      setFirefliesStatus({ connected: false, hasToken: false });
+      toast.success("Fireflies integration disconnected successfully");
+    } catch (error) {
+      console.error("Error disconnecting Fireflies:", error);
+      toast.error("Failed to disconnect Fireflies integration");
+    } finally {
+      setIsDisconnectingFireflies(false);
+    }
+  };
 
   // Load HubSpot integration status
   useEffect(() => {
@@ -1369,6 +1462,117 @@ export const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Fireflies Integration */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Fireflies Integration</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Mic className="w-5 h-5" />
+                    <span>Fireflies.ai</span>
+                    {firefliesStatus?.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Connect your Fireflies.ai account to automatically sync meeting transcripts and recordings.
+                  </p>
+
+                  {!firefliesStatus?.connected ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fireflies-token">Fireflies API Token</Label>
+                        <div className="relative">
+                          <Input
+                            id="fireflies-token"
+                            type={showFirefliesToken ? "text" : "password"}
+                            placeholder="Enter your Fireflies API token"
+                            value={firefliesToken}
+                            onChange={(e) => setFirefliesToken(e.target.value)}
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowFirefliesToken(!showFirefliesToken)}
+                          >
+                            {showFirefliesToken ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          You can find your API token in your Fireflies.ai account settings.
+                        </p>
+                      </div>
+                      
+                      <Button
+                        onClick={handleFirefliesConnect}
+                        disabled={isConnectingFireflies || !firefliesToken.trim()}
+                        className="w-full"
+                      >
+                        {isConnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Connect Fireflies
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            Fireflies Integration Active
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          Your Fireflies.ai account is connected and ready to sync meeting data.
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={handleFirefliesDisconnect}
+                        disabled={isDisconnectingFireflies}
+                        className="w-full"
+                      >
+                        {isDisconnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          "Disconnect Fireflies"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
