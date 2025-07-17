@@ -2343,6 +2343,15 @@ export const dbHelpers = {
     return data;
   },
 
+  async getCommunicationStyleTypes() {
+    const { data, error } = await supabase.from("communication_style_type").select("*");
+    if (error) {
+      console.error("Error fetching sales_insight_types:", error);
+      return [];
+    }
+    return data;
+  },
+
   async insertSalesInsight(insight) {
     const { data, error } = await supabase
       .from("sales_insights")

@@ -23,6 +23,7 @@ import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
+  setCommunicationTypes,
   setGetAllStatus,
   setInsightTypes,
   setRoles,
@@ -42,9 +43,11 @@ const App = () => {
       const roles = await dbHelpers.getRoles();
       const statuses = await dbHelpers.getStatus();
       const getInsightTypes = await dbHelpers.getSalesInsightTypes();
+      const communicationTypes = await dbHelpers.getCommunicationStyleTypes();
       dispatch(setRoles(roles)); // assuming you have a Redux slice
       dispatch(setGetAllStatus(statuses));
       dispatch(setInsightTypes(getInsightTypes));
+      dispatch(setCommunicationTypes(communicationTypes));
     };
 
     fetchRoles();

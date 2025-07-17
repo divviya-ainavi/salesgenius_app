@@ -142,6 +142,7 @@ const CallInsights = () => {
   const [cummulativeSummary, setCummulativeSummary] = useState("");
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
+  const { communicationStyleTypes } = useSelector((state) => state.org);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -697,89 +698,12 @@ const CallInsights = () => {
     0
   );
 
-  const communicationStylesOptions = [
-    {
-      style: "Analytical",
-      description: "Focused on details, data, logic, and structured thinking",
-    },
-    {
-      style: "Collaborative",
-      description: "Seeks consensus, includes others, open to dialogue",
-    },
-    {
-      style: "Directive",
-      description:
-        "To-the-point, action-oriented, expects ownership and results",
-    },
-    {
-      style: "Consultative",
-      description: "Offers guidance, reflective, asks strategic questions",
-    },
-    {
-      style: "Visionary",
-      description: "Talks about transformation, long-term outcomes, innovation",
-    },
-    {
-      style: "Storytelling",
-      description: "Communicates with examples, metaphors, narratives",
-    },
-    {
-      style: "Skeptical",
-      description:
-        "Cautious, challenges assumptions, resistant until convinced",
-    },
-    {
-      style: "Pragmatic",
-      description: "Realistic, efficient, focused on what works now",
-    },
-    {
-      style: "Transactional",
-      description: "Concerned with cost, timelines, and ROI",
-    },
-    {
-      style: "Supportive",
-      description: "Warm, people-focused, encourages harmony and clarity",
-    },
-    {
-      style: "Evaluative",
-      description: "Compares vendors, rates options, methodical",
-    },
-    {
-      style: "Innovative",
-      description: "Curious, open to new tech or approaches",
-    },
-    {
-      style: "Solution-Oriented",
-      description: "Fixes problems efficiently, focused on resolving blockers",
-    },
-    {
-      style: "Task-Focused",
-      description: "Goal-driven, deadline-bound, focused on execution",
-    },
-    {
-      style: "Technical",
-      description: "Speaks in terms of system architecture, tech requirements",
-    },
-    {
-      style: "Feedback-Oriented",
-      description: "Gives or seeks regular performance feedback",
-    },
-    {
-      style: "Process-Oriented",
-      description: "Interested in defined steps, consistency, governance",
-    },
-    {
-      style: "Execution-Driven",
-      description: "Wants to see action, ownership, and delivery commitment",
-    },
-  ];
-
   const handleRoleEdit = (commStyle) => {
     setEditingRoleId(commStyle.id);
     setEditRoleValue(commStyle.role || "");
   };
 
-  console.log(communicationStyles, "communication styles data");
+  // console.log(communicationStyles, "communication styles data");
   const handleRoleSave = async (commStyleId) => {
     try {
       await dbHelpers?.updateCommunicationStyleRole(
@@ -1154,8 +1078,9 @@ const CallInsights = () => {
                                 className={cn("text-xs", typeConfig?.color)}
                               >
                                 {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
-                                <Info className="mr-1 w-3 h-3" />
+
                                 {typeConfig?.label || ""}
+                                <Info className="ml-1 w-3 h-3" />
                               </Badge>
                             </TooltipTrigger>
 
@@ -1456,9 +1381,9 @@ const CallInsights = () => {
                       stakeholder?.style?.charAt(0).toUpperCase() +
                       stakeholder?.style?.slice(1);
                     console.log(formattedStyle, "formatted style");
-                    const styleMatch = communicationStylesOptions?.find(
+                    const styleMatch = communicationStyleTypes?.find(
                       (s) =>
-                        s.style?.toLowerCase() === formattedStyle?.toLowerCase()
+                        s.key?.toLowerCase() === formattedStyle?.toLowerCase()
                     );
                     return (
                       <div
@@ -1563,8 +1488,8 @@ const CallInsights = () => {
                                     styleConfig?.color
                                   )}
                                 >
-                                  <Info className="mr-1 w-3 h-3" />
                                   {formattedStyle}
+                                  <Info className="ml-1 w-3 h-3" />
                                 </Badge>
                               </TooltipTrigger>
 

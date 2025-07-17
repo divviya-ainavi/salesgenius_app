@@ -10,7 +10,8 @@ const initialState = {
     getUserslist: [],
     getOrgList: [],
     allStatus: [],
-    insightTypes: []
+    insightTypes: [],
+    communicationStyleTypes: [],
 };
 
 const orgSlice = createSlice({
@@ -44,6 +45,9 @@ const orgSlice = createSlice({
         setInsightTypes: (state, action) => {
             state.insightTypes = action.payload
         },
+        setCommunicationTypes: (state, action) => {
+            state.communicationStyleTypes = action.payload
+        },
         resetOrgState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -61,6 +65,7 @@ export const {
     setGetUsersList,
     setGetOrgList,
     setGetAllStatus,
-    setInsightTypes
+    setInsightTypes,
+    setCommunicationTypes
 } = orgSlice.actions;
 export default orgSlice.reducer;
