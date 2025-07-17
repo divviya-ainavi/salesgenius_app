@@ -1068,8 +1068,62 @@ export const dbHelpers = {
         hasToken: !!data?.fireflies_encrypted_token
       };
     } catch (error) {
-      console.error('Error getting Fireflies status:', error);
-      return { connected: false, hasToken: false };
+      console.error('Error getting user Fireflies status:', error);
+      throw error;
+    }
+  },
+
+  // Check if fireflies_id exists in fireflies_files table
+  async checkFirefliesIdExists(firefliesId) {
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .select('id')
+        .eq('fireflies_id', firefliesId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        throw error;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Error checking fireflies_id exists:', error);
+      throw error;
+    }
+  },
+
+  // Insert fireflies file record
+  async insertFirefliesFile(fileData) {
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .insert([fileData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error inserting fireflies file:', error);
+      throw error;
+    }
+  },
+
+  // Get fireflies files for user
+  async getFirefliesFilesByUserId(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error getting fireflies files:', error);
+      throw error;
     }
   },
 
