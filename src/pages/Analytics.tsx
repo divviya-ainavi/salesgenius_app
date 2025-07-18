@@ -874,9 +874,14 @@ const Analytics = () => {
         {/* Personal ROI Visualization */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <DollarSign className="w-5 h-5" />
-              <span>Personal ROI & Impact Visualization</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <DollarSign className="w-5 h-5" />
+                <span>Personal ROI & Impact Visualization</span>
+              </div>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                Coming Soon for Your Organization
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -970,7 +975,12 @@ const Analytics = () => {
         {/* Feature Mastery & Skill Development */}
         <Card>
           <CardHeader>
-            <CardTitle>Feature Mastery & Skill Development</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Feature Mastery & Skill Development</span>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                Coming Soon for Your Organization
+              </Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1113,9 +1123,14 @@ const Analytics = () => {
       {/* Success Metrics Framework */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Target className="w-5 h-5" />
-            <span>Success Metrics Framework</span>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Success Metrics Framework</span>
+            </div>
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              Coming Soon for Your Organization
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
