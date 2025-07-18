@@ -106,7 +106,10 @@ export const authHelpers = {
         status_id,
         created_at,
         updated_at,
-        title_id
+        title_id,
+        fireflies_connected,
+        timezone,
+        language
       `)
         .eq("id", userId)
         .single();
@@ -186,6 +189,8 @@ export const authHelpers = {
       return null;
     }
   },
+
+
 
   // Set current user state and identify with PostHog
   async setCurrentUser(profile) {
@@ -327,6 +332,7 @@ export const authHelpers = {
 
   // Update user profile
   async updateUserProfile(userId, updates) {
+    // console.log('Updating user profile:', userId, updates);
     try {
       // If password is being updated, hash it
       if (updates.password) {
@@ -517,6 +523,25 @@ export const dbHelpers = {
       throw error
     }
   },
+
+  async getFirefliesSingleData(userId, firefliesId) {
+    // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('fireflies_id', firefliesId)
+        .single(); // because you're expecting one record
+
+      if (error) throw error;
+      return data?.sentences || [];
+    } catch (error) {
+      console.error('Error fetching Fireflies file:', error);
+      throw error;
+    }
+  },
+
 
   async getUploadedFileById(fileId) {
     try {
@@ -775,6 +800,16 @@ export const dbHelpers = {
     }
   },
 
+  async bulkInsertFirefliesFiles(entries) {
+    const { error } = await supabase
+      .from("fireflies_files")
+      .insert(entries);
+
+    if (error) {
+      throw new Error("Failed to insert Fireflies data");
+    }
+  },
+
   async updateCallInsight(id, updates) {
     const startTime = Date.now()
 
@@ -882,7 +917,7 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from('fireflies_files')
         .select('*')
-        // .eq('user_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -916,12 +951,13 @@ export const dbHelpers = {
     return data;
   },
 
-  async updateFirefliesFile(fileId, updates) {
+  async updateFirefliesFile(fileId, userId, updates) {
     try {
       const { data, error } = await supabase
         .from('fireflies_files')
         .update(updates)
         .eq('fireflies_id', fileId)
+        .eq('user_id', userId)
         .select()
         .single()
 
@@ -1011,6 +1047,68 @@ export const dbHelpers = {
     }
   },
 
+  // Fireflies Integration Functions
+  async saveUserFirefliesToken(userId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fireflies_encrypted_token: encryptedToken,
+          fireflies_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving Fireflies token:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFirefliesToken(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fireflies_encrypted_token: null,
+          fireflies_connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting Fireflies token:', error);
+      throw error;
+    }
+  },
+
+  async getUserFirefliesStatus(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('fireflies_connected, fireflies_encrypted_token')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return {
+        connected: data?.fireflies_connected || false,
+        hasToken: !!data?.fireflies_encrypted_token
+      };
+    } catch (error) {
+      console.error('Error getting Fireflies status:', error);
+      return { connected: false, hasToken: false };
+    }
+  },
+
   //get org dropdown details
   async getOrgDropdownOptions() {
     try {
@@ -1062,7 +1160,9 @@ export const dbHelpers = {
         .from('profiles')
         .update({
           full_name: updates.name,
-          email: updates.email
+          email: updates.email,
+          timezone: updates.timezone,
+          language: updates.language
         })
         .eq('id', userId)
         .select();
@@ -1575,10 +1675,10 @@ export const dbHelpers = {
       recommended_objectives_reason = "",
       recommended_sales_play_reason = ""
     } = data || {};
-    console.log(recommended_sales_play,
-      recommended_objectives,
-      recommended_objectives_reason,
-      recommended_sales_play_reason, "check recommended data", data)
+    // console.log(recommended_sales_play,
+    //   recommended_objectives,
+    //   recommended_objectives_reason,
+    //   recommended_sales_play_reason, "check recommended data", data)
     const companyName = company_details?.[0]?.name || "";
 
     // 1. Handle Company

@@ -59,10 +59,10 @@ export const ProspectSelector = ({
                 <h3 className="font-medium text-sm">
                   {selectedProspect.companyName}
                 </h3>
-                {console.log(
+                {/* {console.log(
                   selectedProspect?.people,
                   "selected prospect compact"
-                )}
+                )} */}
                 {selectedProspect.people?.length > 0 &&
                   selectedProspect.people.map((detail, index) => (
                     <p className="text-xs text-muted-foreground">
@@ -161,7 +161,7 @@ export const ProspectSelector = ({
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Last Call:</span>
                 <span className="font-medium">
-                  {selectedProspect.lastCallDate}
+                  {selectedProspect.lastCallDate || "-"}
                 </span>
               </div>
               <div className="flex items-center space-x-2">

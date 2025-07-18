@@ -43,7 +43,9 @@ export const config = {
       processSalesCall: 'process-call-data-ai-v2',
       cummulativeSalesData: 'cumulative-comm',
       userInvite: 'user-invite',
-      hubspotConnectionCheck: 'hubspotconnection-check'
+      hubspotConnectionCheck: 'hubspotconnection-check',
+      firefliesConnectionCheck: 'FF-check',
+      getFirefliesFiles: 'get-FF-transcripts',
     }
   }
 };

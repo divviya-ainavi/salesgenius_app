@@ -63,13 +63,22 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { setCummulativeSpin } from "../store/slices/prospectSlice";
 import { config } from "../lib/config";
+import {
+  setFirefliesData,
+  setIshavefirefliesData,
+} from "../store/slices/authSlice";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [firefliesData, setFirefliesData] = useState([]);
+  // const [firefliesData, setFirefliesData] = useState([]);
   const [pastCalls, setPastCalls] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingFireflies, setIsLoadingFireflies] = useState(false);
@@ -97,6 +106,7 @@ export const SalesCalls = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recentUploadRefresh, setRecentUploadRefresh] = useState(false);
   const [source, setSource] = useState("upload");
+  const [firefliesSummary, setFirefliesSummary] = useState(null);
   const dispatch = useDispatch();
 
   const userId = CURRENT_USER.id;
@@ -110,12 +120,18 @@ export const SalesCalls = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    ishavefirefliesData,
+    firefliesData,
   } = useSelector((state) => state.auth);
 
   // Load initial data
   useEffect(() => {
     loadUploadedFiles();
-    if (activeTab === "fireflies") {
+    if (
+      activeTab === "fireflies" &&
+      user?.fireflies_connected &&
+      !ishavefirefliesData
+    ) {
       loadFirefliesData();
     } else if (activeTab === "past") {
       loadPastCalls();
@@ -143,33 +159,128 @@ export const SalesCalls = () => {
       setRecentUploadRefresh(false);
     }
   };
+  // console.log(firefliesData, "check user in SalesCalls");
 
   const loadFirefliesData = async () => {
     setIsLoadingFireflies(true);
-    try {
-      const records = await dbHelpers.getFirefliesFiles(user?.id);
+    const formData = new FormData();
 
-      const transformed = records.map((file) => ({
+    formData.append("id", user?.id);
+
+    try {
+      const [existingRecords, response] = await Promise.all([
+        dbHelpers.getFirefliesFiles(user?.id),
+        await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.getFirefliesFiles}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        ),
+        [],
+      ]);
+
+      // Create a Set of existing composite keys: `${user_id}_${fireflies_id}`
+      const existingKeys = new Set(
+        existingRecords.map((r) => `${r.user_id}_${r.fireflies_id}`)
+      );
+
+      // const existingIds = new Set(existingRecords.map((r) => r.fireflies_id));
+      const json = await response.json();
+      const transcripts = json?.[0]?.data?.transcripts || [];
+      // Then filter transcripts using that composite key
+      const newTranscripts = transcripts.filter(
+        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
+      );
+      // const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
+      // console.log(json, "check json response from Fireflies API");
+      // console.log(response, "check response from Fireflies API");
+      // console.log(newTranscripts, "check new transcripts");
+      // console.log(existingRecords, "check existing records");
+      // console.log(existingIds, "check existing ids");
+
+      // Prepare new entries
+      const insertPayload = newTranscripts.map((t) => ({
+        fireflies_id: t.id,
+        title: t.title,
+        organizer_email: t.organizer_email,
+        participants: t.participants,
+        meeting_link: t?.meeting_link || null,
+        datestring: new Date(t.date).toISOString(),
+        duration: parseInt(t.duration),
+        summary: t.summary,
+        sentences: t.sentences,
+        user_id: user?.id,
+        is_processed: false,
+      }));
+      // console.log(insertPayload, "check insert payload");
+      // Bulk insert if there are new entries
+      if (insertPayload.length > 0) {
+        await dbHelpers.bulkInsertFirefliesFiles(insertPayload); // You must implement this
+      }
+
+      // Transform both new + existing records for display
+      const combinedRecords = [...existingRecords, ...insertPayload];
+
+      const transformed = combinedRecords.map((file) => ({
         id: file.fireflies_id,
         callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
-        companyName:
-          file.organizer_email?.split("@")[1]?.split(".")[0] || "Unknown",
+        companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
           .toISOString()
           .split("T")[0],
-        duration: "N/A",
+        duration: file.duration || "N/A",
         status: file.is_processed ? "processed" : "unprocessed",
         participants: file.participants ? Object.values(file.participants) : [],
         meetingLink: file.meeting_link,
-        hasSummary: false,
-        hasTranscript: false,
+        hasSummary: file.summary,
+        hasTranscript: file.sentences,
+        title: file?.title,
       }));
-      setFirefliesData(transformed);
+
+      dispatch(setFirefliesData(transformed));
+      dispatch(setIshavefirefliesData(true));
     } catch (error) {
       console.error("Error loading Fireflies data:", error);
-      toast.error("Failed to load Fireflies data");
-      setFirefliesData([]);
+      toast.error("Failed to sync Fireflies transcripts.");
+      dispatch(setFirefliesData([]));
+      dispatch(setIshavefirefliesData(false));
+    } finally {
+      setIsLoadingFireflies(false);
+    }
+  };
+
+  const refreshFireflies = async () => {
+    setIsLoadingFireflies(true);
+
+    try {
+      const getData = await dbHelpers.getFirefliesFiles(user?.id);
+
+      const transformed = getData.map((file) => ({
+        id: file.fireflies_id,
+        callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
+        companyName: "-",
+        prospectName: file.organizer_email || "Unknown",
+        date: new Date(file.datestring || file.created_at)
+          .toISOString()
+          .split("T")[0],
+        duration: file.duration || "N/A",
+        status: file.is_processed ? "processed" : "unprocessed",
+        participants: file.participants ? Object.values(file.participants) : [],
+        meetingLink: file.meeting_link,
+        hasSummary: file.summary,
+        hasTranscript: file.sentences,
+        title: file?.title,
+      }));
+
+      dispatch(setFirefliesData(transformed));
+      dispatch(setIshavefirefliesData(true));
+    } catch (error) {
+      console.error("Error loading Fireflies data:", error);
+      toast.error("Failed to sync Fireflies transcripts.");
+      dispatch(setFirefliesData([]));
+      dispatch(setIshavefirefliesData(false));
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -206,6 +317,7 @@ export const SalesCalls = () => {
           },
           uploaded_file_id: insight.uploaded_file_id,
           type: insight.type || "file_upload",
+          fireflies_id: insight.fireflies_id || null,
         }))
       );
     } catch (error) {
@@ -295,7 +407,14 @@ export const SalesCalls = () => {
     setCurrentProcessingFile(file);
     setShowProcessModal(true);
     setSource(source);
+    if (source == "fireflies") {
+      setFirefliesSummary(file.hasSummary);
+    } else {
+      setFirefliesSummary(null);
+    }
   };
+
+  // console.log(processingFileId, "processing file id");
   // console.log(processingFileId, "processing file id");
   const handleConfirmAssociation = async (
     file,
@@ -380,7 +499,21 @@ export const SalesCalls = () => {
         `${config.api.baseUrl}${config.api.endpoints.processSalesCall}`,
         {
           method: "POST",
-          body: formData,
+
+          headers:
+            source == "fireflies"
+              ? {
+                  "Content-Type": "application/json",
+                }
+              : undefined, // Let browser handle headers for FormData
+          body:
+            source == "fireflies"
+              ? JSON.stringify({
+                  data: {
+                    summary: firefliesSummary,
+                  },
+                })
+              : formData,
         }
       );
 
@@ -393,7 +526,10 @@ export const SalesCalls = () => {
       const isFireflies = source === "fireflies";
 
       if (isFireflies) {
-        await dbHelpers.updateFirefliesFile(file.id, { is_processed: true });
+        await dbHelpers.updateFirefliesFile(processingFileId, user?.id, {
+          is_processed: true,
+        });
+        refreshFireflies();
       } else {
         await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
       }
@@ -613,34 +749,30 @@ export const SalesCalls = () => {
     );
   });
 
-  const handleViewTranscript = async (call, type) => {
+  const handleViewTranscript = async (call, type, tab) => {
+    // console.log(type, call, "view transcript called");
     if (type === "fireflies") {
-      setGetFirefliestranscript(true);
+      // console.log(call, "check call in handleViewTranscript");
+      // setGetFirefliestranscript(true);
       setProcessingFirefliesId(call.id);
-      try {
-        const response = await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: call.id }),
-          }
-        );
-        const json = await response.json();
-        const sentences = json[0]?.data?.sentences || [];
-        const transcriptText = sentences
-          .map(
-            (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
-          )
-          .join("\n\n");
-        setModalTitle(`Transcript - ${json[0]?.data?.title || call.callId}`);
-        setModalContent(transcriptText);
-        setGetFirefliestranscript(false);
-      } catch (err) {
-        toast.error("Failed to load transcript from Fireflies");
-        setGetFirefliestranscript(false);
-        return;
-      }
+
+      const sentences =
+        tab == "past"
+          ? await dbHelpers?.getFirefliesSingleData(
+              user?.id,
+              call?.fireflies_id
+            )
+          : call.hasTranscript || [];
+
+      // console.log(sentences, "check sentences in handleViewTranscript");
+      const transcriptText = sentences
+        .map(
+          (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
+        )
+        .join("\n\n");
+      setModalTitle(`Transcript - ${call?.title || call.callId}`);
+      setModalContent(transcriptText);
+      // setGetFirefliestranscript(false);s
     } else {
       setModalTitle(`Transcript - ${call.callId}`);
       setModalContent(call.transcript || "No transcript available");
@@ -732,27 +864,13 @@ export const SalesCalls = () => {
 
   const handleViewSummary = async (call, type) => {
     if (type === "fireflies") {
-      setGetFirefliessummary(true);
+      // setGetFirefliessummary(true);
       setProcessingFirefliesId(call.id);
-      try {
-        const response = await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.getFirefliesTranscriptById}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: call.id }),
-          }
-        );
-        const json = await response.json();
-        const shortSummary = json[0]?.data?.summary?.short_summary;
-        setModalTitle(`Summary - ${json[0]?.data?.title || call.callId}`);
-        setModalContent(shortSummary || "No summary available");
-        setGetFirefliessummary(false);
-      } catch (err) {
-        setGetFirefliessummary(false);
-        toast.error("Failed to load summary from Fireflies");
-        return;
-      }
+
+      const shortSummary = call?.hasSummary?.short_summary;
+      setModalTitle(`Summary - ${call?.title || call.callId}`);
+      setModalContent(shortSummary || "No summary available");
+      // setGetFirefliessummary(false);
     } else {
       setModalTitle(`Summary - ${call.callId}`);
       setModalContent(
@@ -931,18 +1049,20 @@ export const SalesCalls = () => {
                   className="pl-10"
                 />
               </div>
-              <Button
-                variant="outline"
-                onClick={loadFirefliesData}
-                disabled={isLoadingFireflies}
-              >
-                {isLoadingFireflies ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                )}
-                Sync Fireflies
-              </Button>
+              {user?.fireflies_connected && (
+                <Button
+                  variant="outline"
+                  onClick={loadFirefliesData}
+                  disabled={isLoadingFireflies}
+                >
+                  {isLoadingFireflies ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                  )}
+                  Sync Fireflies
+                </Button>
+              )}
             </div>
 
             <Card>
@@ -955,6 +1075,15 @@ export const SalesCalls = () => {
                     <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
                     <p className="text-muted-foreground">
                       Loading Fireflies data...
+                    </p>
+                  </div>
+                ) : !user?.fireflies_connected ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No Fireflies integration found</p>
+                    <p className="text-sm">
+                      Connect your Fireflies account to automatically sync and
+                      view your meeting transcripts here.
                     </p>
                   </div>
                 ) : filteredFirefliesData.length === 0 ? (
@@ -977,7 +1106,7 @@ export const SalesCalls = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="font-semibold">{call.callId}</h3>
+                              <h3 className="font-semibold">{call.title}</h3>
                               <Badge
                                 variant={
                                   call.status === "failed"
@@ -1011,20 +1140,36 @@ export const SalesCalls = () => {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Clock className="w-3 h-3" />
-                                  <span>Duration: {call.duration}</span>
+                                  <span>Duration: {call.duration} minutes</span>
                                 </div>
                               </div>
                             </div>
                             {call.participants &&
                               call.participants.length > 0 && (
-                                <div className="mt-2 text-xs text-muted-foreground">
-                                  <span className="font-medium">
-                                    Participants:
-                                  </span>{" "}
-                                  {call.participants.slice(0, 3).join(", ")}
-                                  {call.participants.length > 3 &&
-                                    ` +${call.participants.length - 3} more`}
-                                </div>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="mt-2 text-xs text-muted-foreground cursor-pointer">
+                                      <span className="font-medium">
+                                        Participants:
+                                      </span>{" "}
+                                      {call.participants.slice(0, 3).join(", ")}
+                                      {call.participants.length > 3 &&
+                                        ` +${
+                                          call.participants.length - 3
+                                        } more`}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    className="bg-white text-gray-800 border border-gray-200 shadow-lg max-w-xs p-3 rounded-md"
+                                    side="top"
+                                  >
+                                    <ul className="list-disc pl-4 space-y-1 text-sm">
+                                      {call.participants.map((email, index) => (
+                                        <li key={index}>{email}</li>
+                                      ))}
+                                    </ul>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                           </div>
                         </div>
@@ -1249,7 +1394,7 @@ export const SalesCalls = () => {
                                 processingFirefliesId == call?.id
                               }
                               onClick={() =>
-                                handleViewTranscript(call, call.type)
+                                handleViewTranscript(call, call.type, "past")
                               }
                               trackingName="View Original Transcript"
                               trackingContext={{
@@ -1348,6 +1493,7 @@ export const SalesCalls = () => {
                   toast.success("Summary copied to clipboard");
                 }}
                 trackingName="Copy Summary"
+                className="mt-4"
               >
                 <Copy className="w-4 h-4 mr-1" />
                 Copy Text
@@ -1368,7 +1514,7 @@ export const SalesCalls = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{modalTitle}</span>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-4">
                 <TrackedButton
                   variant="outline"
                   size="sm"

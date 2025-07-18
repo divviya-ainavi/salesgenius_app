@@ -946,7 +946,7 @@ ${updatedBlocks
                             <span className="font-semibold">
                               {prospect.companyName}
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-muted-foreground text-left">
                               {prospect.name}
                             </span>
                           </div>
@@ -959,7 +959,7 @@ ${updatedBlocks
             </Card>
 
             {/* Deal Information */}
-            {selectedProspect && (
+            {false && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Deal Information</CardTitle>
@@ -1145,24 +1145,52 @@ ${updatedBlocks
                                   Communication Style:
                                 </span>
                                 {(() => {
-                                  const matchedStyle =
-                                    communicationStyleTypes.find(
+                                  const styles =
+                                    primaryStakeholder.communicationStyle
+                                      ?.split(",")
+                                      .map((s) => s.trim()) || [];
+
+                                  const matchedStyles = styles.map((style) => {
+                                    const match = communicationStyleTypes.find(
                                       (opt) =>
                                         opt.key?.toLowerCase() ===
-                                        primaryStakeholder.communicationStyle?.toLowerCase()
+                                        style.toLowerCase()
                                     );
-                                  return matchedStyle ? (
+                                    return {
+                                      style,
+                                      label: match?.label || style,
+                                      description:
+                                        match?.description ||
+                                        "No description available.",
+                                    };
+                                  });
+
+                                  return matchedStyles.length > 0 ? (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.style}
+                                          {matchedStyles
+                                            .map((s) => s.label)
+                                            .join(", ")}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="max-w-xs">
-                                          {matchedStyle.description}
-                                        </p>
+
+                                      <TooltipContent className="max-w-xs bg-white text-sm text-gray-800 border border-gray-200 p-3 rounded-md shadow-md">
+                                        <div className="space-y-2">
+                                          {matchedStyles.map(
+                                            ({ style, description }) => (
+                                              <div key={style}>
+                                                <p className="font-semibold">
+                                                  {style}
+                                                </p>
+                                                <p className="text-gray-700 leading-snug">
+                                                  {description}
+                                                </p>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
                                       </TooltipContent>
                                     </Tooltip>
                                   ) : (
@@ -1342,24 +1370,48 @@ ${updatedBlocks
                                   Communication Style:
                                 </span>
                                 {(() => {
-                                  const matchedStyle =
-                                    communicationStyleTypes.find(
+                                  const styles = stakeholder.communicationStyle
+                                    ?.split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean); // remove empty entries
+
+                                  const matchedStyles = styles?.map((style) => {
+                                    const match = communicationStyleTypes.find(
                                       (opt) =>
-                                        opt.key ===
-                                        stakeholder.communicationStyle
+                                        opt.key?.toLowerCase() ===
+                                        style.toLowerCase()
                                     );
-                                  return matchedStyle ? (
+                                    return {
+                                      key: style,
+                                      label: match?.label || style,
+                                      description:
+                                        match?.description ||
+                                        "No description available.",
+                                    };
+                                  });
+
+                                  return matchedStyles &&
+                                    matchedStyles.length > 0 ? (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyle.style}
+                                          {matchedStyles
+                                            .map((s) => s.label)
+                                            .join(", ")}
                                           <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                         </span>
                                       </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="max-w-xs">
-                                          {matchedStyle.description}
-                                        </p>
+                                      <TooltipContent className="bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200 space-y-2">
+                                        {matchedStyles.map((s) => (
+                                          <div key={s.key}>
+                                            <p className="font-semibold">
+                                              {s.label}
+                                            </p>
+                                            <p className="text-gray-700 leading-snug">
+                                              {s.description}
+                                            </p>
+                                          </div>
+                                        ))}
                                       </TooltipContent>
                                     </Tooltip>
                                   ) : (

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -65,6 +66,7 @@ import {
   Check,
   ChevronsUpDown,
   Loader2,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -84,6 +86,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import CryptoJS from "crypto-js";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -196,7 +199,7 @@ const mockTrainingMaterials = {
   business: [
     {
       id: "4",
-      name: "Acme Corp Sales Playbook",
+      name: "Sales Playbook",
       type: "document",
       size: "5.2 MB",
       uploadedAt: "2024-01-12",
@@ -327,6 +330,14 @@ export const Settings = () => {
   const [citySearchValue, setCitySearchValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fireflies integration state
+  const [firefliesToken, setFirefliesToken] = useState("");
+  const [showFirefliesToken, setShowFirefliesToken] = useState(false);
+  const [firefliesStatus, setFirefliesStatus] = useState(null);
+  const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
+  const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
+    useState(false);
+
   const dispatch = useDispatch();
 
   // console.log(
@@ -341,11 +352,12 @@ export const Settings = () => {
   // );
   // console.log(allTitles, "all titles");
   // Profile settings state
+  // console.log(user, "check user details");
   const [profileSettings, setProfileSettings] = useState({
     name: user?.full_name,
     email: user?.email,
-    timezone: "Europe/London",
-    language: "en",
+    timezone: user?.timezone || "Europe/London",
+    language: user?.language || "en",
     notifications: {
       email: true,
       push: true,
@@ -415,6 +427,110 @@ export const Settings = () => {
       setAvailableCities([]);
     }
   }, [orgSettings.country]);
+
+  // Load initial data
+  useEffect(() => {
+    checkFirefliesStatus();
+  }, []);
+
+  const checkFirefliesStatus = async () => {
+    try {
+      const status = await dbHelpers.getUserFirefliesStatus(user?.id);
+      setFirefliesStatus(status);
+    } catch (error) {
+      console.error("Error checking Fireflies status:", error);
+      setFirefliesStatus({ connected: false, hasToken: false });
+    }
+  };
+
+  const handleFirefliesConnect = async () => {
+    if (!firefliesToken.trim()) {
+      toast.error("Please enter a valid Fireflies API token");
+      return;
+    }
+
+    const payload = {
+      pat: firefliesToken.trim(),
+    };
+
+    // Encrypt the token using JWT
+    const jwtToken = createJWT(payload);
+    const formData = new FormData();
+    formData.append("token", jwtToken);
+    setIsConnectingFireflies(true);
+
+    try {
+      // Validate token with Fireflies API
+      // const response = await fetch(`${config.api.baseUrl}FF-check`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: formData,
+      // });
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.firefliesConnectionCheck}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Invalid Fireflies token or API error");
+      }
+
+      const result = await response.json();
+
+      // Check if the token validation was successful
+      if (!result.success && !result.valid) {
+        throw new Error("Invalid Fireflies token");
+      }
+
+      // Encrypt the token using the same method as HubSpot
+      const encryptedToken = jwtToken;
+
+      // Save encrypted token to database
+      await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
+      const updatedUser = {
+        ...user,
+        fireflies_connected: true,
+      };
+
+      dispatch(setUser(updatedUser)); // update Redux store
+      // Update local state
+      setFirefliesStatus({ connected: true, hasToken: true });
+      setFirefliesToken("");
+
+      toast.success("Fireflies integration connected successfully!");
+    } catch (error) {
+      console.error("Error connecting Fireflies:", error);
+      toast.error(`Failed to connect Fireflies: ${error.message}`);
+    } finally {
+      setIsConnectingFireflies(false);
+    }
+  };
+  // console.log(user, "check settings");
+  const handleFirefliesDisconnect = async () => {
+    setIsDisconnectingFireflies(true);
+
+    try {
+      await dbHelpers.deleteUserFirefliesToken(user?.id);
+      const updatedUser = {
+        ...user,
+        fireflies_connected: false,
+      };
+
+      dispatch(setUser(updatedUser)); // update Redux store
+      setFirefliesStatus({ connected: false, hasToken: false });
+      toast.success("Fireflies integration disconnected successfully");
+    } catch (error) {
+      console.error("Error disconnecting Fireflies:", error);
+      toast.error("Failed to disconnect Fireflies integration");
+    } finally {
+      setIsDisconnectingFireflies(false);
+    }
+  };
 
   // Load HubSpot integration status
   useEffect(() => {
@@ -487,7 +603,7 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
-  // console.log(getOrgList, getUserslist, "get org and users list");
+  // console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
     try {
@@ -515,8 +631,8 @@ export const Settings = () => {
       const updatedProfile = await dbHelpers.updateUserProfile(userId, {
         name: profileSettings.name,
         email: profileSettings.email,
-        // timezone: profileSettings.timezone,
-        // language: profileSettings.language,
+        timezone: profileSettings.timezone,
+        language: profileSettings.language,
       });
 
       // 🔄 Update Redux state
@@ -525,6 +641,8 @@ export const Settings = () => {
           ...user,
           full_name: updatedProfile.full_name,
           email: updatedProfile.email,
+          timezone: updatedProfile.timezone,
+          language: updatedProfile.language,
         })
       );
 
@@ -894,7 +1012,7 @@ export const Settings = () => {
 
   const disconnectHubSpot = async () => {
     try {
-      await dbHelpers.updateOrganizationHubSpotToken(
+      await authHelpers.updateOrganizationHubSpotToken(
         organizationDetails.id,
         null
       );
@@ -1369,6 +1487,137 @@ export const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Fireflies Integration */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">
+                Fireflies Integration
+              </h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Mic className="w-5 h-5" />
+                    <span>Fireflies.ai</span>
+                    {firefliesStatus?.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Connect your Fireflies.ai account to automatically sync
+                    meeting transcripts and recordings.
+                  </p>
+
+                  {!firefliesStatus?.connected ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fireflies-token">
+                          Fireflies API Token
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="fireflies-token"
+                            type={showFirefliesToken ? "text" : "password"}
+                            placeholder="Enter your Fireflies API token"
+                            value={firefliesToken}
+                            onChange={(e) => setFirefliesToken(e.target.value)}
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() =>
+                              setShowFirefliesToken(!showFirefliesToken)
+                            }
+                          >
+                            {showFirefliesToken ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <p className="mb-1">
+                            <strong>Note:</strong> You can find your Fireflies
+                            API key in your Fireflies account under:
+                          </p>
+                          <p>
+                            Settings → Developer Settings → Generate/View API
+                            Key
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handleFirefliesConnect}
+                        disabled={
+                          isConnectingFireflies || !firefliesToken.trim()
+                        }
+                        className="w-full"
+                      >
+                        {isConnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Connect Fireflies
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            Fireflies Integration Active
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          Your Fireflies.ai account is connected and ready to
+                          sync meeting data.
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={handleFirefliesDisconnect}
+                        disabled={isDisconnectingFireflies}
+                        className="w-full"
+                      >
+                        {isDisconnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          "Disconnect Fireflies"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
@@ -1718,7 +1967,25 @@ export const Settings = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="w-5 h-5" />
+                    <span>Hubspot</span>
+                    {hubspotIntegration.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center justify-between">
                     <span>HubSpot Integration</span>
                     {hubspotIntegration.connected && (
                       <Badge
@@ -1729,58 +1996,89 @@ export const Settings = () => {
                         Connected
                       </Badge>
                     )}
-                  </CardTitle>
+                  </CardTitle> */}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {hubspotIntegration.connected ? (
                     <div className="space-y-4">
                       <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-medium text-green-900">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
                             HubSpot Successfully Connected
-                          </p>
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          </span>
                         </div>
-
-                        {hubspotIntegration.accountInfo?.maskedToken && (
-                          <div className="mt-3">
-                            <p className="text-xs text-green-700 mb-1">
-                              Access Token:
-                            </p>
-                            <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
-                              {hubspotIntegration.accountInfo.maskedToken}
-                            </div>
-                          </div>
-                        )}
-
-                        {hubspotIntegration.lastSync && (
-                          <p className="text-xs text-green-700 mt-2">
-                            Last synced:{" "}
-                            {new Date(
-                              hubspotIntegration.lastSync
-                            ).toLocaleString()}
-                          </p>
-                        )}
+                        <p className="text-sm text-green-700">
+                          Your Hubspot is connected and ready to sync crm
+                          details.
+                        </p>
                       </div>
 
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={disconnectHubSpot}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Disconnect
-                        </Button>
-                        {/* <Button variant="outline">
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                          Test Connection
-                        </Button> */}
-                      </div>
+                      <Button
+                        variant="outline"
+                        // onClick={handleFirefliesDisconnect}
+                        // disabled={isDisconnectingFireflies}
+                        className="w-full"
+                        // variant="outline"
+                        onClick={disconnectHubSpot}
+                        // className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Disconnect
+                      </Button>
                     </div>
                   ) : (
+                    // <div className="space-y-4">
+                    //   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    //     <div className="flex items-center justify-between mb-2">
+                    //       <p className="text-sm font-medium text-green-900">
+                    //         HubSpot Successfully Connected
+                    //       </p>
+                    //       <CheckCircle className="w-5 h-5 text-green-600" />
+                    //     </div>
+
+                    //     {hubspotIntegration.accountInfo?.maskedToken && (
+                    //       <div className="mt-3">
+                    //         <p className="text-xs text-green-700 mb-1">
+                    //           Access Token:
+                    //         </p>
+                    //         <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
+                    //           {hubspotIntegration.accountInfo.maskedToken}
+                    //         </div>
+                    //       </div>
+                    //     )}
+
+                    //     {hubspotIntegration.lastSync && (
+                    //       <p className="text-xs text-green-700 mt-2">
+                    //         Last synced:{" "}
+                    //         {new Date(
+                    //           hubspotIntegration.lastSync
+                    //         ).toLocaleString()}
+                    //       </p>
+                    //     )}
+                    //   </div>
+
+                    //   <div className="flex space-x-2">
+                    //     <Button
+                    //       variant="outline"
+                    //       onClick={disconnectHubSpot}
+                    //       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    //     >
+                    //       <X className="w-4 h-4 mr-1" />
+                    //       Disconnect
+                    //     </Button>
+                    //     {/* <Button variant="outline">
+                    //       <RefreshCw className="w-4 h-4 mr-1" />
+                    //       Test Connection
+                    //     </Button> */}
+                    //   </div>
+                    // </div>
                     <div className="space-y-4">
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Connect your HubSpot account to enable CRM integration
+                        features.
+                      </p>
+                      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center space-x-2 mb-2">
                           <AlertCircle className="w-5 h-5 text-yellow-600" />
                           <p className="text-sm font-medium text-yellow-900">
@@ -1791,7 +2089,7 @@ export const Settings = () => {
                           Connect your HubSpot account to enable CRM integration
                           features.
                         </p>
-                      </div>
+                      </div> */}
 
                       <div>
                         <label className="text-sm font-medium mb-2 block">
@@ -1830,18 +2128,18 @@ export const Settings = () => {
                           </>
                         )}
                       </Button>
+                      <div className="text-xs text-muted-foreground">
+                        <p className="mb-1">
+                          <strong>Note:</strong> You can find your HubSpot
+                          Access Token in your HubSpot account under:
+                        </p>
+                        <p>
+                          Settings → Integrations → Private Apps → Create/View
+                          Token
+                        </p>
+                      </div>
                     </div>
                   )}
-
-                  <div className="text-xs text-muted-foreground">
-                    <p className="mb-1">
-                      <strong>Note:</strong> You can find your HubSpot Access
-                      Token in your HubSpot account under:
-                    </p>
-                    <p>
-                      Settings → Integrations → Private Apps → Create/View Token
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -2169,7 +2467,15 @@ export const Settings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Authentication & Access</span>
+                  <div className="items-center ">
+                    <span className="space-x-2">Authentication & Access</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -2283,10 +2589,22 @@ export const Settings = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-5 h-5" />
+                    <span>API Keys</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+                {/* <CardTitle className="flex items-center space-x-2">
                   <Key className="w-5 h-5" />
                   <span>API Keys</span>
-                </CardTitle>
+                </CardTitle> */}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
@@ -2468,7 +2786,25 @@ export const Settings = () => {
             {canUploadOrgMaterials && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building className="w-5 h-5" />
+                      <span>Business-Specific Knowledge</span>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 border-blue-200"
+                      >
+                        Organization Level
+                      </Badge>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge>
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
                     <span>Business-Specific Knowledge</span>
                     <Badge
@@ -2477,7 +2813,7 @@ export const Settings = () => {
                     >
                       Organization Level
                     </Badge>
-                  </CardTitle>
+                  </CardTitle> */}
                   <p className="text-sm text-muted-foreground">
                     Company playbooks, product documentation, presentations, and
                     unique selling propositions
@@ -2567,9 +2903,28 @@ export const Settings = () => {
             )}
 
             {/* Personal Insights */}
+
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Personal Insights</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-800 border-green-200"
+                    >
+                      Personal Level
+                    </Badge>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+                {/* <CardTitle className="flex items-center space-x-2">
                   <User className="w-5 h-5" />
                   <span>Personal Insights</span>
                   <Badge
@@ -2578,7 +2933,7 @@ export const Settings = () => {
                   >
                     Personal Level
                   </Badge>
-                </CardTitle>
+                </CardTitle> */}
                 <p className="text-sm text-muted-foreground">
                   Your personal sales knowledge, experiences, and preferred
                   approaches
@@ -2665,14 +3020,31 @@ export const Settings = () => {
           </div>
         </TabsContent>
 
+        {/* <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Success Metrics Framework</span>
+            </div>
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              Coming Soon for Your Organization
+            </Badge>
+          </CardTitle> */}
         {/* Analytics Access */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="w-5 h-5" />
-                  <span>Analytics Access</span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Analytics Access</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2706,7 +3078,7 @@ export const Settings = () => {
                             Organization Analytics
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {mockCurrentUser.organizationName} only
+                            {organizationDetails?.name} only
                           </p>
                         </div>
                       </div>
@@ -2740,7 +3112,17 @@ export const Settings = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Data Export</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span>Data Export</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
