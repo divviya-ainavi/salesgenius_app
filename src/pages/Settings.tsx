@@ -2412,7 +2412,15 @@ export const Settings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Authentication & Access</span>
+                  <div className="items-center ">
+                    <span className="space-x-2">Authentication & Access</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -2526,10 +2534,22 @@ export const Settings = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-5 h-5" />
+                    <span>API Keys</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+                {/* <CardTitle className="flex items-center space-x-2">
                   <Key className="w-5 h-5" />
                   <span>API Keys</span>
-                </CardTitle>
+                </CardTitle> */}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
@@ -2711,7 +2731,25 @@ export const Settings = () => {
             {canUploadOrgMaterials && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building className="w-5 h-5" />
+                      <span>Business-Specific Knowledge</span>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 border-blue-200"
+                      >
+                        Organization Level
+                      </Badge>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge>
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
                     <span>Business-Specific Knowledge</span>
                     <Badge
@@ -2720,7 +2758,7 @@ export const Settings = () => {
                     >
                       Organization Level
                     </Badge>
-                  </CardTitle>
+                  </CardTitle> */}
                   <p className="text-sm text-muted-foreground">
                     Company playbooks, product documentation, presentations, and
                     unique selling propositions
@@ -2810,9 +2848,28 @@ export const Settings = () => {
             )}
 
             {/* Personal Insights */}
+
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Personal Insights</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-800 border-green-200"
+                    >
+                      Personal Level
+                    </Badge>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+                {/* <CardTitle className="flex items-center space-x-2">
                   <User className="w-5 h-5" />
                   <span>Personal Insights</span>
                   <Badge
@@ -2821,7 +2878,7 @@ export const Settings = () => {
                   >
                     Personal Level
                   </Badge>
-                </CardTitle>
+                </CardTitle> */}
                 <p className="text-sm text-muted-foreground">
                   Your personal sales knowledge, experiences, and preferred
                   approaches
@@ -2908,14 +2965,31 @@ export const Settings = () => {
           </div>
         </TabsContent>
 
+        {/* <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Success Metrics Framework</span>
+            </div>
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              Coming Soon for Your Organization
+            </Badge>
+          </CardTitle> */}
         {/* Analytics Access */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="w-5 h-5" />
-                  <span>Analytics Access</span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Analytics Access</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2983,7 +3057,17 @@ export const Settings = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Data Export</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span>Data Export</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
