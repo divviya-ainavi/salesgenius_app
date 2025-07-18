@@ -104,7 +104,7 @@ export const CallAssociationSelector = ({
           user?.id,
           companySearch.trim() ? `%${companySearch.trim()}%` : ""
         );
-        console.log(data, "company data");
+        // console.log(data, "company data");
         // if (error) throw error;
         setCompanies(data || []);
       } catch (error) {

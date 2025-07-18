@@ -352,7 +352,7 @@ export const Settings = () => {
   // );
   // console.log(allTitles, "all titles");
   // Profile settings state
-  console.log(user, "check user details");
+  // console.log(user, "check user details");
   const [profileSettings, setProfileSettings] = useState({
     name: user?.full_name,
     email: user?.email,
@@ -510,7 +510,7 @@ export const Settings = () => {
       setIsConnectingFireflies(false);
     }
   };
-  console.log(user, "check settings");
+  // console.log(user, "check settings");
   const handleFirefliesDisconnect = async () => {
     setIsDisconnectingFireflies(true);
 
@@ -603,7 +603,7 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
-  console.log(profileSettings, "get org and users list");
+  // console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
     try {

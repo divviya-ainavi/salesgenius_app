@@ -180,11 +180,19 @@ export const SalesCalls = () => {
         [],
       ]);
 
-      const existingIds = new Set(existingRecords.map((r) => r.fireflies_id));
+      // Create a Set of existing composite keys: `${user_id}_${fireflies_id}`
+      const existingKeys = new Set(
+        existingRecords.map((r) => `${r.user_id}_${r.fireflies_id}`)
+      );
+
+      // const existingIds = new Set(existingRecords.map((r) => r.fireflies_id));
       const json = await response.json();
       const transcripts = json?.[0]?.data?.transcripts || [];
-
-      const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
+      // Then filter transcripts using that composite key
+      const newTranscripts = transcripts.filter(
+        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
+      );
+      // const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
       // console.log(json, "check json response from Fireflies API");
       // console.log(response, "check response from Fireflies API");
       // console.log(newTranscripts, "check new transcripts");
@@ -215,6 +223,41 @@ export const SalesCalls = () => {
       const combinedRecords = [...existingRecords, ...insertPayload];
 
       const transformed = combinedRecords.map((file) => ({
+        id: file.fireflies_id,
+        callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
+        companyName: "-",
+        prospectName: file.organizer_email || "Unknown",
+        date: new Date(file.datestring || file.created_at)
+          .toISOString()
+          .split("T")[0],
+        duration: file.duration || "N/A",
+        status: file.is_processed ? "processed" : "unprocessed",
+        participants: file.participants ? Object.values(file.participants) : [],
+        meetingLink: file.meeting_link,
+        hasSummary: file.summary,
+        hasTranscript: file.sentences,
+        title: file?.title,
+      }));
+
+      dispatch(setFirefliesData(transformed));
+      dispatch(setIshavefirefliesData(true));
+    } catch (error) {
+      console.error("Error loading Fireflies data:", error);
+      toast.error("Failed to sync Fireflies transcripts.");
+      dispatch(setFirefliesData([]));
+      dispatch(setIshavefirefliesData(false));
+    } finally {
+      setIsLoadingFireflies(false);
+    }
+  };
+
+  const refreshFireflies = async () => {
+    setIsLoadingFireflies(true);
+
+    try {
+      const getData = await dbHelpers.getFirefliesFiles(user?.id);
+
+      const transformed = getData.map((file) => ({
         id: file.fireflies_id,
         callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
         companyName: "-",
@@ -274,6 +317,7 @@ export const SalesCalls = () => {
           },
           uploaded_file_id: insight.uploaded_file_id,
           type: insight.type || "file_upload",
+          fireflies_id: insight.fireflies_id || null,
         }))
       );
     } catch (error) {
@@ -369,6 +413,8 @@ export const SalesCalls = () => {
       setFirefliesSummary(null);
     }
   };
+
+  // console.log(processingFileId, "processing file id");
   // console.log(processingFileId, "processing file id");
   const handleConfirmAssociation = async (
     file,
@@ -480,7 +526,10 @@ export const SalesCalls = () => {
       const isFireflies = source === "fireflies";
 
       if (isFireflies) {
-        await dbHelpers.updateFirefliesFile(file.id, { is_processed: true });
+        await dbHelpers.updateFirefliesFile(processingFileId, user?.id, {
+          is_processed: true,
+        });
+        refreshFireflies();
       } else {
         await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
       }
@@ -700,14 +749,22 @@ export const SalesCalls = () => {
     );
   });
 
-  const handleViewTranscript = async (call, type) => {
-    console.log(type, call, "view transcript called");
+  const handleViewTranscript = async (call, type, tab) => {
+    // console.log(type, call, "view transcript called");
     if (type === "fireflies") {
-      console.log(call, "check call in handleViewTranscript");
+      // console.log(call, "check call in handleViewTranscript");
       // setGetFirefliestranscript(true);
       setProcessingFirefliesId(call.id);
 
-      const sentences = call.hasTranscript || [];
+      const sentences =
+        tab == "past"
+          ? await dbHelpers?.getFirefliesSingleData(
+              user?.id,
+              call?.fireflies_id
+            )
+          : call.hasTranscript || [];
+
+      // console.log(sentences, "check sentences in handleViewTranscript");
       const transcriptText = sentences
         .map(
           (s) => `${s.speaker_name} [${s.start_time.toFixed(2)}s]: ${s.text}`
@@ -1337,7 +1394,7 @@ export const SalesCalls = () => {
                                 processingFirefliesId == call?.id
                               }
                               onClick={() =>
-                                handleViewTranscript(call, call.type)
+                                handleViewTranscript(call, call.type, "past")
                               }
                               trackingName="View Original Transcript"
                               trackingContext={{
@@ -1436,6 +1493,7 @@ export const SalesCalls = () => {
                   toast.success("Summary copied to clipboard");
                 }}
                 trackingName="Copy Summary"
+                className="mt-4"
               >
                 <Copy className="w-4 h-4 mr-1" />
                 Copy Text
@@ -1456,7 +1514,7 @@ export const SalesCalls = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{modalTitle}</span>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-4">
                 <TrackedButton
                   variant="outline"
                   size="sm"

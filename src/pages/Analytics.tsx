@@ -742,7 +742,7 @@ const Analytics = () => {
     const posthogToken = config.posthog.apiKey;
     const analyticsKey = config.posthog.analyticsKey;
     const userEmail = CURRENT_USER.email || "";
-    console.log("User Email:", userEmail, posthogToken);
+    // console.log("User Email:", userEmail, posthogToken);
     useEffect(() => {
       const fetchPageTimes = async () => {
         try {
@@ -760,14 +760,14 @@ const Analytics = () => {
           );
 
           const data = await res.json();
-          console.log(data);
+          // console.log(data);
           const pageDurations = {};
           for (let event of data.results) {
             const page = event.properties?.page || "Unknown";
             const duration = parseFloat(event.properties?.duration || 0);
             pageDurations[page] = (pageDurations[page] || 0) + duration;
           }
-          console.log(pageDurations);
+          // console.log(pageDurations);
           setDurations(pageDurations);
         } catch (err) {
           console.error(err);
@@ -786,7 +786,7 @@ const Analytics = () => {
       0
     );
 
-    console.log("Total Seconds:", totalSeconds, durations);
+    // console.log("Total Seconds:", totalSeconds, durations);
 
     return (
       <div className="space-y-6">
@@ -879,7 +879,10 @@ const Analytics = () => {
                 <DollarSign className="w-5 h-5" />
                 <span>Personal ROI & Impact Visualization</span>
               </div>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              <Badge
+                variant="outline"
+                className="bg-orange-50 text-orange-700 border-orange-200"
+              >
                 Coming Soon for Your Organization
               </Badge>
             </CardTitle>
@@ -977,7 +980,10 @@ const Analytics = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Feature Mastery & Skill Development</span>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              <Badge
+                variant="outline"
+                className="bg-orange-50 text-orange-700 border-orange-200"
+              >
                 Coming Soon for Your Organization
               </Badge>
             </CardTitle>
@@ -1128,7 +1134,10 @@ const Analytics = () => {
               <Target className="w-5 h-5" />
               <span>Success Metrics Framework</span>
             </div>
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+            <Badge
+              variant="outline"
+              className="bg-orange-50 text-orange-700 border-orange-200"
+            >
               Coming Soon for Your Organization
             </Badge>
           </CardTitle>

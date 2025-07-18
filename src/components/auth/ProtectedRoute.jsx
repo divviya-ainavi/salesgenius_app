@@ -13,12 +13,12 @@ const ProtectedRoute = ({ children }) => {
     const checkAuth = async () => {
       try {
         const isAuth = await authHelpers.isAuthenticated();
-        console.log("ProtectedRoute - isAuthenticated:", isAuth);
-        console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
-        
+        // console.log("ProtectedRoute - isAuthenticated:", isAuth);
+        // console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
+
         setIsAuthenticated(isAuth);
       } catch (error) {
-        console.error('Error checking authentication:', error);
+        console.error("Error checking authentication:", error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -28,7 +28,11 @@ const ProtectedRoute = ({ children }) => {
     checkAuth();
   }, []);
 
-  console.log("ProtectedRoute state:", { isAuthenticated, isLoading, userId: CURRENT_USER.id });
+  // console.log("ProtectedRoute state:", {
+  //   isAuthenticated,
+  //   isLoading,
+  //   userId: CURRENT_USER.id,
+  // });
 
   if (isLoading) {
     return (

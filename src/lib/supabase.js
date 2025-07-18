@@ -332,7 +332,7 @@ export const authHelpers = {
 
   // Update user profile
   async updateUserProfile(userId, updates) {
-    console.log('Updating user profile:', userId, updates);
+    // console.log('Updating user profile:', userId, updates);
     try {
       // If password is being updated, hash it
       if (updates.password) {
@@ -523,6 +523,25 @@ export const dbHelpers = {
       throw error
     }
   },
+
+  async getFirefliesSingleData(userId, firefliesId) {
+    // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
+    try {
+      const { data, error } = await supabase
+        .from('fireflies_files')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('fireflies_id', firefliesId)
+        .single(); // because you're expecting one record
+
+      if (error) throw error;
+      return data?.sentences || [];
+    } catch (error) {
+      console.error('Error fetching Fireflies file:', error);
+      throw error;
+    }
+  },
+
 
   async getUploadedFileById(fileId) {
     try {
@@ -898,7 +917,7 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from('fireflies_files')
         .select('*')
-        // .eq('user_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -932,12 +951,13 @@ export const dbHelpers = {
     return data;
   },
 
-  async updateFirefliesFile(fileId, updates) {
+  async updateFirefliesFile(fileId, userId, updates) {
     try {
       const { data, error } = await supabase
         .from('fireflies_files')
         .update(updates)
         .eq('fireflies_id', fileId)
+        .eq('user_id', userId)
         .select()
         .single()
 
@@ -1655,10 +1675,10 @@ export const dbHelpers = {
       recommended_objectives_reason = "",
       recommended_sales_play_reason = ""
     } = data || {};
-    console.log(recommended_sales_play,
-      recommended_objectives,
-      recommended_objectives_reason,
-      recommended_sales_play_reason, "check recommended data", data)
+    // console.log(recommended_sales_play,
+    //   recommended_objectives,
+    //   recommended_objectives_reason,
+    //   recommended_sales_play_reason, "check recommended data", data)
     const companyName = company_details?.[0]?.name || "";
 
     // 1. Handle Company

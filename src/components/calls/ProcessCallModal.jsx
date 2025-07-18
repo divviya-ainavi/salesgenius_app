@@ -27,7 +27,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
     setSelectedAssociation(association);
   };
 
-  console.log(selectedAssociation, "selected association");
+  // console.log(selectedAssociation, "selected association");
 
   const handleAssociationReset = () => {
     setSelectedAssociation(null);
@@ -83,28 +83,32 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
 
         <div className="py-4 flex flex-col">
           {/* File Information */}
-          <div className="flex items-center space-x-3 p-3 bg-muted rounded-lg mb-4">
-            <FileText className="w-5 h-5 text-muted-foreground" />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <p className="font-medium truncate max-w-[300px]">
-                      {file?.filename}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {file?.size} •{" "}
-                      {new Date(file?.upload_date).toLocaleString()}
-                    </p>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{file?.filename}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
+          {/* {console.log(file, "file in process call modal")} */}
+          {file != undefined && (
+            <div className="flex items-center space-x-3 p-3 bg-muted rounded-lg mb-4">
+              <FileText className="w-5 h-5 text-muted-foreground" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <p className="font-medium truncate max-w-[300px]">
+                        {file?.filename || file?.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {file?.size} •{" "}
+                        {new Date(
+                          file?.upload_date || file?.date
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{file?.filename}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
           {/* Association Selector */}
           {!isComplete && (
             <CallAssociationSelector
