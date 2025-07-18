@@ -1551,10 +1551,16 @@ export const Settings = () => {
                             )}
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          You can find your API token in your Fireflies.ai
-                          account settings.
-                        </p>
+                        <div className="text-xs text-muted-foreground">
+                          <p className="mb-1">
+                            <strong>Note:</strong> You can find your Fireflies
+                            API key in your Fireflies account under:
+                          </p>
+                          <p>
+                            Settings → Developer Settings → Generate/View API
+                            Key
+                          </p>
+                        </div>
                       </div>
 
                       <Button
@@ -1961,7 +1967,25 @@ export const Settings = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="w-5 h-5" />
+                    <span>Hubspot</span>
+                    {hubspotIntegration.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center justify-between">
                     <span>HubSpot Integration</span>
                     {hubspotIntegration.connected && (
                       <Badge
@@ -1972,58 +1996,89 @@ export const Settings = () => {
                         Connected
                       </Badge>
                     )}
-                  </CardTitle>
+                  </CardTitle> */}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {hubspotIntegration.connected ? (
                     <div className="space-y-4">
                       <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-medium text-green-900">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
                             HubSpot Successfully Connected
-                          </p>
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          </span>
                         </div>
-
-                        {hubspotIntegration.accountInfo?.maskedToken && (
-                          <div className="mt-3">
-                            <p className="text-xs text-green-700 mb-1">
-                              Access Token:
-                            </p>
-                            <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
-                              {hubspotIntegration.accountInfo.maskedToken}
-                            </div>
-                          </div>
-                        )}
-
-                        {hubspotIntegration.lastSync && (
-                          <p className="text-xs text-green-700 mt-2">
-                            Last synced:{" "}
-                            {new Date(
-                              hubspotIntegration.lastSync
-                            ).toLocaleString()}
-                          </p>
-                        )}
+                        <p className="text-sm text-green-700">
+                          Your Hubspot is connected and ready to sync crm
+                          details.
+                        </p>
                       </div>
 
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={disconnectHubSpot}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Disconnect
-                        </Button>
-                        {/* <Button variant="outline">
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                          Test Connection
-                        </Button> */}
-                      </div>
+                      <Button
+                        variant="outline"
+                        // onClick={handleFirefliesDisconnect}
+                        // disabled={isDisconnectingFireflies}
+                        className="w-full"
+                        // variant="outline"
+                        onClick={disconnectHubSpot}
+                        // className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Disconnect
+                      </Button>
                     </div>
                   ) : (
+                    // <div className="space-y-4">
+                    //   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    //     <div className="flex items-center justify-between mb-2">
+                    //       <p className="text-sm font-medium text-green-900">
+                    //         HubSpot Successfully Connected
+                    //       </p>
+                    //       <CheckCircle className="w-5 h-5 text-green-600" />
+                    //     </div>
+
+                    //     {hubspotIntegration.accountInfo?.maskedToken && (
+                    //       <div className="mt-3">
+                    //         <p className="text-xs text-green-700 mb-1">
+                    //           Access Token:
+                    //         </p>
+                    //         <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
+                    //           {hubspotIntegration.accountInfo.maskedToken}
+                    //         </div>
+                    //       </div>
+                    //     )}
+
+                    //     {hubspotIntegration.lastSync && (
+                    //       <p className="text-xs text-green-700 mt-2">
+                    //         Last synced:{" "}
+                    //         {new Date(
+                    //           hubspotIntegration.lastSync
+                    //         ).toLocaleString()}
+                    //       </p>
+                    //     )}
+                    //   </div>
+
+                    //   <div className="flex space-x-2">
+                    //     <Button
+                    //       variant="outline"
+                    //       onClick={disconnectHubSpot}
+                    //       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    //     >
+                    //       <X className="w-4 h-4 mr-1" />
+                    //       Disconnect
+                    //     </Button>
+                    //     {/* <Button variant="outline">
+                    //       <RefreshCw className="w-4 h-4 mr-1" />
+                    //       Test Connection
+                    //     </Button> */}
+                    //   </div>
+                    // </div>
                     <div className="space-y-4">
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Connect your HubSpot account to enable CRM integration
+                        features.
+                      </p>
+                      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center space-x-2 mb-2">
                           <AlertCircle className="w-5 h-5 text-yellow-600" />
                           <p className="text-sm font-medium text-yellow-900">
@@ -2034,7 +2089,7 @@ export const Settings = () => {
                           Connect your HubSpot account to enable CRM integration
                           features.
                         </p>
-                      </div>
+                      </div> */}
 
                       <div>
                         <label className="text-sm font-medium mb-2 block">
@@ -2073,18 +2128,18 @@ export const Settings = () => {
                           </>
                         )}
                       </Button>
+                      <div className="text-xs text-muted-foreground">
+                        <p className="mb-1">
+                          <strong>Note:</strong> You can find your HubSpot
+                          Access Token in your HubSpot account under:
+                        </p>
+                        <p>
+                          Settings → Integrations → Private Apps → Create/View
+                          Token
+                        </p>
+                      </div>
                     </div>
                   )}
-
-                  <div className="text-xs text-muted-foreground">
-                    <p className="mb-1">
-                      <strong>Note:</strong> You can find your HubSpot Access
-                      Token in your HubSpot account under:
-                    </p>
-                    <p>
-                      Settings → Integrations → Private Apps → Create/View Token
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -1377,14 +1377,20 @@ const CallInsights = () => {
                       ? communicationModalityIcons[stakeholder.modality.type]
                       : null;
 
-                    const formattedStyle =
-                      stakeholder?.style?.charAt(0).toUpperCase() +
-                      stakeholder?.style?.slice(1);
-                    // console.log(formattedStyle, "formatted style");
-                    const styleMatch = communicationStyleTypes?.find(
-                      (s) =>
-                        s.key?.toLowerCase() === formattedStyle?.toLowerCase()
-                    );
+                    const formattedStyles =
+                      stakeholder?.style?.split(",").map((s) => s.trim()) || [];
+
+                    const matchedStyles = formattedStyles.map((style) => {
+                      const match = communicationStyleTypes?.find(
+                        (s) => s.key?.toLowerCase() === style.toLowerCase()
+                      );
+                      return {
+                        style,
+                        description:
+                          match?.description || "No description available.",
+                      };
+                    });
+
                     return (
                       <div
                         key={stakeholder.id}
@@ -1488,7 +1494,8 @@ const CallInsights = () => {
                                     styleConfig?.color
                                   )}
                                 >
-                                  {formattedStyle}
+                                  {/* {formattedStyles.join(", ")} */}
+                                  {stakeholder?.style}
                                   <Info className="ml-1 w-3 h-3" />
                                 </Badge>
                               </TooltipTrigger>
@@ -1498,12 +1505,23 @@ const CallInsights = () => {
                                 align="center"
                                 className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
                               >
-                                <p className="leading-snug">
-                                  {styleMatch?.description ||
-                                    "No description available."}
-                                </p>
+                                <div className="space-y-2">
+                                  {matchedStyles.map(
+                                    ({ style, description }) => (
+                                      <div key={style}>
+                                        {/* {matchedStyles?.length > 1 && ( */}
+                                        <p className="font-semibold">{style}</p>
+                                        {/* )} */}
+                                        <p className="text-gray-700 leading-snug">
+                                          {description}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
+
                             <Badge
                               variant="outline"
                               className="text-xs bg-green-100 text-green-800 border-green-200"

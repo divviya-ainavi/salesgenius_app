@@ -154,7 +154,10 @@ const AccountSetup = () => {
         const hoursSinceInvite =
           (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60);
 
-        if (hoursSinceInvite > 24) {
+        if (invite.status == "completed") {
+          setError("This invitation has already been used.");
+          return;
+        } else if (hoursSinceInvite > 24) {
           setError("Invitation has expired. Please request a new invitation.");
           return;
         }
