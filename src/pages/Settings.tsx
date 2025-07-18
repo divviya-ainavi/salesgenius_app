@@ -199,7 +199,7 @@ const mockTrainingMaterials = {
   business: [
     {
       id: "4",
-      name: "Acme Corp Sales Playbook",
+      name: "Sales Playbook",
       type: "document",
       size: "5.2 MB",
       uploadedAt: "2024-01-12",
@@ -352,11 +352,12 @@ export const Settings = () => {
   // );
   // console.log(allTitles, "all titles");
   // Profile settings state
+  console.log(user, "check user details");
   const [profileSettings, setProfileSettings] = useState({
     name: user?.full_name,
     email: user?.email,
-    timezone: "Europe/London",
-    language: "en",
+    timezone: user?.timezone || "Europe/London",
+    language: user?.language || "en",
     notifications: {
       email: true,
       push: true,
@@ -602,7 +603,7 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
-  // console.log(getOrgList, getUserslist, "get org and users list");
+  console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
     try {
@@ -630,8 +631,8 @@ export const Settings = () => {
       const updatedProfile = await dbHelpers.updateUserProfile(userId, {
         name: profileSettings.name,
         email: profileSettings.email,
-        // timezone: profileSettings.timezone,
-        // language: profileSettings.language,
+        timezone: profileSettings.timezone,
+        language: profileSettings.language,
       });
 
       // 🔄 Update Redux state
@@ -640,6 +641,8 @@ export const Settings = () => {
           ...user,
           full_name: updatedProfile.full_name,
           email: updatedProfile.email,
+          timezone: updatedProfile.timezone,
+          language: updatedProfile.language,
         })
       );
 
@@ -2946,7 +2949,7 @@ export const Settings = () => {
                             Organization Analytics
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {mockCurrentUser.organizationName} only
+                            {organizationDetails?.name} only
                           </p>
                         </div>
                       </div>

@@ -1087,7 +1087,7 @@ const Analytics = () => {
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <span className="text-sm font-medium">View Dashboard As:</span>
-            <Select value={userRole} onValueChange={setUserRole}>
+            <Select value={userRole} onValueChange={setUserRole} disabled>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>

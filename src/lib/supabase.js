@@ -107,7 +107,9 @@ export const authHelpers = {
         created_at,
         updated_at,
         title_id,
-        fireflies_connected
+        fireflies_connected,
+        timezone,
+        language
       `)
         .eq("id", userId)
         .single();
@@ -330,6 +332,7 @@ export const authHelpers = {
 
   // Update user profile
   async updateUserProfile(userId, updates) {
+    console.log('Updating user profile:', userId, updates);
     try {
       // If password is being updated, hash it
       if (updates.password) {
@@ -1137,7 +1140,9 @@ export const dbHelpers = {
         .from('profiles')
         .update({
           full_name: updates.name,
-          email: updates.email
+          email: updates.email,
+          timezone: updates.timezone,
+          language: updates.language
         })
         .eq('id', userId)
         .select();
