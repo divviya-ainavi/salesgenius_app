@@ -1135,6 +1135,9 @@ export const Settings = () => {
           >
             <Brain className="w-4 h-4" />
             <span>AI Training</span>
+            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 ml-1">
+              Coming Soon
+            </Badge>
           </TabsTrigger>
           <TabsTrigger
             value="analytics"
@@ -1142,6 +1145,9 @@ export const Settings = () => {
           >
             <BarChart3 className="w-4 h-4" />
             <span>Analytics</span>
+            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 ml-1">
+              Coming Soon
+            </Badge>
           </TabsTrigger>
         </TabsList>
 
