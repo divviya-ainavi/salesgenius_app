@@ -1085,6 +1085,10 @@ export const SalesCalls = () => {
                       Connect your Fireflies account to automatically sync and
                       view your meeting transcripts here.
                     </p>
+                    <p className="text-sm">
+                      To set up the integration, go to the Settings menu and
+                      navigate to the Profile tab.
+                    </p>
                   </div>
                 ) : filteredFirefliesData.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
