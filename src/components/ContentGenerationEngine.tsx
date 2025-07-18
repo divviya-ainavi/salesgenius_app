@@ -959,7 +959,7 @@ ${updatedBlocks
             </Card>
 
             {/* Deal Information */}
-            {selectedProspect && (
+            {false && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Deal Information</CardTitle>

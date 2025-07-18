@@ -491,7 +491,12 @@ export const Settings = () => {
 
       // Save encrypted token to database
       await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
+      const updatedUser = {
+        ...user,
+        fireflies_connected: true,
+      };
 
+      dispatch(setUser(updatedUser)); // update Redux store
       // Update local state
       setFirefliesStatus({ connected: true, hasToken: true });
       setFirefliesToken("");
@@ -504,12 +509,18 @@ export const Settings = () => {
       setIsConnectingFireflies(false);
     }
   };
-
+  console.log(user, "check settings");
   const handleFirefliesDisconnect = async () => {
     setIsDisconnectingFireflies(true);
 
     try {
       await dbHelpers.deleteUserFirefliesToken(user?.id);
+      const updatedUser = {
+        ...user,
+        fireflies_connected: false,
+      };
+
+      dispatch(setUser(updatedUser)); // update Redux store
       setFirefliesStatus({ connected: false, hasToken: false });
       toast.success("Fireflies integration disconnected successfully");
     } catch (error) {

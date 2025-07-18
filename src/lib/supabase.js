@@ -106,7 +106,8 @@ export const authHelpers = {
         status_id,
         created_at,
         updated_at,
-        title_id
+        title_id,
+        fireflies_connected
       `)
         .eq("id", userId)
         .single();
@@ -186,6 +187,8 @@ export const authHelpers = {
       return null;
     }
   },
+
+
 
   // Set current user state and identify with PostHog
   async setCurrentUser(profile) {
@@ -772,6 +775,16 @@ export const dbHelpers = {
     } catch (error) {
       console.error('Error updating presentation prompt:', error)
       throw error
+    }
+  },
+
+  async bulkInsertFirefliesFiles(entries) {
+    const { error } = await supabase
+      .from("fireflies_files")
+      .insert(entries);
+
+    if (error) {
+      throw new Error("Failed to insert Fireflies data");
     }
   },
 
