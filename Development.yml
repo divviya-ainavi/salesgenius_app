@@ -6,9 +6,9 @@ trigger:
     exclude:
       - "*"
 variables:
-  - group: frontend-secrets
+  - group: salesgenius_secret
   - name: IMAGE_NAME
-    value: PLN1000013_MERN_Development
+    value: PLN1000014_MERN_Development
 pool:
   vmImage: ubuntu-latest
 steps:
