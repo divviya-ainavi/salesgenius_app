@@ -488,6 +488,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   {formData.prospectLinkedIn.map((url, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
+                        disabled
                         type="url"
                         placeholder="https://www.linkedin.com/in/username"
                         value={url}
@@ -511,6 +512,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     type="button"
                     variant="outline"
                     onClick={addProspectField}
+                    disabled
                   >
                     + Add Another Prospect
                   </Button>
