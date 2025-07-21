@@ -16,39 +16,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
   const [selectedAssociation, setSelectedAssociation] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [processingError, setProcessingError] = useState(null);
-  const [hasRetried, setHasRetried] = useState(false);
 
   const handleAssociationChange = (association) => {
     setSelectedAssociation(association);
-    // Clear any previous errors when association changes
-    setProcessingError(null);
-    setHasRetried(false);
   };
 
   // console.log(selectedAssociation, "selected association");
 
   const handleAssociationReset = () => {
     setSelectedAssociation(null);
-    setProcessingError(null);
-    setHasRetried(false);
   };
 
-  const handleCloseModal = () => {
-    onClose();
-    setIsProcessing(false);
-    setIsComplete(false);
-    setSelectedAssociation(null);
-    setProcessingError(null);
-    setHasRetried(false);
-  };
   const handleConfirm = async () => {
     if (!selectedAssociation?.prospect) {
       toast.error("Please select a company and prospect first");
@@ -56,7 +40,6 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
     }
 
     setIsProcessing(true);
-    setProcessingError(null);
 
     try {
       // Call the parent's onConfirm function with the file ID and selected association
@@ -68,59 +51,37 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
       );
 
       setIsComplete(true);
+      // toast.success("Call successfully associated and queued for processing");
 
       // Close the modal after a short delay to show the success state
-      setTimeout(() => {
-        handleCloseModal();
-      }, 1500);
+      // setTimeout(() => {
+      onClose();
+      setIsProcessing(false);
+      setIsComplete(false);
+      setSelectedAssociation(null);
+      // }, 1500);
     } catch (error) {
       console.error("Error confirming association:", error);
-      
-      // Extract detailed error message
-      const errorMessage = error.details?.message || error.message || "An unexpected error occurred";
-      setProcessingError(errorMessage);
-      
-      // Show toast for immediate feedback
-      toast.error("Failed to process call: " + errorMessage);
+      toast.error("Failed to process call: " + error.message);
       setIsProcessing(false);
-      setHasRetried(true);
     }
   };
 
-  const handleRetry = () => {
-    setProcessingError(null);
-    setHasRetried(false);
-    handleConfirm();
-  };
   return (
-    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="w-[480px] max-w-[90vw] min-w-[35vw]"
         onInteractOutside={(e) => e.preventDefault()}
-        aria-describedby="process-call-description"
       >
         <DialogHeader>
           <DialogTitle>Process Call Transcript</DialogTitle>
-          <DialogDescription id="process-call-description">
+          <DialogDescription>
             Associate this call transcript with a company and prospect to
             process it.
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4 flex flex-col">
-          {/* Error Display */}
-          {processingError && (
-            <div className="mb-4">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Processing Failed</AlertTitle>
-                <AlertDescription>
-                  {processingError}
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-
           {/* File Information */}
           {/* {console.log(file, "file in process call modal")} */}
           {file != undefined && (
@@ -178,28 +139,11 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
-          {processingError && hasRetried ? (
-            <Button
-              onClick={handleRetry}
-              disabled={!selectedAssociation?.prospect || isProcessing}
-              aria-label="Retry processing"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Retrying...
-                </>
-              ) : (
-                "Retry"
-              )}
-            </Button>
-          ) : (
           <Button
             onClick={handleConfirm}
             disabled={
               !selectedAssociation?.prospect || isProcessing || isComplete
             }
-              aria-label="Process call transcript"
           >
             {isProcessing ? (
               <>
@@ -210,7 +154,6 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
               "Process"
             )}
           </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

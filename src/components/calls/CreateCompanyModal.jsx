@@ -113,29 +113,17 @@ export const CreateCompanyModal = ({ isOpen, onClose, onCompanyCreated }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="company-name" className="text-sm font-medium">
-              Company Name *
-            </Label>
+            <Label htmlFor="company-name">Company Name *</Label>
             <Input
               id="company-name"
               placeholder="Enter company name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               disabled={isLoading}
-              className={errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-              aria-invalid={!!errors.name}
-              aria-describedby={errors.name ? "company-name-error" : undefined}
-              required
+              className={errors.name ? "border-red-500" : ""}
             />
             {errors.name && (
-              <p 
-                id="company-name-error" 
-                className="text-sm text-red-600" 
-                role="alert"
-                aria-live="polite"
-              >
-                {errors.name}
-              </p>
+              <p className="text-sm text-red-600">{errors.name}</p>
             )}
           </div>
         </form>
@@ -146,7 +134,6 @@ export const CreateCompanyModal = ({ isOpen, onClose, onCompanyCreated }) => {
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
-            aria-label="Cancel company creation"
           >
             Cancel
           </Button>
@@ -154,7 +141,6 @@ export const CreateCompanyModal = ({ isOpen, onClose, onCompanyCreated }) => {
             type="submit"
             onClick={handleSubmit}
             disabled={isLoading || !formData.name.trim()}
-            aria-label="Create new company"
           >
             {isLoading ? (
               <>

@@ -115,27 +115,22 @@ export const ProspectSelector = ({
       <CardContent className="space-y-4 px-6 py-5">
         {/* Search */}
         <div className="relative">
-          <label htmlFor="prospect-search-selector" className="sr-only">
+          <label htmlFor="prospect-search" className="sr-only">
             Search prospects by company or name
           </label>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            id="prospect-search-selector"
+            id="prospect-search"
             placeholder="Search prospects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
-            aria-label="Search prospects by company or name"
           />
         </div>
 
         {/* Selected Prospect Details */}
         {selectedProspect && (
-          <div 
-            className="bg-primary/5 border border-primary/20 rounded-lg p-5 space-y-3"
-            role="region"
-            aria-label="Selected prospect details"
-          >
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-5 space-y-3">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold">
@@ -145,7 +140,7 @@ export const ProspectSelector = ({
 
                 {selectedProspect.people?.length > 0 &&
                   selectedProspect.people.map((detail, index) => (
-                    <p key={index} className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {detail.name} {detail.title && "•"} {detail.title}
                     </p>
                   ))}
@@ -156,7 +151,6 @@ export const ProspectSelector = ({
                   "text-xs",
                   getStatusColor(selectedProspect.status)
                 )}
-                aria-label={`Status: ${selectedProspect.status}`}
               >
                 {selectedProspect.status}
               </Badge>
@@ -235,11 +229,7 @@ export const ProspectSelector = ({
         {/* Prospect List */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Select Different Prospect</h4>
-          <div 
-            className="max-h-48 overflow-y-auto space-y-2"
-            role="list"
-            aria-label="Available prospects"
-          >
+          <div className="max-h-48 overflow-y-auto space-y-2">
             {filteredProspects.map((prospect) => (
               <div
                 key={prospect.id}
@@ -250,15 +240,6 @@ export const ProspectSelector = ({
                     : "border-border hover:border-primary/50"
                 )}
                 onClick={() => onProspectSelect(prospect)}
-                role="listitem"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onProspectSelect(prospect);
-                  }
-                }}
-                aria-label={`Select prospect: ${prospect.companyName}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -267,7 +248,7 @@ export const ProspectSelector = ({
                     </h4>
                     {prospect.people?.length > 0 &&
                       prospect.people.map((detail, index) => (
-                        <p key={index} className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {detail.name} {detail.title && "•"} {detail.title}
                         </p>
                       ))}
@@ -275,7 +256,6 @@ export const ProspectSelector = ({
                   <Badge
                     variant="outline"
                     className={cn("text-xs", getStatusColor(prospect.status))}
-                    aria-label={`Status: ${prospect.status}`}
                   >
                     {prospect.status}
                   </Badge>
