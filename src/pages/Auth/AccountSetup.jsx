@@ -38,6 +38,7 @@ const AccountSetup = () => {
   const [error, setError] = useState("");
   const [inviteData, setInviteData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [displayRoleLabel, setDisplayRoleLabel] = useState("User");
   const [stepperConfig, setStepperConfig] = useState({
     showOrgStep: false,
     showUserStep: true,
@@ -198,6 +199,10 @@ const AccountSetup = () => {
         }
         // console.log(config, "195");
         setStepperConfig(config);
+
+        // Set the display role label
+        const roleLabel = await getRoleLabel(invite);
+        setDisplayRoleLabel(roleLabel);
       } catch (err) {
         console.error("Error loading invitation data:", err);
         setError("Failed to load invitation details. Please try again.");
@@ -425,15 +430,15 @@ const AccountSetup = () => {
     }
   };
 
-  const getRoleLabel = async () => {
-    if (inviteData?.title_id) {
+  const getRoleLabel = async (invite = inviteData) => {
+    if (invite?.title_id) {
       const title = await dbHelpers.getRoleIdByTitleName(
-        inviteData.title_id,
-        inviteData?.organization_id
+        invite.title_id,
+        invite?.organization_id
       );
       // console.log(title, "title");
       return title?.name || "User";
-    } else if (inviteData?.organization_id && !inviteData?.title_id) {
+    } else if (invite?.organization_id && !invite?.title_id) {
       return "Organization Member";
     } else {
       return "Organization Administrator";
@@ -553,7 +558,7 @@ const AccountSetup = () => {
                     {inviteData?.email}
                   </p>
                   <p className="text-gray-600">
-                    Setting up as {getRoleLabel()}
+                    Setting up as {displayRoleLabel}
                   </p>
                 </div>
               </div>
@@ -562,7 +567,7 @@ const AccountSetup = () => {
                 className="text-sm px-3 py-1 bg-blue-100 text-blue-800 border-blue-200"
               >
                 <Users className="w-4 h-4 mr-2" />
-                {getRoleLabel()}
+                {displayRoleLabel}
               </Badge>
             </div>
           </CardContent>
