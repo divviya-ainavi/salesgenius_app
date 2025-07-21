@@ -120,6 +120,7 @@ export const CreateCompanyModal = ({ isOpen, onClose, onCompanyCreated }) => {
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               disabled={isLoading}
+              aria-describedby={errors.name ? "company-name-error" : undefined}
               className={errors.name ? "border-red-500" : ""}
             />
             {errors.name && (

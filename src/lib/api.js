@@ -102,6 +102,15 @@ const handleResponseError = async (response, endpoint, method) => {
   // Handle specific status codes
   switch (response.status) {
     case 401:
+      // Check for specific backend error codes if available
+      if (errorData.details && errorData.details.code) {
+        switch (errorData.details.code) {
+          case 'AUTH_TOKEN_EXPIRED':
+            errorData.message = 'Your session has expired. Please log in again.';
+            break;
+          // Add more specific 401 codes if needed
+        }
+      }
       // Unauthorized - clear token and redirect to login
       tokenManager.clearToken();
       errorData.message = 'Authentication required. Please log in again.';
@@ -109,12 +118,26 @@ const handleResponseError = async (response, endpoint, method) => {
       break;
     case 403:
       errorData.message = 'Access forbidden. You don\'t have permission to perform this action.';
+      if (errorData.details && errorData.details.code) {
+        switch (errorData.details.code) {
+          case 'PERMISSION_DENIED':
+            errorData.message = 'You do not have the necessary permissions for this action.';
+            break;
+          case 'ORG_ACCESS_RESTRICTED':
+            errorData.message = 'Access to this organization is restricted.';
+        }
+      }
       break;
     case 404:
       errorData.message = 'Resource not found.';
       break;
     case 429:
       errorData.message = 'Too many requests. Please try again later.';
+      break;
+    case 400: // Bad Request
+      if (errorData.details && errorData.details.message) {
+        errorData.message = `Bad Request: ${errorData.details.message}`;
+      }
       break;
     case 500:
       errorData.message = 'Internal server error. Please try again later.';

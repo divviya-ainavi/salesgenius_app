@@ -56,6 +56,8 @@ export const CallAssociationSelector = ({
   // Loading states
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [loadingProspects, setLoadingProspects] = useState(false);
+  const [companySearchError, setCompanySearchError] = useState(null);
+  const [prospectSearchError, setProspectSearchError] = useState(null);
 
   // Modal states
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
@@ -81,6 +83,12 @@ export const CallAssociationSelector = ({
 
   // Search companies
   useEffect(() => {
+    if (companySearch.trim().length > 0 && companySearch.trim().length < 2) {
+      setCompanySearchError("Please enter at least 2 characters.");
+      setCompanies([]);
+      return;
+    }
+    setCompanySearchError(null);
     const searchCompanies = async () => {
       if (currentState !== SELECTOR_STATES.SELECT_COMPANY) return;
 
@@ -121,6 +129,12 @@ export const CallAssociationSelector = ({
 
   // Search prospects
   useEffect(() => {
+    if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
+      setProspectSearchError("Please enter at least 2 characters.");
+      setProspects([]);
+      return;
+    }
+    setProspectSearchError(null);
     const searchProspects = async () => {
       if (currentState !== SELECTOR_STATES.SELECT_PROSPECT || !selectedCompany)
         return;
@@ -207,6 +221,7 @@ export const CallAssociationSelector = ({
                   value={companySearch}
                   onChange={(e) => setCompanySearch(e.target.value)}
                   className="pl-10"
+                  aria-invalid={companySearchError ? "true" : "false"}
                 />
                 {loadingCompanies && (
                   <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
@@ -214,6 +229,9 @@ export const CallAssociationSelector = ({
               </div>
 
               {/* Company Results */}
+              {companySearchError && (
+                <p className="text-sm text-red-600 mt-1">{companySearchError}</p>
+              )}
               {
                 <div
                   className={
@@ -290,6 +308,7 @@ export const CallAssociationSelector = ({
                   value={prospectSearch}
                   onChange={(e) => setProspectSearch(e.target.value)}
                   className="pl-10"
+                  aria-invalid={prospectSearchError ? "true" : "false"}
                 />
                 {loadingProspects && (
                   <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
@@ -297,6 +316,9 @@ export const CallAssociationSelector = ({
               </div>
 
               {/* Prospect Results - Separate container */}
+              {prospectSearchError && (
+                <p className="text-sm text-red-600 mt-1">{prospectSearchError}</p>
+              )}
               <div className="space-y-3 mt-3">
                 {/* Create New Prospect Button - Moved above the list */}
                 <Button
