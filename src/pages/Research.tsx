@@ -481,7 +481,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   </p>
                 </div> */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label
+                    className="text-sm font-medium"
+                    style={{ color: "grey" }}
+                  >
                     Prospect LinkedIn URLs
                   </label>
 
@@ -489,6 +492,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     <div key={index} className="flex gap-2">
                       <Input
                         type="url"
+                        disabled
                         placeholder="https://www.linkedin.com/in/username"
                         value={url}
                         onChange={(e) =>
@@ -497,6 +501,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       />
                       {formData.prospectLinkedIn.length > 1 && (
                         <Button
+                          disabled
                           type="button"
                           variant="ghost"
                           onClick={() => removeProspectField(index)}
@@ -508,6 +513,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   ))}
 
                   <Button
+                    disabled
                     type="button"
                     variant="outline"
                     onClick={addProspectField}
