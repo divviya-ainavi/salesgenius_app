@@ -160,7 +160,7 @@ export const ProspectSelector = ({
               <div className="flex items-center space-x-2">
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Last Call:</span>
-                <span className="font-medium">
+                <span className="font-medium" aria-label={`Last call date: ${selectedProspect.lastCallDate || "Not available"}`}>
                   {selectedProspect.lastCallDate || "-"}
                 </span>
               </div>

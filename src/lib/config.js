@@ -42,7 +42,7 @@ export const config = {
       getFirefliesTranscriptById: 'get-fireflies-transcripts-byid',
       processSalesCall: 'process-call-data-ai-v2',
       cummulativeSalesData: 'cumulative-comm',
-      userInvite: 'user-invite',
+      userInvite: 'user-invite-dev',
       hubspotConnectionCheck: 'hubspotconnection-check',
       firefliesConnectionCheck: 'FF-check',
       getFirefliesFiles: 'get-FF-transcripts',

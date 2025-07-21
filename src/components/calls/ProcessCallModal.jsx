@@ -94,7 +94,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
                       <p className="font-medium truncate max-w-[300px]">
                         {file?.filename || file?.title}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground" aria-label={`File size ${file?.size} bytes, uploaded on ${new Date(file?.upload_date || file?.date).toLocaleString()}`}>
                         {file?.size} •{" "}
                         {new Date(
                           file?.upload_date || file?.date
