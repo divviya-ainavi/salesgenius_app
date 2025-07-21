@@ -78,6 +78,10 @@ export default {
           '50%': { transform: 'translateY(-5px)' },
         },
       },
+      screens: {
+        'xs': '475px',
+        ...require('tailwindcss/defaultTheme').screens,
+      },
     },
   },
   plugins: [],

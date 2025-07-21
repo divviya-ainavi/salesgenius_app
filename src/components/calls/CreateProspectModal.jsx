@@ -104,17 +104,29 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="prospect-name">Prospect Name *</Label>
+            <Label htmlFor="prospect-name" className="text-sm font-medium">
+              Prospect Name *
+            </Label>
             <Input
               id="prospect-name"
               placeholder="Enter prospect or deal name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               disabled={isLoading}
-              className={errors.name ? 'border-red-500' : ''}
+              className={errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "prospect-name-error" : undefined}
+              required
             />
             {errors.name && (
-              <p className="text-sm text-red-600">{errors.name}</p>
+              <p 
+                id="prospect-name-error" 
+                className="text-sm text-red-600" 
+                role="alert"
+                aria-live="polite"
+              >
+                {errors.name}
+              </p>
             )}
           </div>
         </form>
@@ -125,6 +137,7 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
+            aria-label="Cancel prospect creation"
           >
             Cancel
           </Button>
@@ -132,6 +145,7 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
             type="submit"
             onClick={handleSubmit}
             disabled={isLoading || !formData.name.trim()}
+            aria-label="Create new prospect"
           >
             {isLoading ? (
               <>

@@ -197,19 +197,31 @@ export const CallAssociationSelector = ({
           {/* State 1: Select Company */}
           {currentState === SELECTOR_STATES.SELECT_COMPANY && (
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">
+              <label 
+                htmlFor="company-search" 
+                className="text-sm font-medium text-gray-700"
+              >
                 Select Company
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
+                  id="company-search"
                   placeholder="Search for a company..."
                   value={companySearch}
                   onChange={(e) => setCompanySearch(e.target.value)}
                   className="pl-10"
+                  aria-label="Search for a company"
+                  aria-describedby="company-search-help"
                 />
+                <div id="company-search-help" className="sr-only">
+                  Type to search for existing companies or create a new one
+                </div>
                 {loadingCompanies && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  <Loader2 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" 
+                    aria-label="Loading companies"
+                  />
                 )}
               </div>
 
@@ -221,12 +233,16 @@ export const CallAssociationSelector = ({
                       ? "border border-gray-200 rounded-md max-h-40 min-h-40 overflow-y-auto"
                       : "border border-gray-200 rounded-md overflow-y-auto max-h-40 min-h-40"
                   }
+                  role="listbox"
+                  aria-label="Company options"
                 >
                   <>
                     <Button
                       variant="ghost"
                       className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border-b border-gray-200"
                       onClick={() => setShowCreateCompanyModal(true)}
+                      role="option"
+                      aria-label="Create new company"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Create New Company...
@@ -239,6 +255,8 @@ export const CallAssociationSelector = ({
                           variant="ghost"
                           className="w-full justify-start p-3 hover:bg-gray-50"
                           onClick={() => handleCompanySelect(company)}
+                          role="option"
+                          aria-label={`Select company: ${company.name}`}
                         >
                           <Building className="w-4 h-4 mr-2 text-gray-400" />
                           <div className="text-left">
@@ -274,25 +292,38 @@ export const CallAssociationSelector = ({
                   size="sm"
                   onClick={handleReset}
                   className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  aria-label="Change selected company"
                 >
                   <Edit className="w-5 h-5" />
                 </Button>
               </div>
 
-              <label className="text-sm font-medium text-gray-700">
+              <label 
+                htmlFor="prospect-search" 
+                className="text-sm font-medium text-gray-700"
+              >
                 Select Prospect
               </label>
 
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
+                  id="prospect-search"
                   placeholder="Search for a prospect..."
                   value={prospectSearch}
                   onChange={(e) => setProspectSearch(e.target.value)}
                   className="pl-10"
+                  aria-label="Search for a prospect"
+                  aria-describedby="prospect-search-help"
                 />
+                <div id="prospect-search-help" className="sr-only">
+                  Type to search for existing prospects or create a new one
+                </div>
                 {loadingProspects && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  <Loader2 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" 
+                    aria-label="Loading prospects"
+                  />
                 )}
               </div>
 
@@ -303,6 +334,7 @@ export const CallAssociationSelector = ({
                   variant="ghost"
                   className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border border-gray-200 rounded-md mb-2"
                   onClick={() => setShowCreateProspectModal(true)}
+                  aria-label="Create new prospect"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Prospect...
@@ -311,7 +343,9 @@ export const CallAssociationSelector = ({
                 {/* Prospects List */}
                 <div className="border border-gray-200 rounded-md min-h-40 max-h-40 overflow-y-auto">
                   {loadingProspects ? (
-                    <div className="p-3 space-y-3">
+                  role="listbox"
+                  aria-label="Prospect options"
+                    <div className="p-3 space-y-3" aria-label="Loading prospects">
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
@@ -330,6 +364,9 @@ export const CallAssociationSelector = ({
                               : ""
                           )}
                           onClick={() => handleProspectSelect(prospect)}
+                          role="option"
+                          aria-label={`Select prospect: ${prospect.name}`}
+                          aria-selected={selectedProspect?.id === prospect.id}
                         >
                           <TooltipProvider>
                             <Tooltip>
@@ -339,7 +376,10 @@ export const CallAssociationSelector = ({
                                     {prospect.name}
                                   </span>
                                   {selectedProspect?.id === prospect.id ? (
-                                    <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
+                                    <Check 
+                                      className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" 
+                                      aria-label="Selected"
+                                    />
                                   ) : null}
                                 </div>
                               </TooltipTrigger>
@@ -364,7 +404,7 @@ export const CallAssociationSelector = ({
                   <h3 className="font-medium text-green-800">
                     Selection Complete
                   </h3>
-                  <Check className="w-5 h-5 text-green-600" />
+                  <Check className="w-5 h-5 text-green-600" aria-label="Selection complete" />
                 </div>
 
                 <div className="space-y-2">
@@ -412,6 +452,7 @@ export const CallAssociationSelector = ({
                   className="w-full hover:bg-green-100 transition-colors mt-2"
                   onClick={handleReset}
                   disabled={isProcessing}
+                  aria-label="Change company and prospect selection"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Change Selection
