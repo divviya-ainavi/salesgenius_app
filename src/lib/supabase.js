@@ -1154,6 +1154,22 @@ export const dbHelpers = {
     return data?.role_id;
   },
 
+  async getRoleIdByTitleName(titleId, organizationId) {
+    const { data, error } = await supabase
+      .from("titles")
+      .select("*")
+      .eq("id", titleId)
+      .eq("organization_id", organizationId)
+      .single(); // ensures we get a single object, not an array
+
+    if (error) {
+      console.error("Error fetching role_id from titles:", error);
+      throw error;
+    }
+
+    return data?.name;
+  },
+
   async updateUserProfile(userId, updates) {
     try {
       const { data, error } = await supabase
