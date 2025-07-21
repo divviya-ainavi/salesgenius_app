@@ -425,9 +425,14 @@ const AccountSetup = () => {
     }
   };
 
-  const getRoleLabel = () => {
+  const getRoleLabel = async () => {
     if (inviteData?.title_id) {
-      return "Team Member";
+      const title = await dbHelpers.getRoleIdByTitleName(
+        inviteData.title_id,
+        inviteData?.organization_id
+      );
+      // console.log(title, "title");
+      return title?.name || "User";
     } else if (inviteData?.organization_id && !inviteData?.title_id) {
       return "Organization Member";
     } else {
@@ -658,7 +663,7 @@ const AccountSetup = () => {
                       htmlFor="username"
                       className="text-sm font-semibold text-gray-700"
                     >
-                      Username
+                      Full Name
                     </Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -683,7 +688,7 @@ const AccountSetup = () => {
                       htmlFor="password"
                       className="text-sm font-semibold text-gray-700"
                     >
-                      Password
+                      New Password
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
