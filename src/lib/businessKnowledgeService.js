@@ -6,6 +6,14 @@ class BusinessKnowledgeService {
   // Upload file to Supabase Storage and save metadata to database
   async uploadFile(file, organizationId, uploadedBy, description = '') {
     try {
+      console.log('Starting file upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        organizationId,
+        uploadedBy
+      });
+
       analytics.track('business_knowledge_upload_started', {
         file_name: file.name,
         file_size: file.size,
@@ -16,8 +24,11 @@ class BusinessKnowledgeService {
       // Generate unique filename with timestamp
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop();
-      const uniqueFileName = `${organizationId}/${timestamp}_${file.name}`;
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueFileName = `${organizationId}/${timestamp}_${sanitizedFileName}`;
       
+      console.log('Generated unique filename:', uniqueFileName);
+
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('business-knowledge')
@@ -27,13 +38,18 @@ class BusinessKnowledgeService {
         });
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
+
+      console.log('File uploaded to storage successfully:', uploadData);
 
       // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from('business-knowledge')
         .getPublicUrl(uniqueFileName);
+
+      console.log('Generated public URL:', urlData.publicUrl);
 
       // Save file metadata to database
       const { data: fileRecord, error: dbError } = await supabase
@@ -53,12 +69,21 @@ class BusinessKnowledgeService {
         .single();
 
       if (dbError) {
+        console.error('Database insert error:', dbError);
         // If database insert fails, clean up the uploaded file
-        await supabase.storage
+        try {
+          await supabase.storage
+            .from('business-knowledge')
+            .remove([uniqueFileName]);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
           .from('business-knowledge')
           .remove([uniqueFileName]);
         throw new Error(`Database save failed: ${dbError.message}`);
       }
+
+      console.log('File metadata saved to database:', fileRecord);
 
       analytics.track('business_knowledge_upload_completed', {
         file_id: fileRecord.id,
@@ -82,11 +107,13 @@ class BusinessKnowledgeService {
   // Get all files for an organization
   async getFiles(organizationId, params = {}) {
     try {
+      console.log('Fetching files for organization:', organizationId);
+
       let query = supabase
         .from('business_knowledge_files')
         .select(`
           *,
-          uploader:uploaded_by(full_name, email)
+          uploader:profiles!uploaded_by(full_name, email)
         `)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
@@ -105,6 +132,8 @@ class BusinessKnowledgeService {
       if (error) {
         throw new Error(`Failed to fetch files: ${error.message}`);
       }
+
+      console.log('Fetched files from database:', data);
 
       analytics.track('business_knowledge_files_fetched', {
         organization_id: organizationId,
@@ -125,6 +154,8 @@ class BusinessKnowledgeService {
   // Delete file (both from storage and database)
   async deleteFile(fileId, organizationId) {
     try {
+      console.log('Deleting file:', { fileId, organizationId });
+
       // First, get the file record to get the storage path
       const { data: fileRecord, error: fetchError } = await supabase
         .from('business_knowledge_files')
@@ -136,6 +167,8 @@ class BusinessKnowledgeService {
       if (fetchError || !fileRecord) {
         throw new Error('File not found or access denied');
       }
+
+      console.log('File record found:', fileRecord);
 
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -157,6 +190,8 @@ class BusinessKnowledgeService {
       if (dbError) {
         throw new Error(`Database deletion failed: ${dbError.message}`);
       }
+
+      console.log('File deleted successfully');
 
       analytics.track('business_knowledge_file_deleted', {
         file_id: fileId,
