@@ -57,6 +57,13 @@ const BusinessKnowledgeSection = () => {
   // Get user data from Redux store
   const { user, organizationDetails, userRoleId } = useSelector((state) => state.auth);
 
+  console.log('🔍 BusinessKnowledgeSection - User data:', {
+    userId: user?.id,
+    organizationId: organizationDetails?.id,
+    userRoleId,
+    isOrgAdmin: userRoleId === 2
+  });
+
   // Check if user is org admin (userRoleId === 2)
   const isOrgAdmin = userRoleId === 2;
 
@@ -82,9 +89,9 @@ const BusinessKnowledgeSection = () => {
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-      console.log('📞 Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
+      console.log('📞 Loading files for organization:', organizationDetails.id);
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('📄 Received files data:', filesData);
+      console.log('📄 Loaded files:', filesData?.length || 0, 'files');
       setFiles(filesData);
     } catch (error) {
       console.error('❌ Error loading business knowledge files:', error);
@@ -155,14 +162,15 @@ const BusinessKnowledgeSection = () => {
     setIsUploading(true);
 
     try {
-      await businessKnowledgeService.uploadFile(
+      console.log('📤 Starting upload process...');
+      const uploadedFile = await businessKnowledgeService.uploadFile(
         selectedFile,
         organizationDetails.id,
         user.id,
         uploadDescription
       );
 
-      console.log('✅ Upload completed successfully');
+      console.log('✅ Upload completed successfully:', uploadedFile);
       toast.success(`File "${selectedFile.name}" uploaded successfully`);
       setShowUploadDialog(false);
       setSelectedFile(null);
@@ -190,6 +198,7 @@ const BusinessKnowledgeSection = () => {
     setIsDeleting(true);
 
     try {
+      console.log('🗑️ Starting delete process...');
       await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
       console.log('✅ Delete completed successfully');
       toast.success(`File "${fileToDelete.original_filename}" deleted successfully`);
