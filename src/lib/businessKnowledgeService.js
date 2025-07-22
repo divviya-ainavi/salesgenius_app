@@ -78,8 +78,7 @@ class BusinessKnowledgeService {
         } catch (cleanupError) {
           console.error('Failed to cleanup uploaded file:', cleanupError);
         }
-          .from('business-knowledge')
-          .remove([uniqueFileName]);
+         
         throw new Error(`Database save failed: ${dbError.message}`);
       }
 
