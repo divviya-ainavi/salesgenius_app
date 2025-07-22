@@ -57,11 +57,13 @@ const BusinessKnowledgeSection = () => {
   // Get user data from Redux store
   const { user, organizationDetails, userRoleId } = useSelector((state) => state.auth);
 
-  console.log('🔍 BusinessKnowledgeSection - User data:', {
+  console.log('🔍 BusinessKnowledgeSection - Component mounted with user data:', {
     userId: user?.id,
     organizationId: organizationDetails?.id,
     userRoleId,
-    isOrgAdmin: userRoleId === 2
+    isOrgAdmin: userRoleId === 2,
+    userEmail: user?.email,
+    orgName: organizationDetails?.name
   });
 
   // Check if user is org admin (userRoleId === 2)
@@ -70,14 +72,14 @@ const BusinessKnowledgeSection = () => {
   // Load files on component mount
   useEffect(() => {
     if (organizationDetails?.id && isOrgAdmin) {
-      console.log('🔄 Loading files for organization:', organizationDetails.id, {
+      console.log('🔄 BusinessKnowledgeSection - Loading files for organization:', organizationDetails.id, {
         userId: user?.id,
         userRoleId,
         isOrgAdmin
       });
       loadFiles();
     } else {
-      console.log('⚠️ Not loading files - missing org ID or not org admin:', {
+      console.log('⚠️ BusinessKnowledgeSection - Not loading files - missing org ID or not org admin:', {
         orgId: organizationDetails?.id,
         isOrgAdmin,
         userRoleId
@@ -89,12 +91,12 @@ const BusinessKnowledgeSection = () => {
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-      console.log('📞 Loading files for organization:', organizationDetails.id);
+      console.log('📞 BusinessKnowledgeSection - Calling businessKnowledgeService.getFiles for org:', organizationDetails.id);
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('📄 Loaded files:', filesData?.length || 0, 'files');
+      console.log('📄 BusinessKnowledgeSection - Loaded files:', filesData?.length || 0, 'files', filesData);
       setFiles(filesData);
     } catch (error) {
-      console.error('❌ Error loading business knowledge files:', error);
+      console.error('❌ BusinessKnowledgeSection - Error loading business knowledge files:', error);
       toast.error('Failed to load files: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -103,8 +105,10 @@ const BusinessKnowledgeSection = () => {
 
   // File upload handling
   const onDrop = (acceptedFiles) => {
+    console.log('📁 BusinessKnowledgeSection - Files dropped:', acceptedFiles);
     if (acceptedFiles.length > 0) {
       setSelectedFile(acceptedFiles[0]);
+      console.log('📁 BusinessKnowledgeSection - Selected file for upload:', acceptedFiles[0]);
       setShowUploadDialog(true);
     }
   };
@@ -128,33 +132,38 @@ const BusinessKnowledgeSection = () => {
 
   const handleUpload = async () => {
     if (!selectedFile) {
+      console.error('❌ BusinessKnowledgeSection - No file selected');
       toast.error('Please select a file to upload');
       return;
     }
 
     if (!organizationDetails?.id) {
+      console.error('❌ BusinessKnowledgeSection - No organization ID available');
       toast.error('Organization information not available');
       return;
     }
 
     if (!user?.id) {
+      console.error('❌ BusinessKnowledgeSection - No user ID available');
       toast.error('User information not available');
       return;
     }
 
-    console.log('🚀 Starting upload with:', {
+    console.log('🚀 BusinessKnowledgeSection - Starting upload with:', {
       fileName: selectedFile.name,
       orgId: organizationDetails.id,
       userId: user.id,
       userRoleId,
       isOrgAdmin,
       fileSize: selectedFile.size,
-      fileType: selectedFile.type
+      fileType: selectedFile.type,
+      description: uploadDescription
     });
 
     // Validate file
     const validation = businessKnowledgeService.validateFile(selectedFile);
     if (!validation.isValid) {
+      console.error('❌ BusinessKnowledgeSection - File validation failed:', validation.errors);
       toast.error(validation.errors.join(', '));
       return;
     }
@@ -162,7 +171,7 @@ const BusinessKnowledgeSection = () => {
     setIsUploading(true);
 
     try {
-      console.log('📤 Starting upload process...');
+      console.log('📤 BusinessKnowledgeSection - Calling businessKnowledgeService.uploadFile...');
       const uploadedFile = await businessKnowledgeService.uploadFile(
         selectedFile,
         organizationDetails.id,
@@ -170,14 +179,15 @@ const BusinessKnowledgeSection = () => {
         uploadDescription
       );
 
-      console.log('✅ Upload completed successfully:', uploadedFile);
+      console.log('✅ BusinessKnowledgeSection - Upload completed successfully:', uploadedFile);
       toast.success(`File "${selectedFile.name}" uploaded successfully`);
       setShowUploadDialog(false);
       setSelectedFile(null);
       setUploadDescription('');
+      console.log('🔄 BusinessKnowledgeSection - Refreshing file list...');
       await loadFiles(); // Refresh the file list
     } catch (error) {
-      console.error('❌ Error uploading file:', error);
+      console.error('❌ BusinessKnowledgeSection - Error uploading file:', error);
       toast.error('Failed to upload file: ' + error.message);
     } finally {
       setIsUploading(false);
@@ -186,11 +196,13 @@ const BusinessKnowledgeSection = () => {
 
   const handleDelete = async () => {
     if (!fileToDelete) {
+      console.error('❌ BusinessKnowledgeSection - No file selected for deletion');
       toast.error('No file selected for deletion');
       return;
     }
 
     if (!organizationDetails?.id) {
+      console.error('❌ BusinessKnowledgeSection - No organization ID for deletion');
       toast.error('Organization information not available');
       return;
     }
@@ -198,15 +210,16 @@ const BusinessKnowledgeSection = () => {
     setIsDeleting(true);
 
     try {
-      console.log('🗑️ Starting delete process...');
+      console.log('🗑️ BusinessKnowledgeSection - Starting delete process for file:', fileToDelete.id);
       await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
-      console.log('✅ Delete completed successfully');
+      console.log('✅ BusinessKnowledgeSection - Delete completed successfully');
       toast.success(`File "${fileToDelete.original_filename}" deleted successfully`);
       setShowDeleteDialog(false);
       setFileToDelete(null);
+      console.log('🔄 BusinessKnowledgeSection - Refreshing file list after deletion...');
       await loadFiles(); // Refresh the file list
     } catch (error) {
-      console.error('❌ Error deleting file:', error);
+      console.error('❌ BusinessKnowledgeSection - Error deleting file:', error);
       toast.error('Failed to delete file: ' + error.message);
     } finally {
       setIsDeleting(false);
@@ -220,21 +233,21 @@ const BusinessKnowledgeSection = () => {
 
   const handleDownload = async (file) => {
     try {
-      console.log('📥 Attempting to download file:', file.original_filename);
+      console.log('📥 BusinessKnowledgeSection - Attempting to download file:', file.original_filename);
       if (file.file_url) {
         // Open the file URL in a new tab
-        console.log('🔗 Using direct file URL:', file.file_url);
+        console.log('🔗 BusinessKnowledgeSection - Using direct file URL:', file.file_url);
         window.open(file.file_url, '_blank');
       } else {
         // Create a signed URL for download
-        console.log('🔐 Creating signed URL for:', file.storage_path);
+        console.log('🔐 BusinessKnowledgeSection - Creating signed URL for:', file.storage_path);
         const downloadUrl = await businessKnowledgeService.getDownloadUrl(file.storage_path);
         window.open(downloadUrl, '_blank');
       }
       
       toast.success(`Opening "${file.original_filename}" for download`);
     } catch (error) {
-      console.error('❌ Error downloading file:', error);
+      console.error('❌ BusinessKnowledgeSection - Error downloading file:', error);
       toast.error('Failed to download file: ' + error.message);
     }
   };
@@ -258,8 +271,11 @@ const BusinessKnowledgeSection = () => {
 
   // Don't render anything if user is not org admin
   if (!isOrgAdmin) {
+    console.log('🚫 BusinessKnowledgeSection - User is not org admin, not rendering component');
     return null;
   }
+
+  console.log('🎨 BusinessKnowledgeSection - Rendering component with', files.length, 'files');
 
   return (
     <Card>

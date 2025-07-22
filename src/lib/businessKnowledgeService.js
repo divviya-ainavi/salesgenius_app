@@ -7,21 +7,23 @@ class BusinessKnowledgeService {
   // Upload file to Supabase Storage and save metadata to database
   async uploadFile(file, organizationId, uploadedBy, description = '') {
     try {
-      console.log('🚀 Starting file upload:', {
+      console.log('🚀 BusinessKnowledgeService - Starting file upload:', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
         organizationId,
         uploadedBy,
-        currentUser: CURRENT_USER
+        description
       });
 
       // Validate inputs
       if (!organizationId) {
-        throw new Error('Organization ID is required for file upload');
+        console.error('❌ Missing organization ID');
+        throw new Error('Organization ID is required for file upload. Please ensure you are logged in and belong to an organization.');
       }
       if (!uploadedBy) {
-        throw new Error('User ID is required for file upload');
+        console.error('❌ Missing user ID');
+        throw new Error('User ID is required for file upload. Please ensure you are logged in.');
       }
 
       analytics.track('business_knowledge_upload_started', {
@@ -34,26 +36,29 @@ class BusinessKnowledgeService {
       // Generate unique filename with timestamp
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const uniqueFileName = `${organizationId}/${timestamp}_${sanitizedFileName}`;
       
-      console.log('📁 Generated unique filename:', uniqueFileName);
+      console.log('📁 BusinessKnowledgeService - Generated unique filename:', uniqueFileName);
 
-      // Check if bucket exists
+      // Check if bucket exists and log available buckets
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      console.log('📦 Available buckets:', buckets?.map(b => b.name));
+      console.log('📦 BusinessKnowledgeService - Available buckets:', buckets?.map(b => b.name));
       
       if (bucketsError) {
-        console.error('❌ Error listing buckets:', bucketsError);
+        console.error('❌ BusinessKnowledgeService - Error listing buckets:', bucketsError);
       }
 
       const bucketExists = buckets?.some(bucket => bucket.name === 'business-knowledge');
+      console.log('🔍 BusinessKnowledgeService - Bucket exists check:', { bucketExists, buckets: buckets?.map(b => b.name) });
+      
       if (!bucketExists) {
-        console.error('❌ business-knowledge bucket does not exist');
-        throw new Error('Storage bucket not configured. Please contact administrator.');
+        console.error('❌ BusinessKnowledgeService - business-knowledge bucket does not exist. Available buckets:', buckets?.map(b => b.name));
+        throw new Error('Storage bucket "business-knowledge" not found. Please run the database migration to create it.');
       }
 
       // Upload file to Supabase Storage
+      console.log('📤 BusinessKnowledgeService - Starting storage upload...');
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('business-knowledge')
         .upload(uniqueFileName, file, {
@@ -62,20 +67,21 @@ class BusinessKnowledgeService {
         });
 
       if (uploadError) {
-        console.error('❌ Storage upload error:', uploadError);
+        console.error('❌ BusinessKnowledgeService - Storage upload error:', uploadError);
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
 
-      console.log('✅ File uploaded to storage successfully:', uploadData);
+      console.log('✅ BusinessKnowledgeService - File uploaded to storage successfully:', uploadData);
 
       // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from('business-knowledge')
         .getPublicUrl(uniqueFileName);
 
-      console.log('🔗 Generated public URL:', urlData.publicUrl);
+      console.log('🔗 BusinessKnowledgeService - Generated public URL:', urlData.publicUrl);
 
       // Save file metadata to database
+      console.log('💾 BusinessKnowledgeService - Saving metadata to database...');
       const { data: fileRecord, error: dbError } = await supabase
         .from('business_knowledge_files')
         .insert([{
@@ -93,21 +99,21 @@ class BusinessKnowledgeService {
         .single();
 
       if (dbError) {
-        console.error('❌ Database insert error:', dbError);
+        console.error('❌ BusinessKnowledgeService - Database insert error:', dbError);
         // If database insert fails, clean up the uploaded file
         try {
           await supabase.storage
             .from('business-knowledge')
             .remove([uniqueFileName]);
-          console.log('🧹 Cleaned up uploaded file after database error');
+          console.log('🧹 BusinessKnowledgeService - Cleaned up uploaded file after database error');
         } catch (cleanupError) {
-          console.error('❌ Failed to cleanup uploaded file:', cleanupError);
+          console.error('❌ BusinessKnowledgeService - Failed to cleanup uploaded file:', cleanupError);
         }
          
         throw new Error(`Database save failed: ${dbError.message}`);
       }
 
-      console.log('💾 File metadata saved to database:', fileRecord);
+      console.log('💾 BusinessKnowledgeService - File metadata saved to database:', fileRecord);
 
       analytics.track('business_knowledge_upload_completed', {
         file_id: fileRecord.id,
@@ -131,10 +137,10 @@ class BusinessKnowledgeService {
   // Get all files for an organization
   async getFiles(organizationId, params = {}) {
     try {
-      console.log('📋 Fetching files for organization:', organizationId);
+      console.log('📋 BusinessKnowledgeService - Fetching files for organization:', organizationId);
 
       if (!organizationId) {
-        console.warn('⚠️ No organization ID provided');
+        console.warn('⚠️ BusinessKnowledgeService - No organization ID provided');
         return [];
       }
 
@@ -142,7 +148,7 @@ class BusinessKnowledgeService {
         .from('business_knowledge_files')
         .select(`
           *,
-          uploader:profiles!business_knowledge_files_uploaded_by_fkey(full_name, email)
+          uploader:uploaded_by(full_name, email)
         `)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
@@ -159,11 +165,11 @@ class BusinessKnowledgeService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('❌ Error fetching files:', error);
+        console.error('❌ BusinessKnowledgeService - Error fetching files:', error);
         throw new Error(`Failed to fetch files: ${error.message}`);
       }
 
-      console.log('📄 Fetched files from database:', data);
+      console.log('📄 BusinessKnowledgeService - Fetched files from database:', data?.length || 0, 'files');
 
       analytics.track('business_knowledge_files_fetched', {
         organization_id: organizationId,
@@ -184,7 +190,7 @@ class BusinessKnowledgeService {
   // Delete file (both from storage and database)
   async deleteFile(fileId, organizationId) {
     try {
-      console.log('🗑️ Deleting file:', { fileId, organizationId });
+      console.log('🗑️ BusinessKnowledgeService - Deleting file:', { fileId, organizationId });
 
       // First, get the file record to get the storage path
       const { data: fileRecord, error: fetchError } = await supabase
@@ -198,7 +204,7 @@ class BusinessKnowledgeService {
         throw new Error('File not found or access denied');
       }
 
-      console.log('📁 File record found:', fileRecord);
+      console.log('📁 BusinessKnowledgeService - File record found:', fileRecord);
 
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -206,10 +212,10 @@ class BusinessKnowledgeService {
         .remove([fileRecord.storage_path]);
 
       if (storageError) {
-        console.warn('⚠️ Failed to delete file from storage:', storageError);
+        console.warn('⚠️ BusinessKnowledgeService - Failed to delete file from storage:', storageError);
         // Continue with database deletion even if storage deletion fails
       } else {
-        console.log('🗑️ File deleted from storage successfully');
+        console.log('🗑️ BusinessKnowledgeService - File deleted from storage successfully');
       }
 
       // Delete from database
@@ -220,11 +226,11 @@ class BusinessKnowledgeService {
         .eq('organization_id', organizationId);
 
       if (dbError) {
-        console.error('❌ Database deletion error:', dbError);
+        console.error('❌ BusinessKnowledgeService - Database deletion error:', dbError);
         throw new Error(`Database deletion failed: ${dbError.message}`);
       }
 
-      console.log('✅ File deleted successfully');
+      console.log('✅ BusinessKnowledgeService - File deleted successfully');
 
       analytics.track('business_knowledge_file_deleted', {
         file_id: fileId,
