@@ -174,7 +174,7 @@ const AccountSetup = () => {
           showUserStep: true,
           totalSteps: 1,
         };
-
+        console.log(hasOrgId, hasTitleId, "has org id", invite);
         if (hasOrgId && hasTitleId) {
           // Case 1: Both organization_id and title_id present - Show only User Details
           config = {

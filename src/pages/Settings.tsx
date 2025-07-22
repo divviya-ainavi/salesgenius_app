@@ -1129,13 +1129,15 @@ export const Settings = () => {
             <Shield className="w-4 h-4" />
             <span>Security</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="ai-training"
-            className="flex items-center space-x-2"
-          >
-            <Brain className="w-4 h-4" />
-            <span>AI Training</span>
-          </TabsTrigger>
+          {userRoleId == 2 && (
+            <TabsTrigger
+              value="ai-training"
+              className="flex items-center space-x-2"
+            >
+              <Brain className="w-4 h-4" />
+              <span>AI Training</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="analytics"
             className="flex items-center space-x-2"
