@@ -2080,8 +2080,107 @@ export const Settings = () => {
                       <p className="text-sm text-muted-foreground">
                         Connect your HubSpot account to enable CRM integration
                         features.
-                <BusinessKnowledgeSection />
-              )} */}
+                      </p>
+
+                      {!isEditingHubspot ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="hubspot-token">
+                            HubSpot Access Token
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="hubspot-token"
+                              type="password"
+                              placeholder="Enter your HubSpot access token"
+                              value={hubspotToken}
+                              onChange={(e) => setHubspotToken(e.target.value)}
+                              className={hubspotError ? "border-red-500" : ""}
+                            />
+                          </div>
+                          {hubspotError && (
+                            <p className="text-sm text-red-600">
+                              {hubspotError}
+                            </p>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your HubSpot
+                              access token in your HubSpot account under:
+                            </p>
+                            <p>
+                              Settings → Integrations → Private Apps → Create
+                              Token
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="hubspot-token-edit">
+                            New HubSpot Access Token
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="hubspot-token-edit"
+                              type="password"
+                              placeholder="Enter new HubSpot access token"
+                              value={hubspotToken}
+                              onChange={(e) => setHubspotToken(e.target.value)}
+                              className={hubspotError ? "border-red-500" : ""}
+                            />
+                          </div>
+                          {hubspotError && (
+                            <p className="text-sm text-red-600">
+                              {hubspotError}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={validateHubspotToken}
+                          disabled={
+                            isCheckingHubSpot || !hubspotToken.trim()
+                          }
+                          className="flex-1"
+                        >
+                          {isCheckingHubSpot ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect HubSpot
+                            </>
+                          )}
+                        </Button>
+
+                        {isEditingHubspot && (
+                          <Button
+                            variant="outline"
+                            onClick={handleCancelEditHubspot}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <BusinessKnowledgeSection />
+            </div>
+          </TabsContent>
+        )}
+
+        {/* Users Management */}
+        {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
+          <TabsContent value="users" className="mt-6">
+            <div className="space-y-6">
+              {/* Invite User */}
               {(userRole?.id == 2 || user?.title_id == null) && (
                 <Card>
                   <CardHeader>
