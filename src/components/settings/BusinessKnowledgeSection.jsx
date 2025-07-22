@@ -63,26 +63,31 @@ const BusinessKnowledgeSection = () => {
   // Load files on component mount
   useEffect(() => {
     if (organizationDetails?.id && isOrgAdmin) {
-      console.log('Loading files for organization:', organizationDetails.id);
+      console.log('🔄 Loading files for organization:', organizationDetails.id, {
+        userId: user?.id,
+        userRoleId,
+        isOrgAdmin
+      });
       loadFiles();
     } else {
-      console.log('Not loading files - missing org ID or not org admin:', {
+      console.log('⚠️ Not loading files - missing org ID or not org admin:', {
         orgId: organizationDetails?.id,
         isOrgAdmin,
         userRoleId
       });
+      setIsLoading(false);
     }
   }, [organizationDetails?.id, isOrgAdmin]);
 
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-      console.log('Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
+      console.log('📞 Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('Received files data:', filesData);
+      console.log('📄 Received files data:', filesData);
       setFiles(filesData);
     } catch (error) {
-      console.error('Error loading business knowledge files:', error);
+      console.error('❌ Error loading business knowledge files:', error);
       toast.error('Failed to load files: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -130,12 +135,14 @@ const BusinessKnowledgeSection = () => {
       return;
     }
 
-    console.log('Starting upload with:', {
+    console.log('🚀 Starting upload with:', {
       fileName: selectedFile.name,
       orgId: organizationDetails.id,
       userId: user.id,
       userRoleId,
-      isOrgAdmin
+      isOrgAdmin,
+      fileSize: selectedFile.size,
+      fileType: selectedFile.type
     });
 
     // Validate file
@@ -155,13 +162,14 @@ const BusinessKnowledgeSection = () => {
         uploadDescription
       );
 
-      toast.success('File uploaded successfully');
+      console.log('✅ Upload completed successfully');
+      toast.success(`File "${selectedFile.name}" uploaded successfully`);
       setShowUploadDialog(false);
       setSelectedFile(null);
       setUploadDescription('');
       await loadFiles(); // Refresh the file list
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('❌ Error uploading file:', error);
       toast.error('Failed to upload file: ' + error.message);
     } finally {
       setIsUploading(false);
@@ -183,12 +191,13 @@ const BusinessKnowledgeSection = () => {
 
     try {
       await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
-      toast.success('File deleted successfully');
+      console.log('✅ Delete completed successfully');
+      toast.success(`File "${fileToDelete.original_filename}" deleted successfully`);
       setShowDeleteDialog(false);
       setFileToDelete(null);
       await loadFiles(); // Refresh the file list
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('❌ Error deleting file:', error);
       toast.error('Failed to delete file: ' + error.message);
     } finally {
       setIsDeleting(false);
@@ -202,18 +211,21 @@ const BusinessKnowledgeSection = () => {
 
   const handleDownload = async (file) => {
     try {
+      console.log('📥 Attempting to download file:', file.original_filename);
       if (file.file_url) {
         // Open the file URL in a new tab
+        console.log('🔗 Using direct file URL:', file.file_url);
         window.open(file.file_url, '_blank');
       } else {
         // Create a signed URL for download
+        console.log('🔐 Creating signed URL for:', file.storage_path);
         const downloadUrl = await businessKnowledgeService.getDownloadUrl(file.storage_path);
         window.open(downloadUrl, '_blank');
       }
       
-      toast.success('File opened for download');
+      toast.success(`Opening "${file.original_filename}" for download`);
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('❌ Error downloading file:', error);
       toast.error('Failed to download file: ' + error.message);
     }
   };
