@@ -62,15 +62,24 @@ const BusinessKnowledgeSection = () => {
 
   // Load files on component mount
   useEffect(() => {
-    if (organizationDetails?.id) {
+    if (organizationDetails?.id && isOrgAdmin) {
+      console.log('Loading files for organization:', organizationDetails.id);
       loadFiles();
+    } else {
+      console.log('Not loading files - missing org ID or not org admin:', {
+        orgId: organizationDetails?.id,
+        isOrgAdmin,
+        userRoleId
+      });
     }
-  }, [organizationDetails?.id]);
+  }, [organizationDetails?.id, isOrgAdmin]);
 
   const loadFiles = async () => {
     try {
       setIsLoading(true);
+      console.log('Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
+      console.log('Received files data:', filesData);
       setFiles(filesData);
     } catch (error) {
       console.error('Error loading business knowledge files:', error);
@@ -106,10 +115,28 @@ const BusinessKnowledgeSection = () => {
   });
 
   const handleUpload = async () => {
-    if (!selectedFile || !organizationDetails?.id || !user?.id) {
-      toast.error('Missing required information for upload');
+    if (!selectedFile) {
+      toast.error('Please select a file to upload');
       return;
     }
+
+    if (!organizationDetails?.id) {
+      toast.error('Organization information not available');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('User information not available');
+      return;
+    }
+
+    console.log('Starting upload with:', {
+      fileName: selectedFile.name,
+      orgId: organizationDetails.id,
+      userId: user.id,
+      userRoleId,
+      isOrgAdmin
+    });
 
     // Validate file
     const validation = businessKnowledgeService.validateFile(selectedFile);
@@ -132,7 +159,7 @@ const BusinessKnowledgeSection = () => {
       setShowUploadDialog(false);
       setSelectedFile(null);
       setUploadDescription('');
-      loadFiles(); // Refresh the file list
+      await loadFiles(); // Refresh the file list
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Failed to upload file: ' + error.message);
@@ -142,7 +169,15 @@ const BusinessKnowledgeSection = () => {
   };
 
   const handleDelete = async () => {
-    if (!fileToDelete || !organizationDetails?.id) return;
+    if (!fileToDelete) {
+      toast.error('No file selected for deletion');
+      return;
+    }
+
+    if (!organizationDetails?.id) {
+      toast.error('Organization information not available');
+      return;
+    }
 
     setIsDeleting(true);
 
@@ -151,7 +186,7 @@ const BusinessKnowledgeSection = () => {
       toast.success('File deleted successfully');
       setShowDeleteDialog(false);
       setFileToDelete(null);
-      loadFiles(); // Refresh the file list
+      await loadFiles(); // Refresh the file list
     } catch (error) {
       console.error('Error deleting file:', error);
       toast.error('Failed to delete file: ' + error.message);
@@ -345,7 +380,7 @@ const BusinessKnowledgeSection = () => {
                       </span>
                       <span className="flex items-center space-x-1">
                         <User className="w-3 h-3" />
-                        <span>{file.uploader?.full_name || 'Unknown'}</span>
+                        <span>{file.uploader?.full_name || file.uploaded_by || 'Unknown'}</span>
                       </span>
                       <span>{formatFileSize(file.file_size)}</span>
                     </div>
@@ -423,7 +458,7 @@ const BusinessKnowledgeSection = () => {
                   </div>
                   <div>
                     <span className="font-medium">Uploaded By:</span>
-                    <p className="text-muted-foreground">{selectedFile.uploader?.full_name || 'Unknown'}</p>
+                    <p className="text-muted-foreground">{selectedFile.uploader?.full_name || selectedFile.uploaded_by || 'Unknown'}</p>
                   </div>
                   <div>
                     <span className="font-medium">Upload Date:</span>
