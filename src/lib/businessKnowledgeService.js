@@ -1,11 +1,19 @@
 import { supabase } from './supabase';
 import { analytics } from './analytics';
+import { CURRENT_USER } from './supabase';
 
 // Business Knowledge Service for handling file operations
 class BusinessKnowledgeService {
   // Upload file to Supabase Storage and save metadata to database
   async uploadFile(file, organizationId, uploadedBy, description = '') {
     try {
+      console.log('Starting file upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        organizationId,
+        uploadedBy
+      });
+
       analytics.track('business_knowledge_upload_started', {
         file_name: file.name,
         file_size: file.size,
@@ -16,8 +24,11 @@ class BusinessKnowledgeService {
       // Generate unique filename with timestamp
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop();
-      const uniqueFileName = `${organizationId}/${timestamp}_${file.name}`;
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueFileName = `${organizationId}/${timestamp}_${sanitizedFileName}`;
       
+      console.log('Uploading to storage with filename:', uniqueFileName);
+
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('business-knowledge')
@@ -27,13 +38,18 @@ class BusinessKnowledgeService {
         });
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         throw new Error(`File upload failed: ${uploadError.message}`);
       }
+
+      console.log('Storage upload successful:', uploadData);
 
       // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from('business-knowledge')
         .getPublicUrl(uniqueFileName);
+
+      console.log('Generated public URL:', urlData.publicUrl);
 
       // Save file metadata to database
       const { data: fileRecord, error: dbError } = await supabase
@@ -53,12 +69,21 @@ class BusinessKnowledgeService {
         .single();
 
       if (dbError) {
+        console.error('Database save error:', dbError);
         // If database insert fails, clean up the uploaded file
-        await supabase.storage
+        try {
+          await supabase.storage
+            .from('business-knowledge')
+            .remove([uniqueFileName]);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
           .from('business-knowledge')
           .remove([uniqueFileName]);
         throw new Error(`Database save failed: ${dbError.message}`);
       }
+
+      console.log('File record saved to database:', fileRecord);
 
       analytics.track('business_knowledge_upload_completed', {
         file_id: fileRecord.id,
