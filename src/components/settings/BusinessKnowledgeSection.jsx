@@ -107,11 +107,6 @@ const BusinessKnowledgeSection = () => {
 
   const handleUpload = async () => {
     if (!selectedFile || !organizationDetails?.id || !user?.id) {
-      console.error('Missing required data for upload:', {
-        hasFile: !!selectedFile,
-        hasOrgId: !!organizationDetails?.id,
-        hasUserId: !!user?.id
-      });
       toast.error('Missing required information for upload');
       return;
     }
@@ -119,29 +114,20 @@ const BusinessKnowledgeSection = () => {
     // Validate file
     const validation = businessKnowledgeService.validateFile(selectedFile);
     if (!validation.isValid) {
-      console.error('File validation failed:', validation.errors);
       toast.error(validation.errors.join(', '));
       return;
     }
 
-    console.log('Starting upload process:', {
-      fileName: selectedFile.name,
-      organizationId: organizationDetails.id,
-      userId: user.id,
-      description: uploadDescription
-    });
-
     setIsUploading(true);
 
     try {
-      const result = await businessKnowledgeService.uploadFile(
+      await businessKnowledgeService.uploadFile(
         selectedFile,
         organizationDetails.id,
         user.id,
         uploadDescription
       );
 
-      console.log('Upload completed successfully:', result);
       toast.success('File uploaded successfully');
       setShowUploadDialog(false);
       setSelectedFile(null);
@@ -149,7 +135,7 @@ const BusinessKnowledgeSection = () => {
       loadFiles(); // Refresh the file list
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload file: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to upload file: ' + error.message);
     } finally {
       setIsUploading(false);
     }
