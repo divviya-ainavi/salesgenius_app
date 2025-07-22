@@ -436,8 +436,8 @@ const AccountSetup = () => {
         invite.title_id,
         invite?.organization_id
       );
-      // console.log(title, "title");
-      return title?.name || "User";
+      console.log(title, "title");
+      return title || "User";
     } else if (invite?.organization_id && !invite?.title_id) {
       return "Organization Member";
     } else {
@@ -673,6 +673,7 @@ const AccountSetup = () => {
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="username"
                         type="text"
                         placeholder="Choose a username"
@@ -698,6 +699,7 @@ const AccountSetup = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
@@ -812,6 +814,7 @@ const AccountSetup = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"

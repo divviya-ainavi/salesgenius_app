@@ -654,11 +654,13 @@ export const SalesCalls = () => {
                 } else {
                   dispatch(setCummulativeSpin(false));
                 }
+              } else {
+                dispatch(setCummulativeSpin(false));
               }
             } catch (err) {
+              dispatch(setCummulativeSpin(false));
               console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
-              dispatch(setCummulativeSpin(false));
             }
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);

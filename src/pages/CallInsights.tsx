@@ -1300,6 +1300,7 @@ const CallInsights = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {console.log(cummulativeSpinner, "cummulative spinner")}
               {cummulativeSpinner ? (
                 <div className="space-y-6">
                   {/* Skeleton for stakeholder cards */}
