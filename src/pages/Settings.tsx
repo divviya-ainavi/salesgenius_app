@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import BusinessKnowledgeSection from "@/components/settings/BusinessKnowledgeSection";
 import {
   Settings as SettingsIcon,
   Shield,
@@ -2079,85 +2080,7 @@ export const Settings = () => {
                       <p className="text-sm text-muted-foreground">
                         Connect your HubSpot account to enable CRM integration
                         features.
-                      </p>
-                      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                          <p className="text-sm font-medium text-yellow-900">
-                            HubSpot Not Connected
-                          </p>
-                        </div>
-                        <p className="text-xs text-yellow-700">
-                          Connect your HubSpot account to enable CRM integration
-                          features.
-                        </p>
-                      </div> */}
-
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          HubSpot Access Token
-                        </label>
-                        <Input
-                          value={hubspotToken}
-                          onChange={(e) => {
-                            setHubspotToken(e.target.value);
-                            setHubspotError(""); // Clear error when user types
-                          }}
-                          placeholder="Enter your HubSpot Access Token"
-                          disabled={isCheckingHubSpot}
-                        />
-                        {hubspotError && (
-                          <p className="text-sm text-red-600 mt-2">
-                            {hubspotError}
-                          </p>
-                        )}
-                      </div>
-
-                      <Button
-                        onClick={validateHubspotToken}
-                        disabled={!hubspotToken.trim() || isCheckingHubSpot}
-                        className="w-full"
-                      >
-                        {isCheckingHubSpot ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                            Validating Token...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Connect HubSpot
-                          </>
-                        )}
-                      </Button>
-                      <div className="text-xs text-muted-foreground">
-                        <p className="mb-1">
-                          <strong>Note:</strong> You can find your HubSpot
-                          Access Token in your HubSpot account under:
-                        </p>
-                        <p>
-                          Settings → Integrations → Private Apps → Create/View
-                          Token
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        )}
-
-        {/* User Management */}
-        {canManageUsers && (
-          <TabsContent value="users" className="mt-6">
-            <div className="space-y-6">
-              {/* Invite User */}
-              {/* {console.log(
-                userRoleId,
-                userRole,
-                "check details from settings",
-                user
+                <BusinessKnowledgeSection />
               )} */}
               {(userRole?.id == 2 || user?.title_id == null) && (
                 <Card>
