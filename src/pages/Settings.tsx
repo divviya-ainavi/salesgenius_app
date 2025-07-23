@@ -2949,7 +2949,7 @@ export const Settings = () => {
                               : "Click to browse or drag and drop files here"}
                         </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, MP4, PPT (Max 100MB)
+                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
                           </p>
                         </>
                       )}
