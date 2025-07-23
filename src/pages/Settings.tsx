@@ -875,17 +875,23 @@ export const Settings = () => {
     }
   };
 
-  const { getRootProps: getBusinessRootProps, getInputProps: getBusinessInputProps, isDragActive: isBusinessDragActive } = useDropzone({
+  const {
+    getRootProps: getBusinessRootProps,
+    getInputProps: getBusinessInputProps,
+    isDragActive: isBusinessDragActive,
+  } = useDropzone({
     onDrop: onDropBusiness,
     accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'text/plain': ['.txt'],
-      'video/mp4': ['.mp4'],
-      'video/quicktime': ['.mov'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "text/plain": [".txt"],
+      "video/mp4": [".mp4"],
+      "video/quicktime": [".mov"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
     },
     maxFiles: 1,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -995,10 +1001,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteMaterial = (
-    materialId,
-    category
-  ) => {
+  const handleDeleteMaterial = (materialId, category) => {
     if (category === "business") {
       handleDeleteBusinessMaterial(materialId);
     } else {
@@ -1016,12 +1019,13 @@ export const Settings = () => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
-      
+      await dbHelpers.updateIsActiveFalseByUploadedId(materialId);
+
       // Update UI by removing the file from the list
-      setInternalUploadedFiles((prev) => 
+      setInternalUploadedFiles((prev) =>
         prev.filter((file) => file.id !== materialId)
       );
-      
+
       toast.success("Business material deleted successfully");
     } catch (error) {
       console.error("Error deleting business material:", error);
@@ -2926,7 +2930,10 @@ export const Settings = () => {
                           Uploading business material...
                         </span>
                       </div>
-                      <Progress value={businessUploadProgress} className="w-full" />
+                      <Progress
+                        value={businessUploadProgress}
+                        className="w-full"
+                      />
                       <p className="text-sm text-blue-700 mt-2">
                         {businessUploadProgress < 50
                           ? "Uploading file..."
@@ -2958,17 +2965,17 @@ export const Settings = () => {
                         </>
                       ) : (
                         <>
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium">
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
                             {isBusinessDragActive
                               ? "Drop the file here"
                               : "Upload Business Material"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
+                          </p>
+                          <p className="text-xs text-muted-foreground">
                             {isBusinessDragActive
                               ? "Release to upload"
                               : "Click to browse or drag and drop files here"}
-                        </p>
+                          </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             PDF, DOC, TXT, MP4, PPT (Max 10MB)
                           </p>

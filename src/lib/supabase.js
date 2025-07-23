@@ -604,6 +604,57 @@ export const dbHelpers = {
     }
   },
 
+  async updateInternalUploadedFileStatus(id, isActiveValue) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .update({ is_active: isActiveValue })
+        .eq('id', id);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating is_active status:', error);
+      throw error;
+    }
+  },
+
+  async updateIsActiveFalseByUploadedId(uploadedId) {
+    try {
+      // Step 1: Fetch matching documents based on uploaded_id inside metadata
+      const { data: docs, error: fetchError } = await supabase
+        .from('documents')
+        .select('id, metadata')
+        .filter('metadata->>file_id', 'eq', uploadedId);
+
+      if (fetchError) throw fetchError;
+
+      if (!docs.length) return [];
+
+      // Step 2: Update is_active to false in each document
+      const updatePromises = docs.map(doc => {
+        const updatedMetadata = {
+          ...doc.metadata,
+          is_active: false,
+        };
+
+        return supabase
+          .from('documents')
+          .update({ metadata: updatedMetadata })
+          .eq('id', doc.id);
+      });
+
+      // Step 3: Wait for all updates
+      const results = await Promise.all(updatePromises);
+
+      return results.map(res => res.data).flat();
+    } catch (error) {
+      console.error('Error updating is_active by uploaded_id:', error);
+      throw error;
+    }
+  },
+
+
   async getFilteredFiles(file_id) {
     try {
       const { data, error } = await supabase
