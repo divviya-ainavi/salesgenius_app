@@ -999,13 +999,34 @@ export const Settings = () => {
     materialId,
     category
   ) => {
-    setTrainingMaterials((prev) => ({
-      ...prev,
-      [category]: prev[category].filter(
-        (material) => material.id !== materialId
-      ),
-    }));
-    toast.success("Training material deleted");
+    if (category === "business") {
+      handleDeleteBusinessMaterial(materialId);
+    } else {
+      setTrainingMaterials((prev) => ({
+        ...prev,
+        [category]: prev[category].filter(
+          (material) => material.id !== materialId
+        ),
+      }));
+      toast.success("Training material deleted");
+    }
+  };
+
+  const handleDeleteBusinessMaterial = async (materialId: string) => {
+    try {
+      // Update is_active to false in database
+      await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
+      
+      // Update UI by removing the file from the list
+      setInternalUploadedFiles((prev) => 
+        prev.filter((file) => file.id !== materialId)
+      );
+      
+      toast.success("Business material deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business material:", error);
+      toast.error("Failed to delete business material");
+    }
   };
 
   const generateApiKey = () => {
