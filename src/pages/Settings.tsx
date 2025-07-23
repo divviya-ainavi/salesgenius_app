@@ -71,6 +71,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
+import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
   setCompany_size,
@@ -338,6 +339,8 @@ export const Settings = () => {
   const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
     useState(false);
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
+  const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
+  const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
   const dispatch = useDispatch();
 
   // console.log(
@@ -865,6 +868,30 @@ export const Settings = () => {
     setNewUserRole(null);
   };
 
+  // Drag and drop configuration for business files
+  const onDropBusiness = (acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      handleFileUpload(acceptedFiles[0], "business");
+    }
+  };
+
+  const { getRootProps: getBusinessRootProps, getInputProps: getBusinessInputProps, isDragActive: isBusinessDragActive } = useDropzone({
+    onDrop: onDropBusiness,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
+      'video/mp4': ['.mp4'],
+      'video/quicktime': ['.mov'],
+      'application/vnd.ms-powerpoint': ['.ppt'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+    },
+    maxFiles: 1,
+    maxSize: 100 * 1024 * 1024, // 100MB
+    disabled: isUploadingBusiness,
+  });
+
   const handleRemoveUser = (userId: string) => {
     setOrgUsers((prev) => prev.filter((user) => user.id !== userId));
     toast.success("User removed from organization");
@@ -880,19 +907,34 @@ export const Settings = () => {
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    if (category === "business") {
+      setIsUploadingBusiness(true);
+      setBusinessUploadProgress(0);
+    } else {
+      setIsUploading(true);
+      setUploadProgress(0);
+    }
 
     try {
       // Upload progress simulation
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
+        if (category === "business") {
+          setBusinessUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        } else {
+          setUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }
       }, 200);
 
       // Call dbHelpers to save the uploaded file
@@ -924,7 +966,11 @@ export const Settings = () => {
         );
       }
       clearInterval(progressInterval);
-      setUploadProgress(100);
+      if (category === "business") {
+        setBusinessUploadProgress(100);
+      } else {
+        setUploadProgress(100);
+      }
 
       // Update internalUploadedFiles state with the new file
       const newFileData = {
@@ -939,8 +985,13 @@ export const Settings = () => {
       console.error("❌ Error uploading file:", error);
       toast.error("Failed to upload file");
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      if (category === "business") {
+        setIsUploadingBusiness(false);
+        setBusinessUploadProgress(0);
+      } else {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
     }
   };
 
@@ -2838,12 +2889,6 @@ export const Settings = () => {
                   {/* <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
                     <span>Business-Specific Knowledge</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-100 text-blue-800 border-blue-200"
-                    >
-                      Organization Level
-                    </Badge>
                   </CardTitle> */}
                   <p className="text-sm text-muted-foreground">
                     Company playbooks, product documentation, presentations, and
@@ -2851,36 +2896,66 @@ export const Settings = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
+                  {/* Upload Progress for Business Files */}
+                  {isUploadingBusiness && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium text-blue-800">
+                          Uploading business material...
+                        </span>
+                      </div>
+                      <Progress value={businessUploadProgress} className="w-full" />
+                      <p className="text-sm text-blue-700 mt-2">
+                        {businessUploadProgress < 50
+                          ? "Uploading file..."
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        id="business-upload"
-                        className="hidden"
-                        onChange={(e) => {
-                          console.log(e.target.files, "check files");
-                          e.target.files?.[0] &&
-                            handleFileUpload(e.target.files[0], "business");
-                        }}
-                        accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
-                      />
-                      <label
-                        htmlFor="business-upload"
-                        className="cursor-pointer"
-                      >
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
+                      {isUploadingBusiness ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium">
-                          Upload Business Material
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Material"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, TXT, MP4, PPT (Max 100MB)
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop files here"}
                         </p>
-                      </label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, DOC, TXT, MP4, PPT (Max 100MB)
+                          </p>
+                        </>
+                      )}
                     </div>
-                    {console.log(
-                      internalUploadedFiles,
-                      "internalUploadedFiles"
-                    )}
+
                     <div className="space-y-2">
                       {internalUploadedFiles?.length > 0 &&
                         internalUploadedFiles.map((material) => (
