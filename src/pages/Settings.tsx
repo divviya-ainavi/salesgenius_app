@@ -925,14 +925,14 @@ export const Settings = () => {
 
   const handleConfirmDelete = async () => {
     if (!fileToDelete) return;
-    
+
     try {
       await handleDeleteBusinessMaterial(fileToDelete.id);
       setShowDeleteConfirmDialog(false);
       setFileToDelete(null);
     } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error('Failed to delete file');
+      console.error("Error deleting file:", error);
+      toast.error("Failed to delete file");
     }
   };
 
@@ -3068,7 +3068,8 @@ export const Settings = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  handleDeleteMaterial(material.id, "business")
+                                  // handleDeleteMaterial(material.id, "business")
+                                  handleDeleteClick(material)
                                 }
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -3370,10 +3371,10 @@ export const Settings = () => {
               <span>Confirm Delete</span>
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "
-              {fileToDelete?.filename || fileToDelete?.original_filename}"? This
-              action will mark the file as inactive and it won't be available
-              for AI training.
+              Are you sure you want to delete{" "}
+              <strong>{fileToDelete?.original_filename}</strong>
+              "? This action will mark the file as inactive and it won't be
+              available for AI training.
             </DialogDescription>
           </DialogHeader>
 
