@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getCurrentUser } from './supabase';
 import { analytics } from './analytics';
 import { CURRENT_USER } from './supabase';
 
@@ -6,13 +7,19 @@ import { CURRENT_USER } from './supabase';
 class BusinessKnowledgeService {
   // Upload file to Supabase Storage and save metadata to database
   async uploadFile(file, organizationId, uploadedBy, description = '') {
+    // Get the current authenticated user to ensure RLS compliance
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       console.log('🚀 BusinessKnowledgeService - Starting file upload:', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
         organizationId,
-        uploadedBy,
+        uploadedBy: currentUser.id,
         description
       });
 
@@ -109,7 +116,7 @@ class BusinessKnowledgeService {
         .from('business_knowledge_files')
         .insert([{
           organization_id: organizationId,
-          uploaded_by: uploadedBy,
+          uploaded_by: currentUser.id,
           filename: uniqueFileName,
           original_filename: file.name,
           file_size: file.size,
@@ -159,6 +166,12 @@ class BusinessKnowledgeService {
 
   // Get all files for an organization
   async getFiles(organizationId, params = {}) {
+    // Get the current authenticated user to ensure RLS compliance
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       console.log('📋 BusinessKnowledgeService - Fetching files for organization:', organizationId);
 
@@ -212,6 +225,12 @@ class BusinessKnowledgeService {
 
   // Delete file (both from storage and database)
   async deleteFile(fileId, organizationId) {
+    // Get the current authenticated user to ensure RLS compliance
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+
     try {
       console.log('🗑️ BusinessKnowledgeService - Deleting file:', { fileId, organizationId });
 
