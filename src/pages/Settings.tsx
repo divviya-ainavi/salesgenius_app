@@ -30,6 +30,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Settings as SettingsIcon,
   Shield,
   Users,
@@ -86,6 +94,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import businessKnowledgeService from "@/lib/businessKnowledgeService";
 import CryptoJS from "crypto-js";
 
 // Mock user data - in real app this would come from auth context
@@ -311,9 +320,14 @@ export const Settings = () => {
     allTitles?.find((f) => f.role_id != 2)?.id
   );
   const [orgUsers, setOrgUsers] = useState(mockOrgUsers);
-  const [trainingMaterials, setTrainingMaterials] = useState(
-    mockTrainingMaterials
-  );
+  const [trainingMaterials, setTrainingMaterials] = useState({ business: [] });
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Password change state
   const [passwordChange, setPasswordChange] = useState({
@@ -432,6 +446,79 @@ export const Settings = () => {
   useEffect(() => {
     checkFirefliesStatus();
   }, []);
+
+  // Load business knowledge files on component mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        // Load business knowledge files if user is org admin
+        if (canUploadOrgMaterials && organizationDetails?.id) {
+          await loadBusinessKnowledgeFiles();
+        }
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  const loadBusinessKnowledgeFiles = async () => {
+    if (!organizationDetails?.id) {
+      console.warn('No organization ID available for loading files');
+      return;
+    }
+
+    setIsLoadingFiles(true);
+    try {
+      console.log('📂 Loading business knowledge files for org:', organizationDetails.id);
+      const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
+      console.log('📄 Loaded files:', filesData?.length || 0, 'files');
+      
+      // Transform files data to match the existing UI structure
+      const transformedFiles = filesData.map(file => ({
+        id: file.id,
+        name: file.original_filename,
+        size: formatFileSize(file.file_size),
+        uploadedAt: formatUploadDate(file.created_at),
+        status: 'processed', // All uploaded files are considered processed
+        file_url: file.file_url,
+        storage_path: file.storage_path,
+        description: file.description,
+        uploader: file.uploader
+      }));
+
+      setTrainingMaterials(prev => ({
+        ...prev,
+        business: transformedFiles
+      }));
+    } catch (error) {
+      console.error('❌ Error loading business knowledge files:', error);
+      toast.error('Failed to load files: ' + error.message);
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const formatUploadDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
 
   const checkFirefliesStatus = async () => {
     try {
@@ -837,95 +924,112 @@ export const Settings = () => {
     toast.success("User removed from organization");
   };
 
-  const handleFileUpload = async (
-    file: File,
-    category: "general" | "business" | "personal"
-  ) => {
-    if (!file) return;
-
-    // Check permissions
-    if (category === "general" && mockCurrentUser.role !== "super_admin") {
-      toast.error("Only Super Admins can upload general materials");
+  const handleFileUpload = async (file) => {
+    if (!file) {
+      toast.error('Please select a file to upload');
       return;
     }
-    if (category === "business" && !canUploadOrgMaterials) {
-      toast.error("You do not have permission to upload business materials");
+
+    if (!organizationDetails?.id) {
+      toast.error('Organization information not available');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('User information not available');
+      return;
+    }
+
+    console.log('🚀 Starting file upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      orgId: organizationDetails.id,
+      userId: user.id
+    });
+
+    // Validate file
+    const validation = businessKnowledgeService.validateFile(file);
+    if (!validation.isValid) {
+      toast.error(validation.errors.join(', '));
       return;
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
 
     try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
+      console.log('📤 Calling businessKnowledgeService.uploadFile...');
+      const uploadedFile = await businessKnowledgeService.uploadFile(
+        file,
+        organizationDetails.id,
+        user.id,
+        uploadDescription
+      );
 
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      // Add to materials list
-      const newMaterial = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type.includes("video")
-          ? "video"
-          : file.type.includes("presentation")
-          ? "presentation"
-          : "document",
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadedAt: new Date().toISOString().split("T")[0],
-        status: "processing",
-      };
-
-      setTrainingMaterials((prev) => ({
-        ...prev,
-        [category]: [...prev[category], newMaterial],
-      }));
-
-      // Simulate processing completion
-      setTimeout(() => {
-        setTrainingMaterials((prev) => ({
-          ...prev,
-          [category]: prev[category].map((material) =>
-            material.id === newMaterial.id
-              ? { ...material, status: "processed" }
-              : material
-          ),
-        }));
-        toast.success("File processed and ready for AI training");
-      }, 3000);
-
-      toast.success("File uploaded successfully");
+      console.log('✅ Upload completed successfully:', uploadedFile);
+      toast.success(`File "${file.name}" uploaded successfully`);
+      
+      // Close dialog and reset form
+      setShowUploadDialog(false);
+      setSelectedFile(null);
+      setUploadDescription('');
+      
+      // Refresh the file list
+      await loadBusinessKnowledgeFiles();
     } catch (error) {
-      toast.error("Failed to upload file");
+      console.error('❌ Error uploading file:', error);
+      toast.error('Failed to upload file: ' + error.message);
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
-  const handleDeleteMaterial = (
-    materialId: string,
-    category: "general" | "business" | "personal"
-  ) => {
-    setTrainingMaterials((prev) => ({
-      ...prev,
-      [category]: prev[category].filter(
-        (material) => material.id !== materialId
-      ),
-    }));
-    toast.success("Training material deleted");
+  const handleDeleteMaterial = async () => {
+    if (!fileToDelete) {
+      toast.error('No file selected for deletion');
+      return;
+    }
+
+    if (!organizationDetails?.id) {
+      toast.error('Organization information not available');
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      console.log('🗑️ Starting delete process for file:', fileToDelete.id);
+      await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
+      console.log('✅ Delete completed successfully');
+      
+      toast.success(`File "${fileToDelete.name}" deleted successfully`);
+      setShowDeleteDialog(false);
+      setFileToDelete(null);
+      
+      // Refresh the file list
+      await loadBusinessKnowledgeFiles();
+    } catch (error) {
+      console.error('❌ Error deleting file:', error);
+      toast.error('Failed to delete file: ' + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setShowUploadDialog(true);
+    }
+    // Reset the input value so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const handleUploadConfirm = async () => {
+    if (selectedFile) {
+      await handleFileUpload(selectedFile);
+    }
   };
 
   const generateApiKey = () => {
@@ -2828,10 +2932,7 @@ export const Settings = () => {
                         type="file"
                         id="business-upload"
                         className="hidden"
-                        onChange={(e) =>
-                          e.target.files?.[0] &&
-                          handleFileUpload(e.target.files[0], "business")
-                        }
+                        onChange={handleFileSelect}
                         accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                       />
                       <label
@@ -2849,7 +2950,16 @@ export const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
-                      {trainingMaterials.business.map((material) => (
+                      {isLoadingFiles ? (
+                        <div className="text-center py-4">
+                          <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">Loading files...</p>
+                        </div>
+                      ) : trainingMaterials.business.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No business knowledge files uploaded yet
+                        </p>
+                      ) : trainingMaterials.business.map((material) => (
                         <div
                           key={material.id}
                           className="flex items-center justify-between p-3 border border-border rounded-lg"
@@ -2889,9 +2999,10 @@ export const Settings = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                handleDeleteMaterial(material.id, "business")
-                              }
+                              onClick={() => {
+                                setFileToDelete(material);
+                                setShowDeleteDialog(true);
+                              }}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -2904,8 +3015,121 @@ export const Settings = () => {
               </Card>
             )}
 
-            {/* Personal Insights */}
+            {/* Upload Dialog */}
+            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Upload Business Knowledge File</DialogTitle>
+                  <DialogDescription>
+                    Upload documents that contain business-specific knowledge for AI training.
+                  </DialogDescription>
+                </DialogHeader>
 
+                <div className="space-y-4">
+                  {/* Selected File Display */}
+                  {selectedFile && (
+                    <div className="flex items-center space-x-3 p-3 bg-muted rounded-lg">
+                      <FileText className="w-5 h-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{selectedFile.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatFileSize(selectedFile.size)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe what this file contains..."
+                      value={uploadDescription}
+                      onChange={(e) => setUploadDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowUploadDialog(false);
+                      setSelectedFile(null);
+                      setUploadDescription('');
+                    }}
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUploadConfirm}
+                    disabled={!selectedFile || isUploading}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <AlertCircle className="w-5 h-5 text-destructive" />
+                    <span>Delete File</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete "{fileToDelete?.name}"? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteDialog(false);
+                      setFileToDelete(null);
+                    }}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteMaterial}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Personal AI Training */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
