@@ -594,7 +594,7 @@ export const dbHelpers = {
         .eq('organization_id', orgId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
-        .limit(limit)
+      // .limit(limit)
 
       if (error) throw error
       return data || []
