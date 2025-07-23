@@ -913,6 +913,29 @@ export const Settings = () => {
     toast.success("User removed from organization");
   };
 
+  const handleDeleteClick = (material) => {
+    setFileToDelete(material);
+    setShowDeleteConfirmDialog(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirmDialog(false);
+    setFileToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!fileToDelete) return;
+    
+    try {
+      await handleDeleteBusinessMaterial(fileToDelete.id);
+      setShowDeleteConfirmDialog(false);
+      setFileToDelete(null);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Failed to delete file');
+    }
+  };
+
   const handleFileUpload = async (file, category) => {
     if (!file) return;
 
