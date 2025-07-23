@@ -88,6 +88,14 @@ import {
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
 import CryptoJS from "crypto-js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -3328,7 +3336,10 @@ export const Settings = () => {
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+      <Dialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
@@ -3336,22 +3347,18 @@ export const Settings = () => {
               <span>Confirm Delete</span>
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{fileToDelete?.filename || fileToDelete?.original_filename}"? 
-              This action will mark the file as inactive and it won't be available for AI training.
+              Are you sure you want to delete "
+              {fileToDelete?.filename || fileToDelete?.original_filename}"? This
+              action will mark the file as inactive and it won't be available
+              for AI training.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCancelDelete}
-            >
+            <Button variant="outline" onClick={handleCancelDelete}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-            >
+            <Button variant="destructive" onClick={handleConfirmDelete}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>
