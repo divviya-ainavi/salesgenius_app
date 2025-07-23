@@ -46,6 +46,7 @@ export const config = {
       hubspotConnectionCheck: 'hubspotconnection-check',
       firefliesConnectionCheck: 'FF-check',
       getFirefliesFiles: 'get-FF-transcripts',
+      vectorFileUpload: 'upload-rag'
     }
   }
 };

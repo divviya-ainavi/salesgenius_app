@@ -444,7 +444,8 @@ export const Settings = () => {
         ...item,
         status: "processed",
       }));
-
+      const getActiveData = await dbHelpers.getFilteredFiles();
+      console.log(getActiveData, "check active data");
       setInternalUploadedFiles(updatedData);
     } catch (error) {
       console.error("Error checking Fireflies status:", error);
@@ -900,14 +901,35 @@ export const Settings = () => {
         file,
         organizationDetails.id
       );
+      // console.log(uploadedFile, "check uploaded file");
+      const formData = new FormData();
+      formData.append("file_name", uploadedFile?.filename);
+      formData.append("file_id", uploadedFile.id);
+      formData.append("organization_id", organizationDetails.id);
+      formData.append("organization_name", organizationDetails.name);
+      formData.append("file", file);
+      formData.append("is_active", true);
+      // Send encrypted token to n8n API
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.vectorFileUpload}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`
+        );
+      }
       clearInterval(progressInterval);
       setUploadProgress(100);
 
       // Update internalUploadedFiles state with the new file
       const newFileData = {
         ...uploadedFile,
-        status: "processed"
+        status: "processed",
       };
 
       setInternalUploadedFiles((prev) => [...prev, newFileData]);
@@ -2806,12 +2828,12 @@ export const Settings = () => {
                         Organization Level
                       </Badge>
                     </div>
-                    <Badge
+                    {/* <Badge
                       variant="outline"
                       className="bg-orange-50 text-orange-700 border-orange-200"
                     >
                       Coming Soon for Your Organization
-                    </Badge>
+                    </Badge> */}
                   </CardTitle>
                   {/* <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
@@ -2835,10 +2857,11 @@ export const Settings = () => {
                         type="file"
                         id="business-upload"
                         className="hidden"
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          console.log(e.target.files, "check files");
                           e.target.files?.[0] &&
-                          handleFileUpload(e.target.files[0], "business")
-                        }
+                            handleFileUpload(e.target.files[0], "business");
+                        }}
                         accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                       />
                       <label

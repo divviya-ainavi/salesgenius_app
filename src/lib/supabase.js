@@ -586,12 +586,13 @@ export const dbHelpers = {
     }
   },
 
-  async getInternalUploadedFiles(orgId, limit = 20) {
+  async getInternalUploadedFiles(orgId) {
     try {
       const { data, error } = await supabase
         .from('business_knowledge_files')
         .select('*')
         .eq('organization_id', orgId)
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -602,6 +603,56 @@ export const dbHelpers = {
       throw error
     }
   },
+
+  async getFilteredFiles(file_id) {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .filter('metadata->>file_id', 'eq', file_id);
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error)
+      throw error
+    }
+  },
+
+  async updateIsActiveTrueForMultiple(documentIds) {
+    try {
+      // Step 1: Fetch metadata for given IDs
+      const { data: docs, error: fetchError } = await supabase
+        .from('documents')
+        .select('id, metadata')
+        .in('id', documentIds);
+
+      if (fetchError) throw fetchError;
+
+      // Step 2: Update metadata for each document
+      const updatePromises = docs.map(doc => {
+        const updatedMetadata = {
+          ...doc.metadata,
+          is_active: true,
+        };
+
+        return supabase
+          .from('documents')
+          .update({ metadata: updatedMetadata })
+          .eq('id', doc.id);
+      });
+
+      // Step 3: Wait for all updates
+      const updateResults = await Promise.all(updatePromises);
+
+      // Step 4: Return updated document data
+      return updateResults.map(result => result.data).flat();
+    } catch (error) {
+      console.error('Error updating is_active for multiple documents:', error);
+      throw error;
+    }
+  },
+
+
   async getFirefliesSingleData(userId, firefliesId) {
     // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
     try {
