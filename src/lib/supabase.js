@@ -541,7 +541,7 @@ export const dbHelpers = {
       // First, upload file to Supabase Storage
       const timestamp = Date.now()
       const fileExtension = file.name.split('.').pop()
-      const uniqueFileName = `${userId}/${timestamp}_${file.name}`
+      const uniqueFileName = `${orgId}/${timestamp}_${file.name}`
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('business-knowledge')
