@@ -466,11 +466,11 @@ export const Settings = () => {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes) => {
     return `${(bytes / 1024).toFixed(2)} KB`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -892,12 +892,12 @@ export const Settings = () => {
     disabled: isUploadingBusiness,
   });
 
-  const handleRemoveUser = (userId: string) => {
+  const handleRemoveUser = (userId) => {
     setOrgUsers((prev) => prev.filter((user) => user.id !== userId));
     toast.success("User removed from organization");
   };
 
-  const handleFileUpload = async (file: File, category: "business") => {
+  const handleFileUpload = async (file, category) => {
     if (!file) return;
 
     // Check permissions
@@ -996,8 +996,8 @@ export const Settings = () => {
   };
 
   const handleDeleteMaterial = (
-    materialId: string,
-    category: "general" | "business" | "personal"
+    materialId,
+    category
   ) => {
     setTrainingMaterials((prev) => ({
       ...prev,
@@ -2917,7 +2917,6 @@ export const Settings = () => {
                   )}
 
                   <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <div
                       {...getBusinessRootProps()}
                       className={cn(
