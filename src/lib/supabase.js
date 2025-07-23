@@ -517,7 +517,26 @@ export const dbHelpers = {
     }
   },
 
-  async saveInternalUploadedFile(userId, file) {
+
+
+  async getUploadedFiles(userId, limit = 20) {
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error)
+      throw error
+    }
+  },
+
+  async saveInternalUploadedFile(userId, file, orgId) {
     try {
       // First, upload file to Supabase Storage
       const timestamp = Date.now()
@@ -544,14 +563,16 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from('business_knowledge_files')
         .insert([{
-          user_id: userId,
-          filename: file.name,
-          file_type: file.type,
+          uploaded_by: userId,
+          filename: uniqueFileName,
+          original_filename: file.name,
+          // file_type: file.type,
           file_size: file.size,
           content_type: file.type,
           // file_content: content,
           file_url: urlData.publicUrl,
           storage_path: uploadData.path,
+          organization_id: orgId,
           // is_processed: false,
         }])
         .select()
@@ -565,12 +586,12 @@ export const dbHelpers = {
     }
   },
 
-  async getUploadedFiles(userId, limit = 20) {
+  async getInternalUploadedFiles(orgId, limit = 20) {
     try {
       const { data, error } = await supabase
-        .from('uploaded_files')
+        .from('business_knowledge_files')
         .select('*')
-        .eq('user_id', userId)
+        .eq('organization_id', orgId)
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -581,7 +602,6 @@ export const dbHelpers = {
       throw error
     }
   },
-
   async getFirefliesSingleData(userId, firefliesId) {
     // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
     try {
