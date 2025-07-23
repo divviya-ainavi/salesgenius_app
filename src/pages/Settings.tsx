@@ -883,7 +883,7 @@ export const Settings = () => {
     setUploadProgress(0);
 
     try {
-      // Simulate upload progress
+      // Upload progress simulation
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -894,46 +894,27 @@ export const Settings = () => {
         });
       }, 200);
 
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call dbHelpers to save the uploaded file
+      const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+        user?.id,
+        file,
+        organizationDetails.id
+      );
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // Add to materials list
-      const newMaterial = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type.includes("video")
-          ? "video"
-          : file.type.includes("presentation")
-          ? "presentation"
-          : "document",
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadedAt: new Date().toISOString().split("T")[0],
-        status: "processing",
+      // Update internalUploadedFiles state with the new file
+      const newFileData = {
+        ...uploadedFile,
+        status: "processed"
       };
 
-      setTrainingMaterials((prev) => ({
-        ...prev,
-        [category]: [...prev[category], newMaterial],
-      }));
-
-      // Simulate processing completion
-      setTimeout(() => {
-        setTrainingMaterials((prev) => ({
-          ...prev,
-          [category]: prev[category].map((material) =>
-            material.id === newMaterial.id
-              ? { ...material, status: "processed" }
-              : material
-          ),
-        }));
-        toast.success("File processed and ready for AI training");
-      }, 3000);
+      setInternalUploadedFiles((prev) => [...prev, newFileData]);
 
       toast.success("File uploaded successfully");
     } catch (error) {
+      console.error("❌ Error uploading file:", error);
       toast.error("Failed to upload file");
     } finally {
       setIsUploading(false);
