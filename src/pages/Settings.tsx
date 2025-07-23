@@ -888,7 +888,7 @@ export const Settings = () => {
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
     },
     maxFiles: 1,
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploadingBusiness,
   });
 
@@ -2803,7 +2803,7 @@ export const Settings = () => {
                           Upload General Training Material
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, TXT, MP4, PPT (Max 100MB)
+                          PDF, DOC, TXT, MP4, PPT (Max 10MB)
                         </p>
                       </label>
                     </div>
