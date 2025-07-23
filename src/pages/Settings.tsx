@@ -324,7 +324,7 @@ export const Settings = () => {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadDescription, setUploadDescription] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -465,47 +465,52 @@ export const Settings = () => {
 
   const loadBusinessKnowledgeFiles = async () => {
     if (!organizationDetails?.id) {
-      console.warn('No organization ID available for loading files');
+      console.warn("No organization ID available for loading files");
       return;
     }
 
     setIsLoadingFiles(true);
     try {
-      console.log('📂 Loading business knowledge files for org:', organizationDetails.id);
-      const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('📄 Loaded files:', filesData?.length || 0, 'files');
-      
+      console.log(
+        "📂 Loading business knowledge files for org:",
+        organizationDetails.id
+      );
+      const filesData = await businessKnowledgeService.getFiles(
+        organizationDetails.id
+      );
+      console.log("📄 Loaded files:", filesData?.length || 0, "files");
+
       // Transform files data to match the existing UI structure
-      const transformedFiles = filesData.map(file => ({
+      const transformedFiles = filesData.map((file) => ({
         id: file.id,
         name: file.original_filename,
         size: formatFileSize(file.file_size),
         uploadedAt: formatUploadDate(file.created_at),
-        status: 'processed', // All uploaded files are considered processed
+        status: "processed", // All uploaded files are considered processed
         file_url: file.file_url,
         storage_path: file.storage_path,
         description: file.description,
-        uploader: file.uploader
+        uploader: file.uploader,
       }));
 
-      setTrainingMaterials(prev => ({
+      setTrainingMaterials((prev) => ({
         ...prev,
-        business: transformedFiles
+        business: transformedFiles,
       }));
     } catch (error) {
-      console.error('❌ Error loading business knowledge files:', error);
-      toast.error('Failed to load files: ' + error.message);
+      console.error("❌ Error loading business knowledge files:", error);
+      toast.error("Failed to load files: " + error.message);
     } finally {
       setIsLoadingFiles(false);
     }
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   const formatUploadDate = (dateString) => {
@@ -513,8 +518,8 @@ export const Settings = () => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '1 day ago';
+
+    if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
     return date.toLocaleDateString();
@@ -926,59 +931,61 @@ export const Settings = () => {
 
   const handleFileUpload = async (file) => {
     if (!file) {
-      toast.error('Please select a file to upload');
+      toast.error("Please select a file to upload");
       return;
     }
 
     if (!organizationDetails?.id) {
-      toast.error('Organization information not available');
+      toast.error("Organization information not available");
       return;
     }
 
     if (!user?.id) {
-      toast.error('User information not available');
+      toast.error("User information not available");
       return;
     }
 
-    console.log('🚀 Starting file upload:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      orgId: organizationDetails.id,
-      userId: user.id
-    });
+    // console.log('🚀 Starting file upload:', {
+    //   fileName: file.name,
+    //   fileSize: file.size,
+    //   fileType: file.type,
+    //   orgId: organizationDetails.id,
+    //   userId: user.id
+    // });
 
     // Validate file
     const validation = businessKnowledgeService.validateFile(file);
     if (!validation.isValid) {
-      toast.error(validation.errors.join(', '));
+      toast.error(validation.errors.join(", "));
       return;
     }
 
     setIsUploading(true);
 
     try {
-      console.log('📤 Calling businessKnowledgeService.uploadFile...');
-      const uploadedFile = await businessKnowledgeService.uploadFile(
-        file,
-        organizationDetails.id,
-        user.id,
-        uploadDescription
+      console.log("📤 Calling businessKnowledgeService.uploadFile...");
+      //  const savedFile = await dbHelpers.saveInetrnalUploadedFile(
+      //         user?.id,
+      //         file
+      //       );
+      const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+        user?.id,
+        file
       );
 
-      console.log('✅ Upload completed successfully:', uploadedFile);
+      console.log("✅ Upload completed successfully:", uploadedFile);
       toast.success(`File "${file.name}" uploaded successfully`);
-      
+
       // Close dialog and reset form
       setShowUploadDialog(false);
       setSelectedFile(null);
-      setUploadDescription('');
-      
+      setUploadDescription("");
+
       // Refresh the file list
       await loadBusinessKnowledgeFiles();
     } catch (error) {
-      console.error('❌ Error uploading file:', error);
-      toast.error('Failed to upload file: ' + error.message);
+      console.error("❌ Error uploading file:", error);
+      toast.error("Failed to upload file: " + error.message);
     } finally {
       setIsUploading(false);
     }
@@ -986,31 +993,34 @@ export const Settings = () => {
 
   const handleDeleteMaterial = async () => {
     if (!fileToDelete) {
-      toast.error('No file selected for deletion');
+      toast.error("No file selected for deletion");
       return;
     }
 
     if (!organizationDetails?.id) {
-      toast.error('Organization information not available');
+      toast.error("Organization information not available");
       return;
     }
 
     setIsDeleting(true);
 
     try {
-      console.log('🗑️ Starting delete process for file:', fileToDelete.id);
-      await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
-      console.log('✅ Delete completed successfully');
-      
+      console.log("🗑️ Starting delete process for file:", fileToDelete.id);
+      await businessKnowledgeService.deleteFile(
+        fileToDelete.id,
+        organizationDetails.id
+      );
+      console.log("✅ Delete completed successfully");
+
       toast.success(`File "${fileToDelete.name}" deleted successfully`);
       setShowDeleteDialog(false);
       setFileToDelete(null);
-      
+
       // Refresh the file list
       await loadBusinessKnowledgeFiles();
     } catch (error) {
-      console.error('❌ Error deleting file:', error);
-      toast.error('Failed to delete file: ' + error.message);
+      console.error("❌ Error deleting file:", error);
+      toast.error("Failed to delete file: " + error.message);
     } finally {
       setIsDeleting(false);
     }
@@ -1023,7 +1033,7 @@ export const Settings = () => {
       setShowUploadDialog(true);
     }
     // Reset the input value so the same file can be selected again
-    event.target.value = '';
+    event.target.value = "";
   };
 
   const handleUploadConfirm = async () => {
@@ -2953,62 +2963,66 @@ export const Settings = () => {
                       {isLoadingFiles ? (
                         <div className="text-center py-4">
                           <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" />
-                          <p className="text-sm text-muted-foreground">Loading files...</p>
+                          <p className="text-sm text-muted-foreground">
+                            Loading files...
+                          </p>
                         </div>
                       ) : trainingMaterials.business.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">
                           No business knowledge files uploaded yet
                         </p>
-                      ) : (trainingMaterials.business || []).map((material) => (
-                        <div
-                          key={material.id}
-                          className="flex items-center justify-between p-3 border border-border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <FileText className="w-5 h-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">
-                                {material.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {material.size} • {material.uploadedAt}
-                              </p>
+                      ) : (
+                        (trainingMaterials.business || []).map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {material.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {material.size} • {material.uploadedAt}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge
+                                variant={
+                                  material.status === "processed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {material.status === "processed" ? (
+                                  <>
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Processed
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    Processing
+                                  </>
+                                )}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setFileToDelete(material);
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge
-                              variant={
-                                material.status === "processed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {material.status === "processed" ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Processed
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                                  Processing
-                                </>
-                              )}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setFileToDelete(material);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -3021,7 +3035,8 @@ export const Settings = () => {
                 <DialogHeader>
                   <DialogTitle>Upload Business Knowledge File</DialogTitle>
                   <DialogDescription>
-                    Upload documents that contain business-specific knowledge for AI training.
+                    Upload documents that contain business-specific knowledge
+                    for AI training.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -3058,7 +3073,7 @@ export const Settings = () => {
                     onClick={() => {
                       setShowUploadDialog(false);
                       setSelectedFile(null);
-                      setUploadDescription('');
+                      setUploadDescription("");
                     }}
                     disabled={isUploading}
                   >
@@ -3093,7 +3108,8 @@ export const Settings = () => {
                     <span>Delete File</span>
                   </DialogTitle>
                   <DialogDescription>
-                    Are you sure you want to delete "{fileToDelete?.name}"? This action cannot be undone.
+                    Are you sure you want to delete "{fileToDelete?.name}"? This
+                    action cannot be undone.
                   </DialogDescription>
                 </DialogHeader>
 
