@@ -53,8 +53,31 @@ class BusinessKnowledgeService {
       console.log('🔍 BusinessKnowledgeService - Bucket exists check:', { bucketExists, buckets: buckets?.map(b => b.name) });
       
       if (!bucketExists) {
-        console.error('❌ BusinessKnowledgeService - business-knowledge bucket does not exist. Available buckets:', buckets?.map(b => b.name));
-        throw new Error('Storage bucket "business-knowledge" not found. Please run the database migration to create it.');
+        console.log('🔧 BusinessKnowledgeService - Creating business-knowledge bucket...');
+        
+        // Create the bucket
+        const { data: createBucketData, error: createBucketError } = await supabase.storage.createBucket('business-knowledge', {
+          public: false,
+          allowedMimeTypes: [
+            'application/pdf',
+            'text/plain',
+            'text/markdown',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          ],
+          fileSizeLimit: 104857600 // 100MB
+        });
+        
+        if (createBucketError) {
+          console.error('❌ BusinessKnowledgeService - Failed to create bucket:', createBucketError);
+          throw new Error(`Failed to create storage bucket: ${createBucketError.message}`);
+        }
+        
+        console.log('✅ BusinessKnowledgeService - Bucket created successfully:', createBucketData);
       }
 
       // Upload file to Supabase Storage
