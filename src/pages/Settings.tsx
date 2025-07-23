@@ -351,6 +351,7 @@ export const Settings = () => {
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
+  const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
   const dispatch = useDispatch();
 
   // console.log(
@@ -926,6 +927,7 @@ export const Settings = () => {
   const handleConfirmDelete = async () => {
     if (!fileToDelete) return;
 
+    setIsDeletingBusinessFile(true);
     try {
       await handleDeleteBusinessMaterial(fileToDelete.id);
       setShowDeleteConfirmDialog(false);
@@ -933,6 +935,8 @@ export const Settings = () => {
     } catch (error) {
       console.error("Error deleting file:", error);
       toast.error("Failed to delete file");
+    } finally {
+      setIsDeletingBusinessFile(false);
     }
   };
 
@@ -3382,9 +3386,22 @@ export const Settings = () => {
             <Button variant="outline" onClick={handleCancelDelete}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeletingBusinessFile}
+            >
+              {isDeletingBusinessFile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
