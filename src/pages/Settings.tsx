@@ -2959,7 +2959,7 @@ export const Settings = () => {
                         <p className="text-sm text-muted-foreground text-center py-4">
                           No business knowledge files uploaded yet
                         </p>
-                      ) : trainingMaterials.business.map((material) => (
+                      ) : (trainingMaterials.business || []).map((material) => (
                         <div
                           key={material.id}
                           className="flex items-center justify-between p-3 border border-border rounded-lg"
@@ -3190,7 +3190,7 @@ export const Settings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    {trainingMaterials.personal.map((material) => (
+                    {(trainingMaterials.personal || []).map((material) => (
                       <div
                         key={material.id}
                         className="flex items-center justify-between p-3 border border-border rounded-lg"
