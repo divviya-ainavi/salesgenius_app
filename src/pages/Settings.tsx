@@ -341,6 +341,8 @@ export const Settings = () => {
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState(null);
   const dispatch = useDispatch();
 
   // console.log(
@@ -2551,7 +2553,7 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleRemoveUser(user.id)}
+                                    onClick={() => handleDeleteClick(material)}
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -3324,6 +3326,38 @@ export const Settings = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <span>Confirm Delete</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{fileToDelete?.filename || fileToDelete?.original_filename}"? 
+              This action will mark the file as inactive and it won't be available for AI training.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
