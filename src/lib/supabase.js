@@ -30,6 +30,16 @@ const verifyPassword = (plainPassword, hashedPassword) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Helper function to get current authenticated user
+export const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+  return user;
+};
+
 // Current user state - will be updated when user logs in
 export let CURRENT_USER = {
   id: null,
