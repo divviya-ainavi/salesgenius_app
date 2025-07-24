@@ -44,9 +44,6 @@ import {
   Settings,
   Info,
   ExternalLink,
-  User,
-  ThumbsUp,
-  Loader2,
 } from "lucide-react";
 import {
   LineChart,
@@ -67,10 +64,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
 import { config } from "@/lib/config";
-import { dbHelpers } from "@/lib/supabase";
-import { useSelector } from "react-redux";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -209,22 +202,10 @@ const timeSeriesData = [
 const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
 const Analytics = () => {
-  const { userRoleId } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("individual"); // super_admin, org_admin, individual
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("productivity");
   const [isLoading, setIsLoading] = useState(false);
-  const [feedbackData, setFeedbackData] = useState([]);
-  const [feedbackFilters, setFeedbackFilters] = useState({
-    pageRoute: '',
-    username: '',
-    dateFrom: '',
-    dateTo: '',
-  });
-  const [loadingFeedback, setLoadingFeedback] = useState(false);
-
-  // Check if user is super admin (userRoleId is null)
-  const isSuperAdmin = userRoleId === null;
 
   // Simulate data refresh
   const handleRefresh = async () => {
@@ -232,60 +213,6 @@ const Analytics = () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
     toast.success("Analytics data refreshed");
-  };
-
-  // Load feedback data for super admin
-  const loadFeedbackData = async () => {
-    if (!isSuperAdmin) return;
-
-    setLoadingFeedback(true);
-    try {
-      const feedback = await dbHelpers.getFeedbackForAdmin(feedbackFilters);
-      setFeedbackData(feedback);
-    } catch (error) {
-      console.error('Error loading feedback data:', error);
-      toast.error('Failed to load feedback data');
-    } finally {
-      setLoadingFeedback(false);
-    }
-  };
-
-  // Load feedback data on component mount for super admin
-  useEffect(() => {
-    if (isSuperAdmin) {
-      loadFeedbackData();
-    }
-  }, [isSuperAdmin]);
-
-  // Reload feedback when filters change
-  useEffect(() => {
-    if (isSuperAdmin) {
-      const debounceTimer = setTimeout(() => {
-        loadFeedbackData();
-      }, 300);
-      return () => clearTimeout(debounceTimer);
-    }
-  }, [feedbackFilters, isSuperAdmin]);
-
-  const handleFeedbackFilterChange = (field, value) => {
-    setFeedbackFilters(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const clearFeedbackFilters = () => {
-    setFeedbackFilters({
-      pageRoute: '',
-      username: '',
-      dateFrom: '',
-      dateTo: '',
-    });
-  };
-
-  const getUniquePageRoutes = () => {
-    const routes = [...new Set(feedbackData.map(f => f.page_route))];
-    return routes.sort();
   };
 
   // Super Admin Dashboard
@@ -552,176 +479,6 @@ const Analytics = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* User Feedback Section - Only for Super Admin */}
-      {isSuperAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5" />
-                <span>User Feedback & Insights</span>
-              </div>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                Super Admin Only
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Feedback Filters */}
-            <div className="grid md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="page-filter" className="text-xs font-medium">Page Route</Label>
-                <Select
-                  value={feedbackFilters.pageRoute}
-                  onValueChange={(value) => handleFeedbackFilterChange('pageRoute', value)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="All Pages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Pages</SelectItem>
-                    {getUniquePageRoutes().map(route => (
-                      <SelectItem key={route} value={route}>{route}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username-filter" className="text-xs font-medium">Username</Label>
-                <Input
-                  id="username-filter"
-                  placeholder="Filter by username..."
-                  value={feedbackFilters.username}
-                  onChange={(e) => handleFeedbackFilterChange('username', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date-from" className="text-xs font-medium">From Date</Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={feedbackFilters.dateFrom}
-                  onChange={(e) => handleFeedbackFilterChange('dateFrom', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date-to" className="text-xs font-medium">To Date</Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={feedbackFilters.dateTo}
-                  onChange={(e) => handleFeedbackFilterChange('dateTo', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {feedbackData.length} feedback entries found
-              </p>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={clearFeedbackFilters}>
-                  Clear Filters
-                </Button>
-                <Button variant="outline" size="sm" onClick={loadFeedbackData} disabled={loadingFeedback}>
-                  {loadingFeedback ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Feedback List */}
-            {loadingFeedback ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading feedback...</p>
-              </div>
-            ) : feedbackData.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="mb-2">No feedback entries found</p>
-                <p className="text-sm">Feedback from users will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {feedbackData.map((feedback) => (
-                  <div key={feedback.id} className="border border-border rounded-lg p-4 space-y-3">
-                    {/* Feedback Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{feedback.username}</p>
-                          <p className="text-xs text-muted-foreground">{feedback.user?.email}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant="outline" className="text-xs mb-1">
-                          {feedback.page_route}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(feedback.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Feedback Content */}
-                    <div className="space-y-3">
-                      {feedback.what_you_like && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <ThumbsUp className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">What they like:</span>
-                          </div>
-                          <p className="text-sm text-green-700 leading-relaxed">
-                            {feedback.what_you_like}
-                          </p>
-                        </div>
-                      )}
-
-                      {feedback.what_needs_improving && (
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <AlertTriangle className="w-4 h-4 text-orange-600" />
-                            <span className="text-sm font-medium text-orange-800">Needs improving:</span>
-                          </div>
-                          <p className="text-sm text-orange-700 leading-relaxed">
-                            {feedback.what_needs_improving}
-                          </p>
-                        </div>
-                      )}
-
-                      {feedback.new_features_needed && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Lightbulb className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">Feature requests:</span>
-                          </div>
-                          <p className="text-sm text-blue-700 leading-relaxed">
-                            {feedback.new_features_needed}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 
@@ -1346,7 +1103,7 @@ const Analytics = () => {
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <span className="text-sm font-medium">View Dashboard As:</span>
-            <Select value={userRole} onValueChange={setUserRole} disabled>
+            <Select value={userRole} onValueChange={setUserRole}>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
