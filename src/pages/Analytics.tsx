@@ -73,7 +73,6 @@ import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
 import { config } from "@/lib/config";
 import { dbHelpers } from "@/lib/supabase";
-import { dbHelpers } from '@/lib/supabase';
 
 // Mock data for analytics
 const mockAnalyticsData = {
