@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, Zap } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -80,6 +81,9 @@ export const MainLayout = () => {
           <Outlet />
         </main>
       </div>
+      
+      {/* Feedback Widget - Available to all users */}
+      <FeedbackWidget />
     </div>
   );
 };

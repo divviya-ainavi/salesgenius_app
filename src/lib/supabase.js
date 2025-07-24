@@ -466,6 +466,65 @@ export const authHelpers = {
 // Initialize user from storage when module loads
 initializeUserFromStorage();
 
+// Feedback operations
+export const saveFeedback = async (feedbackData) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_feedback')
+      .insert([feedbackData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving feedback:', error);
+    throw error;
+  }
+};
+
+export const getFeedbackForAdmin = async (filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select(`
+        *,
+        user:profiles(full_name, email)
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute) {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.username) {
+      query = query.ilike('username', `%${filters.username}%`);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo);
+    }
+
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching feedback for admin:', error);
+    throw error;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -2870,13 +2929,10 @@ export const dbHelpers = {
     }
 
     return data;
-  }
+  },
 
-
-
-
-
-
+  saveFeedback,
+  getFeedbackForAdmin,
 }
 
 // User helpers for backward compatibility
