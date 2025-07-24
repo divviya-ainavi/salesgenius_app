@@ -6,7 +6,7 @@ trigger:
     exclude:
       - '*'
 variables:
-  Devozy_DUMMY_VARIABLE: ID_d3q7YNop
+  Devozy_DUMMY_VARIABLE: ID_jpDpW8YV
   IMAGE_NAME: PLN1000014_MERN_Development
 pool:
   vmImage: ubuntu-latest
