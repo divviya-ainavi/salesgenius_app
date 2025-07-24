@@ -483,6 +483,75 @@ export const saveFeedback = async (feedbackData) => {
   }
 };
 
+// Get user's own feedback
+export const getUserFeedback = async (userId, filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute && filters.pageRoute !== 'all') {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo + 'T23:59:59');
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching user feedback:', error);
+    throw error;
+  }
+};
+
+// Get all feedback (Super Admin only)
+export const getAllUserFeedback = async (filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute && filters.pageRoute !== 'all') {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.username && filters.username.trim()) {
+      query = query.ilike('username', `%${filters.username.trim()}%`);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo + 'T23:59:59');
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching all user feedback:', error);
+    throw error;
+  }
+};
+
 export const getFeedbackForAdmin = async (filters = {}) => {
   try {
     let query = supabase
@@ -2932,6 +3001,8 @@ export const dbHelpers = {
   },
 
   saveFeedback,
+  getUserFeedback,
+  getAllUserFeedback,
   getFeedbackForAdmin,
 }
 
