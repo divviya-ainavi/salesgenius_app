@@ -1120,7 +1120,7 @@ export const Settings = () => {
         // Save the encrypted token to organization
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          hubspotToken
+          jwtToken
         );
 
         // Update Redux state
