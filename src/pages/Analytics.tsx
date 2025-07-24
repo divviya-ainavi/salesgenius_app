@@ -64,6 +64,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -106,6 +107,7 @@ const mockAnalyticsData = {
         feature: "CRM Integration",
         adoption: 68,
         trend: "down",
+import { dbHelpers } from '@/lib/supabase';
         impact: "high",
       },
       {
