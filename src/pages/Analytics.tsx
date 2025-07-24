@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -14,6 +13,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   BarChart3,
   TrendingUp,
@@ -59,7 +63,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -218,15 +221,15 @@ const Analytics = () => {
   const [feedbackData, setFeedbackData] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [feedbackFilters, setFeedbackFilters] = useState({
-    pageRoute: 'all',
-    username: '',
-    dateFrom: '',
-    dateTo: '',
+    pageRoute: "all",
+    username: "",
+    dateFrom: "",
+    dateTo: "",
   });
 
   // Load feedback data when Super Admin is selected
   useEffect(() => {
-    if (userRole === 'super_admin') {
+    if (userRole === "super_admin") {
       loadFeedbackData();
     }
   }, [userRole, feedbackFilters]);
@@ -235,19 +238,19 @@ const Analytics = () => {
     setIsLoadingFeedback(true);
     try {
       const filters = {};
-      
-      if (feedbackFilters.pageRoute !== 'all') {
+
+      if (feedbackFilters.pageRoute !== "all") {
         filters.page_route = feedbackFilters.pageRoute;
       }
-      
+
       if (feedbackFilters.username.trim()) {
         filters.username = feedbackFilters.username.trim();
       }
-      
+
       if (feedbackFilters.dateFrom) {
         filters.date_from = feedbackFilters.dateFrom;
       }
-      
+
       if (feedbackFilters.dateTo) {
         filters.date_to = feedbackFilters.dateTo;
       }
@@ -255,8 +258,8 @@ const Analytics = () => {
       const feedback = await dbHelpers.getAllUserFeedback(filters);
       setFeedbackData(feedback || []);
     } catch (error) {
-      console.error('Error loading feedback data:', error);
-      toast.error('Failed to load feedback data');
+      console.error("Error loading feedback data:", error);
+      toast.error("Failed to load feedback data");
       setFeedbackData([]);
     } finally {
       setIsLoadingFeedback(false);
@@ -264,14 +267,14 @@ const Analytics = () => {
   };
 
   const handleFeedbackFilterChange = (field, value) => {
-    setFeedbackFilters(prev => ({
+    setFeedbackFilters((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
   const getUniquePageRoutes = () => {
-    const routes = [...new Set(feedbackData.map(f => f.page_route))];
+    const routes = [...new Set(feedbackData.map((f) => f.page_route))];
     return routes.sort();
   };
 
@@ -303,14 +306,16 @@ const Analytics = () => {
               <Label htmlFor="page-filter">Page Route</Label>
               <Select
                 value={feedbackFilters.pageRoute}
-                onValueChange={(value) => handleFeedbackFilterChange('pageRoute', value)}
+                onValueChange={(value) =>
+                  handleFeedbackFilterChange("pageRoute", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Pages" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Pages</SelectItem>
-                  {getUniquePageRoutes().map(route => (
+                  {getUniquePageRoutes().map((route) => (
                     <SelectItem key={route} value={route}>
                       {route}
                     </SelectItem>
@@ -318,38 +323,44 @@ const Analytics = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="username-filter">Username</Label>
               <Input
                 id="username-filter"
                 placeholder="Search by username..."
                 value={feedbackFilters.username}
-                onChange={(e) => handleFeedbackFilterChange('username', e.target.value)}
+                onChange={(e) =>
+                  handleFeedbackFilterChange("username", e.target.value)
+                }
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="date-from">From Date</Label>
               <Input
                 id="date-from"
                 type="date"
                 value={feedbackFilters.dateFrom}
-                onChange={(e) => handleFeedbackFilterChange('dateFrom', e.target.value)}
+                onChange={(e) =>
+                  handleFeedbackFilterChange("dateFrom", e.target.value)
+                }
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="date-to">To Date</Label>
               <Input
                 id="date-to"
                 type="date"
                 value={feedbackFilters.dateTo}
-                onChange={(e) => handleFeedbackFilterChange('dateTo', e.target.value)}
+                onChange={(e) =>
+                  handleFeedbackFilterChange("dateTo", e.target.value)
+                }
               />
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between mt-4">
             <Button
               variant="outline"
@@ -363,183 +374,218 @@ const Analytics = () => {
               )}
               Refresh
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => {
                 setFeedbackFilters({
-                  pageRoute: 'all',
-                  username: '',
-                  dateFrom: '',
-                  dateTo: '',
+                  pageRoute: "all",
+                  username: "",
+                  dateFrom: "",
+                  dateTo: "",
                 });
               }}
             >
               Clear Filters
             </Button>
           </div>
+          <div className="mt-2">
+            {isLoadingFeedback ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading feedback...</p>
+              </div>
+            ) : feedbackData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2">No feedback entries found</p>
+                <p className="text-sm">
+                  Try adjusting your filters or check back later
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {feedbackData.map((feedback) => (
+                  <Collapsible key={feedback.id}>
+                    <CollapsibleTrigger asChild>
+                      <div className="border border-border rounded-lg p-6 space-y-4 hover:shadow-sm transition-shadow cursor-pointer">
+                        {/* Compact Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg">
+                                {feedback.username}
+                              </h3>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <span className="flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>
+                                    {new Date(
+                                      feedback.created_at
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span className="truncate max-w-24">
+                                    {feedback.page_route}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            {/* Feedback type indicators */}
+                            <div className="flex items-center space-x-1">
+                              {feedback.what_you_like && (
+                                <div
+                                  className="w-2 h-2 bg-green-500 rounded-full"
+                                  title="Has positive feedback"
+                                />
+                              )}
+                              {feedback.what_needs_improving && (
+                                <div
+                                  className="w-2 h-2 bg-orange-500 rounded-full"
+                                  title="Has improvement suggestions"
+                                />
+                              )}
+                              {feedback.new_features_needed && (
+                                <div
+                                  className="w-2 h-2 bg-blue-500 rounded-full"
+                                  title="Has feature requests"
+                                />
+                              )}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs",
+                                feedback.is_active
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                              )}
+                            >
+                              {feedback.is_active ? "Active" : "Archived"}
+                            </Badge>
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent className="px-4 pb-4">
+                      {/* Expanded Content */}
+                      <div className="space-y-4 mt-4">
+                        {/* Additional Metadata */}
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div className="flex items-center space-x-1">
+                              <Globe className="w-3 h-3" />
+                              <span className="font-medium">Full URL:</span>
+                              <span className="truncate">
+                                {feedback.page_url}
+                              </span>
+                            </div>
+                            {feedback.session_id && (
+                              <div className="flex items-center space-x-1">
+                                <User className="w-3 h-3" />
+                                <span className="font-medium">Session:</span>
+                                <span className="font-mono">
+                                  {feedback.session_id}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span className="font-medium">Submitted:</span>
+                              <span>
+                                {new Date(feedback.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            {feedback.user_agent && (
+                              <div className="flex items-center space-x-1">
+                                <span className="font-medium">Browser:</span>
+                                <span
+                                  className="truncate"
+                                  title={feedback.user_agent}
+                                >
+                                  {feedback.user_agent.split(" ")[0]}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Feedback Content */}
+                        <div className="space-y-3">
+                          {/* What they like */}
+                          {feedback.what_you_like && (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <ThumbsUp className="w-4 h-4 text-green-600" />
+                                <h4 className="font-medium text-green-800">
+                                  What they like
+                                </h4>
+                              </div>
+                              <p className="text-green-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.what_you_like}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* What needs improving */}
+                          {feedback.what_needs_improving && (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                <h4 className="font-medium text-orange-800">
+                                  What needs improving
+                                </h4>
+                              </div>
+                              <p className="text-orange-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.what_needs_improving}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Feature requests */}
+                          {feedback.new_features_needed && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Lightbulb className="w-4 h-4 text-blue-600" />
+                                <h4 className="font-medium text-blue-800">
+                                  Feature requests
+                                </h4>
+                              </div>
+                              <p className="text-blue-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.new_features_needed}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Feedback Entries */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Feedback Entries</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoadingFeedback ? (
-            <div className="text-center py-8">
-              <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-              <p className="text-muted-foreground">Loading feedback...</p>
-            </div>
-          ) : feedbackData.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-2">No feedback entries found</p>
-              <p className="text-sm">Try adjusting your filters or check back later</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {feedbackData.map((feedback) => (
-                <Collapsible
-                  key={feedback.id}
-                >
-                  <CollapsibleTrigger asChild>
-                    <div className="border border-border rounded-lg p-6 space-y-4 hover:shadow-sm transition-shadow cursor-pointer">
-                      {/* Compact Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg">{feedback.username}</h3>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>{new Date(feedback.created_at).toLocaleDateString()}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <ExternalLink className="w-3 h-3" />
-                                <span className="truncate max-w-24">{feedback.page_route}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          {/* Feedback type indicators */}
-                          <div className="flex items-center space-x-1">
-                            {feedback.what_you_like && (
-                              <div className="w-2 h-2 bg-green-500 rounded-full" title="Has positive feedback" />
-                            )}
-                            {feedback.what_needs_improving && (
-                              <div className="w-2 h-2 bg-orange-500 rounded-full" title="Has improvement suggestions" />
-                            )}
-                            {feedback.new_features_needed && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" title="Has feature requests" />
-                            )}
-                          </div>
-                          <Badge 
-                            variant="outline" 
-                            className={cn(
-                              "text-xs",
-                              feedback.is_active 
-                                ? "bg-green-100 text-green-800 border-green-200" 
-                                : "bg-gray-100 text-gray-800 border-gray-200"
-                            )}
-                          >
-                            {feedback.is_active ? 'Active' : 'Archived'}
-                          </Badge>
-                          <ChevronDown className="w-4 h-4 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent className="px-4 pb-4">
-                    {/* Expanded Content */}
-                    <div className="space-y-4 mt-4">
-                      {/* Additional Metadata */}
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Globe className="w-3 h-3" />
-                            <span className="font-medium">Full URL:</span>
-                            <span className="truncate">{feedback.page_url}</span>
-                          </div>
-                          {feedback.session_id && (
-                            <div className="flex items-center space-x-1">
-                              <User className="w-3 h-3" />
-                              <span className="font-medium">Session:</span>
-                              <span className="font-mono">{feedback.session_id}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-3 h-3" />
-                            <span className="font-medium">Submitted:</span>
-                            <span>{new Date(feedback.created_at).toLocaleString()}</span>
-                          </div>
-                          {feedback.user_agent && (
-                            <div className="flex items-center space-x-1">
-                              <span className="font-medium">Browser:</span>
-                              <span className="truncate" title={feedback.user_agent}>
-                                {feedback.user_agent.split(' ')[0]}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Feedback Content */}
-                      <div className="space-y-3">
-                        {/* What they like */}
-                        {feedback.what_you_like && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <ThumbsUp className="w-4 h-4 text-green-600" />
-                              <h4 className="font-medium text-green-800">What they like</h4>
-                            </div>
-                            <p className="text-green-700 whitespace-pre-wrap leading-relaxed text-sm">
-                              {feedback.what_you_like}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* What needs improving */}
-                        {feedback.what_needs_improving && (
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <AlertTriangle className="w-4 h-4 text-orange-600" />
-                              <h4 className="font-medium text-orange-800">What needs improving</h4>
-                            </div>
-                            <p className="text-orange-700 whitespace-pre-wrap leading-relaxed text-sm">
-                              {feedback.what_needs_improving}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Feature requests */}
-                        {feedback.new_features_needed && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Lightbulb className="w-4 h-4 text-blue-600" />
-                              <h4 className="font-medium text-blue-800">Feature requests</h4>
-                            </div>
-                            <p className="text-blue-700 whitespace-pre-wrap leading-relaxed text-sm">
-                              {feedback.new_features_needed}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </div>
-          )}
+          
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 
