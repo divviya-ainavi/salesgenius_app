@@ -222,15 +222,95 @@ const Analytics = () => {
   const [selectedMetric, setSelectedMetric] = useState("productivity");
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
-  const [filteredFeedback, setFilteredFeedback] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
-  const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: 'all',
     username: '',
     dateFrom: '',
     dateTo: '',
   });
+
+  // Load feedback data when Super Admin is selected
+  useEffect(() => {
+    if (userRole === 'super_admin') {
+      loadFeedbackData();
+    }
+  }, [userRole]);
+
+  // Apply filters to feedback data
+  useEffect(() => {
+    let filtered = feedbackData;
+
+    if (feedbackFilters.pageRoute !== 'all') {
+      filtered = filtered.filter(f => f.page_route === feedbackFilters.pageRoute);
+    }
+
+    if (feedbackFilters.username.trim()) {
+      filtered = filtered.filter(f => 
+        f.username.toLowerCase().includes(feedbackFilters.username.toLowerCase())
+      );
+    }
+
+    if (feedbackFilters.dateFrom) {
+      filtered = filtered.filter(f => 
+        new Date(f.created_at) >= new Date(feedbackFilters.dateFrom)
+      );
+    }
+
+    if (feedbackFilters.dateTo) {
+      filtered = filtered.filter(f => 
+        new Date(f.created_at) <= new Date(feedbackFilters.dateTo + 'T23:59:59')
+      );
+    }
+
+    setFilteredFeedback(filtered);
+  }, [feedbackData, feedbackFilters]);
+
+  const loadFeedbackData = async () => {
+    setIsLoadingFeedback(true);
+    try {
+      const feedback = await dbHelpers.getAllFeedback();
+      setFeedbackData(feedback || []);
+    } catch (error) {
+      console.error('Error loading feedback:', error);
+      toast.error('Failed to load feedback data');
+    } finally {
+      setIsLoadingFeedback(false);
+    }
+  };
+
+  const handleFeedbackFilterChange = (field, value) => {
+    setFeedbackFilters(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const clearFeedbackFilters = () => {
+    setFeedbackFilters({
+      pageRoute: 'all',
+      username: '',
+      dateFrom: '',
+      dateTo: '',
+    });
+  };
+
+  const toggleFeedbackExpansion = (feedbackId) => {
+    setExpandedFeedback(prev => prev === feedbackId ? null : feedbackId);
+  };
+
+  const getUniquePageRoutes = () => {
+    const routes = [...new Set(feedbackData.map(f => f.page_route))];
+    return routes.sort();
+  };
+
+  const getFeedbackIndicators = (feedback) => {
+    const indicators = [];
+    if (feedback.what_you_like) indicators.push({ type: 'like', color: 'bg-green-500' });
+    if (feedback.what_needs_improving) indicators.push({ type: 'improve', color: 'bg-orange-500' });
+    if (feedback.new_features_needed) indicators.push({ type: 'feature', color: 'bg-blue-500' });
+    return indicators;
+  };
 
   // Load feedback data when Super Admin is selected
   useEffect(() => {
