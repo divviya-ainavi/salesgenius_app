@@ -240,79 +240,145 @@ export const Analytics = () => {
 
           <CardContent className="space-y-4">
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="space-y-1">
-                <Label htmlFor="page-route-filter" className="text-xs font-medium">
-                  Page Route
-                </Label>
-                <Select
-                  value={filters.pageRoute}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, pageRoute: value }))}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="All pages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Pages</SelectItem>
-                    {uniquePageRoutes.map((route) => (
-                      <SelectItem key={route} value={route}>
-                        {route}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="username-filter" className="text-xs font-medium">
-                  Username
-                </Label>
-                <Input
-                  id="username-filter"
-                  placeholder="Search users..."
-                  value={filters.username}
-                  onChange={(e) => setFilters(prev => ({ ...prev, username: e.target.value }))}
-                  className="h-8"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="date-from-filter" className="text-xs font-medium">
-                  From Date
-                </Label>
-                <Input
-                  id="date-from-filter"
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                  className="h-8"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="date-to-filter" className="text-xs font-medium">
-                  To Date
-                </Label>
-                <div className="flex space-x-1">
-                  <Input
-                    id="date-to-filter"
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                    className="h-8 flex-1"
-                  />
+            <div className="space-y-4">
+              {/* Filter Controls Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filters</span>
                   {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="h-8 px-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    <Badge variant="secondary" className="text-xs">
+                      {Object.values(filters).filter(v => v && v !== "all").length} active
+                    </Badge>
                   )}
                 </div>
+                <div className="flex items-center space-x-2">
+                  {hasActiveFilters && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-8 text-xs"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadFeedbackData}
+                    disabled={isLoadingFeedback}
+                    className="h-8 text-xs"
+                  >
+                    <RefreshCw className={cn("w-3 h-3 mr-1", isLoadingFeedback && "animate-spin")} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
+
+              {/* Filter Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gradient-to-r from-muted/40 to-muted/20 border border-border/50 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="page-route-filter" className="text-xs font-medium text-foreground">
+                    Page Route
+                  </Label>
+                  <Select
+                    value={filters.pageRoute}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, pageRoute: value }))}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All pages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Pages</SelectItem>
+                      {uniquePageRoutes.map((route) => (
+                        <SelectItem key={route} value={route}>
+                          <span className="flex items-center space-x-2">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                            <span>{route}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username-filter" className="text-xs font-medium text-foreground">
+                    Username
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3 h-3" />
+                    <Input
+                      id="username-filter"
+                      placeholder="Search users..."
+                      value={filters.username}
+                      onChange={(e) => setFilters(prev => ({ ...prev, username: e.target.value }))}
+                      className="h-9 pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date-from-filter" className="text-xs font-medium text-foreground">
+                    From Date
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3 h-3" />
+                    <Input
+                      id="date-from-filter"
+                      type="date"
+                      value={filters.dateFrom}
+                      onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                      className="h-9 pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date-to-filter" className="text-xs font-medium text-foreground">
+                    To Date
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3 h-3" />
+                    <Input
+                      id="date-to-filter"
+                      type="date"
+                      value={filters.dateTo}
+                      onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                      className="h-9 pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
+                <div className="flex items-center space-x-2 text-xs">
+                  <span className="text-muted-foreground">Active filters:</span>
+                  {filters.pageRoute !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Page: {filters.pageRoute}
+                    </Badge>
+                  )}
+                  {filters.username && (
+                    <Badge variant="secondary" className="text-xs">
+                      User: {filters.username}
+                    </Badge>
+                  )}
+                  {filters.dateFrom && (
+                    <Badge variant="secondary" className="text-xs">
+                      From: {filters.dateFrom}
+                    </Badge>
+                  )}
+                  {filters.dateTo && (
+                    <Badge variant="secondary" className="text-xs">
+                      To: {filters.dateTo}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Feedback Entries */}
