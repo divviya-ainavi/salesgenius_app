@@ -222,7 +222,9 @@ const Analytics = () => {
   const [selectedMetric, setSelectedMetric] = useState("productivity");
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
+  const [filteredFeedback, setFilteredFeedback] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [expandedFeedback, setExpandedFeedback] = useState(null);
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: 'all',
     username: '',
