@@ -322,37 +322,7 @@ const Analytics = () => {
     }
   }, [feedbackFilters, userRole]);
 
-  const loadRealCounts = async () => {
-    try {
-      setRealCounts((prev) => ({ ...prev, loading: true }));
-
-      // Get active users count (users with status_id = 1 which is active)
-      const { count: activeUsersCount, error: usersError } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("status_id", 1);
-
-      if (usersError) throw usersError;
-
-      // Get total organizations count
-      const { count: organizationsCount, error: orgsError } = await supabase
-        .from("organizations")
-        .select("*", { count: "exact", head: true });
-
-      if (orgsError) throw orgsError;
-
-      setRealCounts({
-        activeUsers: activeUsersCount || 0,
-        totalOrganizations: organizationsCount || 0,
-        loading: false,
-      });
-    } catch (error) {
-      console.error("Error loading real counts:", error);
-      toast.error("Failed to load user and organization counts");
-      setRealCounts((prev) => ({ ...prev, loading: false }));
-    }
-  };
-
+  
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
     try {
