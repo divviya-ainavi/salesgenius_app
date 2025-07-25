@@ -101,9 +101,7 @@ export const FeedbackWidget = () => {
       // Prepare feedback data
       const feedbackData = {
         user_id: CURRENT_USER.id,
-        username: CURRENT_USER.full_name || CURRENT_USER.email,
         organization_id: user?.organization_id || organizationDetails?.id,
-        organization_name: organizationDetails?.name,
         page_url: window.location.href,
         page_route: pageName,
         what_you_like: formData.whatYouLike.trim() || null,
