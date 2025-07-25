@@ -55,6 +55,10 @@ import {
   ThumbsUp,
   ChevronDown,
   Globe,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import {
   LineChart,
@@ -220,6 +224,13 @@ const Analytics = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [expandedFeedback, setExpandedFeedback] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: "all",
     username: "",
@@ -227,16 +238,35 @@ const Analytics = () => {
     toDate: "",
   });
 
+  // Computed values
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
   // Load feedback data when Super Admin is selected
   useEffect(() => {
     if (userRole === "super_admin") {
       loadFeedbackData();
     }
-  }, [userRole, feedbackFilters]);
+  }, [userRole, currentPage]);
+
+  // Reload when filters change and reset to page 1
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else {
+      loadFeedbackData();
+    }
+  }, [feedbackFilters]);
 
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
     try {
+      // Get total count first
+      const totalCount = await dbHelpers.getFeedbackCount();
+      setTotalItems(totalCount);
+      
+      // Get paginated feedback
       const filters = {};
 
       if (feedbackFilters.pageRoute !== "all") {
@@ -255,7 +285,11 @@ const Analytics = () => {
         filters.date_to = feedbackFilters.toDate;
       }
 
-      const feedback = await dbHelpers.getAllUserFeedback(filters);
+      const feedback = await dbHelpers.getAllUserFeedback({
+        page: currentPage,
+        limit: itemsPerPage,
+        ...filters
+      });
       setFeedbackData(feedback || []);
     } catch (error) {
       console.error("Error loading feedback data:", error);
@@ -271,6 +305,102 @@ const Analytics = () => {
       ...prev,
       [field]: value,
     }));
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const renderPaginationButton = (page, label) => (
+    <Button
+      key={page}
+      variant={currentPage === page ? "default" : "outline"}
+      size="sm"
+      onClick={() => handlePageChange(page)}
+      disabled={isLoadingFeedback}
+      className="h-8 w-8 p-0"
+    >
+      {label || page}
+    </Button>
+  );
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    // First page
+    if (currentPage > 3) {
+      pages.push(renderPaginationButton(1));
+      if (currentPage > 4) {
+        pages.push(<span key="ellipsis1" className="px-2 text-muted-foreground">...</span>);
+      }
+    }
+    
+    // Pages around current page
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(renderPaginationButton(i));
+    }
+    
+    // Last page
+    if (currentPage < totalPages - 2) {
+      if (currentPage < totalPages - 3) {
+        pages.push(<span key="ellipsis2" className="px-2 text-muted-foreground">...</span>);
+      }
+      pages.push(renderPaginationButton(totalPages));
+    }
+
+    return (
+      <div className="flex items-center justify-between pt-4 border-t">
+        <div className="text-sm text-muted-foreground">
+          Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} entries
+        </div>
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1 || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          {pages}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage === totalPages || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   const getUniquePageRoutes = () => {
@@ -384,6 +514,7 @@ const Analytics = () => {
                   fromDate: "",
                   toDate: "",
                 });
+                setCurrentPage(1);
               }}
             >
               Clear Filters
@@ -573,6 +704,9 @@ const Analytics = () => {
                 ))}
               </div>
             )}
+            
+            {/* Pagination */}
+            {renderPagination()}
           </div>
         </CardContent>
       </Card>
