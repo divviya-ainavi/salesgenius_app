@@ -336,8 +336,7 @@ const Analytics = () => {
       const endIndex = startIndex + itemsPerPage;
       const paginatedData = filteredData.slice(startIndex, endIndex);
 
-      // Apply pagination
-      const startIndex = (currentPage - 1) * itemsPerPage;
+     
       setFeedbackData(paginatedData);
       setTotalItems(totalCount);
     } catch (error) {
