@@ -83,13 +83,6 @@ import { config } from "@/lib/config";
 import { dbHelpers, supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 
-// Real data state
-const [realCounts, setRealCounts] = useState({
-  activeUsers: 0,
-  totalOrganizations: 0,
-  loading: true,
-});
-
 // Mock data for analytics
 const mockAnalyticsData = {
   superAdmin: {
@@ -290,10 +283,12 @@ const Analytics = () => {
   useEffect(() => {
     if (userRole === "super_admin") {
       loadFeedbackData();
+      loadRealCounts();
     }
   }, [feedbackFilters, userRole]);
 
   const loadRealCounts = async () => {
+    console.log();
     try {
       setRealCounts((prev) => ({ ...prev, loading: true }));
 
