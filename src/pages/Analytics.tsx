@@ -58,7 +58,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
 } from "lucide-react";
 import {
   LineChart,
@@ -80,6 +80,7 @@ import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
 import { config } from "@/lib/config";
 import { dbHelpers } from "@/lib/supabase";
+import { useSelector } from "react-redux";
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -218,14 +219,17 @@ const timeSeriesData = [
 const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
 const Analytics = () => {
-  const [userRole, setUserRole] = useState("individual"); // super_admin, org_admin, individual
+  const { userRoleId } = useSelector((state) => state.auth);
+  const [userRole, setUserRole] = useState(
+    userRoleId ? "individual" : "super_admin"
+  ); // super_admin, org_admin, individual
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("productivity");
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -242,6 +246,10 @@ const Analytics = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
+
+  // useEffect(() => {
+  //   setUserRole(userRoleId ? "individual" : "super_admin");
+  // }, [userRoleId]);
 
   // Load feedback data when Super Admin is selected
   useEffect(() => {
@@ -271,10 +279,10 @@ const Analytics = () => {
 
       if (feedbackFilters.username.trim()) {
         filters.username = feedbackFilters.username.trim();
-      
-      // Set total count from the returned data length
-      // In a real implementation, you'd get this from a separate count query
-      setTotalItems(feedbackData?.length || 0);
+
+        // Set total count from the returned data length
+        // In a real implementation, you'd get this from a separate count query
+        setTotalItems(feedbackData?.length || 0);
       }
 
       if (feedbackFilters.fromDate) {
@@ -288,7 +296,7 @@ const Analytics = () => {
       const feedback = await dbHelpers.getAllUserFeedback({
         page: currentPage,
         limit: itemsPerPage,
-        ...filters
+        ...filters,
       });
       setFeedbackData(feedback || []);
     } catch (error) {
@@ -330,27 +338,35 @@ const Analytics = () => {
 
     const pages = [];
     const maxVisiblePages = 5;
-    
+
     // First page
     if (currentPage > 3) {
       pages.push(renderPaginationButton(1));
       if (currentPage > 4) {
-        pages.push(<span key="ellipsis1" className="px-2 text-muted-foreground">...</span>);
+        pages.push(
+          <span key="ellipsis1" className="px-2 text-muted-foreground">
+            ...
+          </span>
+        );
       }
     }
-    
+
     // Pages around current page
     const start = Math.max(1, currentPage - 2);
     const end = Math.min(totalPages, currentPage + 2);
-    
+
     for (let i = start; i <= end; i++) {
       pages.push(renderPaginationButton(i));
     }
-    
+
     // Last page
     if (currentPage < totalPages - 2) {
       if (currentPage < totalPages - 3) {
-        pages.push(<span key="ellipsis2" className="px-2 text-muted-foreground">...</span>);
+        pages.push(
+          <span key="ellipsis2" className="px-2 text-muted-foreground">
+            ...
+          </span>
+        );
       }
       pages.push(renderPaginationButton(totalPages));
     }
@@ -358,7 +374,8 @@ const Analytics = () => {
     return (
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="text-sm text-muted-foreground">
-          Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} entries
+          Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+          {totalItems} entries
         </div>
         <div className="flex items-center space-x-1">
           <Button
@@ -431,95 +448,110 @@ const Analytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="page-filter">Page Route</Label>
-              <Select
-                value={feedbackFilters.pageRoute}
-                onValueChange={(value) =>
-                  handleFeedbackFilterChange("pageRoute", value)
-                }
+          <div className="flex flex-wrap justify-between items-end gap-4">
+            {/* Left-side filters + Clear Filters button */}
+            <div className="flex flex-wrap gap-4 items-end">
+              {/* Page Route */}
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="page-filter">Page Route</Label>
+                <Select
+                  value={feedbackFilters.pageRoute}
+                  onValueChange={(value) =>
+                    handleFeedbackFilterChange("pageRoute", value)
+                  }
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Pages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Pages</SelectItem>
+                    {getUniquePageRoutes().map((route) => (
+                      <SelectItem key={route} value={route}>
+                        {route}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Username */}
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="username-filter">Username</Label>
+                <Input
+                  id="username-filter"
+                  placeholder="Search by username..."
+                  value={feedbackFilters.username}
+                  onChange={(e) =>
+                    handleFeedbackFilterChange("username", e.target.value)
+                  }
+                  className="w-[180px]"
+                />
+              </div>
+
+              {/* From Date */}
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="date-from">From Date</Label>
+                <Input
+                  id="date-from"
+                  type="date"
+                  value={feedbackFilters.fromDate}
+                  onChange={(e) =>
+                    handleFeedbackFilterChange("fromDate", e.target.value)
+                  }
+                  className="w-[150px]"
+                />
+              </div>
+
+              {/* To Date */}
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="date-to">To Date</Label>
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={feedbackFilters.toDate}
+                  onChange={(e) =>
+                    handleFeedbackFilterChange("toDate", e.target.value)
+                  }
+                  className="w-[150px]"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              <div className="mt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFeedbackFilters({
+                      pageRoute: "all",
+                      username: "",
+                      fromDate: "",
+                      toDate: "",
+                    });
+                    setCurrentPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
+
+            {/* Right-side Refresh button */}
+            <div className="mt-1">
+              <Button
+                variant="outline"
+                onClick={loadFeedbackData}
+                disabled={isLoadingFeedback}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Pages" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Pages</SelectItem>
-                  {getUniquePageRoutes().map((route) => (
-                    <SelectItem key={route} value={route}>
-                      {route}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username-filter">Username</Label>
-              <Input
-                id="username-filter"
-                placeholder="Search by username..."
-                value={feedbackFilters.username}
-                onChange={(e) =>
-                  handleFeedbackFilterChange("username", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-from">From Date</Label>
-              <Input
-                id="date-from"
-                type="date"
-                value={feedbackFilters.fromDate}
-                onChange={(e) =>
-                  handleFeedbackFilterChange("fromDate", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-to">To Date</Label>
-              <Input
-                id="date-to"
-                type="date"
-                value={feedbackFilters.toDate}
-                onChange={(e) =>
-                  handleFeedbackFilterChange("toDate", e.target.value)
-                }
-              />
+                {isLoadingFeedback ? (
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Refresh
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <Button
-              variant="outline"
-              onClick={loadFeedbackData}
-              disabled={isLoadingFeedback}
-            >
-              {isLoadingFeedback ? (
-                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Refresh
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                setFeedbackFilters({
-                  pageRoute: "all",
-                  username: "",
-                  fromDate: "",
-                  toDate: "",
-                });
-                setCurrentPage(1);
-              }}
-            >
-              Clear Filters
-            </Button>
-          </div>
           <div className="mt-2">
             {isLoadingFeedback ? (
               <div className="text-center py-8">
@@ -704,7 +736,7 @@ const Analytics = () => {
                 ))}
               </div>
             )}
-            
+
             {/* Pagination */}
             {renderPagination()}
           </div>
@@ -1614,7 +1646,7 @@ const Analytics = () => {
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <span className="text-sm font-medium">View Dashboard As:</span>
-            <Select value={userRole} onValueChange={setUserRole}>
+            <Select value={userRole} onValueChange={setUserRole} disabled>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
