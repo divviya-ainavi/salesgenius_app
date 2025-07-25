@@ -252,6 +252,13 @@ const Analytics = () => {
   const [itemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Real data state
+  const [realCounts, setRealCounts] = useState({
+    activeUsers: 0,
+    totalOrganizations: 0,
+    loading: true,
+  });
+
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: "all",
     username: "",
