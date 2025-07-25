@@ -496,11 +496,6 @@ const Analytics = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }}>
             <div className="flex flex-wrap justify-between items-end gap-4">
             {/* Left-side filters + Clear Filters button */}
             <div className="flex flex-wrap gap-4 items-end">
@@ -569,18 +564,9 @@ const Analytics = () => {
                     e.preventDefault();
                     e.stopPropagation();
                   }}
-                    e.preventDefault();
-                    setUsernameInput(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                    }
-                  }}
                   className="w-[180px]"
                   autoComplete="off"
                   type="text"
-                  autoComplete="off"
                 />
               </div>
 
@@ -616,11 +602,8 @@ const Analytics = () => {
               <div className="mt-1">
                 <Button
                   type="button"
-                  type="button"
                   variant="outline"
                   onClick={() => {
-                    event?.preventDefault();
-                    event?.stopPropagation();
                     setUsernameInput("");
                     setFeedbackFilters({
                       pageRoute: "all",
@@ -640,7 +623,6 @@ const Analytics = () => {
             <div className="mt-1">
               <Button
                 type="button"
-                type="button"
                 variant="outline"
                 onClick={loadFeedbackData}
                 disabled={isLoadingFeedback}
@@ -654,7 +636,6 @@ const Analytics = () => {
               </Button>
             </div>
             </div>
-          </form>
           </form>
 
           <div className="mt-2">
