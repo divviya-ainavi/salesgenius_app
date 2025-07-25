@@ -230,6 +230,7 @@ const Analytics = () => {
   const [feedbackData, setFeedbackData] = useState([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [expandedFeedback, setExpandedFeedback] = useState(null);
+  const [usernameInput, setUsernameInput] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -252,6 +253,19 @@ const Analytics = () => {
   //   setUserRole(userRoleId ? "individual" : "super_admin");
   // }, [userRoleId]);
 
+  // Debounce username filter
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFeedbackFilters(prev => ({
+        ...prev,
+        username: usernameInput
+      }));
+      setCurrentPage(1);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [usernameInput]);
+
   // Load feedback data when Super Admin is selected
   useEffect(() => {
     if (userRole === "super_admin") {
@@ -272,7 +286,7 @@ const Analytics = () => {
     setIsLoadingFeedback(true);
     try {
       // Get feedback data with user and organization details
-      const { data: feedbackData, error } = await supabase
+      let query = supabase
         .from('user_feedback')
         .select(`
           *,
@@ -280,44 +294,53 @@ const Analytics = () => {
           organization:organizations!user_feedback_organization_id_fkey(name)
         `)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .range(
-          (currentPage - 1) * itemsPerPage,
-          currentPage * itemsPerPage - 1
-        );
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-
-      // Apply filters on the client side for now
-      let filteredData = feedbackData || [];
-
+      // Apply filters
       if (feedbackFilters.pageRoute && feedbackFilters.pageRoute !== 'all') {
-        filteredData = filteredData.filter(item => 
-          item.page_route === feedbackFilters.pageRoute
-        );
+        query = query.eq('page_route', feedbackFilters.pageRoute);
       }
 
-      if (feedbackFilters.username) {
-        filteredData = filteredData.filter(item => 
-          item.user?.full_name?.toLowerCase().includes(feedbackFilters.username.toLowerCase()) ||
-          item.user?.email?.toLowerCase().includes(feedbackFilters.username.toLowerCase())
-        );
-      }
-
+      // Apply date filters
       if (feedbackFilters.fromDate) {
-        filteredData = filteredData.filter(item => 
-          new Date(item.created_at) >= new Date(feedbackFilters.fromDate)
-        );
+        const fromDateTime = new Date(feedbackFilters.fromDate);
+        fromDateTime.setHours(0, 0, 0, 0);
+        query = query.gte('created_at', fromDateTime.toISOString());
       }
 
       if (feedbackFilters.toDate) {
-        filteredData = filteredData.filter(item => 
-          new Date(item.created_at) <= new Date(feedbackFilters.toDate)
-        );
+        const toDateTime = new Date(feedbackFilters.toDate);
+        toDateTime.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', toDateTime.toISOString());
+      }
+
+      // Get total count for pagination
+      const { count } = await supabase
+        .from('user_feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Apply pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      query = query.range(startIndex, startIndex + itemsPerPage - 1);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Client-side filtering for username (since we need to search in joined data)
+      let filteredData = data || [];
+      if (feedbackFilters.username) {
+        const searchTerm = feedbackFilters.username.toLowerCase();
+        filteredData = filteredData.filter(item => {
+          const userName = item.user?.full_name?.toLowerCase() || '';
+          const userEmail = item.user?.email?.toLowerCase() || '';
+          return userName.includes(searchTerm) || userEmail.includes(searchTerm);
+        });
       }
 
       setFeedbackData(filteredData);
-      setTotalItems(filteredData.length);
+      setTotalItems(count || 0);
     } catch (error) {
       console.error('Error loading feedback data:', error);
       toast.error('Failed to load feedback data');
@@ -328,11 +351,17 @@ const Analytics = () => {
   };
 
   const handleFeedbackFilterChange = (field, value) => {
-    setFeedbackFilters((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-    setCurrentPage(1); // Reset to first page when filters change
+    if (field === 'username') {
+      // Handle username separately with debouncing
+      setUsernameInput(value);
+    } else {
+      // Handle other filters immediately
+      setFeedbackFilters((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      setCurrentPage(1); // Reset to first page when filters change
+    }
   };
 
   const handlePageChange = (page) => {
@@ -504,10 +533,8 @@ const Analytics = () => {
                 <Input
                   id="username-filter"
                   placeholder="Search by username..."
-                  value={feedbackFilters.username}
-                  onChange={(e) =>
-                    handleFeedbackFilterChange("username", e.target.value)
-                  }
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
                   className="w-[180px]"
                 />
               </div>
@@ -518,7 +545,7 @@ const Analytics = () => {
                 <Input
                   id="date-from"
                   type="date"
-                  value={feedbackFilters.fromDate}
+                  value={feedbackFilters.fromDate || ''}
                   onChange={(e) =>
                     handleFeedbackFilterChange("fromDate", e.target.value)
                   }
@@ -532,7 +559,7 @@ const Analytics = () => {
                 <Input
                   id="date-to"
                   type="date"
-                  value={feedbackFilters.toDate}
+                  value={feedbackFilters.toDate || ''}
                   onChange={(e) =>
                     handleFeedbackFilterChange("toDate", e.target.value)
                   }
@@ -545,6 +572,7 @@ const Analytics = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
+                    setUsernameInput('');
                     setFeedbackFilters({
                       pageRoute: "all",
                       username: "",
