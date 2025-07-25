@@ -521,6 +521,9 @@ const Analytics = () => {
   // Simulate data refresh
   const handleRefresh = async () => {
     setIsLoading(true);
+    if (userRole === "super_admin") {
+      await loadRealCounts();
+    }
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
     toast.success("Analytics data refreshed");
