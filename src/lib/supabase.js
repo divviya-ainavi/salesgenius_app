@@ -102,6 +102,77 @@ export const authHelpers = {
     return profile.id;
   },
 
+  // Get feedback with pagination and filters
+  async getFeedbackWithPagination(params = {}) {
+    try {
+      const {
+        limit = 5,
+        offset = 0,
+        page_route,
+        username,
+        from_date,
+        to_date
+      } = params;
+
+      // Build the base query with joins
+      let query = supabase
+        .from('user_feedback')
+        .select(`
+          *,
+          user:profiles!user_feedback_user_id_fkey(full_name, email),
+          organization:organizations!user_feedback_organization_id_fkey(name)
+        `, { count: 'exact' })
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      // Apply server-side filters
+      if (page_route && page_route.trim() !== '') {
+        query = query.eq('page_route', page_route);
+      }
+
+      if (from_date && from_date.trim() !== '') {
+        const fromDateTime = new Date(from_date + 'T00:00:00.000Z').toISOString();
+        query = query.gte('created_at', fromDateTime);
+      }
+
+      if (to_date && to_date.trim() !== '') {
+        const toDateTime = new Date(to_date + 'T23:59:59.999Z').toISOString();
+        query = query.lte('created_at', toDateTime);
+      }
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching feedback:', error);
+        throw error;
+      }
+
+      let filteredData = data || [];
+
+      // Apply client-side username filtering if provided
+      if (username && username.trim() !== '') {
+        const searchTerm = username.toLowerCase();
+        filteredData = filteredData.filter(item => {
+          const fullName = item.user?.full_name?.toLowerCase() || '';
+          const email = item.user?.email?.toLowerCase() || '';
+          return fullName.includes(searchTerm) || email.includes(searchTerm);
+        });
+      }
+
+      return {
+        data: filteredData,
+        total: count || 0,
+        hasMore: (offset + limit) < (count || 0)
+      };
+    } catch (error) {
+      console.error('Error in getFeedbackWithPagination:', error);
+      throw error;
+    }
+  },
+
   // Get user profile from database
   async getUserProfile(userId) {
     try {
