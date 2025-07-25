@@ -234,7 +234,7 @@ const Analytics = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
   const [feedbackFilters, setFeedbackFilters] = useState({
