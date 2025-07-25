@@ -152,13 +152,13 @@ const AccountSetup = () => {
         // Check if invite is still valid
         const inviteDate = new Date(invite.invited_at);
         const now = new Date();
-        const hoursSinceInvite =
-          (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60);
+        const daysSinceInvite =
+          (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60 * 24);
 
         if (invite.status == "completed") {
           setError("This invitation has already been used.");
           return;
-        } else if (hoursSinceInvite > 24) {
+        } else if (daysSinceInvite > 7) {
           setError("Invitation has expired. Please request a new invitation.");
           return;
         }
