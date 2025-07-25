@@ -484,11 +484,16 @@ const Analytics = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Pages</SelectItem>
-                    {getUniquePageRoutes().map((route) => (
-                      <SelectItem key={route} value={route}>
-                        {route}
-                      </SelectItem>
-                    ))}
+                     
+                   
+                      <SelectItem key={"Research"} value={"Research"}>Research</SelectItem>
+<SelectItem key={"Sales Calls"} value={"Sales Calls"}>Sales Calls</SelectItem>
+                    <SelectItem key={"Call Insights"} value={"Call Insights"}>Call Insights</SelectItem>
+                    <SelectItem key={"Emails"} value={"Emails"}>Emails</SelectItem>
+                     <SelectItem key={"Presentation"} value={"Presentation"}>Presentation</SelectItem>
+                     <SelectItem key={"Actions"} value={"Actions"}>Actions</SelectItem>
+                     <SelectItem key={"Analytics"} value={"Analytics"}>Analytics</SelectItem>
+                     <SelectItem key={"Settings"} value={"Settings"}>Actions</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
