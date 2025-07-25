@@ -274,7 +274,7 @@ const Analytics = () => {
       
       // Set total count from the returned data length
       // In a real implementation, you'd get this from a separate count query
-      setTotalFeedbackItems(feedbackData?.length || 0);
+      setTotalItems(feedbackData?.length || 0);
       }
 
       if (feedbackFilters.fromDate) {
