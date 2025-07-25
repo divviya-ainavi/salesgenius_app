@@ -83,6 +83,13 @@ import { config } from "@/lib/config";
 import { dbHelpers, supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 
+// Real data state
+const [realCounts, setRealCounts] = useState({
+  activeUsers: 0,
+  totalOrganizations: 0,
+  loading: true
+});
+
 // Mock data for analytics
 const mockAnalyticsData = {
   superAdmin: {
@@ -237,6 +244,13 @@ const Analytics = () => {
   const [itemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Real data state
+  const [realCounts, setRealCounts] = useState({
+    activeUsers: 0,
+    totalOrganizations: 0,
+    loading: true
+  });
+
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: "all",
     username: "",
@@ -278,6 +292,37 @@ const Analytics = () => {
       loadFeedbackData();
     }
   }, [feedbackFilters, userRole]);
+
+  const loadRealCounts = async () => {
+    try {
+      setRealCounts(prev => ({ ...prev, loading: true }));
+      
+      // Get active users count (users with status_id = 1 which is active)
+      const { count: activeUsersCount, error: usersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status_id', 1);
+
+      if (usersError) throw usersError;
+
+      // Get total organizations count
+      const { count: organizationsCount, error: orgsError } = await supabase
+        .from('organizations')
+        .select('*', { count: 'exact', head: true });
+
+      if (orgsError) throw orgsError;
+
+      setRealCounts({
+        activeUsers: activeUsersCount || 0,
+        totalOrganizations: organizationsCount || 0,
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error loading real counts:', error);
+      toast.error('Failed to load user and organization counts');
+      setRealCounts(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
