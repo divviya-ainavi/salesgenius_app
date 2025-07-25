@@ -223,8 +223,8 @@ const Analytics = () => {
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: "all",
     username: "",
-    dateFrom: "",
-    dateTo: "",
+    fromDate: "",
+    toDate: "",
   });
 
   // Load feedback data when Super Admin is selected
@@ -247,12 +247,12 @@ const Analytics = () => {
         filters.username = feedbackFilters.username.trim();
       }
 
-      if (feedbackFilters.dateFrom) {
-        filters.date_from = feedbackFilters.dateFrom;
+      if (feedbackFilters.fromDate) {
+        filters.date_from = feedbackFilters.fromDate;
       }
 
-      if (feedbackFilters.dateTo) {
-        filters.date_to = feedbackFilters.dateTo;
+      if (feedbackFilters.toDate) {
+        filters.date_to = feedbackFilters.toDate;
       }
 
       const feedback = await dbHelpers.getAllUserFeedback(filters);
@@ -341,9 +341,9 @@ const Analytics = () => {
               <Input
                 id="date-from"
                 type="date"
-                value={feedbackFilters.dateFrom}
+                value={feedbackFilters.fromDate}
                 onChange={(e) =>
-                  handleFeedbackFilterChange("dateFrom", e.target.value)
+                  handleFeedbackFilterChange("fromDate", e.target.value)
                 }
               />
             </div>
@@ -353,9 +353,9 @@ const Analytics = () => {
               <Input
                 id="date-to"
                 type="date"
-                value={feedbackFilters.dateTo}
+                value={feedbackFilters.toDate}
                 onChange={(e) =>
-                  handleFeedbackFilterChange("dateTo", e.target.value)
+                  handleFeedbackFilterChange("toDate", e.target.value)
                 }
               />
             </div>
@@ -381,8 +381,8 @@ const Analytics = () => {
                 setFeedbackFilters({
                   pageRoute: "all",
                   username: "",
-                  dateFrom: "",
-                  dateTo: "",
+                  fromDate: "",
+                  toDate: "",
                 });
               }}
             >
