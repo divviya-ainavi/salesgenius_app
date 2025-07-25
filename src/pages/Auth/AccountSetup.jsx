@@ -38,6 +38,7 @@ const AccountSetup = () => {
   const [error, setError] = useState("");
   const [inviteData, setInviteData] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [displayRoleLabel, setDisplayRoleLabel] = useState("User");
   const [stepperConfig, setStepperConfig] = useState({
     showOrgStep: false,
     showUserStep: true,
@@ -151,13 +152,13 @@ const AccountSetup = () => {
         // Check if invite is still valid
         const inviteDate = new Date(invite.invited_at);
         const now = new Date();
-        const hoursSinceInvite =
-          (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60);
+        const daysSinceInvite =
+          (now.getTime() - inviteDate.getTime()) / (1000 * 60 * 60 * 24);
 
         if (invite.status == "completed") {
           setError("This invitation has already been used.");
           return;
-        } else if (hoursSinceInvite > 24) {
+        } else if (daysSinceInvite > 7) {
           setError("Invitation has expired. Please request a new invitation.");
           return;
         }
@@ -173,7 +174,7 @@ const AccountSetup = () => {
           showUserStep: true,
           totalSteps: 1,
         };
-
+        console.log(hasOrgId, hasTitleId, "has org id", invite);
         if (hasOrgId && hasTitleId) {
           // Case 1: Both organization_id and title_id present - Show only User Details
           config = {
@@ -198,6 +199,10 @@ const AccountSetup = () => {
         }
         // console.log(config, "195");
         setStepperConfig(config);
+
+        // Set the display role label
+        const roleLabel = await getRoleLabel(invite);
+        setDisplayRoleLabel(roleLabel);
       } catch (err) {
         console.error("Error loading invitation data:", err);
         setError("Failed to load invitation details. Please try again.");
@@ -425,10 +430,15 @@ const AccountSetup = () => {
     }
   };
 
-  const getRoleLabel = () => {
-    if (inviteData?.title_id) {
-      return "Team Member";
-    } else if (inviteData?.organization_id && !inviteData?.title_id) {
+  const getRoleLabel = async (invite = inviteData) => {
+    if (invite?.title_id) {
+      const title = await dbHelpers.getRoleIdByTitleName(
+        invite.title_id,
+        invite?.organization_id
+      );
+      console.log(title, "title");
+      return title || "User";
+    } else if (invite?.organization_id && !invite?.title_id) {
       return "Organization Member";
     } else {
       return "Organization Administrator";
@@ -548,7 +558,7 @@ const AccountSetup = () => {
                     {inviteData?.email}
                   </p>
                   <p className="text-gray-600">
-                    Setting up as {getRoleLabel()}
+                    Setting up as {displayRoleLabel}
                   </p>
                 </div>
               </div>
@@ -557,7 +567,7 @@ const AccountSetup = () => {
                 className="text-sm px-3 py-1 bg-blue-100 text-blue-800 border-blue-200"
               >
                 <Users className="w-4 h-4 mr-2" />
-                {getRoleLabel()}
+                {displayRoleLabel}
               </Badge>
             </div>
           </CardContent>
@@ -658,11 +668,12 @@ const AccountSetup = () => {
                       htmlFor="username"
                       className="text-sm font-semibold text-gray-700"
                     >
-                      Username
+                      Full Name
                     </Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="username"
                         type="text"
                         placeholder="Choose a username"
@@ -683,11 +694,12 @@ const AccountSetup = () => {
                       htmlFor="password"
                       className="text-sm font-semibold text-gray-700"
                     >
-                      Password
+                      New Password
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
@@ -802,6 +814,7 @@ const AccountSetup = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
+                        autoComplete="off"
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"

@@ -11,6 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   BarChart3,
   TrendingUp,
@@ -44,6 +51,15 @@ import {
   Settings,
   Info,
   ExternalLink,
+  User,
+  ThumbsUp,
+  ChevronDown,
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Building,
 } from "lucide-react";
 import {
   LineChart,
@@ -64,6 +80,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
 import { config } from "@/lib/config";
+import { dbHelpers, supabase } from "@/lib/supabase";
+import { useSelector } from "react-redux";
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -202,10 +220,258 @@ const timeSeriesData = [
 const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 
 const Analytics = () => {
-  const [userRole, setUserRole] = useState("individual"); // super_admin, org_admin, individual
+  const { userRoleId } = useSelector((state) => state.auth);
+  const [userRole, setUserRole] = useState(
+    userRoleId ? "individual" : "super_admin"
+  ); // super_admin, org_admin, individual
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("productivity");
   const [isLoading, setIsLoading] = useState(false);
+  const [feedbackData, setFeedbackData] = useState([]);
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [expandedFeedback, setExpandedFeedback] = useState(null);
+  const [usernameInput, setUsernameInput] = useState("");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const [feedbackFilters, setFeedbackFilters] = useState({
+    pageRoute: "all",
+    username: "",
+    fromDate: "",
+    toDate: "",
+  });
+
+  // Computed values
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  // useEffect(() => {
+  //   setUserRole(userRoleId ? "individual" : "super_admin");
+  // }, [userRoleId]);
+
+  // Debounce username filter
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFeedbackFilters((prev) => ({
+        ...prev,
+        username: usernameInput,
+      }));
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [usernameInput]);
+
+  // Load feedback data when Super Admin is selected
+  useEffect(() => {
+    if (userRole === "super_admin") {
+      loadFeedbackData();
+    }
+  }, [userRole, currentPage]);
+
+  // Reload when filters change
+  useEffect(() => {
+    if (userRole === "super_admin") {
+      loadFeedbackData();
+    }
+  }, [feedbackFilters, userRole]);
+
+  const loadFeedbackData = async () => {
+    setIsLoadingFeedback(true);
+    try {
+      // Build the query with joins
+      let query = supabase
+        .from("user_feedback")
+        .select(
+          `
+          *,
+          user:profiles!user_feedback_user_id_fkey(full_name, email),
+          organization:organizations!user_feedback_organization_id_fkey(name)
+        `
+        )
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      // Apply server-side filters
+      if (feedbackFilters.pageRoute && feedbackFilters.pageRoute !== "all") {
+        query = query.eq("page_route", feedbackFilters.pageRoute);
+      }
+
+      // Apply date filters
+      if (feedbackFilters.fromDate) {
+        const fromDateTime = new Date(feedbackFilters.fromDate);
+        fromDateTime.setHours(0, 0, 0, 0);
+        query = query.gte("created_at", fromDateTime.toISOString());
+      }
+
+      if (feedbackFilters.toDate) {
+        const toDateTime = new Date(feedbackFilters.toDate);
+        toDateTime.setHours(23, 59, 59, 999);
+        query = query.lte("created_at", toDateTime.toISOString());
+      }
+
+      // First, get all data to filter by username if needed
+      const { data: allData, error: allDataError } = await query;
+
+      if (allDataError) throw allDataError;
+
+      // Apply client-side username filtering
+      let filteredData = allData || [];
+      if (feedbackFilters.username) {
+        const searchTerm = feedbackFilters.username.toLowerCase();
+        filteredData = filteredData.filter((item) => {
+          const userName = item.user?.full_name?.toLowerCase() || "";
+          const userEmail = item.user?.email?.toLowerCase() || "";
+          return (
+            userName.includes(searchTerm) || userEmail.includes(searchTerm)
+          );
+        });
+      }
+
+      // Calculate pagination
+      const totalCount = filteredData.length;
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+
+      setFeedbackData(paginatedData);
+      setTotalItems(totalCount);
+    } catch (error) {
+      console.error("Error loading feedback data:", error);
+      toast.error("Failed to load feedback data");
+      setFeedbackData([]);
+      setTotalItems(0);
+    } finally {
+      setIsLoadingFeedback(false);
+    }
+  };
+
+  const handleFeedbackFilterChange = (field, value) => {
+    if (field === "username") {
+      // Handle username separately with debouncing
+      setUsernameInput(value);
+    } else {
+      // Handle other filters immediately
+      setFeedbackFilters((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      setCurrentPage(1); // Reset to first page when filters change
+    }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const renderPaginationButton = (page, label) => (
+    <Button
+      key={page}
+      variant={currentPage === page ? "default" : "outline"}
+      size="sm"
+      onClick={() => handlePageChange(page)}
+      disabled={isLoadingFeedback}
+      className="h-8 w-8 p-0"
+    >
+      {label || page}
+    </Button>
+  );
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    // First page
+    if (currentPage > 3) {
+      pages.push(renderPaginationButton(1));
+      if (currentPage > 4) {
+        pages.push(
+          <span key="ellipsis1" className="px-2 text-muted-foreground">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Pages around current page
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(renderPaginationButton(i));
+    }
+
+    // Last page
+    if (currentPage < totalPages - 2) {
+      if (currentPage < totalPages - 3) {
+        pages.push(
+          <span key="ellipsis2" className="px-2 text-muted-foreground">
+            ...
+          </span>
+        );
+      }
+      pages.push(renderPaginationButton(totalPages));
+    }
+
+    return (
+      <div className="flex items-center justify-between pt-4 border-t">
+        <div className="text-sm text-muted-foreground">
+          Showing {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+          {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+          entries
+        </div>
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1 || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          {pages}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage === totalPages || isLoadingFeedback}
+            className="h-8 w-8 p-0"
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const getUniquePageRoutes = () => {
+    const routes = [...new Set(feedbackData.map((f) => f.page_route))];
+    return routes.sort();
+  };
 
   // Simulate data refresh
   const handleRefresh = async () => {
@@ -214,6 +480,369 @@ const Analytics = () => {
     setIsLoading(false);
     toast.success("Analytics data refreshed");
   };
+
+  // User Feedback Section for Super Admin
+  const UserFeedbackSection = () => (
+    <div className="space-y-6">
+      {/* Feedback Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <MessageSquare className="w-5 h-5" />
+            <span>User Feedback Management</span>
+            <Badge variant="outline" className="text-xs">
+              {feedbackData.length} entries
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-wrap justify-between items-end gap-4">
+              {/* Left-side filters + Clear Filters button */}
+              <div className="flex flex-wrap gap-4 items-end">
+                {/* Page Route */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="page-filter">Page Route</Label>
+                  <Select
+                    value={feedbackFilters.pageRoute}
+                    onValueChange={(value) =>
+                      handleFeedbackFilterChange("pageRoute", value)
+                    }
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Pages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Pages</SelectItem>
+
+                      <SelectItem key={"Research"} value={"Research"}>
+                        Research
+                      </SelectItem>
+                      <SelectItem key={"Sales Calls"} value={"Sales Calls"}>
+                        Sales Calls
+                      </SelectItem>
+                      <SelectItem key={"Call Insights"} value={"Call Insights"}>
+                        Call Insights
+                      </SelectItem>
+                      <SelectItem key={"Emails"} value={"Emails"}>
+                        Emails
+                      </SelectItem>
+                      <SelectItem key={"Presentation"} value={"Presentation"}>
+                        Presentation
+                      </SelectItem>
+                      <SelectItem key={"Actions"} value={"Actions"}>
+                        Actions
+                      </SelectItem>
+                      <SelectItem key={"Analytics"} value={"Analytics"}>
+                        Analytics
+                      </SelectItem>
+                      <SelectItem key={"Settings"} value={"Settings"}>
+                        Settings
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Username */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="username-filter">Username</Label>
+                  <Input
+                    id="username-filter"
+                    placeholder="Search by username..."
+                    value={usernameInput}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setUsernameInput(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    className="w-[180px]"
+                    autoComplete="off"
+                    type="text"
+                  />
+                </div>
+
+                {/* From Date */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="date-from">From Date</Label>
+                  <Input
+                    id="date-from"
+                    type="date"
+                    value={feedbackFilters.fromDate || ""}
+                    onChange={(e) =>
+                      handleFeedbackFilterChange("fromDate", e.target.value)
+                    }
+                    className="w-[150px]"
+                  />
+                </div>
+
+                {/* To Date */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="date-to">To Date</Label>
+                  <Input
+                    id="date-to"
+                    type="date"
+                    value={feedbackFilters.toDate || ""}
+                    onChange={(e) =>
+                      handleFeedbackFilterChange("toDate", e.target.value)
+                    }
+                    className="w-[150px]"
+                  />
+                </div>
+
+                {/* Clear Filters */}
+                <div className="mt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setUsernameInput("");
+                      setFeedbackFilters({
+                        pageRoute: "all",
+                        username: "",
+                        fromDate: "",
+                        toDate: "",
+                      });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right-side Refresh button */}
+              <div className="mt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={loadFeedbackData}
+                  disabled={isLoadingFeedback}
+                >
+                  {isLoadingFeedback ? (
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2">
+            {isLoadingFeedback ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading feedback...</p>
+              </div>
+            ) : feedbackData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2">No feedback entries found</p>
+                <p className="text-sm">
+                  Try adjusting your filters or check back later
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {feedbackData.map((feedback) => (
+                  <Collapsible key={feedback.id}>
+                    <CollapsibleTrigger asChild>
+                      <div className="border border-border rounded-lg p-6 space-y-4 hover:shadow-sm transition-shadow cursor-pointer">
+                        {/* Compact Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg">
+                                {feedback.user?.full_name ||
+                                  feedback.username ||
+                                  "Unknown User"}
+                              </h3>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <span className="flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>
+                                    {new Date(
+                                      feedback.created_at
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <Building className="w-3 h-3" />
+                                  <span>
+                                    {feedback.organization?.name ||
+                                      "Unknown Organization"}
+                                  </span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <span>Page: {feedback.page_route}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            {/* Feedback type indicators */}
+                            <div className="flex items-center space-x-1">
+                              {feedback.what_you_like && (
+                                <div
+                                  className="w-2 h-2 bg-green-500 rounded-full"
+                                  title="Has positive feedback"
+                                />
+                              )}
+                              {feedback.what_needs_improving && (
+                                <div
+                                  className="w-2 h-2 bg-orange-500 rounded-full"
+                                  title="Has improvement suggestions"
+                                />
+                              )}
+                              {feedback.new_features_needed && (
+                                <div
+                                  className="w-2 h-2 bg-blue-500 rounded-full"
+                                  title="Has feature requests"
+                                />
+                              )}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs",
+                                feedback.is_active
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                              )}
+                            >
+                              {feedback.is_active ? "Active" : "Archived"}
+                            </Badge>
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent className="px-4 pb-4">
+                      {/* Expanded Content */}
+                      <div className="space-y-4 mt-4">
+                        {/* Additional Metadata */}
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div className="flex items-center space-x-1">
+                              <Globe className="w-3 h-3" />
+                              <span className="font-medium">Full URL:</span>
+                              <span className="truncate">
+                                {feedback.page_url}
+                              </span>
+                            </div>
+                            {feedback.session_id && (
+                              <div className="flex items-center space-x-1">
+                                <User className="w-3 h-3" />
+                                <span className="font-medium">Session:</span>
+                                <span className="font-mono">
+                                  {feedback.session_id}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span className="font-medium">Submitted:</span>
+                              <span>
+                                {new Date(feedback.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            {feedback.user_agent && (
+                              <div className="flex items-center space-x-1">
+                                <span className="font-medium">Browser:</span>
+                                <span
+                                  className="truncate"
+                                  title={feedback.user_agent}
+                                >
+                                  {feedback.user_agent.split(" ")[0]}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Feedback Content */}
+                        <div className="space-y-3">
+                          {/* What they like */}
+                          {feedback.what_you_like && (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <ThumbsUp className="w-4 h-4 text-green-600" />
+                                <h4 className="font-medium text-green-800">
+                                  What they like
+                                </h4>
+                              </div>
+                              <p className="text-green-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.what_you_like}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* What needs improving */}
+                          {feedback.what_needs_improving && (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                <h4 className="font-medium text-orange-800">
+                                  What needs improving
+                                </h4>
+                              </div>
+                              <p className="text-orange-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.what_needs_improving}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Feature requests */}
+                          {feedback.new_features_needed && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Lightbulb className="w-4 h-4 text-blue-600" />
+                                <h4 className="font-medium text-blue-800">
+                                  Feature requests
+                                </h4>
+                              </div>
+                              <p className="text-blue-700 whitespace-pre-wrap leading-relaxed text-sm">
+                                {feedback.new_features_needed}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {renderPagination()}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feedback Entries */}
+      {/* <Card>
+        <CardHeader>
+          <CardTitle>Feedback Entries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          
+        </CardContent>
+      </Card> */}
+    </div>
+  );
 
   // Super Admin Dashboard
   const SuperAdminDashboard = () => (
@@ -479,6 +1108,9 @@ const Analytics = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* User Feedback Section */}
+      <UserFeedbackSection />
     </div>
   );
 

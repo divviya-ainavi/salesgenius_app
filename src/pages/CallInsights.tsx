@@ -958,6 +958,101 @@ const CallInsights = () => {
             </CardContent>
           </Card>
 
+          {/* Cummulative Intelligence Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Calls:</span>
+                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
+                  <Badge
+                    variant={selectedProspect?.calls ? "default" : "secondary"}
+                  >
+                    {(selectedProspect?.communication_style_ids != null &&
+                      selectedProspect?.calls) ||
+                      0}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      researchCompanyCount > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Research:</span>
+                  <Badge
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
+                  >
+                    0{/* {researchCompanyCount} */}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Internal data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
+              )}
+            </CardContent>
+          </Card>
           {/* Sales Insights Section */}
           <Card>
             <CardHeader>
@@ -1300,6 +1395,7 @@ const CallInsights = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {console.log(cummulativeSpinner, "cummulative spinner")}
               {cummulativeSpinner ? (
                 <div className="space-y-6">
                   {/* Skeleton for stakeholder cards */}
@@ -1698,100 +1794,6 @@ const CallInsights = () => {
           )} */}
 
           {/* Cumulative Intelligence Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="w-5 h-5" />
-                <span>Cumulative Intelligence</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <ExternalLink
-                    className={cn(
-                      "w-4 h-4",
-                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Calls:</span>
-                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
-                  <Badge
-                    variant={selectedProspect?.calls ? "default" : "secondary"}
-                  >
-                    {(selectedProspect?.communication_style_ids != null &&
-                      selectedProspect?.calls) ||
-                      0}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Database
-                    className={cn(
-                      "w-4 h-4",
-                      selectedProspect.dataSources.hubspot > 0
-                        ? "text-orange-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">HubSpot Data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.dataSources.hubspot > 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.dataSources.hubspot}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <FileText
-                    className={cn(
-                      "w-4 h-4",
-                      researchCompanyCount > 0
-                        ? "text-purple-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Research:</span>
-                  <Badge
-                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
-                    variant={"secondary"}
-                  >
-                    0{/* {researchCompanyCount} */}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MessageSquare
-                    className={cn(
-                      "w-4 h-4",
-                      selectedProspect.dataSources.emails > 0
-                        ? "text-green-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Internal data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.dataSources.emails > 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.dataSources.emails}
-                  </Badge>
-                </div>
-              </div>
-
-              {cummulativeSpinner ? (
-                <Skeleton className="h-4 w-full" />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {cummulativeSummary || ""}
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </>
       )}
     </div>

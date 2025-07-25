@@ -30,6 +30,16 @@ const verifyPassword = (plainPassword, hashedPassword) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Helper function to get current authenticated user
+export const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+  return user;
+};
+
 // Current user state - will be updated when user logs in
 export let CURRENT_USER = {
   id: null,
@@ -90,6 +100,77 @@ export const authHelpers = {
 
     // 3. Return user ID if matched
     return profile.id;
+  },
+
+  // Get feedback with pagination and filters
+  async getFeedbackWithPagination(params = {}) {
+    try {
+      const {
+        limit = 5,
+        offset = 0,
+        page_route,
+        username,
+        from_date,
+        to_date
+      } = params;
+
+      // Build the base query with joins
+      let query = supabase
+        .from('user_feedback')
+        .select(`
+          *,
+          user:profiles!user_feedback_user_id_fkey(full_name, email),
+          organization:organizations!user_feedback_organization_id_fkey(name)
+        `, { count: 'exact' })
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      // Apply server-side filters
+      if (page_route && page_route.trim() !== '') {
+        query = query.eq('page_route', page_route);
+      }
+
+      if (from_date && from_date.trim() !== '') {
+        const fromDateTime = new Date(from_date + 'T00:00:00.000Z').toISOString();
+        query = query.gte('created_at', fromDateTime);
+      }
+
+      if (to_date && to_date.trim() !== '') {
+        const toDateTime = new Date(to_date + 'T23:59:59.999Z').toISOString();
+        query = query.lte('created_at', toDateTime);
+      }
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching feedback:', error);
+        throw error;
+      }
+
+      let filteredData = data || [];
+
+      // Apply client-side username filtering if provided
+      if (username && username.trim() !== '') {
+        const searchTerm = username.toLowerCase();
+        filteredData = filteredData.filter(item => {
+          const fullName = item.user?.full_name?.toLowerCase() || '';
+          const email = item.user?.email?.toLowerCase() || '';
+          return fullName.includes(searchTerm) || email.includes(searchTerm);
+        });
+      }
+
+      return {
+        data: filteredData,
+        total: count || 0,
+        hasMore: (offset + limit) < (count || 0)
+      };
+    } catch (error) {
+      console.error('Error in getFeedbackWithPagination:', error);
+      throw error;
+    }
   },
 
   // Get user profile from database
@@ -456,6 +537,134 @@ export const authHelpers = {
 // Initialize user from storage when module loads
 initializeUserFromStorage();
 
+// Feedback operations
+export const saveFeedback = async (feedbackData) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_feedback')
+      .insert([feedbackData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error saving feedback:', error);
+    throw error;
+  }
+};
+
+// Get user's own feedback
+export const getUserFeedback = async (userId, filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute && filters.pageRoute !== 'all') {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo + 'T23:59:59');
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching user feedback:', error);
+    throw error;
+  }
+};
+
+// Get all feedback (Super Admin only)
+export const getAllUserFeedback = async (filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute && filters.pageRoute !== 'all') {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.username && filters.username.trim()) {
+      query = query.ilike('username', `%${filters.username.trim()}%`);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo + 'T23:59:59');
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching all user feedback:', error);
+    throw error;
+  }
+};
+
+export const getFeedbackForAdmin = async (filters = {}) => {
+  try {
+    let query = supabase
+      .from('user_feedback')
+      .select(`
+        *,
+        user:profiles(full_name, email)
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (filters.pageRoute) {
+      query = query.eq('page_route', filters.pageRoute);
+    }
+
+    if (filters.username) {
+      query = query.ilike('username', `%${filters.username}%`);
+    }
+
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo);
+    }
+
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching feedback for admin:', error);
+    throw error;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -507,6 +716,8 @@ export const dbHelpers = {
     }
   },
 
+
+
   async getUploadedFiles(userId, limit = 20) {
     try {
       const { data, error } = await supabase
@@ -523,6 +734,174 @@ export const dbHelpers = {
       throw error
     }
   },
+
+  async saveInternalUploadedFile(userId, file, orgId) {
+    try {
+      // First, upload file to Supabase Storage
+      const timestamp = Date.now()
+      const fileExtension = file.name.split('.').pop()
+      const uniqueFileName = `${orgId}/${timestamp}_${file.name}`
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('business-knowledge')
+        .upload(uniqueFileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('business-knowledge')
+        .getPublicUrl(uniqueFileName)
+
+      // Save file metadata to database
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .insert([{
+          uploaded_by: userId,
+          filename: uniqueFileName,
+          original_filename: file.name,
+          // file_type: file.type,
+          file_size: file.size,
+          content_type: file.type,
+          // file_content: content,
+          file_url: urlData.publicUrl,
+          storage_path: uploadData.path,
+          organization_id: orgId,
+          // is_processed: false,
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error saving uploaded file:', error)
+      throw error
+    }
+  },
+
+  async getInternalUploadedFiles(orgId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .eq('organization_id', orgId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+      // .limit(limit)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error)
+      throw error
+    }
+  },
+
+  async updateInternalUploadedFileStatus(id, isActiveValue) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .update({ is_active: isActiveValue })
+        .eq('id', id);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating is_active status:', error);
+      throw error;
+    }
+  },
+
+  async updateIsActiveFalseByUploadedId(uploadedId) {
+    try {
+      // Step 1: Fetch matching documents based on uploaded_id inside metadata
+      const { data: docs, error: fetchError } = await supabase
+        .from('documents')
+        .select('id, metadata')
+        .filter('metadata->>file_id', 'eq', uploadedId);
+
+      if (fetchError) throw fetchError;
+
+      if (!docs.length) return [];
+
+      // Step 2: Update is_active to false in each document
+      const updatePromises = docs.map(doc => {
+        const updatedMetadata = {
+          ...doc.metadata,
+          is_active: false,
+        };
+
+        return supabase
+          .from('documents')
+          .update({ metadata: updatedMetadata })
+          .eq('id', doc.id);
+      });
+
+      // Step 3: Wait for all updates
+      const results = await Promise.all(updatePromises);
+
+      return results.map(res => res.data).flat();
+    } catch (error) {
+      console.error('Error updating is_active by uploaded_id:', error);
+      throw error;
+    }
+  },
+
+
+  async getFilteredFiles(file_id) {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .filter('metadata->>file_id', 'eq', file_id);
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error)
+      throw error
+    }
+  },
+
+  async updateIsActiveTrueForMultiple(documentIds) {
+    try {
+      // Step 1: Fetch metadata for given IDs
+      const { data: docs, error: fetchError } = await supabase
+        .from('documents')
+        .select('id, metadata')
+        .in('id', documentIds);
+
+      if (fetchError) throw fetchError;
+
+      // Step 2: Update metadata for each document
+      const updatePromises = docs.map(doc => {
+        const updatedMetadata = {
+          ...doc.metadata,
+          is_active: true,
+        };
+
+        return supabase
+          .from('documents')
+          .update({ metadata: updatedMetadata })
+          .eq('id', doc.id);
+      });
+
+      // Step 3: Wait for all updates
+      const updateResults = await Promise.all(updatePromises);
+
+      // Step 4: Return updated document data
+      return updateResults.map(result => result.data).flat();
+    } catch (error) {
+      console.error('Error updating is_active for multiple documents:', error);
+      throw error;
+    }
+  },
+
 
   async getFirefliesSingleData(userId, firefliesId) {
     // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
@@ -1152,6 +1531,22 @@ export const dbHelpers = {
     }
 
     return data?.role_id;
+  },
+
+  async getRoleIdByTitleName(titleId, organizationId) {
+    const { data, error } = await supabase
+      .from("titles")
+      .select("*")
+      .eq("id", titleId)
+      .eq("organization_id", organizationId)
+      .single(); // ensures we get a single object, not an array
+
+    if (error) {
+      console.error("Error fetching role_id from titles:", error);
+      throw error;
+    }
+
+    return data?.name;
   },
 
   async updateUserProfile(userId, updates) {
@@ -2674,13 +3069,12 @@ export const dbHelpers = {
     }
 
     return data;
-  }
+  },
 
-
-
-
-
-
+  saveFeedback,
+  getUserFeedback,
+  getAllUserFeedback,
+  getFeedbackForAdmin,
 }
 
 // User helpers for backward compatibility
