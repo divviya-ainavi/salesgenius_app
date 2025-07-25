@@ -358,7 +358,7 @@ const Analytics = () => {
 
         <CardContent className="space-y-4">
           {/* Filters - Single Row */}
-          <div className="flex flex-wrap items-end gap-4 p-4 bg-muted/30 rounded-lg">
+          <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-end gap-4 p-4 bg-muted/30 rounded-lg">
             {/* Page Route Filter */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">
@@ -389,8 +389,17 @@ const Analytics = () => {
               <Input
                 placeholder="Search by username"
                 value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  setUsernameInput(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
                 className="w-36 h-8"
+                autoComplete="off"
               />
             </div>
 
@@ -443,7 +452,7 @@ const Analytics = () => {
                 Clear Filters
               </Button>
             </div>
-          </div>
+          </form>
 
           {/* Loading State */}
           {isFilterLoading && (
