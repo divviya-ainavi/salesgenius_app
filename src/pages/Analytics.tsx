@@ -495,7 +495,11 @@ const Analytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }} className="space-y-4">
             <div className="flex flex-wrap justify-between items-end gap-4">
             {/* Left-side filters + Clear Filters button */}
             <div className="flex flex-wrap gap-4 items-end">
@@ -536,7 +540,7 @@ const Analytics = () => {
                       Analytics
                     </SelectItem>
                     <SelectItem key={"Settings"} value={"Settings"}>
-                      Actions
+                      Settings
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -559,10 +563,6 @@ const Analytics = () => {
                       e.preventDefault();
                       e.stopPropagation();
                     }
-                  }}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
                   }}
                   className="w-[180px]"
                   autoComplete="off"
