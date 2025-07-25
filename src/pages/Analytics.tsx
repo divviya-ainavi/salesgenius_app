@@ -59,6 +59,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Building,
 } from "lucide-react";
 import {
   LineChart,
@@ -79,7 +80,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "../lib/supabase";
 import { config } from "@/lib/config";
-import { dbHelpers } from "@/lib/supabase";
+import { dbHelpers, supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 
 // Mock data for analytics
@@ -270,38 +271,56 @@ const Analytics = () => {
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
     try {
-      // Get total count first
-      const filters = {};
+      // Get feedback data with user and organization details
+      const { data: feedbackData, error } = await supabase
+        .from('user_feedback')
+        .select(`
+          *,
+          user:profiles!user_feedback_user_id_fkey(full_name, email),
+          organization:organizations!user_feedback_organization_id_fkey(name)
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .range(
+          (currentPage - 1) * itemsPerPage,
+          currentPage * itemsPerPage - 1
+        );
 
-      if (feedbackFilters.pageRoute !== "all") {
-        filters.page_route = feedbackFilters.pageRoute;
+      if (error) throw error;
+
+      // Apply filters on the client side for now
+      let filteredData = feedbackData || [];
+
+      if (feedbackFilters.pageRoute && feedbackFilters.pageRoute !== 'all') {
+        filteredData = filteredData.filter(item => 
+          item.page_route === feedbackFilters.pageRoute
+        );
       }
 
-      if (feedbackFilters.username.trim()) {
-        filters.username = feedbackFilters.username.trim();
-
-        // Set total count from the returned data length
-        // In a real implementation, you'd get this from a separate count query
-        setTotalItems(feedbackData?.length || 0);
+      if (feedbackFilters.username) {
+        filteredData = filteredData.filter(item => 
+          item.user?.full_name?.toLowerCase().includes(feedbackFilters.username.toLowerCase()) ||
+          item.user?.email?.toLowerCase().includes(feedbackFilters.username.toLowerCase())
+        );
       }
 
       if (feedbackFilters.fromDate) {
-        filters.date_from = feedbackFilters.fromDate;
+        filteredData = filteredData.filter(item => 
+          new Date(item.created_at) >= new Date(feedbackFilters.fromDate)
+        );
       }
 
       if (feedbackFilters.toDate) {
-        filters.date_to = feedbackFilters.toDate;
+        filteredData = filteredData.filter(item => 
+          new Date(item.created_at) <= new Date(feedbackFilters.toDate)
+        );
       }
 
-      const feedback = await dbHelpers.getAllUserFeedback({
-        page: currentPage,
-        limit: itemsPerPage,
-        ...filters,
-      });
-      setFeedbackData(feedback || []);
+      setFeedbackData(filteredData);
+      setTotalItems(filteredData.length);
     } catch (error) {
-      console.error("Error loading feedback data:", error);
-      toast.error("Failed to load feedback data");
+      console.error('Error loading feedback data:', error);
+      toast.error('Failed to load feedback data');
       setFeedbackData([]);
     } finally {
       setIsLoadingFeedback(false);
@@ -580,7 +599,7 @@ const Analytics = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-lg">
-                                {feedback.username}
+                                {feedback.user?.full_name || feedback.username || 'Unknown User'}
                               </h3>
                               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                 <span className="flex items-center space-x-1">
@@ -592,10 +611,11 @@ const Analytics = () => {
                                   </span>
                                 </span>
                                 <span className="flex items-center space-x-1">
-                                  <ExternalLink className="w-3 h-3" />
-                                  <span className="truncate max-w-24">
-                                    {feedback.page_route}
-                                  </span>
+                                  <Building className="w-3 h-3" />
+                                  <span>{feedback.organization?.name || 'Unknown Organization'}</span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <span>Page: {feedback.page_route}</span>
                                 </span>
                               </div>
                             </div>
