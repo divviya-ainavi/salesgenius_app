@@ -261,8 +261,7 @@ const Analytics = () => {
         username: usernameInput,
       }));
       setCurrentPage(1);
-    }, 500); // 500ms delay
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [usernameInput]);
 
@@ -316,17 +315,19 @@ const Analytics = () => {
 
       // First, get all data to filter by username if needed
       const { data: allData, error: allDataError } = await query;
-      
+
       if (allDataError) throw allDataError;
 
       // Apply client-side username filtering
       let filteredData = allData || [];
       if (feedbackFilters.username) {
         const searchTerm = feedbackFilters.username.toLowerCase();
-        filteredData = filteredData.filter(item => {
-          const userName = item.user?.full_name?.toLowerCase() || '';
-          const userEmail = item.user?.email?.toLowerCase() || '';
-          return userName.includes(searchTerm) || userEmail.includes(searchTerm);
+        filteredData = filteredData.filter((item) => {
+          const userName = item.user?.full_name?.toLowerCase() || "";
+          const userEmail = item.user?.email?.toLowerCase() || "";
+          return (
+            userName.includes(searchTerm) || userEmail.includes(searchTerm)
+          );
         });
       }
 
@@ -336,7 +337,6 @@ const Analytics = () => {
       const endIndex = startIndex + itemsPerPage;
       const paginatedData = filteredData.slice(startIndex, endIndex);
 
-     
       setFeedbackData(paginatedData);
       setTotalItems(totalCount);
     } catch (error) {
@@ -421,8 +421,9 @@ const Analytics = () => {
     return (
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="text-sm text-muted-foreground">
-          Showing {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
-          {totalItems} entries
+          Showing {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+          {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+          entries
         </div>
         <div className="flex items-center space-x-1">
           <Button
@@ -495,148 +496,144 @@ const Analytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }} className="space-y-4">
+          <div className="space-y-4">
             <div className="flex flex-wrap justify-between items-end gap-4">
-            {/* Left-side filters + Clear Filters button */}
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Page Route */}
-              <div className="flex flex-col space-y-1">
-                <Label htmlFor="page-filter">Page Route</Label>
-                <Select
-                  value={feedbackFilters.pageRoute}
-                  onValueChange={(value) =>
-                    handleFeedbackFilterChange("pageRoute", value)
-                  }
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Pages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Pages</SelectItem>
+              {/* Left-side filters + Clear Filters button */}
+              <div className="flex flex-wrap gap-4 items-end">
+                {/* Page Route */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="page-filter">Page Route</Label>
+                  <Select
+                    value={feedbackFilters.pageRoute}
+                    onValueChange={(value) =>
+                      handleFeedbackFilterChange("pageRoute", value)
+                    }
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Pages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Pages</SelectItem>
 
-                    <SelectItem key={"Research"} value={"Research"}>
-                      Research
-                    </SelectItem>
-                    <SelectItem key={"Sales Calls"} value={"Sales Calls"}>
-                      Sales Calls
-                    </SelectItem>
-                    <SelectItem key={"Call Insights"} value={"Call Insights"}>
-                      Call Insights
-                    </SelectItem>
-                    <SelectItem key={"Emails"} value={"Emails"}>
-                      Emails
-                    </SelectItem>
-                    <SelectItem key={"Presentation"} value={"Presentation"}>
-                      Presentation
-                    </SelectItem>
-                    <SelectItem key={"Actions"} value={"Actions"}>
-                      Actions
-                    </SelectItem>
-                    <SelectItem key={"Analytics"} value={"Analytics"}>
-                      Analytics
-                    </SelectItem>
-                    <SelectItem key={"Settings"} value={"Settings"}>
-                      Settings
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                      <SelectItem key={"Research"} value={"Research"}>
+                        Research
+                      </SelectItem>
+                      <SelectItem key={"Sales Calls"} value={"Sales Calls"}>
+                        Sales Calls
+                      </SelectItem>
+                      <SelectItem key={"Call Insights"} value={"Call Insights"}>
+                        Call Insights
+                      </SelectItem>
+                      <SelectItem key={"Emails"} value={"Emails"}>
+                        Emails
+                      </SelectItem>
+                      <SelectItem key={"Presentation"} value={"Presentation"}>
+                        Presentation
+                      </SelectItem>
+                      <SelectItem key={"Actions"} value={"Actions"}>
+                        Actions
+                      </SelectItem>
+                      <SelectItem key={"Analytics"} value={"Analytics"}>
+                        Analytics
+                      </SelectItem>
+                      <SelectItem key={"Settings"} value={"Settings"}>
+                        Settings
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Username */}
-              <div className="flex flex-col space-y-1">
-                <Label htmlFor="username-filter">Username</Label>
-                <Input
-                  id="username-filter"
-                  placeholder="Search by username..."
-                  value={usernameInput}
-                  onChange={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setUsernameInput(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                {/* Username */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="username-filter">Username</Label>
+                  <Input
+                    id="username-filter"
+                    placeholder="Search by username..."
+                    value={usernameInput}
+                    onChange={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      setUsernameInput(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    className="w-[180px]"
+                    autoComplete="off"
+                    type="text"
+                  />
+                </div>
+
+                {/* From Date */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="date-from">From Date</Label>
+                  <Input
+                    id="date-from"
+                    type="date"
+                    value={feedbackFilters.fromDate || ""}
+                    onChange={(e) =>
+                      handleFeedbackFilterChange("fromDate", e.target.value)
                     }
-                  }}
-                  className="w-[180px]"
-                  autoComplete="off"
-                  type="text"
-                />
+                    className="w-[150px]"
+                  />
+                </div>
+
+                {/* To Date */}
+                <div className="flex flex-col space-y-1">
+                  <Label htmlFor="date-to">To Date</Label>
+                  <Input
+                    id="date-to"
+                    type="date"
+                    value={feedbackFilters.toDate || ""}
+                    onChange={(e) =>
+                      handleFeedbackFilterChange("toDate", e.target.value)
+                    }
+                    className="w-[150px]"
+                  />
+                </div>
+
+                {/* Clear Filters */}
+                <div className="mt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setUsernameInput("");
+                      setFeedbackFilters({
+                        pageRoute: "all",
+                        username: "",
+                        fromDate: "",
+                        toDate: "",
+                      });
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
               </div>
 
-              {/* From Date */}
-              <div className="flex flex-col space-y-1">
-                <Label htmlFor="date-from">From Date</Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={feedbackFilters.fromDate || ""}
-                  onChange={(e) =>
-                    handleFeedbackFilterChange("fromDate", e.target.value)
-                  }
-                  className="w-[150px]"
-                />
-              </div>
-
-              {/* To Date */}
-              <div className="flex flex-col space-y-1">
-                <Label htmlFor="date-to">To Date</Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={feedbackFilters.toDate || ""}
-                  onChange={(e) =>
-                    handleFeedbackFilterChange("toDate", e.target.value)
-                  }
-                  className="w-[150px]"
-                />
-              </div>
-
-              {/* Clear Filters */}
+              {/* Right-side Refresh button */}
               <div className="mt-1">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setUsernameInput("");
-                    setFeedbackFilters({
-                      pageRoute: "all",
-                      username: "",
-                      fromDate: "",
-                      toDate: "",
-                    });
-                    setCurrentPage(1);
-                  }}
+                  onClick={loadFeedbackData}
+                  disabled={isLoadingFeedback}
                 >
-                  Clear Filters
+                  {isLoadingFeedback ? (
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Refresh
                 </Button>
               </div>
             </div>
-
-            {/* Right-side Refresh button */}
-            <div className="mt-1">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={loadFeedbackData}
-                disabled={isLoadingFeedback}
-              >
-                {isLoadingFeedback ? (
-                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Refresh
-              </Button>
-            </div>
-            </div>
-          </form>
+          </div>
 
           <div className="mt-2">
             {isLoadingFeedback ? (
