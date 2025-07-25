@@ -234,7 +234,7 @@ const Analytics = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
   const [feedbackFilters, setFeedbackFilters] = useState({
@@ -273,19 +273,17 @@ const Analytics = () => {
     }
   }, [userRole, currentPage]);
 
-  // Reload when filters change and reset to page 1
+  // Reload when filters change
   useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
+    if (userRole === "super_admin") {
       loadFeedbackData();
     }
-  }, [feedbackFilters]);
+  }, [feedbackFilters, userRole]);
 
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
     try {
-      // Get feedback data with user and organization details
+      // Build the query with joins
       let query = supabase
         .from("user_feedback")
         .select(
@@ -298,7 +296,7 @@ const Analytics = () => {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      // Apply filters
+      // Apply server-side filters
       if (feedbackFilters.pageRoute && feedbackFilters.pageRoute !== "all") {
         query = query.eq("page_route", feedbackFilters.pageRoute);
       }
@@ -316,39 +314,37 @@ const Analytics = () => {
         query = query.lte("created_at", toDateTime.toISOString());
       }
 
-      // Get total count for pagination
-      const { count } = await supabase
-        .from("user_feedback")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
+      // First, get all data to filter by username if needed
+      const { data: allData, error: allDataError } = await query;
+      
+      if (allDataError) throw allDataError;
 
-      // Apply pagination
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      query = query.range(startIndex, startIndex + itemsPerPage - 1);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Client-side filtering for username (since we need to search in joined data)
-      let filteredData = data || [];
+      // Apply client-side username filtering
+      let filteredData = allData || [];
       if (feedbackFilters.username) {
         const searchTerm = feedbackFilters.username.toLowerCase();
-        filteredData = filteredData.filter((item) => {
-          const userName = item.user?.full_name?.toLowerCase() || "";
-          const userEmail = item.user?.email?.toLowerCase() || "";
-          return (
-            userName.includes(searchTerm) || userEmail.includes(searchTerm)
-          );
+        filteredData = filteredData.filter(item => {
+          const userName = item.user?.full_name?.toLowerCase() || '';
+          const userEmail = item.user?.email?.toLowerCase() || '';
+          return userName.includes(searchTerm) || userEmail.includes(searchTerm);
         });
       }
 
-      setFeedbackData(filteredData);
-      setTotalItems(count || 0);
+      // Calculate pagination
+      const totalCount = filteredData.length;
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+
+      // Apply pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      setFeedbackData(paginatedData);
+      setTotalItems(totalCount);
     } catch (error) {
       console.error("Error loading feedback data:", error);
       toast.error("Failed to load feedback data");
       setFeedbackData([]);
+      setTotalItems(0);
     } finally {
       setIsLoadingFeedback(false);
     }
@@ -426,7 +422,7 @@ const Analytics = () => {
     return (
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="text-sm text-muted-foreground">
-          Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+          Showing {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
           {totalItems} entries
         </div>
         <div className="flex items-center space-x-1">
@@ -500,7 +496,8 @@ const Analytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap justify-between items-end gap-4">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+            <div className="flex flex-wrap justify-between items-end gap-4">
             {/* Left-side filters + Clear Filters button */}
             <div className="flex flex-wrap gap-4 items-end">
               {/* Page Route */}
@@ -553,8 +550,17 @@ const Analytics = () => {
                   id="username-filter"
                   placeholder="Search by username..."
                   value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    setUsernameInput(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-[180px]"
+                  autoComplete="off"
                 />
               </div>
 
@@ -589,6 +595,7 @@ const Analytics = () => {
               {/* Clear Filters */}
               <div className="mt-1">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
                     setUsernameInput("");
@@ -609,6 +616,7 @@ const Analytics = () => {
             {/* Right-side Refresh button */}
             <div className="mt-1">
               <Button
+                type="button"
                 variant="outline"
                 onClick={loadFeedbackData}
                 disabled={isLoadingFeedback}
@@ -621,7 +629,8 @@ const Analytics = () => {
                 Refresh
               </Button>
             </div>
-          </div>
+            </div>
+          </form>
 
           <div className="mt-2">
             {isLoadingFeedback ? (
