@@ -292,7 +292,7 @@ const LoginPage = () => {
               </p>
               <button
                 className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => toast.info("Password reset coming soon!")}
+                onClick={() => navigate("/auth/forgot-password")}
               >
                 Forgot your password?
               </button>
