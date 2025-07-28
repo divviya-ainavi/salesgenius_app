@@ -8,6 +8,8 @@ import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { authHelpers } from "@/lib/supabase";
+import { config } from "../../lib/config";
+import { useSelector } from "react-redux";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const { user } = useSelector((state) => state.auth);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,7 +43,30 @@ const ForgotPassword = () => {
     try {
       // Call the forgot password function
       const result = await authHelpers.forgotPassword(email.trim());
+      // Send reset email via API
+      try {
+        // Call your email API endpoint
+        const emailResponse = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.passwordReset}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: user?.id,
+            }),
+          }
+        );
 
+        if (!emailResponse.ok) {
+          console.error("Email API error:", await emailResponse.text());
+          // Don't throw error - still return success for security
+        }
+      } catch (emailError) {
+        console.error("Error sending reset email:", emailError);
+        // Don't throw error - still return success for security
+      }
       if (result.success) {
         setIsSubmitted(true);
         toast.success("Password reset instructions sent");
@@ -70,8 +96,8 @@ const ForgotPassword = () => {
                 Check Your Email
               </h3>
               <p className="text-gray-600 mb-6">
-                If an account with this email exists, we've sent password reset instructions to{" "}
-                <span className="font-medium">{email}</span>
+                If an account with this email exists, we've sent password reset
+                instructions to <span className="font-medium">{email}</span>
               </p>
               <div className="space-y-3">
                 <Button
@@ -112,9 +138,12 @@ const ForgotPassword = () => {
         {/* Forgot Password Form */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Forgot Password
+            </CardTitle>
             <p className="text-gray-600 mt-2">
-              Enter your email address and we'll send you a link to reset your password
+              Enter your email address and we'll send you a link to reset your
+              password
             </p>
           </CardHeader>
 

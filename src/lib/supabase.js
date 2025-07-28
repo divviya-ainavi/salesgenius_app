@@ -404,32 +404,6 @@ export const authHelpers = {
         throw updateError;
       }
 
-      // Send reset email via API
-      try {
-        const resetLink = `${window.location.origin}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
-        
-        // Call your email API endpoint
-        const emailResponse = await fetch(`${config.api.baseUrl}send-password-reset-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: user.email,
-            name: user.full_name || 'User',
-            resetLink: resetLink,
-          }),
-        });
-
-        if (!emailResponse.ok) {
-          console.error('Email API error:', await emailResponse.text());
-          // Don't throw error - still return success for security
-        }
-      } catch (emailError) {
-        console.error('Error sending reset email:', emailError);
-        // Don't throw error - still return success for security
-      }
-
       return { success: true };
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -451,7 +425,7 @@ export const authHelpers = {
     // Encrypt the payload
     const payloadString = JSON.stringify(payload);
     const encrypted = CryptoJS.AES.encrypt(payloadString, config.jwtSecret).toString();
-    
+
     // URL-safe base64 encoding
     return btoa(encrypted).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   },
@@ -503,16 +477,16 @@ export const authHelpers = {
       const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
       const padding = base64.length % 4;
       const paddedBase64 = base64 + '='.repeat(padding ? 4 - padding : 0);
-      
+
       const encrypted = atob(paddedBase64);
       const decrypted = CryptoJS.AES.decrypt(encrypted, config.jwtSecret).toString(CryptoJS.enc.Utf8);
-      
+
       if (!decrypted) {
         return null;
       }
 
       const payload = JSON.parse(decrypted);
-      
+
       // Validate payload structure
       if (!payload.userId || !payload.email || !payload.timestamp) {
         return null;
