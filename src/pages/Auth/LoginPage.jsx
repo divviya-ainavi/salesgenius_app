@@ -284,12 +284,12 @@ const LoginPage = () => {
                   Contact your administrator
                 </button>
               </p>
-              <button
-                className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => toast.info("Password reset coming soon!")}
+              <Link
+                to="/auth/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 Forgot your password?
-              </button>
+              </Link>
             </div>
           </CardContent>
         </Card>

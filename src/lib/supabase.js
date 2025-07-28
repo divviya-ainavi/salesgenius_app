@@ -370,6 +370,202 @@ export const authHelpers = {
     return false;
   },
 
+  // Forgot Password functionality
+  async forgotPassword(email) {
+    try {
+      // Check if user exists
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      // Always return success for security (don't reveal if email exists)
+      if (userError || !user) {
+        console.log('User not found for email:', email);
+        return { success: true }; // Generic response
+      }
+
+      // Generate secure reset token
+      const resetToken = this.generateResetToken(user.id, email);
+      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store token in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          reset_token: resetToken,
+          reset_token_expires: tokenExpiry.toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error storing reset token:', updateError);
+        throw updateError;
+      }
+
+      // Send reset email via API
+      try {
+        const resetLink = `${window.location.origin}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
+        
+        // Call your email API endpoint
+        const emailResponse = await fetch(`${config.api.baseUrl}send-password-reset-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.full_name || 'User',
+            resetLink: resetLink,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          console.error('Email API error:', await emailResponse.text());
+          // Don't throw error - still return success for security
+        }
+      } catch (emailError) {
+        console.error('Error sending reset email:', emailError);
+        // Don't throw error - still return success for security
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return { success: true }; // Always return success for security
+    }
+  },
+
+  // Generate secure reset token
+  generateResetToken(userId, email) {
+    const timestamp = Date.now();
+    const randomBytes = Math.random().toString(36).substring(2, 15);
+    const payload = {
+      userId,
+      email,
+      timestamp,
+      random: randomBytes,
+    };
+
+    // Encrypt the payload
+    const payloadString = JSON.stringify(payload);
+    const encrypted = CryptoJS.AES.encrypt(payloadString, config.jwtSecret).toString();
+    
+    // URL-safe base64 encoding
+    return btoa(encrypted).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  },
+
+  // Validate reset token
+  async validateResetToken(token) {
+    try {
+      // Decode and decrypt token
+      const decoded = this.decryptResetToken(token);
+      if (!decoded) {
+        return { valid: false, error: 'Invalid token format' };
+      }
+
+      // Check if user exists and token matches
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id, email, reset_token, reset_token_expires')
+        .eq('id', decoded.userId)
+        .eq('email', decoded.email)
+        .single();
+
+      if (userError || !user) {
+        return { valid: false, error: 'User not found' };
+      }
+
+      // Check if token matches
+      if (user.reset_token !== token) {
+        return { valid: false, error: 'Token mismatch' };
+      }
+
+      // Check if token has expired
+      const now = new Date();
+      const expiry = new Date(user.reset_token_expires);
+      if (now > expiry) {
+        return { valid: false, error: 'Token expired' };
+      }
+
+      return { valid: true, userId: user.id, email: user.email };
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return { valid: false, error: 'Token validation failed' };
+    }
+  },
+
+  // Decrypt reset token
+  decryptResetToken(token) {
+    try {
+      // Decode from URL-safe base64
+      const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = base64.length % 4;
+      const paddedBase64 = base64 + '='.repeat(padding ? 4 - padding : 0);
+      
+      const encrypted = atob(paddedBase64);
+      const decrypted = CryptoJS.AES.decrypt(encrypted, config.jwtSecret).toString(CryptoJS.enc.Utf8);
+      
+      if (!decrypted) {
+        return null;
+      }
+
+      const payload = JSON.parse(decrypted);
+      
+      // Validate payload structure
+      if (!payload.userId || !payload.email || !payload.timestamp) {
+        return null;
+      }
+
+      return payload;
+    } catch (error) {
+      console.error('Token decryption error:', error);
+      return null;
+    }
+  },
+
+  // Reset password
+  async resetPassword(token, newPassword) {
+    try {
+      // Validate token first
+      const validation = await this.validateResetToken(token);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+
+      // Hash the new password
+      const hashedPassword = this.hashPassword(newPassword);
+
+      // Update password and clear reset token
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          hashed_password: hashedPassword,
+          reset_token: null,
+          reset_token_expires: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', validation.userId);
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        return { success: false, error: 'Failed to update password' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: 'Password reset failed' };
+    }
+  },
+
+  // Hash password using existing method
+  hashPassword(password) {
+    const saltedPassword = password + config.passwordSalt;
+    return CryptoJS.SHA256(saltedPassword).toString();
+  },
+
   // Sign out user
   async signOut() {
     try {
