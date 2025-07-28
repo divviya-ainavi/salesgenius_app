@@ -27,6 +27,7 @@ const LoginPage = () => {
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -53,6 +54,11 @@ const LoginPage = () => {
       }
     };
     checkAuth();
+
+    // Show success message if redirected from password reset
+    if (location.state?.message) {
+      toast.success(location.state.message);
+    }
   }, [navigate]);
 
   const handleInputChange = (field, value) => {
@@ -284,12 +290,12 @@ const LoginPage = () => {
                   Contact your administrator
                 </button>
               </p>
-              <Link
-                to="/auth/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              <button
+                className="text-sm text-blue-600 hover:text-blue-800"
+                onClick={() => toast.info("Password reset coming soon!")}
               >
                 Forgot your password?
-              </Link>
+              </button>
             </div>
           </CardContent>
         </Card>
