@@ -19,8 +19,6 @@ const ForgotPassword = () => {
   const [error, setError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [emailExists, setEmailExists] = useState(null);
   const { user } = useSelector((state) => state.auth);
 
   const validateEmail = (email) => {
@@ -54,47 +52,6 @@ const ForgotPassword = () => {
     setIsEmailValid(true);
   };
   const handleSubmit = async (e) => {
-  // Check if email exists in database
-  const checkEmailExists = async (email) => {
-    if (!email.trim() || !validateEmail(email.trim())) {
-      setEmailExists(null);
-      return;
-    }
-
-    setIsCheckingEmail(true);
-    try {
-      const exists = await authHelpers.checkEmailExists(email.trim());
-      setEmailExists(exists);
-      
-      if (!exists) {
-        setEmailError("No account found with this email address");
-        setIsEmailValid(false);
-      } else {
-        setEmailError("");
-        setIsEmailValid(true);
-      }
-    } catch (error) {
-      console.error('Error checking email:', error);
-      setEmailExists(null);
-      // Don't show error to user for security reasons
-    } finally {
-      setIsCheckingEmail(false);
-    }
-  };
-
-  // Debounced email existence check
-  useEffect(() => {
-    if (isEmailValid && email.trim()) {
-      const timeoutId = setTimeout(() => {
-        checkEmailExists(email.trim());
-      }, 500); // 500ms delay
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setEmailExists(null);
-    }
-  }, [email, isEmailValid]);
-
     e.preventDefault();
 
     if (!email.trim()) {
@@ -106,11 +63,6 @@ const ForgotPassword = () => {
     if (!validateEmail(email)) {
       setError("Please enter a valid email address");
       setEmailError("Please enter a valid email address");
-      return;
-    }
-
-    if (emailExists === false) {
-      setError("No account found with this email address");
       return;
     }
 
@@ -252,7 +204,7 @@ const ForgotPassword = () => {
                     className={`pl-10 ${
                       emailError 
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                        : isEmailValid && emailExists === true
+                        : isEmailValid 
                         ? "border-green-500 focus:border-green-500 focus:ring-green-500"
                         : ""
                     }`}
@@ -262,9 +214,7 @@ const ForgotPassword = () => {
                   {/* Email validation icon */}
                   {email.trim() && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      {isCheckingEmail ? (
-                        <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-                      ) : isEmailValid && emailExists === true ? (
+                      {isEmailValid ? (
                         <CheckCircle className="w-4 h-4 text-green-500" />
                       ) : emailError ? (
                         <AlertCircle className="w-4 h-4 text-red-500" />
@@ -279,10 +229,10 @@ const ForgotPassword = () => {
                     <span>{emailError}</span>
                   </p>
                 )}
-                {isEmailValid && emailExists === true && !emailError && (
+                {isEmailValid && !emailError && (
                   <p className="text-sm text-green-600 flex items-center space-x-1">
                     <CheckCircle className="w-4 h-4" />
-                    <span>Account found - ready to send reset link</span>
+                    <span>Valid email address</span>
                   </p>
                 )}
               </div>
@@ -291,7 +241,7 @@ const ForgotPassword = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!email.trim() || !isEmailValid || emailExists !== true || isLoading || isCheckingEmail}
+                disabled={!email.trim() || !isEmailValid || isLoading}
                 size="lg"
               >
                 {isLoading ? (
