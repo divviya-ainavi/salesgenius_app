@@ -370,6 +370,26 @@ export const authHelpers = {
     return false;
   },
 
+  // Check if email exists in profiles table
+  async checkEmailExists(email) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        throw error;
+      }
+
+      return !!data; // Returns true if email exists, false otherwise
+    } catch (error) {
+      console.error('Error checking email existence:', error);
+      return false; // Return false on error for security
+    }
+  },
+
   // Forgot Password functionality
   async forgotPassword(email) {
     try {
