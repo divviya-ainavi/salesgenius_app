@@ -45,17 +45,14 @@ const ForgotPassword = () => {
       const result = await authHelpers.forgotPassword(email.trim());
       // Send reset email via API
       try {
+        const formData = new FormData();
+        formData.append("email", email.trim() || ""); //
         // Call your email API endpoint
         const emailResponse = await fetch(
           `${config.api.baseUrl}${config.api.endpoints.passwordReset}`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              id: user?.id,
-            }),
+            body: formData,
           }
         );
 
@@ -69,7 +66,7 @@ const ForgotPassword = () => {
       }
       if (result.success) {
         setIsSubmitted(true);
-        toast.success("Password reset instructions sent");
+        toast.success("Email sent successfully! Please check your inbox.");
       } else {
         // Always show generic message for security
         setIsSubmitted(true);
