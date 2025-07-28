@@ -17,6 +17,8 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [isEmailValid, setIsEmailValid] = useState(false);
   const { user } = useSelector((state) => state.auth);
 
   const validateEmail = (email) => {
@@ -24,21 +26,49 @@ const ForgotPassword = () => {
     return emailRegex.test(email);
   };
 
+  const handleEmailChange = (value) => {
+    setEmail(value);
+    setError(""); // Clear general error
+    
+    if (!value.trim()) {
+      setEmailError("");
+      setIsEmailValid(false);
+      return;
+    }
+    
+    if (value.trim().length < 3) {
+      setEmailError("Email is too short");
+      setIsEmailValid(false);
+      return;
+    }
+    
+    if (!validateEmail(value.trim())) {
+      setEmailError("Please enter a valid email address");
+      setIsEmailValid(false);
+      return;
+    }
+    
+    setEmailError("");
+    setIsEmailValid(true);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email.trim()) {
       setError("Email address is required");
+      setEmailError("Email address is required");
       return;
     }
 
     if (!validateEmail(email)) {
       setError("Please enter a valid email address");
+      setEmailError("Please enter a valid email address");
       return;
     }
 
     setIsLoading(true);
     setError("");
+    setEmailError("");
 
     try {
       // Call the forgot password function
@@ -169,21 +199,49 @@ const ForgotPassword = () => {
                     placeholder="Enter your email address"
                     value={email}
                     onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (error) setError("");
+                      handleEmailChange(e.target.value);
                     }}
-                    className="pl-10"
+                    className={`pl-10 ${
+                      emailError 
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+                        : isEmailValid 
+                        ? "border-green-500 focus:border-green-500 focus:ring-green-500"
+                        : ""
+                    }`}
                     disabled={isLoading}
                     required
                   />
+                  {/* Email validation icon */}
+                  {email.trim() && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      {isEmailValid ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : emailError ? (
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      ) : null}
+                    </div>
+                  )}
                 </div>
+                {/* Email error message */}
+                {emailError && (
+                  <p className="text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{emailError}</span>
+                  </p>
+                )}
+                {isEmailValid && !emailError && (
+                  <p className="text-sm text-green-600 flex items-center space-x-1">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Valid email address</span>
+                  </p>
+                )}
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!email.trim() || isLoading}
+                disabled={!email.trim() || !isEmailValid || isLoading}
                 size="lg"
               >
                 {isLoading ? (
