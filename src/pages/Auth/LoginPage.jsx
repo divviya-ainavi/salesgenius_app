@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ const LoginPage = () => {
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -53,6 +54,11 @@ const LoginPage = () => {
       }
     };
     checkAuth();
+
+    // Show success message if redirected from password reset
+    if (location.state?.message) {
+      toast.success(location.state.message);
+    }
   }, [navigate]);
 
   const handleInputChange = (field, value) => {
@@ -286,7 +292,7 @@ const LoginPage = () => {
               </p>
               <button
                 className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => toast.info("Password reset coming soon!")}
+                onClick={() => navigate("/auth/forgot-password")}
               >
                 Forgot your password?
               </button>
