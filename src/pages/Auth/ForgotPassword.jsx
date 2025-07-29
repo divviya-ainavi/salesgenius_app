@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  ArrowLeft,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { authHelpers } from "@/lib/supabase";
@@ -29,25 +35,25 @@ const ForgotPassword = () => {
   const handleEmailChange = (value) => {
     setEmail(value);
     setError(""); // Clear general error
-    
+
     if (!value.trim()) {
       setEmailError("");
       setIsEmailValid(false);
       return;
     }
-    
+
     if (value.trim().length < 3) {
       setEmailError("Email is too short");
       setIsEmailValid(false);
       return;
     }
-    
+
     if (!validateEmail(value.trim())) {
       setEmailError("Please enter a valid email address");
       setIsEmailValid(false);
       return;
     }
-    
+
     setEmailError("");
     setIsEmailValid(true);
   };
@@ -73,33 +79,15 @@ const ForgotPassword = () => {
     try {
       // Call the forgot password function
       const result = await authHelpers.forgotPassword(email.trim());
-      // Send reset email via API
-      try {
-        const formData = new FormData();
-        formData.append("email", email.trim() || ""); //
-        // Call your email API endpoint
-        const emailResponse = await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.passwordReset}`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
 
-        if (!emailResponse.ok) {
-          console.error("Email API error:", await emailResponse.text());
-          // Don't throw error - still return success for security
-        }
-      } catch (emailError) {
-        console.error("Error sending reset email:", emailError);
-        // Don't throw error - still return success for security
-      }
       if (result.success) {
         setIsSubmitted(true);
         toast.success("Email sent successfully! Please check your inbox.");
       } else {
         // Always show generic message for security
-        setIsSubmitted(true);
+        toast.success(result?.message || "Please check your email.");
+
+        setIsSubmitted(false);
       }
     } catch (error) {
       console.error("Forgot password error:", error);
@@ -201,18 +189,19 @@ const ForgotPassword = () => {
                     onChange={(e) => {
                       handleEmailChange(e.target.value);
                     }}
-                    className={`pl-10 ${
-                      emailError 
-                        ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                        : isEmailValid 
-                        ? "border-green-500 focus:border-green-500 focus:ring-green-500"
-                        : ""
-                    }`}
+                    className="pl-10"
+                    // className={`pl-10 ${
+                    //   emailError
+                    //     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    //     : isEmailValid
+                    //     ? "border-grey-500 focus:border-green-500 focus:ring-green-500"
+                    //     : ""
+                    // }`}
                     disabled={isLoading}
                     required
                   />
                   {/* Email validation icon */}
-                  {email.trim() && (
+                  {/* {email.trim() && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                       {isEmailValid ? (
                         <CheckCircle className="w-4 h-4 text-green-500" />
@@ -220,7 +209,7 @@ const ForgotPassword = () => {
                         <AlertCircle className="w-4 h-4 text-red-500" />
                       ) : null}
                     </div>
-                  )}
+                  )} */}
                 </div>
                 {/* Email error message */}
                 {emailError && (
@@ -229,12 +218,12 @@ const ForgotPassword = () => {
                     <span>{emailError}</span>
                   </p>
                 )}
-                {isEmailValid && !emailError && (
+                {/* {isEmailValid && !emailError && (
                   <p className="text-sm text-green-600 flex items-center space-x-1">
                     <CheckCircle className="w-4 h-4" />
                     <span>Valid email address</span>
                   </p>
-                )}
+                )} */}
               </div>
 
               {/* Submit Button */}

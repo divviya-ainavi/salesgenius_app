@@ -383,7 +383,7 @@ export const authHelpers = {
       // Always return success for security (don't reveal if email exists)
       if (userError || !user) {
         console.log('User not found for email:', email);
-        return { success: true }; // Generic response
+        return { success: false, message: "Please enter valid email" }; // Generic response
       }
 
       // Generate secure reset token
@@ -401,13 +401,34 @@ export const authHelpers = {
 
       if (updateError) {
         console.error('Error storing reset token:', updateError);
+        return { success: false, message: "Something swent wrong" };
         throw updateError;
       }
+      // Send reset email via API
+      try {
+        const formData = new FormData();
+        formData.append("email", email.trim() || ""); //
+        // Call your email API endpoint
+        const emailResponse = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.passwordReset}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
+        if (!emailResponse.ok) {
+          console.error("Email API error:", await emailResponse.text());
+          // Don't throw error - still return success for security
+        }
+      } catch (emailError) {
+        console.error("Error sending reset email:", emailError);
+        // Don't throw error - still return success for security
+      }
       return { success: true };
     } catch (error) {
       console.error('Forgot password error:', error);
-      return { success: true }; // Always return success for security
+      return { success: false, message: "Please enter valid email" };
     }
   },
 
