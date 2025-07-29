@@ -116,7 +116,7 @@ export const authHelpers = {
 
       // Build the base query with joins
       let query = supabase
-        .from('user_feedback_testing')
+        .from('user_feedback')
         .select(`
           *,
           user:profiles!user_feedback_user_id_fkey(full_name, email),
@@ -732,7 +732,7 @@ initializeUserFromStorage();
 export const saveFeedback = async (feedbackData) => {
   try {
     const { data, error } = await supabase
-      .from('user_feedback_testing')
+      .from('user_feedback')
       .insert([feedbackData])
       .select()
       .single();
@@ -749,7 +749,7 @@ export const saveFeedback = async (feedbackData) => {
 export const getUserFeedback = async (userId, filters = {}) => {
   try {
     let query = supabase
-      .from('user_feedback_testing')
+      .from('user_feedback')
       .select('*')
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -782,7 +782,7 @@ export const getUserFeedback = async (userId, filters = {}) => {
 export const getAllUserFeedback = async (filters = {}) => {
   try {
     let query = supabase
-      .from('user_feedback_testing')
+      .from('user_feedback')
       .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
@@ -817,7 +817,7 @@ export const getAllUserFeedback = async (filters = {}) => {
 export const getFeedbackForAdmin = async (filters = {}) => {
   try {
     let query = supabase
-      .from('user_feedback_testing')
+      .from('user_feedback')
       .select(`
         *,
         user:profiles(full_name, email)
