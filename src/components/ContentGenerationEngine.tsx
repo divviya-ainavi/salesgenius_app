@@ -2006,13 +2006,13 @@ ${updatedBlocks
                     <Button
                       key={refinement.id}
                       variant="outline"
-                      size="sm"
-                      className="justify-start text-left h-auto py-2"
-                      disabled={isRefining}
-                      onClick={() => handleRefine(refinement.label)}
+                    <Button
+                      variant="outline"
+                      onClick={handleExportToEmail}
+                      className="flex-1"
                     >
-                      <Sparkles className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="text-xs">{refinement.label}</span>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Export to Email
                     </Button>
                   ))}
                 </div>
