@@ -770,6 +770,44 @@ ${output?.blocks
     toast.success("Content copied to clipboard");
   };
 
+  const handleExportToEmail = () => {
+    if (!generatedArtefact) {
+      toast.error("No content to export");
+      return;
+    }
+
+    try {
+      let subject = "";
+      let body = "";
+
+      if (artefactType === "email") {
+        subject = generatedArtefact.subject || `Follow-up Email${selectedProspect ? ` - ${selectedProspect.companyName}` : ''}`;
+        body = generatedArtefact.body || "";
+      } else if (artefactType === "presentation") {
+        subject = `Presentation Prompt${selectedProspect ? ` - ${selectedProspect.companyName}` : ''}`;
+        body = generatedArtefact.fullPrompt || "";
+      } else {
+        subject = `Generated Content${selectedProspect ? ` - ${selectedProspect.companyName}` : ''}`;
+        body = generatedArtefact.fullPrompt || generatedArtefact.body || "";
+      }
+
+      // Encode the subject and body for URL
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+
+      // Create Gmail compose URL
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodedSubject}&body=${encodedBody}`;
+
+      // Open Gmail in a new tab
+      window.open(gmailUrl, '_blank');
+      
+      toast.success("Opening Gmail compose window");
+    } catch (error) {
+      console.error("Error exporting to email:", error);
+      toast.error("Failed to export to email");
+    }
+  };
+
   const handleExport = () => {
     if (!generatedArtefact) return;
 
@@ -1788,9 +1826,13 @@ ${updatedBlocks
                     Copy
                   </Button>
 
-                  <Button size="sm" onClick={handleExport} disabled>
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Export to {artefactType === "email" ? "Outlook" : "Gamma"}
+                  <Button
+                    variant="outline"
+                    onClick={handleExportToEmail}
+                    className="flex-1"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Export to Email
                   </Button>
                 </div>
               </CardHeader>
@@ -2006,15 +2048,49 @@ ${updatedBlocks
                     <Button
                       key={refinement.id}
                       variant="outline"
-                    <Button
-                      variant="outline"
-                      onClick={handleExportToEmail}
-                      className="flex-1"
+                      size="sm"
+                      onClick={() => handleRefine(refinement.label)}
+                      disabled={isRefining}
+                      className="justify-start text-left h-auto py-2 px-3"
                     >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Export to Email
+                      {isRefining ? (
+                        <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 mr-2" />
+                      )}
+                      {refinement.label}
                     </Button>
                   ))}
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label htmlFor="custom-refinement" className="text-sm">
+                    Custom Refinement
+                  </Label>
+                  <div className="flex space-x-2 mt-2">
+                    <Input
+                      id="custom-refinement"
+                      placeholder="Describe your refinement..."
+                      value={refinementInput}
+                      onChange={(e) => setRefinementInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && refinementInput.trim()) {
+                          handleRefine(refinementInput.trim());
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (refinementInput.trim()) {
+                          handleRefine(refinementInput.trim());
+                        }
+                      }}
+                      disabled={!refinementInput.trim() || isRefining}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
