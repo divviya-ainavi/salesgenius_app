@@ -2058,6 +2058,14 @@ ${updatedBlocks
                 <div className="border-t pt-4 space-y-2">
                   <Button
                     variant="outline"
+                    onClick={handleCopy}
+                    className="w-full"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Content
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={handleExportToEmail}
                     className="w-full"
                   >
