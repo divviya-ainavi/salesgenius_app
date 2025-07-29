@@ -774,7 +774,17 @@ ${output?.blocks
     if (!generatedArtefact) return;
 
     if (artefactType === "email") {
-      toast.success("Email exported to Outlook");
+      const subject = encodeURIComponent(
+        generatedArtefact?.subject || "Follow-up Email"
+      );
+
+      const body = encodeURIComponent(generatedArtefact.body || "");
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+
+      window.open(gmailUrl, "_blank"); // Opens in new tab
+
+      toast.success("Opening Gmail compose window...");
     } else {
       toast.success("Presentation exported to Gamma");
     }
@@ -1793,9 +1803,13 @@ ${updatedBlocks
                     Copy
                   </Button>
 
-                  <Button size="sm" onClick={handleExport} disabled>
+                  <Button
+                    size="sm"
+                    onClick={handleExport}
+                    disabled={artefactType !== "email"}
+                  >
                     <ExternalLink className="w-4 h-4 mr-1" />
-                    Export to {artefactType === "email" ? "Outlook" : "Gamma"}
+                    Export to {artefactType === "email" ? "Email" : "Gamma"}
                   </Button>
                 </div>
               </CardHeader>
@@ -2019,59 +2033,6 @@ ${updatedBlocks
                       {refinement.label}
                     </Button>
                   ))}
-                </div>
-
-                <div className="border-t pt-4">
-                  <Label htmlFor="custom-refinement" className="text-sm font-medium">
-                    Custom Refinement
-                  </Label>
-                  <div className="flex space-x-2 mt-2">
-                    <Input
-                      id="custom-refinement"
-                      placeholder="Enter custom refinement..."
-                      value={refinementInput}
-                      onChange={(e) => setRefinementInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && refinementInput.trim()) {
-                          handleRefine(refinementInput.trim());
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        if (refinementInput.trim()) {
-                          handleRefine(refinementInput.trim());
-                        }
-                      }}
-                      disabled={!refinementInput.trim() || isRefining}
-                    >
-                      {isRefining ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4 space-y-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleCopy}
-                    className="w-full"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy Content
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleExportToEmail}
-                    className="w-full"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Export to Email
-                  </Button>
                 </div>
               </CardContent>
             </Card>
