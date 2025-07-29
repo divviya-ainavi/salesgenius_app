@@ -774,7 +774,17 @@ ${output?.blocks
     if (!generatedArtefact) return;
 
     if (artefactType === "email") {
-      toast.success("Email exported to Outlook");
+      const subject = encodeURIComponent(
+        generatedArtefact?.subject || "Follow-up Email"
+      );
+
+      const body = encodeURIComponent(generatedArtefact.body || "");
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+
+      window.open(gmailUrl, "_blank"); // Opens in new tab
+
+      toast.success("Opening Gmail compose window...");
     } else {
       toast.success("Presentation exported to Gamma");
     }
@@ -878,6 +888,11 @@ ${updatedBlocks
         return [...prev, recipientId];
       }
     });
+  };
+
+  const handleExportToEmail = () => {
+    if (!generatedArtefact) return;
+    toast.success("Content exported to email");
   };
 
   // Derived data
@@ -1788,9 +1803,13 @@ ${updatedBlocks
                     Copy
                   </Button>
 
-                  <Button size="sm" onClick={handleExport} disabled>
+                  <Button
+                    size="sm"
+                    onClick={handleExport}
+                    disabled={artefactType !== "email"}
+                  >
                     <ExternalLink className="w-4 h-4 mr-1" />
-                    Export to {artefactType === "email" ? "Outlook" : "Gamma"}
+                    Export to {artefactType === "email" ? "Email" : "Gamma"}
                   </Button>
                 </div>
               </CardHeader>
@@ -2007,12 +2026,11 @@ ${updatedBlocks
                       key={refinement.id}
                       variant="outline"
                       size="sm"
-                      className="justify-start text-left h-auto py-2"
-                      disabled={isRefining}
                       onClick={() => handleRefine(refinement.label)}
+                      disabled={isRefining}
+                      className="justify-start text-left h-auto py-2 px-3"
                     >
-                      <Sparkles className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="text-xs">{refinement.label}</span>
+                      {refinement.label}
                     </Button>
                   ))}
                 </div>
