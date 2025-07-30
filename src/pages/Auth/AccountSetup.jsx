@@ -26,8 +26,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
-import CryptoJS from "crypto-js";
+import { supabaseAuthHelpers, hashPassword } from "@/lib/supabase";
 import { config } from "@/lib/config";
 
 const AccountSetup = () => {
@@ -104,12 +103,6 @@ const AccountSetup = () => {
       console.error("JWT decode error:", error);
       return { email: null, isExpired: true, isValid: false };
     }
-  };
-
-  // Hash password function
-  const hashPassword = (password) => {
-    const saltedPassword = password + config.passwordSalt;
-    return CryptoJS.SHA256(saltedPassword).toString();
   };
 
   // Load invitation data on component mount
