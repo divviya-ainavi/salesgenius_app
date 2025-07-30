@@ -115,18 +115,16 @@ const LoginPage = () => {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('auth_user_id', authData.user.id)
-            .single();
+            .eq('auth_user_id', authData.user.id);
 
-          if (profileError || !profileData) {
+          if (profileError || !profileData || profileData.length === 0) {
             // Profile not found with auth_user_id, try by email
             const { data: emailProfile, error: emailError } = await supabase
               .from('profiles')
               .select('*')
-              .eq('email', formData.email)
-              .single();
+              .eq('email', formData.email);
 
-            if (emailError || !emailProfile) {
+            if (emailError || !emailProfile || emailProfile.length === 0) {
               throw new Error('Profile not found for authenticated user');
             }
 
@@ -134,15 +132,15 @@ const LoginPage = () => {
             const { error: linkError } = await supabase
               .from('profiles')
               .update({ auth_user_id: authData.user.id })
-              .eq('id', emailProfile.id);
+              .eq('id', emailProfile[0].id);
 
             if (linkError) {
               console.warn('Failed to link profile to auth user:', linkError);
             }
 
-            profile = emailProfile;
+            profile = emailProfile[0];
           } else {
-            profile = profileData;
+            profile = profileData[0];
           }
 
           userId = profile.id;

@@ -23,10 +23,9 @@ const ProtectedRoute = ({ children }) => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
-            .eq('auth_user_id', session.user.id)
-            .single();
+            .eq('auth_user_id', session.user.id);
           
-          isAuth = !!profile;
+          isAuth = !!(profile && profile.length > 0);
         } else {
           // Fall back to custom authentication
           isAuth = await authHelpers.isAuthenticated();
