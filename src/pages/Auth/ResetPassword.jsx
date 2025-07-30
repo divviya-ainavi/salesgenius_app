@@ -18,7 +18,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { authHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -50,30 +49,17 @@ const ResetPassword = () => {
   // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
-      // Check if this is a Supabase Auth reset (has access_token and refresh_token)
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
-      const token = searchParams.get("token"); // Custom auth token
+      const token = searchParams.get("token");
 
-      if (!token && !accessToken) {
+      if (!token) {
         setTokenValid(false);
         setIsValidating(false);
         return;
       }
 
       try {
-        if (accessToken && refreshToken) {
-          // Supabase Auth reset - set session
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          setTokenValid(!error);
-        } else if (token) {
-          // Custom auth reset
-          const result = await authHelpers.validateResetToken(token);
-          setTokenValid(result.valid);
-        }
+        const result = await authHelpers.validateResetToken(token);
+        setTokenValid(result.valid);
       } catch (error) {
         console.error("Token validation error:", error);
         setTokenValid(false);
@@ -132,10 +118,8 @@ const ResetPassword = () => {
 
     if (!validateForm()) return;
 
-    const accessToken = searchParams.get("access_token");
     const token = searchParams.get("token");
-    
-    if (!token && !accessToken) {
+    if (!token) {
       setError("Invalid reset token");
       return;
     }
@@ -143,15 +127,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      let result;
-      
-      if (accessToken) {
-        // Supabase Auth reset
-        result = await supabaseAuthHelpers.resetPassword(formData.password);
-      } else {
-        // Custom auth reset
-        result = await authHelpers.resetPassword(token, formData.password);
-      }
+      const result = await authHelpers.resetPassword(token, formData.password);
 
       if (result.success) {
         toast.success("Password reset successfully!");

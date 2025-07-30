@@ -26,8 +26,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
-import { hashPassword } from "@/lib/authHelpers";
+import CryptoJS from "crypto-js";
 import { config } from "@/lib/config";
 
 const AccountSetup = () => {
@@ -104,6 +103,12 @@ const AccountSetup = () => {
       console.error("JWT decode error:", error);
       return { email: null, isExpired: true, isValid: false };
     }
+  };
+
+  // Hash password function
+  const hashPassword = (password) => {
+    const saltedPassword = password + config.passwordSalt;
+    return CryptoJS.SHA256(saltedPassword).toString();
   };
 
   // Load invitation data on component mount
@@ -364,39 +369,23 @@ const AccountSetup = () => {
       // Step 2: Create user profile
       const hashedPassword = hashPassword(formData.password);
 
-      // Create user in Supabase Auth and sync with profile
-      const authResult = await supabaseAuthHelpers.signUpWithProfile(
-        inviteData.email,
-        formData.password,
-        {
-          full_name: formData.username,
-          organization_id: organizationId,
-          title_id: inviteData.title_id || null
-        }
-      );
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            email: inviteData.email,
+            full_name: formData.username,
+            organization_id: organizationId,
+            title_id: inviteData.title_id || null,
+            status_id: 1, // Active status
+            hashed_password: hashedPassword,
+          },
+        ])
+        .select()
+        .single();
 
-      if (!authResult.success) {
-        // Fallback to custom profile creation if Supabase Auth fails
-        console.log("Supabase Auth signup failed, creating profile manually:", authResult.error);
-        
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .insert([
-            {
-              email: inviteData.email,
-              full_name: formData.username,
-              organization_id: organizationId,
-              title_id: inviteData.title_id || null,
-              status_id: 1, // Active status
-              hashed_password: hashedPassword,
-            },
-          ])
-          .select()
-          .single();
-
-        if (profileError) {
-          throw new Error(`Failed to create profile: ${profileError.message}`);
-        }
+      if (profileError) {
+        throw new Error(`Failed to create profile: ${profileError.message}`);
       }
 
       // Step 3: Update invite status to completed

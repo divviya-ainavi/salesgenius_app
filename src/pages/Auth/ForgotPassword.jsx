@@ -14,7 +14,6 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { authHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
 import { config } from "../../lib/config";
 import { useSelector } from "react-redux";
 
@@ -78,26 +77,17 @@ const ForgotPassword = () => {
     setEmailError("");
 
     try {
-      // Try Supabase Auth first
-      const result = await supabaseAuthHelpers.forgotPassword(email.trim());
+      // Call the forgot password function
+      const result = await authHelpers.forgotPassword(email.trim());
 
       if (result.success) {
         setIsSubmitted(true);
         toast.success("Email sent successfully! Please check your inbox.");
       } else {
-        // Fallback to custom auth
-        console.log("Supabase Auth forgot password failed, trying custom auth:", result.error);
-        
-        const customResult = await authHelpers.forgotPassword(email.trim());
-        
-        if (customResult.success) {
-          setIsSubmitted(true);
-          toast.success("Email sent successfully! Please check your inbox.");
-        } else {
-          // Always show generic message for security
-          toast.success(customResult?.message || "Please check your email.");
-          setIsSubmitted(true);
-        }
+        // Always show generic message for security
+        toast.success(result?.message || "Please check your email.");
+
+        setIsSubmitted(false);
       }
     } catch (error) {
       console.error("Forgot password error:", error);

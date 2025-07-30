@@ -8,7 +8,6 @@ import fileService from '@/services/fileService'
 import crmService from '@/services/crmService'
 import userManagementService from '@/services/userManagementService'
 import { config } from './config'
-import { hashPassword } from './authHelpers'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -531,7 +530,7 @@ export const authHelpers = {
       }
 
       // Hash the new password
-      const hashedPassword = hashPassword(newPassword);
+      const hashedPassword = this.hashPassword(newPassword);
 
       // Update password and clear reset token
       const { error: updateError } = await supabase
@@ -856,171 +855,6 @@ export const getFeedbackForAdmin = async (filters = {}) => {
     throw error;
   }
 };
-
-// Enhanced authentication helpers that integrate with Supabase Auth
-export const supabaseAuthHelpers = {
-  // Sign up user in Supabase Auth and sync with profile
-  async signUpWithProfile(email, password, profileData) {
-    try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/setup`,
-          data: {
-            full_name: profileData.full_name,
-            organization_id: profileData.organization_id,
-            title_id: profileData.title_id
-          }
-        }
-      })
-
-      if (authError) throw authError
-
-      // Update profile table with Supabase Auth user ID
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            id: authData.user.id, // Use Supabase Auth user ID
-            hashed_password: hashPassword(password) // Keep for backward compatibility
-          })
-          .eq('email', email)
-
-        if (profileError) {
-          console.error('Error updating profile with auth ID:', profileError)
-          // Don't throw here as auth user is created
-        }
-      }
-
-      return { success: true, user: authData.user }
-    } catch (error) {
-      console.error('Error in signUpWithProfile:', error)
-      return { success: false, error: error.message }
-    }
-  },
-
-  // Sign in with Supabase Auth
-  async signInWithPassword(email, password) {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) throw error
-
-      // Get profile data
-      const profile = await this.getUserProfile(data.user.id)
-      
-      return { 
-        success: true, 
-        user: data.user, 
-        session: data.session,
-        profile 
-      }
-    } catch (error) {
-      console.error('Error in signInWithPassword:', error)
-      return { success: false, error: error.message }
-    }
-  },
-
-  // Get user profile with organization details
-  async getUserProfile(userId) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          organization_details:organizations(*)
-        `)
-        .eq('id', userId)
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-      throw error
-    }
-  },
-
-  // Forgot password using Supabase Auth
-  async forgotPassword(email) {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
-      })
-
-      if (error) throw error
-
-      return { 
-        success: true, 
-        message: 'Password reset email sent successfully' 
-      }
-    } catch (error) {
-      console.error('Error in forgotPassword:', error)
-      return { success: false, error: error.message }
-    }
-  },
-
-  // Reset password using Supabase Auth
-  async resetPassword(newPassword) {
-    try {
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword
-      })
-
-      if (error) throw error
-
-      // Also update the hashed password in profile for backward compatibility
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({
-            hashed_password: hashPassword(newPassword)
-          })
-          .eq('id', data.user.id)
-      }
-
-      return { success: true, user: data.user }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      return { success: false, error: error.message }
-    }
-  },
-
-  // Sign out
-  async signOut() {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      return { success: true }
-    } catch (error) {
-      console.error('Error in signOut:', error)
-      return { success: false, error: error.message }
-    }
-  },
-
-  // Get current session
-  async getSession() {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error) throw error
-      return session
-    } catch (error) {
-      console.error('Error getting session:', error)
-      return null
-    }
-  },
-
-  // Check if user is authenticated
-  async isAuthenticated() {
-    const session = await this.getSession()
-    return !!session
-  }
-}
 
 // Database helpers (existing code remains the same)
 export const dbHelpers = {

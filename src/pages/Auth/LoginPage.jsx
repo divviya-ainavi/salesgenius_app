@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase, authHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { config } from "@/lib/config";
@@ -94,16 +93,17 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      // Try Supabase Auth first
-      const result = await supabaseAuthHelpers.signInWithPassword(
+      // Sign in with custom password authentication
+      const userId = await authHelpers.loginWithCustomPassword(
         formData.email,
         formData.password
       );
 
-      if (result.success) {
-        const profile = result.profile;
+      if (userId) {
+        const profile = await authHelpers.getUserProfile(userId);
 
         if (!profile) throw new Error("User profile not found");
+        // console.log("User profile:", profile);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -114,10 +114,12 @@ const LoginPage = () => {
         dispatch(setUserProfileInfo(profile.full_name || profile.email));
         const titles = await dbHelpers?.getTitles(organization_details?.id);
         dispatch(setAllTitles(titles));
-        
         // Store organization_details separately
         if (organization_details) {
           dispatch(setOrganizationDetails(organization_details));
+
+          // Optionally send to DB
+          // await yourApi.saveOrganizationDetails(organization_details);
         }
 
         // Set title & role
@@ -130,7 +132,11 @@ const LoginPage = () => {
           const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
           dispatch(setUserRoleId(roleId));
-          
+          // console.log(
+          //   "Role details 120:",
+          //   roles,
+          //   roles?.filter((x) => x.id == roleId)
+          // );
           if (roles?.length > 0) {
             dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
           } else {
@@ -144,68 +150,12 @@ const LoginPage = () => {
 
         toast.success("Login successful!");
         navigate("/calls");
-      } else {
-        // Fallback to custom authentication if Supabase Auth fails
-        console.log("Supabase Auth failed, trying custom auth:", result.error);
-        
-        const userId = await authHelpers.loginWithCustomPassword(
-          formData.email,
-          formData.password
-        );
-
-        if (userId) {
-          const profile = await authHelpers.getUserProfile(userId);
-          
-          if (!profile) throw new Error("User profile not found");
-
-          // Extract organization_details and remove from profile
-          const { organization_details, ...profileWithoutOrgDetails } = profile;
-
-          // Dispatch main profile (without org details)
-          dispatch(setUser(profileWithoutOrgDetails));
-          dispatch(setIsAuthenticated(true));
-          dispatch(setUserProfileInfo(profile.full_name || profile.email));
-          const titles = await dbHelpers?.getTitles(organization_details?.id);
-          dispatch(setAllTitles(titles));
-          
-          // Store organization_details separately
-          if (organization_details) {
-            dispatch(setOrganizationDetails(organization_details));
-          }
-
-          // Set title & role
-          if (profile.title_name) {
-            dispatch(setTitleName(profile.title_name));
-          } else {
-            dispatch(setTitleName(""));
-          }
-          if (profile.title_id) {
-            const roles = await dbHelpers.getRoles();
-            const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
-            dispatch(setUserRoleId(roleId));
-            
-            if (roles?.length > 0) {
-              dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
-            } else {
-              dispatch(setUserRole(null));
-            }
-          }
-
-          // Save cleaned profile to authHelpers and localStorage
-          await authHelpers.setCurrentUser(profileWithoutOrgDetails);
-          localStorage.setItem("login_timestamp", Date.now().toString());
-
-          toast.success("Login successful!");
-          navigate("/calls");
-        } else {
-          throw new Error("Authentication failed");
-        }
       }
     } catch (error) {
       console.error("Login error:", error);
 
       // Handle specific error types
-      if (error.message === "Invalid login credentials" || error.message === "Authentication failed") {
+      if (error.message === "Invalid login credentials") {
         setError("Invalid email or password. Please try again.");
       } else if (error.message === "Email not confirmed") {
         setError("Please confirm your email address before logging in.");
