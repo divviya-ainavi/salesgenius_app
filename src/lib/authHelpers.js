@@ -1,11 +1,11 @@
 // Authentication helper functions with environment-based configuration
 import { config } from './config';
-import CryptoJS from 'crypto-js';
+import { SHA256 } from 'crypto-js';
 
 // Hash password function using environment-based salt
 export const hashPassword = (password) => {
   const saltedPassword = password + config.passwordSalt;
-  return CryptoJS.SHA256(saltedPassword).toString();
+  return SHA256(saltedPassword).toString();
 };
 
 // JWT token utilities using environment-based secret
