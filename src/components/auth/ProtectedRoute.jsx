@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { authHelpers, userHelpers } from "@/lib/supabase";
+import { supabaseAuthHelpers } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 

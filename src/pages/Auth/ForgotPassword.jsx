@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { authHelpers } from "@/lib/supabase";
+import { supabaseAuthHelpers } from "@/lib/supabase";
 import { config } from "../../lib/config";
 import { useSelector } from "react-redux";
 
