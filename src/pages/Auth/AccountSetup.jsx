@@ -104,12 +104,6 @@ const AccountSetup = () => {
     }
   };
 
-  // Hash password function
-  const hashPassword = (password) => {
-    const saltedPassword = password + config.passwordSalt;
-    return CryptoJS.SHA256(saltedPassword).toString();
-  };
-
   // Load invitation data on component mount
   useEffect(() => {
     const loadInvitationData = async () => {
