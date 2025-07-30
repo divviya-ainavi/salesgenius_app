@@ -369,13 +369,17 @@ const AccountSetup = () => {
       // Step 2: Create Supabase Auth user
       let supabaseAuthUserId = null;
       try {
+        // Create a unique email for Supabase Auth using username
+        const uniqueEmail = `${formData.username.toLowerCase().replace(/\s+/g, '')}@${organizationId}.local`;
+        
         const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: inviteData.email,
+          email: uniqueEmail,
           password: formData.password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/login`,
             data: {
-              email_confirm: false
+              email_confirm: false,
+              skip_confirmation: true
             }
           }
         });
