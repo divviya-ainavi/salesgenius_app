@@ -28,7 +28,6 @@ import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
 import CryptoJS from "crypto-js";
 import { config } from "@/lib/config";
-import { toast } from "sonner";
 
 const AccountSetup = () => {
   const navigate = useNavigate();
