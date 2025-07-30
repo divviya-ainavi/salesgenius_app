@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { supabaseAuthHelpers, authHelpers } from "@/lib/supabase";
+import { authHelpers } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -119,9 +119,7 @@ const ResetPassword = () => {
     if (!validateForm()) return;
 
     const token = searchParams.get("token");
-    const accessToken = searchParams.get("access_token");
-    
-    if (!token && !accessToken) {
+    if (!token) {
       setError("Invalid reset token");
       return;
     }
@@ -129,15 +127,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      let result;
-      
-      if (accessToken) {
-        // Supabase Auth password reset
-        result = await supabaseAuthHelpers.updatePassword(formData.password);
-      } else {
-        // Custom password reset
-        result = await authHelpers.resetPassword(token, formData.password);
-      }
+      const result = await authHelpers.resetPassword(token, formData.password);
 
       if (result.success) {
         toast.success("Password reset successfully!");

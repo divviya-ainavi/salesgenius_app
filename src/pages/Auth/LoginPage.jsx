@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase, authHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { config } from "@/lib/config";
@@ -94,18 +93,17 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      // Try Supabase Authentication first, fallback to custom auth
-      const result = await supabaseAuthHelpers.signInWithEmail(
+      // Sign in with custom password authentication
+      const userId = await authHelpers.loginWithCustomPassword(
         formData.email,
         formData.password
       );
 
-      if (result.success) {
-        const { user, profile, method } = result;
+      if (userId) {
+        const profile = await authHelpers.getUserProfile(userId);
 
         if (!profile) throw new Error("User profile not found");
-        
-        console.log(`Login successful via ${method} authentication`);
+        // console.log("User profile:", profile);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -147,13 +145,11 @@ const LoginPage = () => {
         }
 
         // Save cleaned profile to authHelpers and localStorage
-        await authHelpers.setCurrentUser({ ...profileWithoutOrgDetails, id: user.id });
+        await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");
         navigate("/calls");
-      } else {
-        throw new Error(result.error || "Authentication failed");
       }
     } catch (error) {
       console.error("Login error:", error);

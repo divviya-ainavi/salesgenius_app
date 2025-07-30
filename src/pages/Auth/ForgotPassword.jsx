@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { supabaseAuthHelpers } from "@/lib/supabase";
+import { authHelpers } from "@/lib/supabase";
 import { config } from "../../lib/config";
 import { useSelector } from "react-redux";
 
@@ -77,8 +77,8 @@ const ForgotPassword = () => {
     setEmailError("");
 
     try {
-      // Try Supabase Auth first, fallback to custom forgot password
-      const result = await supabaseAuthHelpers.resetPasswordForEmail(email.trim());
+      // Call the forgot password function
+      const result = await authHelpers.forgotPassword(email.trim());
 
       if (result.success) {
         setIsSubmitted(true);
