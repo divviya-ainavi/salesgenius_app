@@ -531,7 +531,7 @@ export const authHelpers = {
       }
 
       // Hash the new password
-      const hashedPassword = this.hashPassword(newPassword);
+      const hashedPassword = hashPassword(newPassword);
 
       // Update password and clear reset token
       const { error: updateError } = await supabase
