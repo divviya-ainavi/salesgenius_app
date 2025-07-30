@@ -8,7 +8,6 @@ import fileService from '@/services/fileService'
 import crmService from '@/services/crmService'
 import userManagementService from '@/services/userManagementService'
 import { config } from './config'
-import CryptoJS from 'crypto-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
