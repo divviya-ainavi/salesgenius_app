@@ -67,7 +67,7 @@ export const supabaseAuthHelpers = {
       if (authError) throw authError;
 
       // Update existing profile with Supabase Auth user ID and hashed password
-      const hashedPassword = hashPassword(password);
+      const hashedPassword = this.hashPassword(password);
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .update({
