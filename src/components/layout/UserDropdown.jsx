@@ -33,6 +33,7 @@ import { CURRENT_USER, authHelpers } from "@/lib/supabase";
 import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
+import { supabase } from "../../lib/supabase";
 
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
@@ -122,7 +123,9 @@ export const UserDropdown = () => {
   const handleConfirmLogout = async () => {
     try {
       // Sign out from Supabase Auth if user is authenticated there
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         await supabase.auth.signOut();
       }
