@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { authHelpers, userHelpers } from "@/lib/supabase";
+import { supabaseAuthHelpers } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 
@@ -12,11 +13,17 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const isAuth = await authHelpers.isAuthenticated();
-        // console.log("ProtectedRoute - isAuthenticated:", isAuth);
-        // console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
+        // Check Supabase Auth first
+        const isSupabaseAuth = await supabaseAuthHelpers.isAuthenticated();
+        
+        if (isSupabaseAuth) {
+          setIsAuthenticated(true);
+        } else {
+          // Fallback to custom auth
+          const isCustomAuth = await authHelpers.isAuthenticated();
+          setIsAuthenticated(isCustomAuth);
+        }
 
-        setIsAuthenticated(isAuth);
       } catch (error) {
         console.error("Error checking authentication:", error);
         setIsAuthenticated(false);

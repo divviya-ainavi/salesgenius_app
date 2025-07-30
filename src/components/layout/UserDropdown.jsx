@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { supabaseAuthHelpers } from "@/lib/supabase";
 import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
@@ -121,7 +122,13 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
-      const result = await authHelpers.signOut();
+      // Try Supabase Auth logout first
+      let result = await supabaseAuthHelpers.signOut();
+      
+      if (!result.success) {
+        // Fallback to custom auth logout
+        result = await authHelpers.signOut();
+      }
 
       if (result.success) {
         // Reset org state when user logs out
