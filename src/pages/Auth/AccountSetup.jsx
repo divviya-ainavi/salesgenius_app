@@ -366,7 +366,7 @@ const AccountSetup = () => {
       }
 
       // Step 2: Create user profile
-      const hashedPassword = hashPassword(formData.password);
+      const hashedPassword = authHelpers.hashPassword(formData.password);
 
       // Try to create user in Supabase Auth first
       const authResult = await supabaseAuthHelpers.signUpWithProfile(
