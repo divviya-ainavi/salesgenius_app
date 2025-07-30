@@ -25,8 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { supabase, dbHelpers } from "@/lib/supabase";
-import CryptoJS from "crypto-js";
+import { supabase, dbHelpers, authHelpers } from "@/lib/supabase";
 import { config } from "@/lib/config";
 
 const AccountSetup = () => {
