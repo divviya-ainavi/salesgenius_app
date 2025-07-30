@@ -26,7 +26,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase, dbHelpers } from "@/lib/supabase";
-import { supabaseAuthHelpers, hashPassword } from "@/lib/supabase";
+import { supabaseAuthHelpers } from "@/lib/supabase";
+import { hashPassword } from "@/lib/authHelpers";
 import { config } from "@/lib/config";
 
 const AccountSetup = () => {
