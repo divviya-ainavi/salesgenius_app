@@ -93,17 +93,77 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      // Sign in with custom password authentication
-      const userId = await authHelpers.loginWithCustomPassword(
-        formData.email,
-        formData.password
-      );
+      let userId = null;
+      let profile = null;
+
+      // Try Supabase Auth first
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (authError) {
+          console.log('Supabase Auth failed, trying custom auth:', authError.message);
+          // Fall back to custom authentication
+          userId = await authHelpers.loginWithCustomPassword(
+            formData.email,
+            formData.password
+          );
+        } else {
+          // Supabase Auth successful - get profile by auth_user_id
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('auth_user_id', authData.user.id)
+            .single();
+
+          if (profileError || !profileData) {
+            // Profile not found with auth_user_id, try by email
+            const { data: emailProfile, error: emailError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', formData.email)
+              .single();
+
+            if (emailError || !emailProfile) {
+              throw new Error('Profile not found for authenticated user');
+            }
+
+            // Link the profile to the Supabase Auth user
+            const { error: linkError } = await supabase
+              .from('profiles')
+              .update({ auth_user_id: authData.user.id })
+              .eq('id', emailProfile.id);
+
+            if (linkError) {
+              console.warn('Failed to link profile to auth user:', linkError);
+            }
+
+            profile = emailProfile;
+          } else {
+            profile = profileData;
+          }
+
+          userId = profile.id;
+          console.log('Supabase Auth login successful');
+        }
+      } catch (supabaseError) {
+        console.log('Supabase Auth error, using custom auth:', supabaseError);
+        // Fall back to custom authentication
+        userId = await authHelpers.loginWithCustomPassword(
+          formData.email,
+          formData.password
+        );
+      }
 
       if (userId) {
-        const profile = await authHelpers.getUserProfile(userId);
+        // Get profile if not already fetched
+        if (!profile) {
+          profile = await authHelpers.getUserProfile(userId);
+        }
 
         if (!profile) throw new Error("User profile not found");
-        // console.log("User profile:", profile);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -132,11 +192,6 @@ const LoginPage = () => {
           const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
           dispatch(setUserRoleId(roleId));
-          // console.log(
-          //   "Role details 120:",
-          //   roles,
-          //   roles?.filter((x) => x.id == roleId)
-          // );
           if (roles?.length > 0) {
             dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
           } else {

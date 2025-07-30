@@ -121,6 +121,12 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
+      // Sign out from Supabase Auth if user is authenticated there
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.auth.signOut();
+      }
+
       const result = await authHelpers.signOut();
 
       if (result.success) {

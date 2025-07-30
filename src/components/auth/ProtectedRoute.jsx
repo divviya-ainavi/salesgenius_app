@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { authHelpers, userHelpers } from "@/lib/supabase";
+import { authHelpers, supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 
@@ -12,9 +12,25 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const isAuth = await authHelpers.isAuthenticated();
-        // console.log("ProtectedRoute - isAuthenticated:", isAuth);
-        // console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
+        // Check Supabase Auth first
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        let isAuth = false;
+        
+        if (session) {
+          // User is authenticated with Supabase Auth
+          // Verify they have a valid profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('auth_user_id', session.user.id)
+            .single();
+          
+          isAuth = !!profile;
+        } else {
+          // Fall back to custom authentication
+          isAuth = await authHelpers.isAuthenticated();
+        }
 
         setIsAuthenticated(isAuth);
       } catch (error) {
@@ -28,11 +44,6 @@ const ProtectedRoute = ({ children }) => {
     checkAuth();
   }, []);
 
-  // console.log("ProtectedRoute state:", {
-  //   isAuthenticated,
-  //   isLoading,
-  //   userId: CURRENT_USER.id,
-  // });
 
   if (isLoading) {
     return (
