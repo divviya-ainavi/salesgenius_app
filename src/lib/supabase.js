@@ -8,6 +8,7 @@ import fileService from '@/services/fileService'
 import crmService from '@/services/crmService'
 import userManagementService from '@/services/userManagementService'
 import { config } from './config'
+import CryptoJS from 'crypto-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -38,6 +39,167 @@ export const getCurrentUser = async () => {
     return null;
   }
   return user;
+};
+
+// Hash password function using environment-based salt
+export const hashPassword = (password) => {
+  const saltedPassword = password + config.passwordSalt;
+  return CryptoJS.SHA256(saltedPassword).toString();
+};
+
+// Supabase Authentication Helpers (integrated with existing profile system)
+export const supabaseAuthHelpers = {
+  // Sign up user in Supabase Auth and sync with profile table
+  async signUpWithProfile(email, password, profileData) {
+    try {
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: profileData.full_name,
+            organization_id: profileData.organization_id,
+            title_id: profileData.title_id
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Update existing profile with Supabase Auth user ID and hashed password
+      const hashedPassword = hashPassword(password);
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          id: authData.user.id, // Use Supabase Auth user ID
+          hashed_password: hashedPassword // Keep for backward compatibility
+        })
+        .eq('email', email)
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      return { success: true, user: authData.user, profile };
+    } catch (error) {
+      console.error('Supabase sign up error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Sign in with Supabase Auth (fallback to custom auth)
+  async signInWithEmail(email, password) {
+    try {
+      // Try Supabase Auth first
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authData.user && !authError) {
+        // Get profile data
+        const profile = await authHelpers.getUserProfile(authData.user.id);
+        return { success: true, user: authData.user, profile, method: 'supabase' };
+      }
+
+      // Fallback to custom authentication
+      console.log('Supabase auth failed, trying custom auth...');
+      const userId = await authHelpers.loginWithCustomPassword(email, password);
+      if (userId) {
+        const profile = await authHelpers.getUserProfile(userId);
+        return { success: true, user: { id: userId, email }, profile, method: 'custom' };
+      }
+
+      throw new Error('Authentication failed');
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Forgot password with Supabase Auth
+  async resetPasswordForEmail(email) {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      });
+
+      if (error) {
+        // Fallback to custom forgot password
+        console.log('Supabase reset failed, trying custom reset...');
+        return await authHelpers.forgotPassword(email);
+      }
+
+      return { success: true, message: 'Password reset email sent' };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Update password in both Supabase Auth and profile table
+  async updatePassword(newPassword) {
+    try {
+      // Update Supabase Auth password
+      const { error: authError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (authError) throw authError;
+
+      // Also update hashed password in profile table for backward compatibility
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const hashedPassword = hashPassword(newPassword);
+        await supabase
+          .from('profiles')
+          .update({ hashed_password: hashedPassword })
+          .eq('id', user.id);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Update password error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Sign out from Supabase Auth
+  async signOut() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get current session
+  async getSession() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return session;
+    } catch (error) {
+      console.error('Get session error:', error);
+      return null;
+    }
+  },
+
+  // Check if user is authenticated (Supabase Auth or custom)
+  async isAuthenticated() {
+    // Check Supabase Auth first
+    const session = await this.getSession();
+    if (session?.user) {
+      return true;
+    }
+
+    // Fallback to custom auth check
+    return await authHelpers.isAuthenticated();
+  }
 };
 
 // Current user state - will be updated when user logs in
