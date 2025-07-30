@@ -375,9 +375,7 @@ const AccountSetup = () => {
           options: {
             emailRedirectTo: `${window.location.origin}/auth/login`,
             data: {
-              full_name: formData.username,
-              organization_id: organizationId,
-              title_id: inviteData.title_id || null,
+              email_confirm: false
             }
           }
         });
