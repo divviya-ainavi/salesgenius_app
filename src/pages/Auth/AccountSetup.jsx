@@ -369,23 +369,42 @@ const AccountSetup = () => {
       // Step 2: Create user profile
       const hashedPassword = hashPassword(formData.password);
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            email: inviteData.email,
-            full_name: formData.username,
-            organization_id: organizationId,
-            title_id: inviteData.title_id || null,
-            status_id: 1, // Active status
-            hashed_password: hashedPassword,
-          },
-        ])
-        .select()
-        .single();
+      // Try to create user in Supabase Auth first
+      const authResult = await supabaseAuthHelpers.signUpWithProfile(
+        inviteData.email,
+        formData.password,
+        {
+          full_name: formData.username,
+          organization_id: organizationId,
+          title_id: inviteData.title_id || null
+        }
+      );
 
-      if (profileError) {
-        throw new Error(`Failed to create profile: ${profileError.message}`);
+      let profile;
+      if (authResult.success) {
+        profile = authResult.profile;
+      } else {
+        // Fallback to manual profile creation if Supabase Auth fails
+        console.log('Supabase Auth signup failed, creating profile manually...');
+        const { data: manualProfile, error: profileError } = await supabase
+          .from("profiles")
+          .insert([
+            {
+              email: inviteData.email,
+              full_name: formData.username,
+              organization_id: organizationId,
+              title_id: inviteData.title_id || null,
+              status_id: 1, // Active status
+              hashed_password: hashedPassword,
+            },
+          ])
+          .select()
+          .single();
+
+        if (profileError) {
+          throw new Error(`Failed to create profile: ${profileError.message}`);
+        }
+        profile = manualProfile;
       }
 
       // Step 3: Update invite status to completed

@@ -93,17 +93,18 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      // Sign in with custom password authentication
-      const userId = await authHelpers.loginWithCustomPassword(
+      // Try Supabase Authentication first, fallback to custom auth
+      const result = await supabaseAuthHelpers.signInWithEmail(
         formData.email,
         formData.password
       );
 
-      if (userId) {
-        const profile = await authHelpers.getUserProfile(userId);
+      if (result.success) {
+        const { user, profile, method } = result;
 
         if (!profile) throw new Error("User profile not found");
-        // console.log("User profile:", profile);
+        
+        console.log(`Login successful via ${method} authentication`);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -145,11 +146,13 @@ const LoginPage = () => {
         }
 
         // Save cleaned profile to authHelpers and localStorage
-        await authHelpers.setCurrentUser(profileWithoutOrgDetails);
+        await authHelpers.setCurrentUser({ ...profileWithoutOrgDetails, id: user.id });
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");
         navigate("/calls");
+      } else {
+        throw new Error(result.error || "Authentication failed");
       }
     } catch (error) {
       console.error("Login error:", error);

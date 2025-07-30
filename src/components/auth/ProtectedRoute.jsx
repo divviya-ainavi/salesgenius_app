@@ -12,9 +12,8 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const isAuth = await authHelpers.isAuthenticated();
-        // console.log("ProtectedRoute - isAuthenticated:", isAuth);
-        // console.log("ProtectedRoute - CURRENT_USER:", CURRENT_USER);
+        // Check Supabase Auth first, then fallback to custom auth
+        const isAuth = await supabaseAuthHelpers.isAuthenticated();
 
         setIsAuthenticated(isAuth);
       } catch (error) {

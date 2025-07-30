@@ -121,7 +121,13 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
-      const result = await authHelpers.signOut();
+      // Try Supabase Auth logout first, fallback to custom logout
+      let result = await supabaseAuthHelpers.signOut();
+      
+      if (!result.success) {
+        // Fallback to custom logout
+        result = await authHelpers.signOut();
+      }
 
       if (result.success) {
         // Reset org state when user logs out

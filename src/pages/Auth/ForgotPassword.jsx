@@ -77,8 +77,8 @@ const ForgotPassword = () => {
     setEmailError("");
 
     try {
-      // Call the forgot password function
-      const result = await authHelpers.forgotPassword(email.trim());
+      // Try Supabase Auth first, fallback to custom forgot password
+      const result = await supabaseAuthHelpers.resetPasswordForEmail(email.trim());
 
       if (result.success) {
         setIsSubmitted(true);
