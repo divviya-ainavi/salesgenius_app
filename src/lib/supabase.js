@@ -40,11 +40,6 @@ export const getCurrentUser = async () => {
   return user;
 };
 
-// Hash password function using environment-based salt
-export const hashPassword = (password) => {
-  const saltedPassword = password + config.passwordSalt;
-  return CryptoJS.SHA256(saltedPassword).toString();
-};
 
 // Supabase Authentication Helpers (integrated with existing profile system)
 export const supabaseAuthHelpers = {
