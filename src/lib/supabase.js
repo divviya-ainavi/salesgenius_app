@@ -594,19 +594,9 @@ export const authHelpers = {
   // Create user profile after registration
   async createUserProfile(userId, userData) {
     try {
-      // Hash the password before storing
-      const hashedPassword = userData.password ? hashPassword(userData.password) : null;
-
       const { data, error } = await supabase
-        .from('profiles')
-        .insert([{
-          id: userId,
-          email: userData.email,
-          full_name: userData.full_name,
-          organization_id: userData.organization_id,
-          status_id: 1, // Active status
-          hashed_password: hashedPassword,
-        }])
+        .from('user_feedback_testing')
+        .insert([feedbackData])
         .select()
         .single();
 
