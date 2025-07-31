@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,9 @@ import { supabase } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  
+  // Component states
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -49,143 +51,166 @@ const ResetPassword = () => {
   const passwordStrength = Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
 
+  // Parse URL parameters from both search and hash
+  const parseUrlParameters = useCallback(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const hashParams = new URLSearchParams(location.hash.substring(1));
+    
+    const allParams = {};
+    
+    // Add search params
+    for (const [key, value] of searchParams.entries()) {
+      allParams[key] = value;
+    }
+    
+    // Add hash params (Supabase often uses hash for auth tokens)
+    for (const [key, value] of hashParams.entries()) {
+      allParams[key] = value;
+    }
+    
+    console.log("🔍 ResetPassword - All URL parameters:", allParams);
+    console.log("🔍 ResetPassword - Current URL:", window.location.href);
+    console.log("🔍 ResetPassword - Hash:", window.location.hash);
+    console.log("🔍 ResetPassword - Search:", window.location.search);
+    
+    return allParams;
+  }, [location.search, location.hash]);
+
   // Validate session on component mount
   useEffect(() => {
+    let isMounted = true;
+    let authSubscription = null;
+
     const validateResetSession = async () => {
       try {
-        console.log("🔍 ResetPassword - Starting validation...");
-        console.log("📍 Current URL:", window.location.href);
-        console.log("📍 Search params:", Object.fromEntries(searchParams.entries()));
-        console.log("📍 Hash:", window.location.hash);
-
-        // Parse URL parameters from both search and hash
-        const urlParams = Object.fromEntries(searchParams.entries());
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const allParams = { ...urlParams };
-        for (const [key, value] of hashParams.entries()) {
-          allParams[key] = value;
-        }
-
-        console.log("📋 All parameters:", allParams);
-
-        // Check for error in URL
-        if (allParams.error || allParams.error_description) {
-          console.error("❌ Error in URL:", allParams);
-          let errorMessage = "Password reset link is invalid or has expired.";
-          
-          if (allParams.error === "access_denied") {
-            errorMessage = "This password reset link has expired or is invalid.";
+        console.log("🔄 ResetPassword - Starting validation...");
+        
+        const urlParams = parseUrlParameters();
+        
+        // Check for errors in URL first
+        if (urlParams.error || urlParams.error_description) {
+          console.error("❌ ResetPassword - Error in URL:", urlParams);
+          if (isMounted) {
+            setError("Password reset link is invalid or has expired. Please request a new one.");
+            setIsValidSession(false);
+            setIsValidating(false);
           }
-          
-          setError(errorMessage);
-          setIsValidSession(false);
-          setIsValidating(false);
           return;
         }
 
-        // Method 1: Check if we already have a session
-        console.log("🔐 Checking existing session...");
+        // Method 1: Check if we already have a valid session
+        console.log("🔐 ResetPassword - Checking existing session...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (session && !sessionError) {
-          console.log("✅ Found existing session for:", session.user.email);
-          setIsValidSession(true);
-          setUserEmail(session.user.email);
-          setIsValidating(false);
+          console.log("✅ ResetPassword - Found existing session for:", session.user.email);
+          if (isMounted) {
+            setIsValidSession(true);
+            setUserEmail(session.user.email);
+            setIsValidating(false);
+          }
           return;
         }
 
         // Method 2: Handle access_token and refresh_token from URL
-        if (allParams.access_token && allParams.refresh_token) {
-          console.log("🔄 Setting session from URL tokens...");
+        if (urlParams.access_token && urlParams.refresh_token) {
+          console.log("🔄 ResetPassword - Setting session from URL tokens...");
           
           const { data, error: setSessionError } = await supabase.auth.setSession({
-            access_token: allParams.access_token,
-            refresh_token: allParams.refresh_token,
+            access_token: urlParams.access_token,
+            refresh_token: urlParams.refresh_token,
           });
 
           if (!setSessionError && data.session) {
-            console.log("✅ Session established from URL tokens");
-            setIsValidSession(true);
-            setUserEmail(data.session.user.email);
-            setIsValidating(false);
-            
-            // Clean up URL
-            window.history.replaceState({}, document.title, "/auth/reset-password");
+            console.log("✅ ResetPassword - Session established from URL tokens");
+            if (isMounted) {
+              setIsValidSession(true);
+              setUserEmail(data.session.user.email);
+              setIsValidating(false);
+              
+              // Clean up URL
+              window.history.replaceState({}, document.title, "/auth/reset-password");
+            }
             return;
+          } else {
+            console.error("❌ ResetPassword - Failed to set session from tokens:", setSessionError);
           }
         }
 
         // Method 3: Handle single token verification
-        if (allParams.token && allParams.type === "recovery") {
-          console.log("🔄 Verifying OTP token...");
+        if (urlParams.token && urlParams.type === "recovery") {
+          console.log("🔄 ResetPassword - Verifying OTP token...");
           
           const { data, error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: allParams.token,
+            token_hash: urlParams.token,
             type: "recovery",
           });
 
           if (!verifyError && data.session) {
-            console.log("✅ Token verified successfully");
-            setIsValidSession(true);
-            setUserEmail(data.session.user.email);
-            setIsValidating(false);
-            
-            // Clean up URL
-            window.history.replaceState({}, document.title, "/auth/reset-password");
+            console.log("✅ ResetPassword - Token verified successfully");
+            if (isMounted) {
+              setIsValidSession(true);
+              setUserEmail(data.session.user.email);
+              setIsValidating(false);
+              
+              // Clean up URL
+              window.history.replaceState({}, document.title, "/auth/reset-password");
+            }
             return;
           } else {
-            console.error("❌ Token verification failed:", verifyError);
+            console.error("❌ ResetPassword - Token verification failed:", verifyError);
           }
         }
 
-        // Method 4: Wait for auth state change (Supabase might be processing)
-        console.log("⏳ Waiting for auth state change...");
+        // Method 4: Listen for auth state changes (Supabase might be processing)
+        console.log("⏳ ResetPassword - Setting up auth state listener...");
         
-        // Set up a timeout to prevent infinite waiting
-        const timeout = setTimeout(() => {
-          console.log("⏰ Timeout reached, no valid session found");
-          setError("Password reset link is invalid or has expired. Please request a new one.");
-          setIsValidSession(false);
-          setIsValidating(false);
-        }, 5000);
-
-        // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log("🔄 Auth state change:", event, session ? "Session exists" : "No session");
+        authSubscription = supabase.auth.onAuthStateChange((event, session) => {
+          console.log("🔄 ResetPassword - Auth state change:", event, session ? "Session exists" : "No session");
           
-          if (event === 'PASSWORD_RECOVERY' && session) {
-            console.log("✅ Password recovery session established");
-            clearTimeout(timeout);
+          if (event === 'PASSWORD_RECOVERY' && session && isMounted) {
+            console.log("✅ ResetPassword - Password recovery session established");
             setIsValidSession(true);
             setUserEmail(session.user.email);
             setIsValidating(false);
-            subscription.unsubscribe();
-          } else if (event === 'SIGNED_IN' && session) {
-            console.log("✅ User signed in during reset flow");
-            clearTimeout(timeout);
+          } else if (event === 'SIGNED_IN' && session && isMounted) {
+            console.log("✅ ResetPassword - User signed in during reset flow");
             setIsValidSession(true);
             setUserEmail(session.user.email);
             setIsValidating(false);
-            subscription.unsubscribe();
           }
         });
 
-        // Clean up subscription after timeout
+        // Set timeout to prevent infinite waiting
         setTimeout(() => {
-          subscription.unsubscribe();
-        }, 6000);
+          if (isMounted && isValidating) {
+            console.log("⏰ ResetPassword - Timeout reached, no valid session found");
+            setError("Password reset link is invalid or has expired. Please request a new one.");
+            setIsValidSession(false);
+            setIsValidating(false);
+          }
+        }, 5000);
 
       } catch (err) {
-        console.error("❌ Validation error:", err);
-        setError("Failed to validate reset link. Please request a new one.");
-        setIsValidSession(false);
-        setIsValidating(false);
+        console.error("❌ ResetPassword - Validation error:", err);
+        if (isMounted) {
+          setError("Failed to validate reset link. Please request a new one.");
+          setIsValidSession(false);
+          setIsValidating(false);
+        }
       }
     };
 
     validateResetSession();
-  }, [searchParams]);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
+  }, [parseUrlParameters, isValidating]);
 
   // Validate password in real-time
   useEffect(() => {
@@ -199,7 +224,7 @@ const ResetPassword = () => {
     });
   }, [formData.password]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -207,9 +232,9 @@ const ResetPassword = () => {
 
     // Clear error when user starts typing
     if (error) setError("");
-  };
+  }, [error]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     if (!formData.password) {
       setError("Password is required");
       return false;
@@ -224,7 +249,7 @@ const ResetPassword = () => {
       return false;
     }
     return true;
-  };
+  }, [formData.password, formData.confirmPassword, passwordValidation]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -234,7 +259,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      console.log("🔄 Updating password for user:", userEmail);
+      console.log("🔄 ResetPassword - Updating password for user:", userEmail);
 
       // Use Supabase Auth to update password
       const { data, error: updateError } = await supabase.auth.updateUser({
@@ -242,7 +267,7 @@ const ResetPassword = () => {
       });
 
       if (updateError) {
-        console.error("❌ Password update failed:", updateError);
+        console.error("❌ ResetPassword - Password update failed:", updateError);
         
         // Handle specific errors
         if (updateError.message?.includes("session_not_found")) {
@@ -257,7 +282,7 @@ const ResetPassword = () => {
         return;
       }
 
-      console.log("✅ Password updated successfully:", data);
+      console.log("✅ ResetPassword - Password updated successfully:", data);
       
       // Sign out the user so they can log in with new password
       await supabase.auth.signOut();
@@ -268,20 +293,20 @@ const ResetPassword = () => {
       });
 
     } catch (err) {
-      console.error("❌ Password reset error:", err);
+      console.error("❌ ResetPassword - Password reset error:", err);
       setError(err.message || "Failed to update password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBackToLogin = () => {
+  const handleBackToLogin = useCallback(() => {
     navigate("/auth/login");
-  };
+  }, [navigate]);
 
-  const handleRequestNewLink = () => {
+  const handleRequestNewLink = useCallback(() => {
     navigate("/auth/forgot-password");
-  };
+  }, [navigate]);
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 2) return "bg-red-500";
