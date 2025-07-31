@@ -189,7 +189,24 @@ export const authHelpers = {
     }
   },
 
-  // Get user profile from database
+  // Save feedback to user_feedback_testing table
+  async saveFeedbackTesting(feedbackData) {
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback_testing')
+        .insert([feedbackData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      throw error;
+    }
+  },
+
+  // Get user profile with organization details
   async getUserProfile(userId) {
     try {
       // Step 1: Fetch the base profile + organization + title ID
