@@ -135,7 +135,6 @@ export const SalesCalls = () => {
       setIsLoadingFiles(false);
       setIsLoadingFireflies(false);
     }
-    if (
       activeTab === "fireflies" &&
       user?.fireflies_connected &&
       !ishavefirefliesData
@@ -192,6 +191,7 @@ export const SalesCalls = () => {
             body: formData,
           }
         ),
+        [],
       ]);
 
       // Create a Set of existing composite keys: `${user_id}_${fireflies_id}`
