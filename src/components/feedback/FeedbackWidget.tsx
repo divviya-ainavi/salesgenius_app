@@ -44,6 +44,7 @@ export const FeedbackWidget = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    authUserId,
   } = useSelector((state) => state.auth);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,7 +113,7 @@ export const FeedbackWidget = () => {
       };
 
       // Save feedback to database
-      await dbHelpers.saveFeedback(feedbackData);
+      await dbHelpers.saveFeedback(feedbackData, authUserId);
 
       // Track analytics
       analytics.track("feedback_submitted", {
