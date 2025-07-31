@@ -121,14 +121,15 @@ const ForgotPassword = () => {
     } catch (error) {
       console.error("Password reset error:", error);
       // Always show generic message for security - don't reveal if email exists
-        setIsSubmitted(true);
-        toast.success("Email sent successfully! Please check your inbox.");
-      } else {
-        // Always show generic message for security
-        toast.success(result?.message || "Please check your email.");
+      setIsSubmitted(true);
+      toast.success("Email sent successfully! Please check your inbox.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        setIsSubmitted(false);
-      }
+  // Show success screen if email was submitted
+  if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
         <Card className="w-full max-w-md shadow-lg">
