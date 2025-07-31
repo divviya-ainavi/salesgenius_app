@@ -173,19 +173,26 @@ export const authHelpers = {
     }
   },
 
+  // Save user feedback to database
   async saveFeedbackTesting(feedbackData) {
     try {
+      console.log('💾 Saving feedback testing data:', feedbackData);
       const { data, error } = await supabase
         .from('user_feedback_testing')
         .insert([feedbackData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error saving feedback testing:', error);
+        throw error;
+      }
+
+      console.log('✅ Feedback testing saved successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error saving feedback:', error);
-      throw error;
+      console.error('❌ Failed to save feedback testing:', error);
+      throw new Error(`Failed to save feedback: ${error.message}`);
     }
   },
 

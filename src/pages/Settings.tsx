@@ -96,6 +96,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { BusinessKnowledgeSection } from "@/components/settings/BusinessKnowledgeSection";
+import { FeedbackPolicyTester } from "@/components/testing/FeedbackPolicyTester";
+import { FeedbackDataViewer } from "@/components/testing/FeedbackDataViewer";
+import { usePageTimer } from "../hooks/userPageTimer";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -1287,6 +1291,12 @@ export const Settings = () => {
             <BarChart3 className="w-4 h-4" />
             <span>Analytics</span>
           </TabsTrigger>
+          {userRole?.key === "super_admin" && (
+            <TabsTrigger value="testing">Policy Testing</TabsTrigger>
+          )}
+          {userRole?.key === "super_admin" && (
+            <TabsTrigger value="feedback-data">Feedback Data</TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Settings */}
@@ -3361,6 +3371,18 @@ export const Settings = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {userRole?.key === "super_admin" && (
+          <TabsContent value="testing" className="mt-6">
+            <FeedbackPolicyTester />
+          </TabsContent>
+        )}
+
+        {userRole?.key === "super_admin" && (
+          <TabsContent value="feedback-data" className="mt-6">
+            <FeedbackDataViewer />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
