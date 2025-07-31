@@ -116,7 +116,7 @@ export const authHelpers = {
 
       // Build the base query with joins
       let query = supabase
-        .from('user_feedback_testing')
+        .from('user_feedback')
         .select(`
           *,
           user:profiles!user_feedback_user_id_fkey(full_name, email),
@@ -173,47 +173,7 @@ export const authHelpers = {
     }
   },
 
-  // Save user feedback to database
-  async saveFeedbackTesting(feedbackData) {
-    try {
-      console.log('💾 Saving feedback testing data:', feedbackData);
-      const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .insert([feedbackData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error saving feedback testing:', error);
-        throw error;
-      }
-
-      console.log('✅ Feedback testing saved successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('❌ Failed to save feedback testing:', error);
-      throw new Error(`Failed to save feedback: ${error.message}`);
-    }
-  },
-
-  // Save feedback to user_feedback_testing table
-  async saveFeedbackTesting(feedbackData) {
-    try {
-      const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .insert([feedbackData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      throw error;
-    }
-  },
-
-  // Get user profile with organization details
+  // Get user profile from database
   async getUserProfile(userId) {
     try {
       // Step 1: Fetch the base profile + organization + title ID
@@ -618,9 +578,19 @@ export const authHelpers = {
   // Create user profile after registration
   async createUserProfile(userId, userData) {
     try {
+      // Hash the password before storing
+      const hashedPassword = userData.password ? hashPassword(userData.password) : null;
+
       const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .insert([feedbackData])
+        .from('profiles')
+        .insert([{
+          id: userId,
+          email: userData.email,
+          full_name: userData.full_name,
+          organization_id: userData.organization_id,
+          status_id: 1, // Active status
+          hashed_password: hashedPassword,
+        }])
         .select()
         .single();
 

@@ -65,14 +65,6 @@ export const FeedbackWidget = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Get current Supabase Auth user
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) {
-      toast.error("Authentication required. Please log in again.");
-      return;
-    }
-
     const pageName =
       location.pathname == "/research"
         ? "Research"
@@ -108,8 +100,7 @@ export const FeedbackWidget = () => {
 
       // Prepare feedback data
       const feedbackData = {
-        user_id: user?.id,
-        auth_user_id: authUser.id,
+        user_id: CURRENT_USER.id,
         organization_id: user?.organization_id || organizationDetails?.id,
         page_url: window.location.href,
         page_route: pageName,
@@ -121,7 +112,7 @@ export const FeedbackWidget = () => {
       };
 
       // Save feedback to database
-      await dbHelpers.saveFeedbackTesting(feedbackData);
+      await dbHelpers.saveFeedback(feedbackData);
 
       // Track analytics
       analytics.track("feedback_submitted", {
