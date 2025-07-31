@@ -57,7 +57,6 @@ const BusinessKnowledgeSection = () => {
   // Get user data from Redux store
   const { user, organizationDetails, userRoleId } = useSelector((state) => state.auth);
 
-<<<<<<< HEAD
   console.log('🔍 BusinessKnowledgeSection - Component mounted with user data:', {
     userId: user?.id,
     organizationId: organizationDetails?.id,
@@ -67,8 +66,6 @@ const BusinessKnowledgeSection = () => {
     orgName: organizationDetails?.name
   });
 
-=======
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
   // Check if user is org admin (userRoleId === 2)
   const isOrgAdmin = userRoleId === 2;
 
@@ -94,15 +91,9 @@ const BusinessKnowledgeSection = () => {
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-<<<<<<< HEAD
       console.log('📞 BusinessKnowledgeSection - Calling businessKnowledgeService.getFiles for org:', organizationDetails.id);
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
       console.log('📄 BusinessKnowledgeSection - Loaded files:', filesData?.length || 0, 'files', filesData);
-=======
-      console.log('📞 Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
-      const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('📄 Received files data:', filesData);
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
       setFiles(filesData);
     } catch (error) {
       console.error('❌ BusinessKnowledgeSection - Error loading business knowledge files:', error);
@@ -180,23 +171,15 @@ const BusinessKnowledgeSection = () => {
     setIsUploading(true);
 
     try {
-<<<<<<< HEAD
       console.log('📤 BusinessKnowledgeSection - Calling businessKnowledgeService.uploadFile...');
       const uploadedFile = await businessKnowledgeService.uploadFile(
-=======
-      await businessKnowledgeService.uploadFile(
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
         selectedFile,
         organizationDetails.id,
         user.id,
         uploadDescription
       );
 
-<<<<<<< HEAD
       console.log('✅ BusinessKnowledgeSection - Upload completed successfully:', uploadedFile);
-=======
-      console.log('✅ Upload completed successfully');
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
       toast.success(`File "${selectedFile.name}" uploaded successfully`);
       setShowUploadDialog(false);
       setSelectedFile(null);
@@ -227,10 +210,7 @@ const BusinessKnowledgeSection = () => {
     setIsDeleting(true);
 
     try {
-<<<<<<< HEAD
       console.log('🗑️ BusinessKnowledgeSection - Starting delete process for file:', fileToDelete.id);
-=======
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
       await businessKnowledgeService.deleteFile(fileToDelete.id, organizationDetails.id);
       console.log('✅ BusinessKnowledgeSection - Delete completed successfully');
       toast.success(`File "${fileToDelete.original_filename}" deleted successfully`);
