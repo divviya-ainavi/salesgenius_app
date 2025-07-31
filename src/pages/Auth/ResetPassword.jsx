@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { supabase } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -50,59 +51,30 @@ const ResetPassword = () => {
 
   // Validate session on component mount
   useEffect(() => {
-    const validateSession = async () => {
+    const validateResetSession = async () => {
       try {
-        console.log("🔍 ResetPassword - Starting session validation...");
+        console.log("🔍 ResetPassword - Starting validation...");
         console.log("📍 Current URL:", window.location.href);
-        
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        console.log("🔐 Current session:", session ? "Found" : "None");
-        console.log("❌ Session error:", sessionError);
-        
-        if (sessionError) {
-          console.error("❌ Session error:", sessionError);
-          setError("Failed to validate reset session. Please request a new reset link.");
-          setIsValidSession(false);
-          setIsValidating(false);
-          return;
-        }
+        console.log("📍 Search params:", Object.fromEntries(searchParams.entries()));
+        console.log("📍 Hash:", window.location.hash);
 
-        if (session && session.user) {
-          console.log("✅ Valid session found for user:", session.user.email);
-          setIsValidSession(true);
-          setUserEmail(session.user.email);
-          setIsValidating(false);
-          return;
-        }
-
-        // If no session, check URL parameters and try to establish one
-        const urlParams = new URLSearchParams(window.location.search);
+        // Parse URL parameters from both search and hash
+        const urlParams = Object.fromEntries(searchParams.entries());
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        // Combine both parameter sources
-        const allParams = {};
-        for (const [key, value] of urlParams.entries()) {
-          allParams[key] = value;
-        }
+        const allParams = { ...urlParams };
         for (const [key, value] of hashParams.entries()) {
           allParams[key] = value;
         }
-        
-        console.log("📋 All URL parameters:", allParams);
 
-        // Check for error parameters
-        if (allParams.error) {
-          console.error("❌ Error in URL parameters:", allParams);
+        console.log("📋 All parameters:", allParams);
+
+        // Check for error in URL
+        if (allParams.error || allParams.error_description) {
+          console.error("❌ Error in URL:", allParams);
           let errorMessage = "Password reset link is invalid or has expired.";
           
           if (allParams.error === "access_denied") {
-            if (allParams.error_code === "otp_expired") {
-              errorMessage = "This password reset link has expired. Please request a new one.";
-            } else {
-              errorMessage = "This password reset link is invalid or has already been used.";
-            }
+            errorMessage = "This password reset link has expired or is invalid.";
           }
           
           setError(errorMessage);
@@ -111,7 +83,19 @@ const ResetPassword = () => {
           return;
         }
 
-        // Try to handle access_token and refresh_token if present
+        // Method 1: Check if we already have a session
+        console.log("🔐 Checking existing session...");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (session && !sessionError) {
+          console.log("✅ Found existing session for:", session.user.email);
+          setIsValidSession(true);
+          setUserEmail(session.user.email);
+          setIsValidating(false);
+          return;
+        }
+
+        // Method 2: Handle access_token and refresh_token from URL
         if (allParams.access_token && allParams.refresh_token) {
           console.log("🔄 Setting session from URL tokens...");
           
@@ -120,72 +104,88 @@ const ResetPassword = () => {
             refresh_token: allParams.refresh_token,
           });
 
-          if (setSessionError) {
-            console.error("❌ Failed to set session:", setSessionError);
-            setError("Failed to establish reset session. Please request a new reset link.");
-            setIsValidSession(false);
-            setIsValidating(false);
-            return;
-          }
-
-          if (data.session) {
+          if (!setSessionError && data.session) {
             console.log("✅ Session established from URL tokens");
             setIsValidSession(true);
             setUserEmail(data.session.user.email);
             setIsValidating(false);
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, "/auth/reset-password");
             return;
           }
         }
 
-        // If we reach here, no valid session could be established
-        console.log("❌ No valid session found, checking for recovery flow...");
-        
-        // Wait a moment for potential auth state changes
-        setTimeout(() => {
-          supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-            if (newSession) {
-              console.log("✅ Session found after delay:", newSession.user.email);
-              setIsValidSession(true);
-              setUserEmail(newSession.user.email);
-              setIsValidating(false);
-            } else {
-              console.log("❌ Still no session after delay");
-              setError("Invalid or expired password reset link. Please request a new one.");
-              setIsValidSession(false);
-              setIsValidating(false);
-            }
+        // Method 3: Handle single token verification
+        if (allParams.token && allParams.type === "recovery") {
+          console.log("🔄 Verifying OTP token...");
+          
+          const { data, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: allParams.token,
+            type: "recovery",
           });
-        }, 2000);
+
+          if (!verifyError && data.session) {
+            console.log("✅ Token verified successfully");
+            setIsValidSession(true);
+            setUserEmail(data.session.user.email);
+            setIsValidating(false);
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, "/auth/reset-password");
+            return;
+          } else {
+            console.error("❌ Token verification failed:", verifyError);
+          }
+        }
+
+        // Method 4: Wait for auth state change (Supabase might be processing)
+        console.log("⏳ Waiting for auth state change...");
+        
+        // Set up a timeout to prevent infinite waiting
+        const timeout = setTimeout(() => {
+          console.log("⏰ Timeout reached, no valid session found");
+          setError("Password reset link is invalid or has expired. Please request a new one.");
+          setIsValidSession(false);
+          setIsValidating(false);
+        }, 5000);
+
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log("🔄 Auth state change:", event, session ? "Session exists" : "No session");
+          
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            console.log("✅ Password recovery session established");
+            clearTimeout(timeout);
+            setIsValidSession(true);
+            setUserEmail(session.user.email);
+            setIsValidating(false);
+            subscription.unsubscribe();
+          } else if (event === 'SIGNED_IN' && session) {
+            console.log("✅ User signed in during reset flow");
+            clearTimeout(timeout);
+            setIsValidSession(true);
+            setUserEmail(session.user.email);
+            setIsValidating(false);
+            subscription.unsubscribe();
+          }
+        });
+
+        // Clean up subscription after timeout
+        setTimeout(() => {
+          subscription.unsubscribe();
+        }, 6000);
 
       } catch (err) {
-        console.error("❌ Session validation error:", err);
+        console.error("❌ Validation error:", err);
         setError("Failed to validate reset link. Please request a new one.");
         setIsValidSession(false);
         setIsValidating(false);
       }
     };
 
-    validateSession();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 Auth state change:", event, session ? "Session exists" : "No session");
-      
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        console.log("✅ Password recovery session established");
-        setIsValidSession(true);
-        setUserEmail(session.user.email);
-        setIsValidating(false);
-      } else if (event === 'SIGNED_OUT') {
-        console.log("👋 User signed out");
-        setIsValidSession(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    validateResetSession();
+  }, [searchParams]);
 
   // Validate password in real-time
   useEffect(() => {
@@ -237,7 +237,7 @@ const ResetPassword = () => {
       console.log("🔄 Updating password for user:", userEmail);
 
       // Use Supabase Auth to update password
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { data, error: updateError } = await supabase.auth.updateUser({
         password: formData.password,
       });
 
@@ -257,7 +257,7 @@ const ResetPassword = () => {
         return;
       }
 
-      console.log("✅ Password updated successfully");
+      console.log("✅ Password updated successfully:", data);
       
       // Sign out the user so they can log in with new password
       await supabase.auth.signOut();
