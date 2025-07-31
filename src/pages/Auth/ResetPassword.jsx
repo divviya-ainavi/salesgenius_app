@@ -49,6 +49,30 @@ const ResetPassword = () => {
   // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
+      // Check for Supabase Auth errors first
+      const error = searchParams.get("error");
+      const errorCode = searchParams.get("error_code");
+      const errorDescription = searchParams.get("error_description");
+      
+      if (error) {
+        console.error("Supabase Auth error:", { error, errorCode, errorDescription });
+        
+        // Handle specific Supabase Auth errors
+        if (error === "access_denied") {
+          setError("Access denied. The password reset link may have expired or been used already.");
+        } else if (errorCode === "otp_expired") {
+          setError("Password reset link has expired. Please request a new one.");
+        } else if (errorDescription) {
+          setError(`Reset failed: ${errorDescription}`);
+        } else {
+          setError("Password reset link is invalid or has expired. Please request a new one.");
+        }
+        
+        setTokenValid(false);
+        setIsValidating(false);
+        return;
+      }
+      
       // Check if this is a Supabase Auth password reset
       const accessToken = searchParams.get("access_token");
       const refreshToken = searchParams.get("refresh_token");
@@ -60,6 +84,7 @@ const ResetPassword = () => {
       if (type === "recovery" && accessToken && refreshToken) {
         // This is a Supabase Auth password reset
         try {
+          console.log("Setting Supabase session for password reset...");
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -67,6 +92,7 @@ const ResetPassword = () => {
           
           if (error) {
             console.error("Error setting Supabase session:", error);
+            setError(`Session error: ${error.message}`);
             setTokenValid(false);
           } else {
             console.log("Supabase session set successfully for password reset");
@@ -74,19 +100,28 @@ const ResetPassword = () => {
           }
         } catch (error) {
           console.error("Supabase session error:", error);
+          setError(`Failed to validate reset link: ${error.message}`);
           setTokenValid(false);
         }
       } else if (customToken) {
         // This is a custom token (legacy flow)
         try {
+          console.log("Validating custom reset token...");
           const result = await authHelpers.validateResetToken(customToken);
-          setTokenValid(result.valid);
+          if (result.valid) {
+            setTokenValid(true);
+          } else {
+            setError("Custom reset token is invalid or has expired.");
+            setTokenValid(false);
+          }
         } catch (error) {
           console.error("Custom token validation error:", error);
+          setError(`Token validation failed: ${error.message}`);
           setTokenValid(false);
         }
       } else {
         // No valid token found
+        setError("No valid reset token found. Please request a new password reset link.");
         setTokenValid(false);
       }
       

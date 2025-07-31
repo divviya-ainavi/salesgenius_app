@@ -78,15 +78,20 @@ const ForgotPassword = () => {
     try {
       // Try Supabase Auth password reset first
       try {
+        console.log("Attempting Supabase password reset for:", email.trim());
         const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(
           email.trim(),
           {
             redirectTo: `${window.location.origin}/auth/reset-password`,
+            // Add additional options for better compatibility
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/reset-password`,
+            }
           }
         );
 
         if (supabaseError) {
-          console.log('Supabase password reset failed, trying custom flow:', supabaseError.message);
+          console.warn('Supabase password reset failed, trying custom flow:', supabaseError.message);
           // Fall back to custom password reset
           const result = await authHelpers.forgotPassword(email.trim());
           
@@ -105,7 +110,7 @@ const ForgotPassword = () => {
           toast.success("Password reset email sent! Please check your inbox.");
         }
       } catch (supabaseError) {
-        console.log('Supabase password reset error, using custom flow:', supabaseError);
+        console.warn('Supabase password reset error, using custom flow:', supabaseError);
         // Fall back to custom password reset
         const result = await authHelpers.forgotPassword(email.trim());
         
