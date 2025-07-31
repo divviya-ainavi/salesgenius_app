@@ -347,7 +347,10 @@ const LoginPage = () => {
                   Contact your administrator
                 </button>
               </p>
-              <button className="text-sm text-blue-600 hover:text-blue-800">
+              <button 
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                onClick={() => navigate("/auth/forgot-password")}
+              >
                 Forgot your password?
               </button>
             </div>
