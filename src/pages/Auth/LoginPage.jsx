@@ -15,11 +15,9 @@ import {
   setUserRole,
   setUserRoleId,
   setIsAuthenticated,
-} from "@/store/slices/authSlice"; // adjust import path as needed
-import {
   setOrganizationDetails,
   setTitleName,
-} from "../../store/slices/authSlice";
+} from "@/store/slices/authSlice"; // adjust import path as needed
 import { dbHelpers } from "../../lib/supabase";
 import { setAllTitles } from "../../store/slices/orgSlice";
 
@@ -115,39 +113,28 @@ const LoginPage = () => {
             formData.password
           );
         } else {
-          // Supabase Auth successful - get profile by auth_user_id
-          const { data: profileData, error: profileError } = await supabase
+          // Supabase Auth successful - find profile by email first
+          const { data: emailProfile, error: emailError } = await supabase
             .from("profiles")
-            .select("*")
-            .eq("auth_user_id", authData.user.id);
-          console.log("profileData", profileData);
-          if (profileError || !profileData || profileData.length === 0) {
-            // Profile not found with auth_user_id, try by email
-            const { data: emailProfile, error: emailError } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("email", formData.email);
+            .select("id")
+            .eq("email", formData.email)
+            .single();
 
-            if (emailError || !emailProfile || emailProfile.length === 0) {
-              throw new Error("Profile not found for authenticated user");
-            }
-
-            // Link the profile to the Supabase Auth user
-            const { error: linkError } = await supabase
-              .from("profiles")
-              .update({ auth_user_id: authData.user.id })
-              .eq("id", emailProfile[0].id);
-
-            if (linkError) {
-              console.warn("Failed to link profile to auth user:", linkError);
-            }
-
-            profile = emailProfile[0];
-          } else {
-            profile = profileData[0];
+          if (emailError || !emailProfile) {
+            throw new Error("Profile not found for authenticated user");
           }
 
-          userId = profile.id;
+          // Link the profile to the Supabase Auth user if not already linked
+          const { error: linkError } = await supabase
+            .from("profiles")
+            .update({ auth_user_id: authData.user.id })
+            .eq("id", emailProfile.id);
+
+          if (linkError) {
+            console.warn("Failed to link profile to auth user:", linkError);
+          }
+
+          userId = emailProfile.id;
           console.log("Supabase Auth login successful");
         }
       } catch (supabaseError) {
@@ -158,51 +145,57 @@ const LoginPage = () => {
           formData.password
         );
       }
+
       console.log("User ID from auth:", userId);
+      
       if (userId) {
-        // Get profile if not already fetched
-        if (!profile) {
-          profile = await authHelpers.getUserProfile(userId);
-        }
+        // Always get complete profile data using getUserProfile function
+        profile = await authHelpers.getUserProfile(userId);
 
         if (!profile) throw new Error("User profile not found");
 
-        // Extract organization_details and remove from profile
-        const { organization_details, ...profileWithoutOrgDetails } = profile;
+        console.log("Complete profile data:", profile);
 
-        // Dispatch main profile (without org details)
-        dispatch(setUser(profileWithoutOrgDetails));
+        // Set user profile data to Redux
+        dispatch(setUser(profile));
         dispatch(setIsAuthenticated(true));
         dispatch(setUserProfileInfo(profile.full_name || profile.email));
-        const titles = await dbHelpers?.getTitles(organization_details?.id);
-        dispatch(setAllTitles(titles));
-        // Store organization_details separately
-        if (organization_details) {
-          dispatch(setOrganizationDetails(organization_details));
 
-          // Optionally send to DB
-          // await yourApi.saveOrganizationDetails(organization_details);
+        // Set organization details if available
+        if (profile.organization_details) {
+          dispatch(setOrganizationDetails(profile.organization_details));
+          
+          // Get titles for the organization
+          const titles = await dbHelpers.getTitles(profile.organization_details.id);
+          dispatch(setAllTitles(titles));
         }
 
-        // Set title & role
+        // Set title name
         if (profile.title_name) {
           dispatch(setTitleName(profile.title_name));
         } else {
           dispatch(setTitleName(""));
         }
+
+        // Set user role information
         if (profile.title_id) {
           const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
           dispatch(setUserRoleId(roleId));
+          
           if (roles?.length > 0) {
-            dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
+            const userRole = roles.find(role => role.id === roleId);
+            dispatch(setUserRole(userRole || null));
           } else {
             dispatch(setUserRole(null));
           }
+        } else {
+          dispatch(setUserRoleId(null));
+          dispatch(setUserRole(null));
         }
 
-        // Save cleaned profile to authHelpers and localStorage
-        await authHelpers.setCurrentUser(profileWithoutOrgDetails);
+        // Save user to authHelpers and localStorage
+        await authHelpers.setCurrentUser(profile);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         toast.success("Login successful!");
@@ -228,7 +221,6 @@ const LoginPage = () => {
     }
   };
 
-  console.log("user role", userRole);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
