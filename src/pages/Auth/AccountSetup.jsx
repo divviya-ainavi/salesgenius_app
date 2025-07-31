@@ -378,13 +378,13 @@ const AccountSetup = () => {
           {
             email: inviteData.email,
             password: formData.password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/login`,
-              data: {
-                email_confirm: false,
-                skip_confirmation: true,
-              },
-            },
+            // options: {
+            //   emailRedirectTo: `${window.location.origin}/auth/login`,
+            //   data: {
+            //     email_confirm: false,
+            //     skip_confirmation: true,
+            //   },
+            // },
           }
         );
 
