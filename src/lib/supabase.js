@@ -113,7 +113,7 @@ export const authHelpers = {
         from_date,
         to_date
       } = params;
-
+  async saveFeedback(feedbackData) {
       // Build the base query with joins
       let query = supabase
         .from('user_feedback_testing')
@@ -587,10 +587,7 @@ export const authHelpers = {
           id: userId,
           email: userData.email,
           full_name: userData.full_name,
-          organization_id: userData.organization_id,
-          status_id: 1, // Active status
-          hashed_password: hashedPassword,
-        }])
+        .insert([feedbackData])
         .select()
         .single();
 

@@ -96,12 +96,16 @@ export const FeedbackWidget = () => {
     setIsSubmitting(true);
 
     try {
+      // Get current Supabase Auth user
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
       // Generate session ID
       const sessionId = `${CURRENT_USER.id}_${Date.now()}`;
 
       // Prepare feedback data
       const feedbackData = {
         user_id: CURRENT_USER.id,
+        auth_user_id: authUser?.id || null,
         organization_id: user?.organization_id || organizationDetails?.id,
         page_url: window.location.href,
         page_route: pageName,
@@ -113,7 +117,7 @@ export const FeedbackWidget = () => {
       };
 
       // Save feedback to database
-      await dbHelpers.saveFeedback(feedbackData, authUserId);
+      await dbHelpers.saveFeedback(feedbackData);
 
       // Track analytics
       analytics.track("feedback_submitted", {
