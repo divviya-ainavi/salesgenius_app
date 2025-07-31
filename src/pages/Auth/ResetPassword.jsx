@@ -26,7 +26,8 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(true);
-  const [isValidToken, setIsValidToken] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -47,148 +48,143 @@ const ResetPassword = () => {
   const passwordStrength = Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
 
-  // Parse parameters from both URL search params and hash
-  const parseUrlParameters = () => {
-    const params = {};
-    
-    // Parse query parameters
-    const searchParams = new URLSearchParams(window.location.search);
-    for (const [key, value] of searchParams.entries()) {
-      params[key] = value;
-    }
-    
-    // Parse hash parameters (common with Supabase auth)
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-      const hashParams = new URLSearchParams(hash);
-      for (const [key, value] of hashParams.entries()) {
-        params[key] = value;
-      }
-    }
-    
-    return params;
-  };
-
-  // Validate token on component mount
+  // Validate session on component mount
   useEffect(() => {
-    const validateResetToken = async () => {
+    const validateSession = async () => {
       try {
-        console.log("🔍 Checking for reset token...");
+        console.log("🔍 ResetPassword - Starting session validation...");
         console.log("📍 Current URL:", window.location.href);
         
-        const params = parseUrlParameters();
-        console.log("📋 All URL Parameters:", params);
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log("🔐 Current session:", session ? "Found" : "None");
+        console.log("❌ Session error:", sessionError);
+        
+        if (sessionError) {
+          console.error("❌ Session error:", sessionError);
+          setError("Failed to validate reset session. Please request a new reset link.");
+          setIsValidSession(false);
+          setIsValidating(false);
+          return;
+        }
 
-        // Check for Supabase errors first
-        if (params.error) {
-          console.error("❌ Supabase error in URL:", params);
+        if (session && session.user) {
+          console.log("✅ Valid session found for user:", session.user.email);
+          setIsValidSession(true);
+          setUserEmail(session.user.email);
+          setIsValidating(false);
+          return;
+        }
+
+        // If no session, check URL parameters and try to establish one
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Combine both parameter sources
+        const allParams = {};
+        for (const [key, value] of urlParams.entries()) {
+          allParams[key] = value;
+        }
+        for (const [key, value] of hashParams.entries()) {
+          allParams[key] = value;
+        }
+        
+        console.log("📋 All URL parameters:", allParams);
+
+        // Check for error parameters
+        if (allParams.error) {
+          console.error("❌ Error in URL parameters:", allParams);
           let errorMessage = "Password reset link is invalid or has expired.";
           
-          if (params.error === "access_denied" && params.error_code === "otp_expired") {
-            errorMessage = "This password reset link has expired. Please request a new one.";
-          } else if (params.error === "access_denied") {
-            errorMessage = "This password reset link is invalid or has already been used.";
+          if (allParams.error === "access_denied") {
+            if (allParams.error_code === "otp_expired") {
+              errorMessage = "This password reset link has expired. Please request a new one.";
+            } else {
+              errorMessage = "This password reset link is invalid or has already been used.";
+            }
           }
           
           setError(errorMessage);
-          setIsValidToken(false);
+          setIsValidSession(false);
           setIsValidating(false);
           return;
         }
 
-        // Method 1: Check if we already have a valid session
-        console.log("🔄 Checking existing session...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (session && !sessionError) {
-          console.log("✅ Valid session found:", session.user.email);
-          setIsValidToken(true);
-          setIsValidating(false);
-          return;
-        }
-
-        // Method 2: Handle access_token and refresh_token from URL
-        if (params.access_token && params.refresh_token) {
+        // Try to handle access_token and refresh_token if present
+        if (allParams.access_token && allParams.refresh_token) {
           console.log("🔄 Setting session from URL tokens...");
           
           const { data, error: setSessionError } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
+            access_token: allParams.access_token,
+            refresh_token: allParams.refresh_token,
           });
 
           if (setSessionError) {
             console.error("❌ Failed to set session:", setSessionError);
-            throw setSessionError;
+            setError("Failed to establish reset session. Please request a new reset link.");
+            setIsValidSession(false);
+            setIsValidating(false);
+            return;
           }
 
           if (data.session) {
             console.log("✅ Session established from URL tokens");
-            setIsValidToken(true);
+            setIsValidSession(true);
+            setUserEmail(data.session.user.email);
             setIsValidating(false);
             return;
           }
         }
 
-        // Method 3: Handle single token with verifyOtp
-        if (params.token && params.type === "recovery") {
-          console.log("🔄 Verifying OTP token...");
-          
-          const { data, error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: params.token,
-            type: 'recovery'
-          });
-
-          if (verifyError) {
-            console.error("❌ Token verification failed:", verifyError);
-            
-            let errorMessage = "Password reset link is invalid or has expired.";
-            
-            if (verifyError.message?.includes("expired") || verifyError.message?.includes("Token has expired")) {
-              errorMessage = "This password reset link has expired. Please request a new one.";
-            } else if (verifyError.message?.includes("invalid") || verifyError.message?.includes("Invalid token")) {
-              errorMessage = "This password reset link is invalid. Please request a new one.";
-            } else if (verifyError.message?.includes("used") || verifyError.message?.includes("already been used")) {
-              errorMessage = "This password reset link has already been used. Please request a new one.";
+        // If we reach here, no valid session could be established
+        console.log("❌ No valid session found, checking for recovery flow...");
+        
+        // Wait a moment for potential auth state changes
+        setTimeout(() => {
+          supabase.auth.getSession().then(({ data: { session: newSession } }) => {
+            if (newSession) {
+              console.log("✅ Session found after delay:", newSession.user.email);
+              setIsValidSession(true);
+              setUserEmail(newSession.user.email);
+              setIsValidating(false);
+            } else {
+              console.log("❌ Still no session after delay");
+              setError("Invalid or expired password reset link. Please request a new one.");
+              setIsValidSession(false);
+              setIsValidating(false);
             }
-            
-            setError(errorMessage);
-            setIsValidToken(false);
-            setIsValidating(false);
-            return;
-          }
-
-          if (data.session) {
-            console.log("✅ Token verified successfully, session established");
-            setIsValidToken(true);
-            setIsValidating(false);
-            return;
-          }
-        }
-
-        // If we get here, no valid token was found
-        console.error("❌ No valid reset token found");
-        setError("No valid password reset token found. Please request a new reset link.");
-        setIsValidToken(false);
+          });
+        }, 2000);
 
       } catch (err) {
-        console.error("❌ Reset token validation error:", err);
-        
-        let errorMessage = "Failed to validate reset link. Please request a new one.";
-        
-        if (err.message?.includes("expired")) {
-          errorMessage = "This password reset link has expired. Please request a new one.";
-        } else if (err.message?.includes("invalid")) {
-          errorMessage = "This password reset link is invalid. Please request a new one.";
-        }
-        
-        setError(errorMessage);
-        setIsValidToken(false);
-      } finally {
+        console.error("❌ Session validation error:", err);
+        setError("Failed to validate reset link. Please request a new one.");
+        setIsValidSession(false);
         setIsValidating(false);
       }
     };
 
-    validateResetToken();
+    validateSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔄 Auth state change:", event, session ? "Session exists" : "No session");
+      
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        console.log("✅ Password recovery session established");
+        setIsValidSession(true);
+        setUserEmail(session.user.email);
+        setIsValidating(false);
+      } else if (event === 'SIGNED_OUT') {
+        console.log("👋 User signed out");
+        setIsValidSession(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Validate password in real-time
@@ -238,7 +234,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      console.log("🔄 Updating password...");
+      console.log("🔄 Updating password for user:", userEmail);
 
       // Use Supabase Auth to update password
       const { error: updateError } = await supabase.auth.updateUser({
@@ -301,7 +297,7 @@ const ResetPassword = () => {
     return "Strong";
   };
 
-  // Loading state while validating token
+  // Loading state while validating session
   if (isValidating) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -324,8 +320,8 @@ const ResetPassword = () => {
     );
   }
 
-  // Error state for invalid token
-  if (!isValidToken) {
+  // Error state for invalid session
+  if (!isValidSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
         <Card className="w-full max-w-md shadow-xl border-0">
@@ -355,7 +351,7 @@ const ResetPassword = () => {
     );
   }
 
-  // Valid token - show password reset form
+  // Valid session - show password reset form
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -370,6 +366,11 @@ const ResetPassword = () => {
           <p className="text-xl text-gray-600">
             Choose a new secure password for your account
           </p>
+          {userEmail && (
+            <p className="text-sm text-gray-500 mt-2">
+              Resetting password for: <span className="font-medium">{userEmail}</span>
+            </p>
+          )}
         </div>
       </div>
 
