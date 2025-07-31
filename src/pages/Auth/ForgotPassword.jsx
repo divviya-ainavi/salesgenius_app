@@ -14,7 +14,8 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { authHelpers } from "@/lib/supabase";
-import { config } from "@/lib/config";
+import { config } from "../../lib/config";
+import { useSelector } from "react-redux";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const ForgotPassword = () => {
   const [error, setError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(false);
+  const { user } = useSelector((state) => state.auth);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,7 +57,6 @@ const ForgotPassword = () => {
     setEmailError("");
     setIsEmailValid(true);
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -76,64 +77,27 @@ const ForgotPassword = () => {
     setEmailError("");
 
     try {
-      // Try Supabase Auth password reset first
-      try {
-        console.log("Attempting Supabase password reset for:", email.trim());
-        const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(
-          email.trim(),
-          {
-            redirectTo: `${window.location.origin}/auth/reset-password`,
-            // Add additional options for better compatibility
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/reset-password`,
-            }
-          }
-        );
+      // Call the forgot password function
+      const result = await authHelpers.forgotPassword(email.trim());
 
-        if (supabaseError) {
-          console.warn('Supabase password reset failed, trying custom flow:', supabaseError.message);
-          // Fall back to custom password reset
-          const result = await authHelpers.forgotPassword(email.trim());
-          
-          if (result.success) {
-            setIsSubmitted(true);
-            toast.success("Email sent successfully! Please check your inbox.");
-          } else {
-            // Always show generic message for security
-            toast.success(result?.message || "Please check your email.");
-            setIsSubmitted(true);
-          }
-        } else {
-          // Supabase password reset successful
-          console.log('Supabase password reset email sent successfully');
-          setIsSubmitted(true);
-          toast.success("Password reset email sent! Please check your inbox.");
-        }
-      } catch (supabaseError) {
-        console.warn('Supabase password reset error, using custom flow:', supabaseError);
-        // Fall back to custom password reset
-        const result = await authHelpers.forgotPassword(email.trim());
-        
-        if (result.success) {
-          setIsSubmitted(true);
-          toast.success("Email sent successfully! Please check your inbox.");
-        } else {
-          // Always show generic message for security
-          toast.success(result?.message || "Please check your email.");
-          setIsSubmitted(true);
-        }
+      if (result.success) {
+        setIsSubmitted(true);
+        toast.success("Email sent successfully! Please check your inbox.");
+      } else {
+        // Always show generic message for security
+        toast.success(result?.message || "Please check your email.");
+
+        setIsSubmitted(false);
       }
     } catch (error) {
-      console.error("Password reset error:", error);
-      // Always show generic message for security - don't reveal if email exists
+      console.error("Forgot password error:", error);
+      // Always show generic message for security
       setIsSubmitted(true);
-      toast.success("Email sent successfully! Please check your inbox.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Show success screen if email was submitted
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">

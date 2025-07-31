@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { authHelpers, supabase } from "@/lib/supabase";
+import { authHelpers } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -49,117 +49,23 @@ const ResetPassword = () => {
   // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
-      console.log("All URL parameters:", Object.fromEntries(searchParams.entries()));
-      
-      // Check for Supabase Auth password reset parameters
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
-      const type = searchParams.get("type");
       const token = searchParams.get("token");
-      
-      // Check for Supabase Auth errors
-      const error = searchParams.get("error");
-      const errorCode = searchParams.get("error_code");
-      const errorDescription = searchParams.get("error_description");
-      
-      console.log("Reset password parameters:", {
-        accessToken: accessToken ? "present" : "missing",
-        refreshToken: refreshToken ? "present" : "missing",
-        type,
-        token: token ? "present" : "missing",
-        error,
-        errorCode,
-        errorDescription
-      });
-      
-      // Handle Supabase Auth errors
-      if (error) {
-        console.error("Supabase Auth error:", { error, errorCode, errorDescription });
-        
-        if (error === "access_denied") {
-          setError("Access denied. The password reset link may have expired or been used already.");
-        } else if (errorCode === "otp_expired") {
-          setError("Password reset link has expired. Please request a new one.");
-        } else if (errorDescription) {
-          setError(`Reset failed: ${errorDescription}`);
-        } else {
-          setError("Password reset link is invalid or has expired. Please request a new one.");
-        }
-        
+
+      if (!token) {
         setTokenValid(false);
         setIsValidating(false);
         return;
       }
 
-      // Handle Supabase Auth password reset with tokens
-      if (type === "recovery" && (accessToken || token)) {
-        console.log("Processing Supabase Auth password reset...");
-        
-        try {
-          if (accessToken && refreshToken) {
-            // Standard Supabase Auth flow with access and refresh tokens
-            console.log("Setting Supabase session with access and refresh tokens...");
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            
-            if (error) {
-              console.error("Error setting Supabase session:", error);
-              setError(`Session error: ${error.message}`);
-              setTokenValid(false);
-            } else {
-              console.log("Supabase session set successfully");
-              setTokenValid(true);
-            }
-          } else if (token) {
-            // Alternative flow with just token parameter
-            console.log("Processing with token parameter...");
-            
-            // Try to exchange the token for a session
-            const { data, error } = await supabase.auth.verifyOtp({
-              token_hash: token,
-              type: 'recovery'
-            });
-            
-            if (error) {
-              console.error("Error verifying OTP token:", error);
-              setError(`Token verification failed: ${error.message}`);
-              setTokenValid(false);
-            } else {
-              console.log("Token verified successfully");
-              setTokenValid(true);
-            }
-          }
-        } catch (error) {
-          console.error("Supabase Auth error:", error);
-          setError(`Failed to validate reset link: ${error.message}`);
-          setTokenValid(false);
-        }
-      } else if (token && type !== "recovery") {
-        // Custom token flow (legacy)
-        console.log("Processing custom token...");
-        try {
-          const result = await authHelpers.validateResetToken(token);
-          if (result.valid) {
-            setTokenValid(true);
-          } else {
-            setError("Reset token is invalid or has expired.");
-            setTokenValid(false);
-          }
-        } catch (error) {
-          console.error("Custom token validation error:", error);
-          setError(`Token validation failed: ${error.message}`);
-          setTokenValid(false);
-        }
-      } else {
-        // No valid parameters found
-        console.log("No valid reset parameters found");
-        setError("No valid reset token found. Please request a new password reset link.");
+      try {
+        const result = await authHelpers.validateResetToken(token);
+        setTokenValid(result.valid);
+      } catch (error) {
+        console.error("Token validation error:", error);
         setTokenValid(false);
+      } finally {
+        setIsValidating(false);
       }
-      
-      setIsValidating(false);
     };
 
     validateToken();
@@ -207,6 +113,38 @@ const ResetPassword = () => {
     return true;
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    const token = searchParams.get("token");
+    if (!token) {
+      setError("Invalid reset token");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await authHelpers.resetPassword(token, formData.password);
+
+      if (result.success) {
+        toast.success("Password reset successfully!");
+        navigate("/auth/login", { 
+          state: { message: "Your password has been reset successfully. Please log in with your new password." }
+        });
+      } else {
+        setError(result.error || "Failed to reset password");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      setError("An error occurred while resetting your password. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 2) return "bg-red-500";
     if (passwordStrength <= 3) return "bg-yellow-500";
@@ -220,87 +158,6 @@ const ResetPassword = () => {
     if (passwordStrength <= 4) return "Good";
     return "Strong";
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    // Check if this is Supabase Auth or custom flow
-    const accessToken = searchParams.get("access_token");
-    const type = searchParams.get("type");
-    const token = searchParams.get("token");
-
-    setIsLoading(true);
-
-    try {
-      if (type === "recovery") {
-        console.log("Using Supabase Auth password update...");
-        // Use Supabase Auth password update
-        const { error } = await supabase.auth.updateUser({
-          password: formData.password
-        });
-
-        if (error) {
-          throw new Error(`Supabase password update failed: ${error.message}`);
-        }
-
-        console.log("Password updated successfully via Supabase Auth");
-        toast.success("Password reset successfully!");
-        
-        // Sign out to force fresh login
-        await supabase.auth.signOut();
-        
-        navigate("/auth/login", { 
-          state: { message: "Your password has been reset successfully. Please log in with your new password." }
-        });
-      } else if (token && type !== "recovery") {
-        console.log("Using custom password reset flow...");
-        // Use custom password reset flow
-        const result = await authHelpers.resetPassword(token, formData.password);
-
-        if (result.success) {
-          toast.success("Password reset successfully!");
-          navigate("/auth/login", { 
-            state: { message: "Your password has been reset successfully. Please log in with your new password." }
-          });
-        } else {
-          setError(result.error || "Failed to reset password");
-        }
-      } else {
-        setError("Invalid reset token or session");
-      }
-    } catch (error) {
-      console.error("Reset password error:", error);
-      
-      // Handle specific Supabase errors
-      if (error.message?.includes("session_not_found")) {
-        setError("Password reset session has expired. Please request a new reset link.");
-      } else if (error.message?.includes("same_password")) {
-        setError("New password must be different from your current password.");
-      } else {
-        setError(error.message || "An error occurred while resetting your password. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getResetMethod = () => {
-    const accessToken = searchParams.get("access_token");
-    const type = searchParams.get("type");
-    const customToken = searchParams.get("token");
-    
-    if (type === "recovery" && accessToken) {
-      return "Supabase Auth";
-    } else if (customToken) {
-      return "Custom Flow";
-    }
-    return "Unknown";
-  };
-
-  // Show reset method indicator in development
-  const showDebugInfo = import.meta.env.DEV;
 
   // Loading state while validating token
   if (isValidating) {
@@ -318,11 +175,6 @@ const ResetPassword = () => {
               <p className="text-gray-600">
                 Please wait while we verify your password reset link...
               </p>
-              {showDebugInfo && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Method: {getResetMethod()}
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -377,11 +229,6 @@ const ResetPassword = () => {
             SalesGenius.ai
           </h1>
           <p className="text-gray-600">Create Your New Password</p>
-          {showDebugInfo && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Reset Method: {getResetMethod()}
-            </p>
-          )}
         </div>
 
         {/* Reset Password Form */}
