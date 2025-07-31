@@ -370,29 +370,36 @@ const AccountSetup = () => {
       let supabaseAuthUserId = null;
       try {
         // Create a unique email for Supabase Auth using username
-        const uniqueEmail = `${formData.username.toLowerCase().replace(/\s+/g, '')}@${organizationId}.local`;
-        
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: uniqueEmail,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/login`,
-            data: {
-              email_confirm: false,
-              skip_confirmation: true
-            }
+        const uniqueEmail = `${formData.username
+          .toLowerCase()
+          .replace(/\s+/g, "")}@${organizationId}.local`;
+
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: inviteData.email,
+            password: formData.password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/login`,
+              data: {
+                email_confirm: false,
+                skip_confirmation: true,
+              },
+            },
           }
-        });
+        );
 
         if (authError) {
-          console.warn('Supabase Auth signup failed:', authError.message);
+          console.warn("Supabase Auth signup failed:", authError.message);
           // Continue with custom auth flow
         } else {
           supabaseAuthUserId = authData.user?.id;
-          console.log('Supabase Auth user created successfully:', supabaseAuthUserId);
+          console.log(
+            "Supabase Auth user created successfully:",
+            supabaseAuthUserId
+          );
         }
       } catch (authError) {
-        console.warn('Supabase Auth signup error:', authError);
+        console.warn("Supabase Auth signup error:", authError);
         // Continue with custom auth flow
       }
 
