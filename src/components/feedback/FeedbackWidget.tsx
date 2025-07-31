@@ -73,13 +73,6 @@ export const FeedbackWidget = () => {
       return;
     }
 
-    // Get current Supabase Auth user
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) {
-      toast.error("Authentication required. Please log in again.");
-      return;
-    }
-
     const pageName =
       location.pathname == "/research"
         ? "Research"
@@ -116,7 +109,6 @@ export const FeedbackWidget = () => {
       // Prepare feedback data
       const feedbackData = {
         user_id: user?.id,
-        auth_user_id: authUser.id,
         auth_user_id: authUser.id,
         organization_id: user?.organization_id || organizationDetails?.id,
         page_url: window.location.href,
