@@ -49,15 +49,33 @@ const ResetPassword = () => {
   // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
-      // Check for Supabase Auth errors first
+      console.log("All URL parameters:", Object.fromEntries(searchParams.entries()));
+      
+      // Check for Supabase Auth password reset parameters
+      const accessToken = searchParams.get("access_token");
+      const refreshToken = searchParams.get("refresh_token");
+      const type = searchParams.get("type");
+      const token = searchParams.get("token");
+      
+      // Check for Supabase Auth errors
       const error = searchParams.get("error");
       const errorCode = searchParams.get("error_code");
       const errorDescription = searchParams.get("error_description");
       
+      console.log("Reset password parameters:", {
+        accessToken: accessToken ? "present" : "missing",
+        refreshToken: refreshToken ? "present" : "missing",
+        type,
+        token: token ? "present" : "missing",
+        error,
+        errorCode,
+        errorDescription
+      });
+      
+      // Handle Supabase Auth errors
       if (error) {
         console.error("Supabase Auth error:", { error, errorCode, errorDescription });
         
-        // Handle specific Supabase Auth errors
         if (error === "access_denied") {
           setError("Access denied. The password reset link may have expired or been used already.");
         } else if (errorCode === "otp_expired") {
@@ -72,46 +90,61 @@ const ResetPassword = () => {
         setIsValidating(false);
         return;
       }
-      
-      // Check if this is a Supabase Auth password reset
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
-      const type = searchParams.get("type");
-      
-      // Check for custom token (legacy flow)
-      const customToken = searchParams.get("token");
 
-      if (type === "recovery" && accessToken && refreshToken) {
-        // This is a Supabase Auth password reset
+      // Handle Supabase Auth password reset with tokens
+      if (type === "recovery" && (accessToken || token)) {
+        console.log("Processing Supabase Auth password reset...");
+        
         try {
-          console.log("Setting Supabase session for password reset...");
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          
-          if (error) {
-            console.error("Error setting Supabase session:", error);
-            setError(`Session error: ${error.message}`);
-            setTokenValid(false);
-          } else {
-            console.log("Supabase session set successfully for password reset");
-            setTokenValid(true);
+          if (accessToken && refreshToken) {
+            // Standard Supabase Auth flow with access and refresh tokens
+            console.log("Setting Supabase session with access and refresh tokens...");
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              console.error("Error setting Supabase session:", error);
+              setError(`Session error: ${error.message}`);
+              setTokenValid(false);
+            } else {
+              console.log("Supabase session set successfully");
+              setTokenValid(true);
+            }
+          } else if (token) {
+            // Alternative flow with just token parameter
+            console.log("Processing with token parameter...");
+            
+            // Try to exchange the token for a session
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery'
+            });
+            
+            if (error) {
+              console.error("Error verifying OTP token:", error);
+              setError(`Token verification failed: ${error.message}`);
+              setTokenValid(false);
+            } else {
+              console.log("Token verified successfully");
+              setTokenValid(true);
+            }
           }
         } catch (error) {
-          console.error("Supabase session error:", error);
+          console.error("Supabase Auth error:", error);
           setError(`Failed to validate reset link: ${error.message}`);
           setTokenValid(false);
         }
-      } else if (customToken) {
-        // This is a custom token (legacy flow)
+      } else if (token && type !== "recovery") {
+        // Custom token flow (legacy)
+        console.log("Processing custom token...");
         try {
-          console.log("Validating custom reset token...");
-          const result = await authHelpers.validateResetToken(customToken);
+          const result = await authHelpers.validateResetToken(token);
           if (result.valid) {
             setTokenValid(true);
           } else {
-            setError("Custom reset token is invalid or has expired.");
+            setError("Reset token is invalid or has expired.");
             setTokenValid(false);
           }
         } catch (error) {
@@ -120,7 +153,8 @@ const ResetPassword = () => {
           setTokenValid(false);
         }
       } else {
-        // No valid token found
+        // No valid parameters found
+        console.log("No valid reset parameters found");
         setError("No valid reset token found. Please request a new password reset link.");
         setTokenValid(false);
       }
@@ -195,12 +229,13 @@ const ResetPassword = () => {
     // Check if this is Supabase Auth or custom flow
     const accessToken = searchParams.get("access_token");
     const type = searchParams.get("type");
-    const customToken = searchParams.get("token");
+    const token = searchParams.get("token");
 
     setIsLoading(true);
 
     try {
-      if (type === "recovery" && accessToken) {
+      if (type === "recovery") {
+        console.log("Using Supabase Auth password update...");
         // Use Supabase Auth password update
         const { error } = await supabase.auth.updateUser({
           password: formData.password
@@ -219,9 +254,10 @@ const ResetPassword = () => {
         navigate("/auth/login", { 
           state: { message: "Your password has been reset successfully. Please log in with your new password." }
         });
-      } else if (customToken) {
+      } else if (token && type !== "recovery") {
+        console.log("Using custom password reset flow...");
         // Use custom password reset flow
-        const result = await authHelpers.resetPassword(customToken, formData.password);
+        const result = await authHelpers.resetPassword(token, formData.password);
 
         if (result.success) {
           toast.success("Password reset successfully!");
