@@ -35,7 +35,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  // const { roles } = useSelector((state) => state.org);
+  const { userRole } = useSelector((state) => state.auth);
 
   // Compute form validity
   const isFormValid =
@@ -120,7 +120,7 @@ const LoginPage = () => {
             .from("profiles")
             .select("*")
             .eq("auth_user_id", authData.user.id);
-
+          console.log("profileData", profileData);
           if (profileError || !profileData || profileData.length === 0) {
             // Profile not found with auth_user_id, try by email
             const { data: emailProfile, error: emailError } = await supabase
@@ -158,7 +158,7 @@ const LoginPage = () => {
           formData.password
         );
       }
-
+      console.log("User ID from auth:", userId);
       if (userId) {
         // Get profile if not already fetched
         if (!profile) {
@@ -228,6 +228,7 @@ const LoginPage = () => {
     }
   };
 
+  console.log("user role", userRole);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -347,7 +348,7 @@ const LoginPage = () => {
                   Contact your administrator
                 </button>
               </p>
-              <button 
+              <button
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                 onClick={() => navigate("/auth/forgot-password")}
               >

@@ -76,7 +76,7 @@ export const UserDropdown = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
+  console.log(organizationDetails, "organization details");
   // Load user profile
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -85,8 +85,8 @@ export const UserDropdown = () => {
         const profile = {
           ...CURRENT_USER,
           role: {
-            key: user?.title_name || "sales_manager",
-            label: user?.title_name || "Sales Manager",
+            key: userRole?.key || "sales_manager",
+            label: userRole?.label || "Sales Manager",
             description: "",
           },
           organization: {
