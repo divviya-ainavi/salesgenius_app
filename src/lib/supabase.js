@@ -113,7 +113,7 @@ export const authHelpers = {
         from_date,
         to_date
       } = params;
-  saveFeedback: async (feedbackData) => {
+
       // Build the base query with joins
       let query = supabase
         .from('user_feedback_testing')
@@ -169,6 +169,22 @@ export const authHelpers = {
       };
     } catch (error) {
       console.error('Error in getFeedbackWithPagination:', error);
+      throw error;
+    }
+  },
+
+  saveFeedback: async (feedbackData) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .insert([feedbackData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving feedback:', error);
       throw error;
     }
   },
