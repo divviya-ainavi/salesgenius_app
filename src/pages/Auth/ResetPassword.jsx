@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import {
   Loader2,
   Lock,
@@ -29,7 +28,7 @@ const ResetPassword = () => {
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(true);
   const [isValidToken, setIsValidToken] = useState(false);
-  const [resetMethod, setResetMethod] = useState(null);
+  const [session, setSession] = useState(null);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -50,23 +49,18 @@ const ResetPassword = () => {
   const passwordStrength = Object.values(passwordValidation).filter(Boolean).length;
   const passwordStrengthPercentage = (passwordStrength / 5) * 100;
 
-  // Validate token on component mount
+  // Validate token and session on component mount
   useEffect(() => {
-    const validateToken = async () => {
+    const validateResetSession = async () => {
       try {
-        console.log("🔍 Validating reset token...");
+        console.log("🔍 Checking for password reset session...");
         console.log("URL params:", Object.fromEntries(searchParams.entries()));
 
-        // Get URL parameters
-        const accessToken = searchParams.get("access_token");
-        const refreshToken = searchParams.get("refresh_token");
-        const type = searchParams.get("type");
-        const token = searchParams.get("token");
+        // Check for Supabase errors in URL
         const error = searchParams.get("error");
         const errorCode = searchParams.get("error_code");
         const errorDescription = searchParams.get("error_description");
 
-        // Check for Supabase errors first
         if (error) {
           console.error("❌ Supabase error in URL:", { error, errorCode, errorDescription });
           
@@ -84,75 +78,95 @@ const ResetPassword = () => {
           return;
         }
 
-        // Method 1: Standard Supabase Auth flow (access_token + refresh_token)
-        if (accessToken && refreshToken && type === "recovery") {
-          console.log("✅ Using Supabase Auth flow with access/refresh tokens");
-          
-          try {
-            // Set the session using the tokens
-            const { data, error: sessionError } = await supabase.auth.setSession({
+        // Check current Supabase session
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("❌ Error getting session:", sessionError);
+          throw new Error("Failed to verify reset session");
+        }
+
+        console.log("📋 Current session:", currentSession ? "Found" : "None");
+
+        if (currentSession) {
+          // We have a valid session, user can reset password
+          console.log("✅ Valid reset session found");
+          setSession(currentSession);
+          setIsValidToken(true);
+        } else {
+          // No session, check if we have URL parameters to establish one
+          const accessToken = searchParams.get("access_token");
+          const refreshToken = searchParams.get("refresh_token");
+          const type = searchParams.get("type");
+
+          if (accessToken && refreshToken && type === "recovery") {
+            console.log("🔄 Setting session from URL parameters...");
+            
+            const { data, error: setSessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
-            if (sessionError) {
-              throw sessionError;
+            if (setSessionError) {
+              console.error("❌ Failed to set session:", setSessionError);
+              throw new Error("Failed to establish reset session");
             }
 
-            console.log("✅ Session set successfully");
+            console.log("✅ Session established from URL parameters");
+            setSession(data.session);
             setIsValidToken(true);
-            setResetMethod("supabase_session");
-          } catch (sessionError) {
-            console.error("❌ Failed to set session:", sessionError);
-            throw sessionError;
-          }
-        }
-        // Method 2: Token-based flow (single token)
-        else if (token && type === "recovery") {
-          console.log("✅ Using Supabase token verification flow");
-          
-          try {
-            // Verify the OTP token
-            const { data, error: verifyError } = await supabase.auth.verifyOtp({
-              token_hash: token,
-              type: "recovery",
+          } else {
+            // Try to listen for auth state changes (in case Supabase is still processing)
+            console.log("⏳ Waiting for auth state change...");
+            
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+              console.log("🔄 Auth state changed:", event, session ? "Session found" : "No session");
+              
+              if (event === 'PASSWORD_RECOVERY' && session) {
+                console.log("✅ Password recovery session established");
+                setSession(session);
+                setIsValidToken(true);
+                setIsValidating(false);
+                subscription.unsubscribe();
+              } else if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+                console.log("❌ No valid session for password reset");
+                setError("Invalid or expired password reset link. Please request a new one.");
+                setIsValidToken(false);
+                setIsValidating(false);
+                subscription.unsubscribe();
+              }
             });
 
-            if (verifyError) {
-              throw verifyError;
-            }
+            // Set a timeout to stop waiting after 5 seconds
+            setTimeout(() => {
+              if (isValidating) {
+                console.log("⏰ Timeout waiting for auth state change");
+                setError("Password reset link is invalid or has expired. Please request a new one.");
+                setIsValidToken(false);
+                setIsValidating(false);
+                subscription.unsubscribe();
+              }
+            }, 5000);
 
-            console.log("✅ Token verified successfully");
-            setIsValidToken(true);
-            setResetMethod("supabase_verify");
-          } catch (verifyError) {
-            console.error("❌ Token verification failed:", verifyError);
-            throw verifyError;
+            return () => {
+              subscription.unsubscribe();
+            };
           }
-        }
-        // Method 3: Custom token flow (fallback)
-        else if (token && !type) {
-          console.log("✅ Using custom token flow");
-          // For custom tokens, we'll validate during password update
-          setIsValidToken(true);
-          setResetMethod("custom");
-        }
-        // No valid parameters
-        else {
-          console.error("❌ No valid reset parameters found");
-          throw new Error("Invalid password reset link. Missing required parameters.");
         }
 
       } catch (err) {
-        console.error("❌ Token validation error:", err);
+        console.error("❌ Reset session validation error:", err);
         setError(err.message || "Invalid or expired password reset link.");
         setIsValidToken(false);
       } finally {
-        setIsValidating(false);
+        // Only set validating to false if we're not waiting for auth state change
+        if (!searchParams.get("access_token") && !searchParams.get("token")) {
+          setIsValidating(false);
+        }
       }
     };
 
-    validateToken();
+    validateResetSession();
   }, [searchParams]);
 
   // Validate password in real-time
@@ -202,44 +216,27 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      console.log("🔄 Starting password reset with method:", resetMethod);
+      console.log("🔄 Updating password...");
 
-      if (resetMethod === "supabase_session" || resetMethod === "supabase_verify") {
-        // Use Supabase Auth to update password
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: formData.password,
-        });
+      // Use Supabase Auth to update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: formData.password,
+      });
 
-        if (updateError) {
-          throw updateError;
-        }
-
-        console.log("✅ Password updated successfully via Supabase");
-        
-        // Sign out the user so they can log in with new password
-        await supabase.auth.signOut();
-        
-        toast.success("Password updated successfully! Please log in with your new password.");
-        navigate("/auth/login", {
-          state: { message: "Password updated successfully! Please log in with your new password." }
-        });
-      } else if (resetMethod === "custom") {
-        // Use custom auth helper for legacy tokens
-        const token = searchParams.get("token");
-        const result = await authHelpers.resetPassword(token, formData.password);
-
-        if (result.success) {
-          console.log("✅ Password updated successfully via custom auth");
-          toast.success("Password updated successfully! Please log in with your new password.");
-          navigate("/auth/login", {
-            state: { message: "Password updated successfully! Please log in with your new password." }
-          });
-        } else {
-          throw new Error(result.error || "Failed to update password");
-        }
-      } else {
-        throw new Error("Invalid reset method");
+      if (updateError) {
+        console.error("❌ Password update failed:", updateError);
+        throw updateError;
       }
+
+      console.log("✅ Password updated successfully");
+      
+      // Sign out the user so they can log in with new password
+      await supabase.auth.signOut();
+      
+      toast.success("Password updated successfully!");
+      navigate("/auth/login", {
+        state: { message: "Password updated successfully! Please log in with your new password." }
+      });
 
     } catch (err) {
       console.error("❌ Password reset error:", err);
@@ -251,6 +248,8 @@ const ResetPassword = () => {
         setError("Invalid reset token. Please request a new reset link.");
       } else if (err.message?.includes("weak_password")) {
         setError("Password is too weak. Please choose a stronger password.");
+      } else if (err.message?.includes("same_password")) {
+        setError("New password must be different from your current password.");
       } else {
         setError(err.message || "Failed to update password. Please try again.");
       }
