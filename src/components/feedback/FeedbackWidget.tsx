@@ -129,7 +129,7 @@ export const FeedbackWidget = () => {
       };
 
       // Save feedback to database
-      await dbHelpers.saveFeedback(feedbackData);
+      await dbHelpers.saveFeedbackTesting(feedbackData);
 
       // Track analytics
       analytics.track("feedback_submitted", {

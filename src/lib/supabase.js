@@ -173,10 +173,10 @@ export const authHelpers = {
     }
   },
 
-  saveFeedback: async (feedbackData) => {
+  async saveFeedbackTesting(feedbackData) {
     try {
       const { data, error } = await supabase
-        .from('user_feedback')
+        .from('user_feedback_testing')
         .insert([feedbackData])
         .select()
         .single();
