@@ -44,7 +44,6 @@ export const FeedbackWidget = () => {
     organizationDetails,
     user,
     hubspotIntegration,
-    authUserId,
   } = useSelector((state) => state.auth);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,16 +95,12 @@ export const FeedbackWidget = () => {
     setIsSubmitting(true);
 
     try {
-      // Get current Supabase Auth user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
       // Generate session ID
       const sessionId = `${CURRENT_USER.id}_${Date.now()}`;
 
       // Prepare feedback data
       const feedbackData = {
         user_id: CURRENT_USER.id,
-        auth_user_id: authUser?.id || null,
         organization_id: user?.organization_id || organizationDetails?.id,
         page_url: window.location.href,
         page_route: pageName,

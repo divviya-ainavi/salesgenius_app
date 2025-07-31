@@ -67,7 +67,6 @@ import {
   ChevronsUpDown,
   Loader2,
   Mic,
-  TestTube,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -97,7 +96,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { FeedbackPolicyTester } from "@/components/testing/FeedbackPolicyTester";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -434,9 +432,6 @@ export const Settings = () => {
   );
   const canViewOrgAnalytics =
     mockCurrentUser.permissions.includes("view_org_analytics");
-
-  // Check if user is super admin
-  const isSuperAdmin = userRole?.key === 'super_admin';
 
   useEffect(() => {
     if (orgSettings.country) {
@@ -1292,12 +1287,6 @@ export const Settings = () => {
             <BarChart3 className="w-4 h-4" />
             <span>Analytics</span>
           </TabsTrigger>
-          {isSuperAdmin && (
-            <TabsTrigger value="testing">
-              <TestTube className="w-4 h-4 mr-1" />
-              Policy Testing
-            </TabsTrigger>
-          )}
         </TabsList>
 
         {/* Profile Settings */}
@@ -3372,20 +3361,6 @@ export const Settings = () => {
             </Card>
           </div>
         </TabsContent>
-
-        {/* Policy Testing Tab - Only for Super Admins */}
-        {isSuperAdmin && (
-          <TabsContent value="testing" className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Policy Testing</h2>
-              <p className="text-muted-foreground">
-                Test database policies and authentication systems to ensure they're working correctly.
-              </p>
-            </div>
-            
-            <FeedbackPolicyTester />
-          </TabsContent>
-        )}
       </Tabs>
 
       {/* Delete Confirmation Dialog */}

@@ -21,8 +21,7 @@ const initialState = {
         accountInfo: null,
     },
     ishavefirefliesData: false,
-    firefliesData: [],
-    authUserId: null
+    firefliesData: []
 };
 
 const authSlice = createSlice({
@@ -78,10 +77,6 @@ const authSlice = createSlice({
         setFirefliesData: (state, action) => {
             state.firefliesData = action.payload;
         },
-        setAuthUserId: (state, action) => {
-            state.authUserId = action.payload;
-            // Cookies.set('authUserId', action.payload, { expires: 7 }); // Store in cookies for persistence
-        },
         resetAuthState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -106,7 +101,6 @@ export const {
     setOrganizationDetails,
     setHubspotIntegration,
     setIshavefirefliesData,
-    setFirefliesData,
-    setAuthUserId
+    setFirefliesData
 } = authSlice.actions;
 export default authSlice.reducer;
