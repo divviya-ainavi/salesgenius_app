@@ -98,13 +98,17 @@ const LoginPage = () => {
 
       // Try Supabase Auth first
       try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
+        const { data: authData, error: authError } =
+          await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
 
         if (authError) {
-          console.log('Supabase Auth failed, trying custom auth:', authError.message);
+          console.log(
+            "Supabase Auth failed, trying custom auth:",
+            authError.message
+          );
           // Fall back to custom authentication
           userId = await authHelpers.loginWithCustomPassword(
             formData.email,
@@ -113,29 +117,29 @@ const LoginPage = () => {
         } else {
           // Supabase Auth successful - get profile by auth_user_id
           const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('auth_user_id', authData.user.id);
+            .from("profiles")
+            .select("*")
+            .eq("auth_user_id", authData.user.id);
 
           if (profileError || !profileData || profileData.length === 0) {
             // Profile not found with auth_user_id, try by email
             const { data: emailProfile, error: emailError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('email', formData.email);
+              .from("profiles")
+              .select("*")
+              .eq("email", formData.email);
 
             if (emailError || !emailProfile || emailProfile.length === 0) {
-              throw new Error('Profile not found for authenticated user');
+              throw new Error("Profile not found for authenticated user");
             }
 
             // Link the profile to the Supabase Auth user
             const { error: linkError } = await supabase
-              .from('profiles')
+              .from("profiles")
               .update({ auth_user_id: authData.user.id })
-              .eq('id', emailProfile[0].id);
+              .eq("id", emailProfile[0].id);
 
             if (linkError) {
-              console.warn('Failed to link profile to auth user:', linkError);
+              console.warn("Failed to link profile to auth user:", linkError);
             }
 
             profile = emailProfile[0];
@@ -144,10 +148,10 @@ const LoginPage = () => {
           }
 
           userId = profile.id;
-          console.log('Supabase Auth login successful');
+          console.log("Supabase Auth login successful");
         }
       } catch (supabaseError) {
-        console.log('Supabase Auth error, using custom auth:', supabaseError);
+        console.log("Supabase Auth error, using custom auth:", supabaseError);
         // Fall back to custom authentication
         userId = await authHelpers.loginWithCustomPassword(
           formData.email,
@@ -343,10 +347,7 @@ const LoginPage = () => {
                   Contact your administrator
                 </button>
               </p>
-              <button
-                className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => navigate("/auth/forgot-password")}
-              >
+              <button className="text-sm text-blue-600 hover:text-blue-800">
                 Forgot your password?
               </button>
             </div>
