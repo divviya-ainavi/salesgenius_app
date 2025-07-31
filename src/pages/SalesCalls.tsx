@@ -126,15 +126,8 @@ export const SalesCalls = () => {
 
   // Load initial data
   useEffect(() => {
-    // Only load files if user ID is available
-    if (CURRENT_USER?.id) {
-      loadUploadedFiles();
-      loadFirefliesFiles();
-    } else {
-      console.log("User not loaded yet, deferring file loading");
-      setIsLoadingFiles(false);
-      setIsLoadingFireflies(false);
-    }
+    loadUploadedFiles();
+    if (
       activeTab === "fireflies" &&
       user?.fireflies_connected &&
       !ishavefirefliesData
@@ -146,13 +139,6 @@ export const SalesCalls = () => {
   }, [activeTab]);
 
   const loadUploadedFiles = async () => {
-    // Check if user ID is available before making the query
-    if (!CURRENT_USER?.id) {
-      console.log("User ID not available, skipping file load");
-      setIsLoadingFiles(false);
-      return;
-    }
-
     setRecentUploadRefresh(true);
     try {
       // Only load unprocessed files for the staging queue
