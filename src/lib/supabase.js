@@ -370,6 +370,59 @@ export const authHelpers = {
     return false;
   },
 
+  // Forgot password function
+  forgotPassword: async (email) => {
+    try {
+      // Try Supabase Auth first
+      try {
+        const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        });
+        
+        if (!supabaseError) {
+          console.log('Supabase password reset email sent successfully');
+          return {
+            success: true,
+            message: "Password reset email sent successfully. Please check your inbox."
+          };
+        }
+        
+        console.log('Supabase password reset failed, trying custom flow:', supabaseError.message);
+      } catch (supabaseError) {
+        console.log('Supabase password reset error, using custom flow:', supabaseError);
+      }
+      
+      // Fall back to custom password reset flow
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.passwordReset}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: "Password reset email sent successfully. Please check your inbox."
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to send password reset email"
+        };
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return {
+        success: false,
+        message: "An error occurred. Please try again."
+      };
+    }
+  },
+
   // Forgot Password functionality
   async forgotPassword(email) {
     try {
