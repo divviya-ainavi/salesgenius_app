@@ -161,9 +161,9 @@ const LoginPage = () => {
       console.log("User ID from auth:", userId);
       if (userId) {
         // Get profile if not already fetched
-        if (!profile) {
-          profile = await authHelpers.getUserProfile(userId);
-        }
+        // if (!profile) {
+        profile = await authHelpers.getUserProfile(userId);
+        // }
 
         if (!profile) throw new Error("User profile not found");
 

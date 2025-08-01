@@ -2330,6 +2330,7 @@ export const dbHelpers = {
         .select("id")
         .eq("prospect_id", prospectId)
         .eq("name", person.name)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (existing) return existing.id;
@@ -2339,7 +2340,8 @@ export const dbHelpers = {
         .insert({
           name: person.name,
           title: person.title,
-          prospect_id: prospectId
+          prospect_id: prospectId,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2354,6 +2356,7 @@ export const dbHelpers = {
         .select("id")
         .eq("name", item.owner)
         .eq("prospect_id", prospectId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       const { data: inserted } = await supabase
@@ -2391,7 +2394,8 @@ export const dbHelpers = {
           source: insight?.source || "Call Transcript",
           timestamp: insight?.timestamp || "",
           trend: insight?.trend || "new",
-          speaker: insight.speaker
+          speaker: insight.speaker,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2420,6 +2424,7 @@ export const dbHelpers = {
         .select("id")
         .eq("name", style.stakeholder)
         .eq("prospect_id", prospectId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       const { data: inserted } = await supabase
@@ -2434,7 +2439,8 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
-          people_id: person?.id || null
+          people_id: person?.id || null,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2500,27 +2506,29 @@ export const dbHelpers = {
   },
 
 
-  async getCommunicationStylesData(communication_style_ids) {
+  async getCommunicationStylesData(communication_style_ids, userId) {
     const { data, error } = await supabase
       .from("communication_styles")
       .select("*")
-      .in("id", communication_style_ids);
+      .in("id", communication_style_ids)
+      .eq("user_id", userId);
     if (error) throw error;
     return data;
   },
 
-  async getPeopleByProspectId(prospectId) {
+  async getPeopleByProspectId(prospectId, userId) {
     const { data, error } = await supabase
       .from("peoples")
       .select("*")
-      .eq("prospect_id", prospectId);
+      .eq("prospect_id", prospectId)
+      .eq("user_id", userId);
 
     if (error) throw error;
     return data;
   },
 
   // Get communication styles for a given prospect
-  async getCommunicationStylesForProspect(prospectId) {
+  async getCommunicationStylesForProspect(prospectId, userId) {
     const { data: prospect, error } = await supabase
       .from("prospect")
       .select("communication_style_ids")
@@ -2532,7 +2540,9 @@ export const dbHelpers = {
     const { data: styles, error: styleError } = await supabase
       .from("communication_styles")
       .select("*")
-      .in("id", prospect.communication_style_ids);
+      .in("id", prospect.communication_style_ids)
+      .eq("user_id", userId);
+
 
     if (styleError) {
       console.error("Error fetching styles:", styleError);
@@ -2543,7 +2553,7 @@ export const dbHelpers = {
   },
 
   // Insert new communication styles returned by cumulative-comm API
-  async insertCommunicationStyles(commStyles, prospectId) {
+  async insertCommunicationStyles(commStyles, prospectId, userId) {
     const insertedIds = [];
 
     for (const style of commStyles) {
@@ -2559,6 +2569,7 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
+          user_id: userId
           // prospect_id: prospectId,
         })
         .select()
@@ -2621,7 +2632,7 @@ export const dbHelpers = {
     }
   },
 
-  async getTasksAndSalesInsightsByProspectId(prospectId) {
+  async getTasksAndSalesInsightsByProspectId(prospectId, userId) {
     // 1. Get insight data for the given prospect
     const { data: insightsData, error: insightsError } = await supabase
       .from("insights")
@@ -2666,7 +2677,8 @@ export const dbHelpers = {
         .from("sales_insights")
         .select("content")
         .in("id", allSalesInsightIds)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("user_id", userId);
 
       if (salesError) {
         console.error("Error fetching sales_insights", salesError);
@@ -2684,55 +2696,56 @@ export const dbHelpers = {
   },
 
 
-  async upsertEmailTemplate(id, inputData) {
+  async upsertEmailTemplate(id, inputData, userId) {
     try {
-      let query = await supabase
-        .from("email_templates");
+      let query = supabase.from("email_templates");
 
       if (id) {
-        // UPDATE existing record
+        // UPDATE existing record scoped to user
         const { data, error } = await query
           .update(inputData)
           .eq("id", id)
+          .eq("user_id", userId) // ensure user-specific update
           .select()
           .single();
 
         if (error) {
-          console.error("Error updating deck_prompt:", error.message);
+          console.error("Error updating email_template:", error.message);
           return null;
         }
 
         return data;
       } else {
-        // INSERT new record
+        // INSERT new record with user_id
+        const insertData = { ...inputData, user_id: userId };
         const { data, error } = await query
-          .insert([inputData])
+          .insert([insertData])
           .select()
           .single();
 
         if (error) {
-          console.error("Error inserting deck_prompt:", error.message);
+          console.error("Error inserting email_template:", error.message);
           return null;
         }
 
         return data;
       }
     } catch (err) {
-      console.error("Unexpected error in upsertDeckPrompt:", err);
+      console.error("Unexpected error in upsertEmailTemplate:", err);
       return null;
     }
   },
 
-  async upsertDeckPrompt(id, inputData) {
+  async upsertDeckPrompt(id, inputData, userId) {
     try {
-      let query = await supabase
-        .from("presentation_prompt");
+      const query = supabase.from("presentation_prompt");
 
       if (id) {
-        // UPDATE existing record
+        // UPDATE existing record, scoped by user_id
         const { data, error } = await query
           .update(inputData)
           .eq("id", id)
+          .eq("user_id", userId) // ensure only the owner can update
           .select()
           .single();
 
@@ -2743,9 +2756,11 @@ export const dbHelpers = {
 
         return data;
       } else {
-        // INSERT new record
+        // INSERT new record with user_id
+        const insertData = { ...inputData, user_id: userId };
+
         const { data, error } = await query
-          .insert([inputData])
+          .insert([insertData])
           .select()
           .single();
 
@@ -2830,7 +2845,7 @@ export const dbHelpers = {
   //   return result.sort((a, b) => b.average_score - a.average_score);
   // },
 
-  async getSalesInsightsByProspectId(prospectId) {
+  async getSalesInsightsByProspectId(prospectId, userId) {
     // console.log("called get sales insights");
 
     // Step 1: Get all insights for the given prospect_id
@@ -2867,7 +2882,8 @@ export const dbHelpers = {
         .from("sales_insights")
         .select("*, type_id")
         .in("id", allInsightIds)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("user_id", userId);
 
       if (insightsDetailError) {
         console.error("Error fetching sales insights", insightsDetailError);
@@ -2956,13 +2972,14 @@ export const dbHelpers = {
     return sortedResults;
   },
 
-  async updateSalesInsightContent(id, newContent) {
+  async updateSalesInsightContent(id, newContent, userId) {
     try {
       const { data, error } = await supabase
         .from("sales_insights")
         .update({ content: newContent })
         .eq("id", id)
         .eq("is_active", true)
+        .eq("user_id", userId)
         .select()
         .single();
 
@@ -3066,11 +3083,12 @@ export const dbHelpers = {
     return data;
   },
 
-  async deleteSalesInsightContent(insightId, updateFields = {}) {
+  async deleteSalesInsightContent(insightId, updateFields = {}, userId) {
     const { data, error } = await supabase
       .from("sales_insights")
       .update(updateFields)
       .eq("id", insightId)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -3138,13 +3156,14 @@ export const dbHelpers = {
     }
   },
 
-  async updateCommunicationStyleRole(styleId, newRole, prospectId) {
+  async updateCommunicationStyleRole(styleId, newRole, prospectId, userId) {
     try {
       // Step 1: Get the current communication style entry (to get the name)
       const { data: styleData, error: fetchError } = await supabase
         .from("communication_styles")
         .select("stakeholder")
         .eq("id", styleId)
+        .eq("user_id", userId)
         .single();
 
       if (fetchError) throw fetchError;
@@ -3154,7 +3173,9 @@ export const dbHelpers = {
       const { data: updatedStyle, error: updateError } = await supabase
         .from("communication_styles")
         .update({ role: newRole })
-        .eq("id", styleId);
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
 
       if (updateError) throw updateError;
 
@@ -3163,7 +3184,8 @@ export const dbHelpers = {
         .from("peoples")
         .update({ title: newRole })
         .eq("name", name)
-        .eq("prospect_id", prospectId);
+        .eq("prospect_id", prospectId)
+        .eq("user_id", userId);
 
       if (peopleError) throw peopleError;
 

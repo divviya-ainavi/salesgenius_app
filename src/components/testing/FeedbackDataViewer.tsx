@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield,
   User,
@@ -17,10 +17,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Database,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { useSelector } from 'react-redux';
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useSelector } from "react-redux";
 
 interface FeedbackItem {
   id: string;
@@ -46,7 +46,9 @@ interface QueryResult {
 }
 
 export const FeedbackDataViewer = () => {
-  const { user, organizationDetails, userRole } = useSelector((state) => state.auth);
+  const { user, organizationDetails, userRole } = useSelector(
+    (state) => state.auth
+  );
   const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [queryResults, setQueryResults] = useState<{
@@ -74,26 +76,30 @@ export const FeedbackDataViewer = () => {
   const checkAuthStatus = async () => {
     try {
       // Get Supabase Auth user
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user: supabaseUser },
+      } = await supabase.auth.getUser();
+
       // Get profile data with role information
       let profileUser = null;
       let userRoleKey = null;
-      
+
       if (supabaseUser) {
         const { data: profiles } = await supabase
-          .from('profiles')
-          .select(`
+          .from("profiles")
+          .select(
+            `
             *,
             title:titles(
               name,
               role:roles(key, label)
             )
-          `)
-          .eq('auth_user_id', supabaseUser.id);
-        
+          `
+          )
+          .eq("auth_user_id", supabaseUser.id);
+
         profileUser = profiles?.[0] || null;
-        userRoleKey = profileUser?.title?.role?.key || 'unknown';
+        userRoleKey = profileUser?.title?.role?.key || "unknown";
       }
 
       setAuthStatus({
@@ -102,21 +108,21 @@ export const FeedbackDataViewer = () => {
         userRole: userRoleKey,
       });
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error("Error checking auth status:", error);
     }
   };
 
   const runAllQueries = async () => {
     setIsLoading(true);
-    
+
     const results = {
       allFeedback: await queryAllFeedback(),
       ownFeedback: await queryOwnFeedback(),
       orgFeedback: await queryOrgFeedback(),
     };
-    
+
     setQueryResults(results);
-    
+
     // Set the data from the most successful query
     if (results.allFeedback.success) {
       setFeedbackData(results.allFeedback.data || []);
@@ -125,28 +131,30 @@ export const FeedbackDataViewer = () => {
     } else if (results.ownFeedback.success) {
       setFeedbackData(results.ownFeedback.data || []);
     }
-    
+
     setIsLoading(false);
   };
 
   // Query 1: Try to get ALL feedback (should only work for super_admin)
   const queryAllFeedback = async (): Promise<QueryResult> => {
     try {
-      console.log('🔍 Querying ALL feedback...');
-      
+      console.log("🔍 Querying ALL feedback...");
+
       const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .select(`
+        .from("user_feedback_testing")
+        .select(
+          `
           *,
           profile:profiles!user_feedback_testing_user_id_fkey(
             full_name,
             email
           )
-        `)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('❌ Query ALL feedback failed:', error);
+        console.error("❌ Query ALL feedback failed:", error);
         return {
           success: false,
           error: error.message,
@@ -154,14 +162,18 @@ export const FeedbackDataViewer = () => {
         };
       }
 
-      console.log('✅ Query ALL feedback succeeded:', data?.length || 0, 'records');
+      console.log(
+        "✅ Query ALL feedback succeeded:",
+        data?.length || 0,
+        "records"
+      );
       return {
         success: true,
         data: data || [],
         count: data?.length || 0,
       };
     } catch (error) {
-      console.error('❌ Query ALL feedback error:', error);
+      console.error("❌ Query ALL feedback error:", error);
       return {
         success: false,
         error: error.message,
@@ -173,27 +185,31 @@ export const FeedbackDataViewer = () => {
   // Query 2: Try to get OWN feedback only
   const queryOwnFeedback = async (): Promise<QueryResult> => {
     try {
-      console.log('🔍 Querying OWN feedback...');
-      
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      console.log("🔍 Querying OWN feedback...");
+
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (!authUser) {
-        throw new Error('No authenticated user');
+        throw new Error("No authenticated user");
       }
 
       const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .select(`
+        .from("user_feedback_testing")
+        .select(
+          `
           *,
           profile:profiles!user_feedback_testing_user_id_fkey(
             full_name,
             email
           )
-        `)
-        .eq('auth_user_id', authUser.id)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .eq("auth_user_id", authUser.id)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('❌ Query OWN feedback failed:', error);
+        console.error("❌ Query OWN feedback failed:", error);
         return {
           success: false,
           error: error.message,
@@ -201,14 +217,18 @@ export const FeedbackDataViewer = () => {
         };
       }
 
-      console.log('✅ Query OWN feedback succeeded:', data?.length || 0, 'records');
+      console.log(
+        "✅ Query OWN feedback succeeded:",
+        data?.length || 0,
+        "records"
+      );
       return {
         success: true,
         data: data || [],
         count: data?.length || 0,
       };
     } catch (error) {
-      console.error('❌ Query OWN feedback error:', error);
+      console.error("❌ Query OWN feedback error:", error);
       return {
         success: false,
         error: error.message,
@@ -220,26 +240,28 @@ export const FeedbackDataViewer = () => {
   // Query 3: Try to get ORGANIZATION feedback (should work for org_admin)
   const queryOrgFeedback = async (): Promise<QueryResult> => {
     try {
-      console.log('🔍 Querying ORGANIZATION feedback...');
-      
+      console.log("🔍 Querying ORGANIZATION feedback...");
+
       if (!organizationDetails?.id) {
-        throw new Error('No organization ID available');
+        throw new Error("No organization ID available");
       }
 
       const { data, error } = await supabase
-        .from('user_feedback_testing')
-        .select(`
+        .from("user_feedback_testing")
+        .select(
+          `
           *,
           profile:profiles!user_feedback_testing_user_id_fkey(
             full_name,
             email
           )
-        `)
-        .eq('organization_id', organizationDetails.id)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .eq("organization_id", organizationDetails.id)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('❌ Query ORGANIZATION feedback failed:', error);
+        console.error("❌ Query ORGANIZATION feedback failed:", error);
         return {
           success: false,
           error: error.message,
@@ -247,14 +269,18 @@ export const FeedbackDataViewer = () => {
         };
       }
 
-      console.log('✅ Query ORGANIZATION feedback succeeded:', data?.length || 0, 'records');
+      console.log(
+        "✅ Query ORGANIZATION feedback succeeded:",
+        data?.length || 0,
+        "records"
+      );
       return {
         success: true,
         data: data || [],
         count: data?.length || 0,
       };
     } catch (error) {
-      console.error('❌ Query ORGANIZATION feedback error:', error);
+      console.error("❌ Query ORGANIZATION feedback error:", error);
       return {
         success: false,
         error: error.message,
@@ -265,9 +291,9 @@ export const FeedbackDataViewer = () => {
 
   const getRoleIcon = (roleKey: string) => {
     switch (roleKey) {
-      case 'super_admin':
+      case "super_admin":
         return Crown;
-      case 'org_admin':
+      case "org_admin":
         return Shield;
       default:
         return User;
@@ -276,19 +302,22 @@ export const FeedbackDataViewer = () => {
 
   const getRoleColor = (roleKey: string) => {
     switch (roleKey) {
-      case 'super_admin':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'org_admin':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case "super_admin":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "org_admin":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const getQueryResultBadge = (result: QueryResult) => {
     if (result.success) {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+        <Badge
+          variant="default"
+          className="bg-green-100 text-green-800 border-green-200"
+        >
           <CheckCircle className="w-3 h-3 mr-1" />
           Success ({result.count})
         </Badge>
@@ -321,10 +350,15 @@ export const FeedbackDataViewer = () => {
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Current User</span>
                 </div>
-                <p className="text-sm font-semibold">{authStatus.profileUser?.full_name || 'Not found'}</p>
-                <p className="text-xs text-muted-foreground">{authStatus.profileUser?.email || 'No email'}</p>
+                <p className="text-sm font-semibold">
+                  {authStatus.profileUser?.full_name || "Not found"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Profile ID: {authStatus.profileUser?.id?.substring(0, 8) || 'None'}...
+                  {authStatus.profileUser?.email || "No email"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Profile ID:{" "}
+                  {authStatus.profileUser?.id?.substring(0, 8) || "None"}...
                 </p>
               </CardContent>
             </Card>
@@ -335,9 +369,12 @@ export const FeedbackDataViewer = () => {
                   <Shield className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Supabase Auth</span>
                 </div>
-                <p className="text-sm">{authStatus.supabaseUser?.email || 'Not authenticated'}</p>
+                <p className="text-sm">
+                  {authStatus.supabaseUser?.email || "Not authenticated"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Auth ID: {authStatus.supabaseUser?.id?.substring(0, 8) || 'None'}...
+                  Auth ID:{" "}
+                  {authStatus.supabaseUser?.id?.substring(0, 8) || "None"}...
                 </p>
               </CardContent>
             </Card>
@@ -346,15 +383,18 @@ export const FeedbackDataViewer = () => {
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2 mb-2">
                   {React.createElement(getRoleIcon(authStatus.userRole), {
-                    className: "w-4 h-4 text-muted-foreground"
+                    className: "w-4 h-4 text-muted-foreground",
                   })}
                   <span className="text-sm font-medium">Role</span>
                 </div>
-                <Badge variant="outline" className={getRoleColor(authStatus.userRole)}>
-                  {authStatus.userRole || 'Unknown'}
+                <Badge
+                  variant="outline"
+                  className={getRoleColor(authStatus.userRole)}
+                >
+                  {authStatus.userRole || "Unknown"}
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Title: {authStatus.profileUser?.title?.name || 'None'}
+                  Title: {authStatus.profileUser?.title?.name || "None"}
                 </p>
               </CardContent>
             </Card>
@@ -391,7 +431,9 @@ export const FeedbackDataViewer = () => {
                     Should only work for super_admin
                   </p>
                   {queryResults.allFeedback.error && (
-                    <p className="text-xs text-red-600">{queryResults.allFeedback.error}</p>
+                    <p className="text-xs text-red-600">
+                      {queryResults.allFeedback.error}
+                    </p>
                   )}
                 </div>
 
@@ -404,7 +446,9 @@ export const FeedbackDataViewer = () => {
                     Should work for all authenticated users
                   </p>
                   {queryResults.ownFeedback.error && (
-                    <p className="text-xs text-red-600">{queryResults.ownFeedback.error}</p>
+                    <p className="text-xs text-red-600">
+                      {queryResults.ownFeedback.error}
+                    </p>
                   )}
                 </div>
 
@@ -417,7 +461,9 @@ export const FeedbackDataViewer = () => {
                     Direct org query (may work based on policies)
                   </p>
                   {queryResults.orgFeedback.error && (
-                    <p className="text-xs text-red-600">{queryResults.orgFeedback.error}</p>
+                    <p className="text-xs text-red-600">
+                      {queryResults.orgFeedback.error}
+                    </p>
                   )}
                 </div>
               </div>
@@ -482,15 +528,20 @@ export const FeedbackDataViewer = () => {
               {isLoading ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Loading feedback data...</p>
+                  <p className="text-muted-foreground">
+                    Loading feedback data...
+                  </p>
                 </div>
               ) : feedbackData.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-8">
                     <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-2">No feedback data accessible</p>
+                    <p className="text-muted-foreground mb-2">
+                      No feedback data accessible
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      This could mean policies are working correctly and limiting your access
+                      This could mean policies are working correctly and
+                      limiting your access
                     </p>
                   </CardContent>
                 </Card>
@@ -501,13 +552,21 @@ export const FeedbackDataViewer = () => {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h4 className="font-medium">{feedback.page_route}</h4>
+                            <h4 className="font-medium">
+                              {feedback.page_route}
+                            </h4>
                             <p className="text-sm text-muted-foreground">
-                              {feedback.profile?.full_name || 'Unknown User'} ({feedback.profile?.email || 'No email'})
+                              {feedback.profile?.full_name || "Unknown User"} (
+                              {feedback.profile?.email || "No email"})
                             </p>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                              <span>User ID: {feedback.user_id?.substring(0, 8)}...</span>
-                              <span>Auth ID: {feedback.auth_user_id?.substring(0, 8)}...</span>
+                              <span>
+                                User ID: {feedback.user_id?.substring(0, 8)}...
+                              </span>
+                              <span>
+                                Auth ID:{" "}
+                                {feedback.auth_user_id?.substring(0, 8)}...
+                              </span>
                               <span>
                                 <Calendar className="w-3 h-3 inline mr-1" />
                                 {new Date(feedback.created_at).toLocaleString()}
@@ -516,32 +575,41 @@ export const FeedbackDataViewer = () => {
                           </div>
                           <div className="flex flex-col space-y-1">
                             <Badge variant="outline">
-                              {feedback.user_id === user?.id ? 'Your Feedback' : 'Other User'}
+                              {feedback.user_id === user?.id
+                                ? "Your Feedback"
+                                : "Other User"}
                             </Badge>
-                            {feedback.organization_id === organizationDetails?.id && (
+                            {feedback.organization_id ===
+                              organizationDetails?.id && (
                               <Badge variant="outline" className="text-xs">
                                 Same Org
                               </Badge>
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm">
                           {feedback.what_you_like && (
                             <div>
-                              <span className="font-medium text-green-600">👍 Likes: </span>
+                              <span className="font-medium text-green-600">
+                                👍 Likes:{" "}
+                              </span>
                               <span>{feedback.what_you_like}</span>
                             </div>
                           )}
                           {feedback.what_needs_improving && (
                             <div>
-                              <span className="font-medium text-orange-600">🔧 Improvements: </span>
+                              <span className="font-medium text-orange-600">
+                                🔧 Improvements:{" "}
+                              </span>
                               <span>{feedback.what_needs_improving}</span>
                             </div>
                           )}
                           {feedback.new_features_needed && (
                             <div>
-                              <span className="font-medium text-blue-600">💡 Features: </span>
+                              <span className="font-medium text-blue-600">
+                                💡 Features:{" "}
+                              </span>
                               <span>{feedback.new_features_needed}</span>
                             </div>
                           )}
@@ -555,15 +623,19 @@ export const FeedbackDataViewer = () => {
 
             <TabsContent value="queries" className="space-y-4">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">SQL Queries You Can Run</h3>
-                
+                <h3 className="text-lg font-semibold">
+                  SQL Queries You Can Run
+                </h3>
+
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Query 1: All Feedback (Super Admin Only)</CardTitle>
+                    <CardTitle className="text-base">
+                      Query 1: All Feedback (Super Admin Only)
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-{`-- This should only work for super_admin
+                      {`-- This should only work for super_admin
 SELECT * FROM user_feedback_testing 
 ORDER BY created_at DESC;
 
@@ -579,7 +651,9 @@ ORDER BY uf.created_at DESC;`}
                     <div className="mt-2">
                       {getQueryResultBadge(queryResults.allFeedback)}
                       {queryResults.allFeedback.error && (
-                        <p className="text-xs text-red-600 mt-1">{queryResults.allFeedback.error}</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          {queryResults.allFeedback.error}
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -587,11 +661,13 @@ ORDER BY uf.created_at DESC;`}
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Query 2: Own Feedback (All Users)</CardTitle>
+                    <CardTitle className="text-base">
+                      Query 2: Own Feedback (All Users)
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-{`-- This should work for all authenticated users
+                      {`-- This should work for all authenticated users
 SELECT * FROM user_feedback_testing 
 WHERE auth_user_id = auth.uid()
 ORDER BY created_at DESC;`}
@@ -599,7 +675,9 @@ ORDER BY created_at DESC;`}
                     <div className="mt-2">
                       {getQueryResultBadge(queryResults.ownFeedback)}
                       {queryResults.ownFeedback.error && (
-                        <p className="text-xs text-red-600 mt-1">{queryResults.ownFeedback.error}</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          {queryResults.ownFeedback.error}
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -607,19 +685,23 @@ ORDER BY created_at DESC;`}
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Query 3: Organization Feedback</CardTitle>
+                    <CardTitle className="text-base">
+                      Query 3: Organization Feedback
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-{`-- This may work based on your role
+                      {`-- This may work based on your role
 SELECT * FROM user_feedback_testing 
-WHERE organization_id = '${organizationDetails?.id || 'your-org-id'}'
+WHERE organization_id = '${organizationDetails?.id || "your-org-id"}'
 ORDER BY created_at DESC;`}
                     </pre>
                     <div className="mt-2">
                       {getQueryResultBadge(queryResults.orgFeedback)}
                       {queryResults.orgFeedback.error && (
-                        <p className="text-xs text-red-600 mt-1">{queryResults.orgFeedback.error}</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          {queryResults.orgFeedback.error}
+                        </p>
                       )}
                     </div>
                   </CardContent>
