@@ -33,6 +33,7 @@ import { CURRENT_USER, authHelpers } from "@/lib/supabase";
 import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
+import { supabase } from "../../lib/supabase";
 
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
@@ -75,7 +76,7 @@ export const UserDropdown = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
+  console.log(organizationDetails, "organization details");
   // Load user profile
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -84,8 +85,8 @@ export const UserDropdown = () => {
         const profile = {
           ...CURRENT_USER,
           role: {
-            key: user?.title_name || "sales_manager",
-            label: user?.title_name || "Sales Manager",
+            key: userRole?.key || "sales_manager",
+            label: userRole?.label || "Sales Manager",
             description: "",
           },
           organization: {
@@ -121,6 +122,14 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
+      // Sign out from Supabase Auth if user is authenticated there
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.auth.signOut();
+      }
+
       const result = await authHelpers.signOut();
 
       if (result.success) {

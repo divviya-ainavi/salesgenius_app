@@ -314,7 +314,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
           const initialProspect = enrichedProspects[0];
           setSelectedProspect(initialProspect);
           const styles = await dbHelpers.getCommunicationStylesData(
-            initialProspect.communication_style_ids
+            initialProspect.communication_style_ids,
+            user?.id
           );
           setCommStylesData(styles);
 
@@ -435,7 +436,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
 
     // 🔁 Fetch communication styles
     const styles = await dbHelpers.getCommunicationStylesData(
-      prospect.communication_style_ids
+      prospect.communication_style_ids,
+      user?.id
     );
     setCommStylesData(styles);
 
@@ -478,7 +480,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       );
       const getTaskAndContent =
         await dbHelpers.getTasksAndSalesInsightsByProspectId(
-          selectedProspect?.id
+          selectedProspect?.id,
+          user?.id
         );
       setAllSummary(getCallSummary);
       setGetTaskAndContent(getTaskAndContent);
@@ -531,7 +534,11 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         is_refined: false,
         refinement_text: "",
       };
-      const storeData = await dbHelpers.upsertDeckPrompt(null, postData);
+      const storeData = await dbHelpers.upsertDeckPrompt(
+        null,
+        postData,
+        user?.id
+      );
       setPresentationPromptId(storeData?.id);
       setGeneratedArtefact({
         title: `Strategic Presentation for ${selectedProspect.companyName}`,
@@ -588,7 +595,11 @@ ${output?.blocks
         is_refined: false,
         refinement_text: "",
       };
-      const newTemplate = await dbHelpers.upsertEmailTemplate(null, postData);
+      const newTemplate = await dbHelpers.upsertEmailTemplate(
+        null,
+        postData,
+        user?.id
+      );
       setEmailTemplateId(newTemplate?.id);
       setGeneratedArtefact({
         title: `Follow-up Email for ${selectedProspect.companyName}`,
@@ -679,7 +690,8 @@ ${output?.blocks
         };
         const storeData = await dbHelpers.upsertDeckPrompt(
           presentationPromptId,
-          postData
+          postData,
+          user?.id
         );
         // Refine entire presentation
         setGeneratedArtefact((prev) => {
@@ -735,7 +747,8 @@ ${output?.blocks
         };
         const newTemplate = await dbHelpers.upsertEmailTemplate(
           emailTemplateId,
-          postData
+          postData,
+          user?.id
         );
 
         setGeneratedArtefact((prev) => {
@@ -849,7 +862,11 @@ ${updatedBlocks
     };
 
     try {
-      await dbHelpers?.upsertDeckPrompt(presentationPromptId, postData);
+      await dbHelpers?.upsertDeckPrompt(
+        presentationPromptId,
+        postData,
+        user?.id
+      );
       toast.success("Block updated successfully");
     } catch (error) {
       console.error("Error saving block:", error);
@@ -1071,7 +1088,8 @@ ${updatedBlocks
                                             .updateCommunicationStyleRole(
                                               primaryStakeholder.id,
                                               editingRoleText,
-                                              selectedProspect.id
+                                              selectedProspect.id,
+                                              user?.id
                                             )
                                             .then(() => {
                                               // Update local state
@@ -1298,7 +1316,8 @@ ${updatedBlocks
                                             .updateCommunicationStyleRole(
                                               stakeholder.id,
                                               editingRoleText,
-                                              selectedProspect?.id
+                                              selectedProspect?.id,
+                                              user?.id
                                             )
                                             .then(() => {
                                               // Update local state

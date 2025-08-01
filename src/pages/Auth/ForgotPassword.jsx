@@ -4,18 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  Mail,
-  ArrowLeft,
+import { 
+  Loader2, 
+  Mail, 
+  ArrowLeft, 
+  AlertCircle, 
   CheckCircle,
-  AlertCircle,
+  Send 
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { authHelpers } from "@/lib/supabase";
-import { config } from "../../lib/config";
-import { useSelector } from "react-redux";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -23,122 +21,140 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [isEmailValid, setIsEmailValid] = useState(false);
-  const { user } = useSelector((state) => state.auth);
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  // Email validation
+  const isValidEmail = /\S+@\S+\.\S+/.test(email);
+  const isFormValid = email.trim() !== "" && isValidEmail;
 
-  const handleEmailChange = (value) => {
-    setEmail(value);
-    setError(""); // Clear general error
-
-    if (!value.trim()) {
-      setEmailError("");
-      setIsEmailValid(false);
-      return;
-    }
-
-    if (value.trim().length < 3) {
-      setEmailError("Email is too short");
-      setIsEmailValid(false);
-      return;
-    }
-
-    if (!validateEmail(value.trim())) {
-      setEmailError("Please enter a valid email address");
-      setIsEmailValid(false);
-      return;
-    }
-
-    setEmailError("");
-    setIsEmailValid(true);
-  };
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!email.trim()) {
-      setError("Email address is required");
-      setEmailError("Email address is required");
-      return;
-    }
-
-    if (!validateEmail(email)) {
+    
+    if (!isFormValid) {
       setError("Please enter a valid email address");
-      setEmailError("Please enter a valid email address");
       return;
     }
 
     setIsLoading(true);
     setError("");
-    setEmailError("");
 
     try {
-      // Call the forgot password function
-      const result = await authHelpers.forgotPassword(email.trim());
+      console.log("🔄 Starting password reset for email:", email);
+      
+      // Use Supabase Auth password reset
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/reset-password`
+        }
+      });
 
-      if (result.success) {
-        setIsSubmitted(true);
-        toast.success("Email sent successfully! Please check your inbox.");
-      } else {
-        // Always show generic message for security
-        toast.success(result?.message || "Please check your email.");
-
-        setIsSubmitted(false);
+      if (resetError) {
+        console.error("❌ Supabase password reset failed:", resetError);
+        throw resetError;
       }
-    } catch (error) {
-      console.error("Forgot password error:", error);
-      // Always show generic message for security
+
+      console.log("✅ Password reset email sent successfully");
       setIsSubmitted(true);
+      toast.success("Password reset email sent! Please check your inbox.");
+      
+    } catch (error) {
+      console.error("❌ Password reset error:", error);
+      
+      // Handle specific Supabase errors
+      if (error.message?.includes("rate limit")) {
+        setError("Too many requests. Please wait a few minutes before trying again.");
+      } else if (error.message?.includes("invalid email")) {
+        setError("Please enter a valid email address.");
+      } else {
+        // For security, don't reveal if email exists or not
+        setError("If an account with this email exists, you will receive a password reset link.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleBackToLogin = () => {
+    navigate("/auth/login");
+  };
+
+  const handleResendEmail = () => {
+    setIsSubmitted(false);
+    setEmail("");
+    setError("");
+  };
+
+  // Success screen
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+        <div className="w-full max-w-md">
+          <Card className="shadow-lg">
+            <CardContent className="p-8">
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Check Your Email
+                  </h2>
+                  <p className="text-gray-600">
+                    We've sent a password reset link to:
+                  </p>
+                  <p className="font-medium text-gray-900 mt-1">{email}</p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-blue-900">
+                        What to do next:
+                      </p>
+                      <ul className="text-sm text-blue-800 mt-1 space-y-1">
+                        <li>• Check your email inbox</li>
+                        <li>• Look for an email from SalesGenius.ai</li>
+                        <li>• Click the "Reset Password" link</li>
+                        <li>• Check your spam folder if you don't see it</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResendEmail}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Another Email
+                  </Button>
+                  
+                  <Button
+                    onClick={handleBackToLogin}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Login
+                  </Button>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  The reset link will expire in 1 hour for security reasons.
+                </p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Check Your Email
-              </h3>
-              <p className="text-gray-600 mb-6">
-                If an account with this email exists, we've sent password reset
-                instructions to <span className="font-medium">{email}</span>
-              </p>
-              <div className="space-y-3">
-                <Button
-                  onClick={() => navigate("/auth/login")}
-                  className="w-full"
-                >
-                  Back to Login
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsSubmitted(false);
-                    setEmail("");
-                  }}
-                  className="w-full"
-                >
-                  Try Different Email
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
+  // Forgot password form
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -147,18 +163,15 @@ const ForgotPassword = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             SalesGenius.ai
           </h1>
-          <p className="text-gray-600">Reset Your Password</p>
+          <p className="text-gray-600">AI-Powered Sales Assistant</p>
         </div>
 
         {/* Forgot Password Form */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">
-              Forgot Password
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold">Reset Your Password</CardTitle>
             <p className="text-gray-600 mt-2">
-              Enter your email address and we'll send you a link to reset your
-              password
+              Enter your email address and we'll send you a link to reset your password
             </p>
           </CardHeader>
 
@@ -167,6 +180,7 @@ const ForgotPassword = () => {
               {/* Error Alert */}
               {error && (
                 <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
@@ -187,50 +201,26 @@ const ForgotPassword = () => {
                     placeholder="Enter your email address"
                     value={email}
                     onChange={(e) => {
-                      handleEmailChange(e.target.value);
+                      setEmail(e.target.value);
+                      if (error) setError("");
                     }}
                     className="pl-10"
-                    // className={`pl-10 ${
-                    //   emailError
-                    //     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                    //     : isEmailValid
-                    //     ? "border-grey-500 focus:border-green-500 focus:ring-green-500"
-                    //     : ""
-                    // }`}
                     disabled={isLoading}
                     required
                   />
-                  {/* Email validation icon */}
-                  {/* {email.trim() && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      {isEmailValid ? (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                      ) : emailError ? (
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                      ) : null}
-                    </div>
-                  )} */}
                 </div>
-                {/* Email error message */}
-                {emailError && (
-                  <p className="text-sm text-red-600 flex items-center space-x-1">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{emailError}</span>
+                {email && !isValidEmail && (
+                  <p className="text-sm text-red-600">
+                    Please enter a valid email address
                   </p>
                 )}
-                {/* {isEmailValid && !emailError && (
-                  <p className="text-sm text-green-600 flex items-center space-x-1">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Valid email address</span>
-                  </p>
-                )} */}
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!email.trim() || !isEmailValid || isLoading}
+                disabled={!isFormValid || isLoading}
                 size="lg"
               >
                 {isLoading ? (
@@ -239,7 +229,10 @@ const ForgotPassword = () => {
                     Sending Reset Link...
                   </>
                 ) : (
-                  "Send Reset Link"
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Reset Link
+                  </>
                 )}
               </Button>
             </form>
@@ -248,7 +241,7 @@ const ForgotPassword = () => {
             <div className="mt-6 text-center">
               <Link
                 to="/auth/login"
-                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Back to Login

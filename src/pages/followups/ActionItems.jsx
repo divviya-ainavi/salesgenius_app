@@ -26,6 +26,7 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
 import { usePageTimer } from "../../hooks/userPageTimer";
+import { useSelector } from "react-redux";
 
 // Mock data for action items based on selected prospect
 const getActionItemsForProspect = (prospectId) => {
@@ -155,6 +156,15 @@ export const ActionItems = () => {
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const [pushResults, setPushResults] = useState({});
   const [isLoadingProspects, setIsLoadingProspects] = useState(true);
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
 
   // Use current authenticated user
   const userId = CURRENT_USER.id;
@@ -182,7 +192,10 @@ export const ActionItems = () => {
           (insights || [])
             .filter((x) => x.communication_style_ids != null)
             .map(async (insight) => {
-              const people = await dbHelpers.getPeopleByProspectId(insight.id);
+              const people = await dbHelpers.getPeopleByProspectId(
+                insight.id,
+                user?.id
+              );
 
               return {
                 id: insight.id,

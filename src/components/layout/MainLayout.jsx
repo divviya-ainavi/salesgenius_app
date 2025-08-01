@@ -20,7 +20,7 @@ export const MainLayout = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
+  console.log(user, "check user");
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Unified Application Header */}
@@ -42,14 +42,14 @@ export const MainLayout = () => {
           <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
             <span>Logged in as:</span>
             <span className="font-medium text-foreground">
-              {CURRENT_USER.full_name}
+              {user?.full_name || ""}
             </span>
             <Badge
               variant="outline"
               className="text-xs bg-green-100 text-green-800 border-green-200"
             >
               <Zap className="w-3 h-3 mr-1" />
-              {user?.title_name || "Super Admin"}
+              {userRole?.label || "Super Admin"}
             </Badge>
           </div>
 
@@ -81,7 +81,7 @@ export const MainLayout = () => {
           <Outlet />
         </main>
       </div>
-      
+
       {/* Feedback Widget - Available to all users */}
       <FeedbackWidget />
     </div>

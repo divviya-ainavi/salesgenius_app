@@ -222,7 +222,7 @@ const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 const Analytics = () => {
   const { userRoleId } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState(
-    userRoleId ? "individual" : "super_admin"
+    userRoleId != 1 ? "individual" : "super_admin"
   ); // super_admin, org_admin, individual
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("productivity");

@@ -587,7 +587,8 @@ export const SalesCalls = () => {
                 dispatch(setCummulativeSpin(true));
                 const [existingStyles, call_summariesRaw] = await Promise.all([
                   dbHelpers.getCommunicationStylesData(
-                    prospectDetails?.communication_style_ids
+                    prospectDetails?.communication_style_ids,
+                    user?.id
                   ),
                   dbHelpers.getCallSummaryByProspectId(prospectId),
                 ]);
@@ -631,7 +632,8 @@ export const SalesCalls = () => {
                 // 3. Insert new styles into Supabase
                 const newStyleIds = await dbHelpers.insertCommunicationStyles(
                   newStyles,
-                  prospectId
+                  prospectId,
+                  user?.id
                 );
 
                 // 4. Update prospect with the new style IDs

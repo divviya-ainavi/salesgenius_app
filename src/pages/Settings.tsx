@@ -611,13 +611,13 @@ export const Settings = () => {
 
     loadHubSpotStatus();
   }, [organizationDetails?.id, dispatch]);
-
+  console.log(userRoleId, user?.title_id, "check user role id and title id");
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         let users = [];
 
-        if (user?.title_id == null) {
+        if (user?.title_id == 45) {
           // Super Admin
           const allOrgs = await dbHelpers.getAllOrganizations();
           // console.log(allOrgs, "all orgs 445");
@@ -2301,7 +2301,7 @@ export const Settings = () => {
                 "check details from settings",
                 user
               )} */}
-              {(userRole?.id == 2 || user?.title_id == null) && (
+              {(userRole?.id == 2 || user?.title_id == 45) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -2322,7 +2322,7 @@ export const Settings = () => {
                           type="email"
                         />
                       </div>
-                      {user?.title_id != null && (
+                      {user?.title_id != 45 && (
                         <div>
                           <label className="text-sm font-medium mb-2 block">
                             Role
@@ -2379,19 +2379,19 @@ export const Settings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
-                      {user?.title_id == null
+                      {user?.title_id == 45
                         ? "Organizations"
                         : "Organization Users"}
                     </span>
                     <Badge variant="secondary">
-                      {user?.title_id == null
+                      {user?.title_id == 45
                         ? getOrgList?.length + " organizations"
                         : getUserslist?.length + " users"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {user?.title_id == null ? (
+                  {user?.title_id == 45 ? (
                     <div className="space-y-4">
                       {getOrgList?.length > 0 &&
                         getOrgList?.map((org) => {

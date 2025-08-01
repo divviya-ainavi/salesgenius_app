@@ -229,7 +229,10 @@ const CallInsights = () => {
         );
         const enrichedInsights = await Promise.all(
           insights.map(async (insight) => {
-            const people = await dbHelpers.getPeopleByProspectId(insight.id);
+            const people = await dbHelpers.getPeopleByProspectId(
+              insight.id,
+              user?.id
+            );
             return { ...insight, people, company_id: insight?.company?.id };
           })
         );
@@ -262,7 +265,8 @@ const CallInsights = () => {
             defaultInsight?.company?.name || "Unknown Company";
 
           const people = await dbHelpers.getPeopleByProspectId(
-            defaultInsight.id
+            defaultInsight.id,
+            user?.id
           );
           // console.log(defaultInsight, "check default insight");
           const prospect = {
@@ -329,7 +333,7 @@ const CallInsights = () => {
     //   .from("communication_styles")
     //   .select("*")
     //   .in("id", styleIds);
-    const data = await dbHelpers.getCommunicationStylesData(styleIds);
+    const data = await dbHelpers.getCommunicationStylesData(styleIds, user?.id);
 
     // Sort: is_primary first
     return data.sort((a, b) => {
@@ -360,7 +364,8 @@ const CallInsights = () => {
   // };
   const loadProspectInsights = async (insightData) => {
     const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-      insightData.id
+      insightData.id,
+      user?.id
     );
     setInsights(groupedInsights); // You may need to map this to your display structure
 
@@ -369,7 +374,10 @@ const CallInsights = () => {
     );
     setCommunicationStyles(styles);
 
-    const peopleList = await dbHelpers.getPeopleByProspectId(insightData.id);
+    const peopleList = await dbHelpers.getPeopleByProspectId(
+      insightData.id,
+      user?.id
+    );
     setPeople(peopleList);
   };
   // console.log(people, "get people list");
@@ -492,6 +500,7 @@ const CallInsights = () => {
         is_selected: true,
         source: "User Input",
         timestamp: new Date().toISOString(),
+        user_id: user?.id,
       };
 
       // 1. Insert into sales_insights
@@ -506,7 +515,8 @@ const CallInsights = () => {
 
       // 3. Refresh insights list for the UI
       const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-        selectedProspect.id
+        selectedProspect.id,
+        user?.id
       );
       setInsights(groupedInsights);
 
@@ -589,7 +599,8 @@ const CallInsights = () => {
       // ✅ Update the insight content in Supabase
       const updated = await dbHelpers.updateSalesInsightContent(
         id,
-        content.trim()
+        content.trim(),
+        user?.id
       );
 
       if (updated) {
@@ -632,9 +643,13 @@ const CallInsights = () => {
 
     try {
       // ✅ Mark the insight as inactive in Supabase
-      const updated = await dbHelpers.deleteSalesInsightContent(insightId, {
-        is_active: false,
-      });
+      const updated = await dbHelpers.deleteSalesInsightContent(
+        insightId,
+        {
+          is_active: false,
+        },
+        user?.id
+      );
 
       if (updated) {
         console.log("Insight marked as inactive:", updated);
@@ -709,7 +724,8 @@ const CallInsights = () => {
       await dbHelpers?.updateCommunicationStyleRole(
         commStyleId,
         editRoleValue,
-        selectedProspect?.id
+        selectedProspect?.id,
+        user?.id
       );
 
       // Update local state
