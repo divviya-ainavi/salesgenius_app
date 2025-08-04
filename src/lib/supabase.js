@@ -2366,7 +2366,8 @@ export const dbHelpers = {
           owner: item.owner,
           deadline: item.deadline,
           priority: item.priority,
-          people_id: owner?.id || null
+          people_id: owner?.id || null,
+          user_id: userId
         })
         .select("id")
         .single();
