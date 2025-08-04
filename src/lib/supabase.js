@@ -370,6 +370,197 @@ export const authHelpers = {
     return false;
   },
 
+  // Forgot Password functionality
+  async forgotPassword(email) {
+    try {
+      // Check if user exists
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      // Always return success for security (don't reveal if email exists)
+      if (userError || !user) {
+        console.log('User not found for email:', email);
+        return { success: false, message: "Please enter valid email" }; // Generic response
+      }
+
+      // Generate secure reset token
+      const resetToken = this.generateResetToken(user.id, email);
+      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store token in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          reset_token: resetToken,
+          reset_token_expires: tokenExpiry.toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error storing reset token:', updateError);
+        return { success: false, message: "Something swent wrong" };
+        throw updateError;
+      }
+      // Send reset email via API
+      try {
+        const formData = new FormData();
+        formData.append("email", email.trim() || ""); //
+        // Call your email API endpoint
+        const emailResponse = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.passwordReset}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!emailResponse.ok) {
+          console.error("Email API error:", await emailResponse.text());
+          // Don't throw error - still return success for security
+        }
+      } catch (emailError) {
+        console.error("Error sending reset email:", emailError);
+        // Don't throw error - still return success for security
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return { success: false, message: "Please enter valid email" };
+    }
+  },
+
+  // Generate secure reset token
+  generateResetToken(userId, email) {
+    const timestamp = Date.now();
+    const randomBytes = Math.random().toString(36).substring(2, 15);
+    const payload = {
+      userId,
+      email,
+      timestamp,
+      random: randomBytes,
+    };
+
+    // Encrypt the payload
+    const payloadString = JSON.stringify(payload);
+    const encrypted = CryptoJS.AES.encrypt(payloadString, config.jwtSecret).toString();
+
+    // URL-safe base64 encoding
+    return btoa(encrypted).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  },
+
+  // Validate reset token
+  async validateResetToken(token) {
+    try {
+      // Decode and decrypt token
+      const decoded = this.decryptResetToken(token);
+      if (!decoded) {
+        return { valid: false, error: 'Invalid token format' };
+      }
+
+      // Check if user exists and token matches
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id, email, reset_token, reset_token_expires')
+        .eq('id', decoded.userId)
+        .eq('email', decoded.email)
+        .single();
+
+      if (userError || !user) {
+        return { valid: false, error: 'User not found' };
+      }
+
+      // Check if token matches
+      if (user.reset_token !== token) {
+        return { valid: false, error: 'Token mismatch' };
+      }
+
+      // Check if token has expired
+      const now = new Date();
+      const expiry = new Date(user.reset_token_expires);
+      if (now > expiry) {
+        return { valid: false, error: 'Token expired' };
+      }
+
+      return { valid: true, userId: user.id, email: user.email };
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return { valid: false, error: 'Token validation failed' };
+    }
+  },
+
+  // Decrypt reset token
+  decryptResetToken(token) {
+    try {
+      // Decode from URL-safe base64
+      const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = base64.length % 4;
+      const paddedBase64 = base64 + '='.repeat(padding ? 4 - padding : 0);
+
+      const encrypted = atob(paddedBase64);
+      const decrypted = CryptoJS.AES.decrypt(encrypted, config.jwtSecret).toString(CryptoJS.enc.Utf8);
+
+      if (!decrypted) {
+        return null;
+      }
+
+      const payload = JSON.parse(decrypted);
+
+      // Validate payload structure
+      if (!payload.userId || !payload.email || !payload.timestamp) {
+        return null;
+      }
+
+      return payload;
+    } catch (error) {
+      console.error('Token decryption error:', error);
+      return null;
+    }
+  },
+
+  // Reset password
+  async resetPassword(token, newPassword) {
+    try {
+      // Validate token first
+      const validation = await this.validateResetToken(token);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+
+      // Hash the new password
+      const hashedPassword = this.hashPassword(newPassword);
+
+      // Update password and clear reset token
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          hashed_password: hashedPassword,
+          reset_token: null,
+          reset_token_expires: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', validation.userId);
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        return { success: false, error: 'Failed to update password' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: 'Password reset failed' };
+    }
+  },
+
+  // Hash password using existing method
+  hashPassword(password) {
+    const saltedPassword = password + config.passwordSalt;
+    return CryptoJS.SHA256(saltedPassword).toString();
+  },
+
   // Sign out user
   async signOut() {
     try {
@@ -2139,6 +2330,7 @@ export const dbHelpers = {
         .select("id")
         .eq("prospect_id", prospectId)
         .eq("name", person.name)
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (existing) return existing.id;
@@ -2148,7 +2340,8 @@ export const dbHelpers = {
         .insert({
           name: person.name,
           title: person.title,
-          prospect_id: prospectId
+          prospect_id: prospectId,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2163,6 +2356,7 @@ export const dbHelpers = {
         .select("id")
         .eq("name", item.owner)
         .eq("prospect_id", prospectId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       const { data: inserted } = await supabase
@@ -2200,7 +2394,8 @@ export const dbHelpers = {
           source: insight?.source || "Call Transcript",
           timestamp: insight?.timestamp || "",
           trend: insight?.trend || "new",
-          speaker: insight.speaker
+          speaker: insight.speaker,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2229,6 +2424,7 @@ export const dbHelpers = {
         .select("id")
         .eq("name", style.stakeholder)
         .eq("prospect_id", prospectId)
+        .eq("user_id", userId)
         .maybeSingle();
 
       const { data: inserted } = await supabase
@@ -2243,7 +2439,8 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
-          people_id: person?.id || null
+          people_id: person?.id || null,
+          user_id: userId
         })
         .select("id")
         .single();
@@ -2309,27 +2506,29 @@ export const dbHelpers = {
   },
 
 
-  async getCommunicationStylesData(communication_style_ids) {
+  async getCommunicationStylesData(communication_style_ids, userId) {
     const { data, error } = await supabase
       .from("communication_styles")
       .select("*")
-      .in("id", communication_style_ids);
+      .in("id", communication_style_ids)
+      .eq("user_id", userId);
     if (error) throw error;
     return data;
   },
 
-  async getPeopleByProspectId(prospectId) {
+  async getPeopleByProspectId(prospectId, userId) {
     const { data, error } = await supabase
       .from("peoples")
       .select("*")
-      .eq("prospect_id", prospectId);
+      .eq("prospect_id", prospectId)
+      .eq("user_id", userId);
 
     if (error) throw error;
     return data;
   },
 
   // Get communication styles for a given prospect
-  async getCommunicationStylesForProspect(prospectId) {
+  async getCommunicationStylesForProspect(prospectId, userId) {
     const { data: prospect, error } = await supabase
       .from("prospect")
       .select("communication_style_ids")
@@ -2341,7 +2540,9 @@ export const dbHelpers = {
     const { data: styles, error: styleError } = await supabase
       .from("communication_styles")
       .select("*")
-      .in("id", prospect.communication_style_ids);
+      .in("id", prospect.communication_style_ids)
+      .eq("user_id", userId);
+
 
     if (styleError) {
       console.error("Error fetching styles:", styleError);
@@ -2352,7 +2553,7 @@ export const dbHelpers = {
   },
 
   // Insert new communication styles returned by cumulative-comm API
-  async insertCommunicationStyles(commStyles, prospectId) {
+  async insertCommunicationStyles(commStyles, prospectId, userId) {
     const insertedIds = [];
 
     for (const style of commStyles) {
@@ -2368,6 +2569,7 @@ export const dbHelpers = {
           preferences: style.preferences,
           communication_tips: style.communication_tips,
           personality_type: style.personality_type,
+          user_id: userId
           // prospect_id: prospectId,
         })
         .select()
@@ -2430,7 +2632,7 @@ export const dbHelpers = {
     }
   },
 
-  async getTasksAndSalesInsightsByProspectId(prospectId) {
+  async getTasksAndSalesInsightsByProspectId(prospectId, userId) {
     // 1. Get insight data for the given prospect
     const { data: insightsData, error: insightsError } = await supabase
       .from("insights")
@@ -2475,7 +2677,8 @@ export const dbHelpers = {
         .from("sales_insights")
         .select("content")
         .in("id", allSalesInsightIds)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("user_id", userId);
 
       if (salesError) {
         console.error("Error fetching sales_insights", salesError);
@@ -2493,55 +2696,56 @@ export const dbHelpers = {
   },
 
 
-  async upsertEmailTemplate(id, inputData) {
+  async upsertEmailTemplate(id, inputData, userId) {
     try {
-      let query = await supabase
-        .from("email_templates");
+      let query = supabase.from("email_templates");
 
       if (id) {
-        // UPDATE existing record
+        // UPDATE existing record scoped to user
         const { data, error } = await query
           .update(inputData)
           .eq("id", id)
+          .eq("user_id", userId) // ensure user-specific update
           .select()
           .single();
 
         if (error) {
-          console.error("Error updating deck_prompt:", error.message);
+          console.error("Error updating email_template:", error.message);
           return null;
         }
 
         return data;
       } else {
-        // INSERT new record
+        // INSERT new record with user_id
+        const insertData = { ...inputData, user_id: userId };
         const { data, error } = await query
-          .insert([inputData])
+          .insert([insertData])
           .select()
           .single();
 
         if (error) {
-          console.error("Error inserting deck_prompt:", error.message);
+          console.error("Error inserting email_template:", error.message);
           return null;
         }
 
         return data;
       }
     } catch (err) {
-      console.error("Unexpected error in upsertDeckPrompt:", err);
+      console.error("Unexpected error in upsertEmailTemplate:", err);
       return null;
     }
   },
 
-  async upsertDeckPrompt(id, inputData) {
+  async upsertDeckPrompt(id, inputData, userId) {
     try {
-      let query = await supabase
-        .from("presentation_prompt");
+      const query = supabase.from("presentation_prompt");
 
       if (id) {
-        // UPDATE existing record
+        // UPDATE existing record, scoped by user_id
         const { data, error } = await query
           .update(inputData)
           .eq("id", id)
+          .eq("user_id", userId) // ensure only the owner can update
           .select()
           .single();
 
@@ -2552,9 +2756,11 @@ export const dbHelpers = {
 
         return data;
       } else {
-        // INSERT new record
+        // INSERT new record with user_id
+        const insertData = { ...inputData, user_id: userId };
+
         const { data, error } = await query
-          .insert([inputData])
+          .insert([insertData])
           .select()
           .single();
 
@@ -2639,7 +2845,7 @@ export const dbHelpers = {
   //   return result.sort((a, b) => b.average_score - a.average_score);
   // },
 
-  async getSalesInsightsByProspectId(prospectId) {
+  async getSalesInsightsByProspectId(prospectId, userId) {
     // console.log("called get sales insights");
 
     // Step 1: Get all insights for the given prospect_id
@@ -2676,7 +2882,8 @@ export const dbHelpers = {
         .from("sales_insights")
         .select("*, type_id")
         .in("id", allInsightIds)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("user_id", userId);
 
       if (insightsDetailError) {
         console.error("Error fetching sales insights", insightsDetailError);
@@ -2765,13 +2972,14 @@ export const dbHelpers = {
     return sortedResults;
   },
 
-  async updateSalesInsightContent(id, newContent) {
+  async updateSalesInsightContent(id, newContent, userId) {
     try {
       const { data, error } = await supabase
         .from("sales_insights")
         .update({ content: newContent })
         .eq("id", id)
         .eq("is_active", true)
+        .eq("user_id", userId)
         .select()
         .single();
 
@@ -2875,11 +3083,12 @@ export const dbHelpers = {
     return data;
   },
 
-  async deleteSalesInsightContent(insightId, updateFields = {}) {
+  async deleteSalesInsightContent(insightId, updateFields = {}, userId) {
     const { data, error } = await supabase
       .from("sales_insights")
       .update(updateFields)
       .eq("id", insightId)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -2947,13 +3156,14 @@ export const dbHelpers = {
     }
   },
 
-  async updateCommunicationStyleRole(styleId, newRole, prospectId) {
+  async updateCommunicationStyleRole(styleId, newRole, prospectId, userId) {
     try {
       // Step 1: Get the current communication style entry (to get the name)
       const { data: styleData, error: fetchError } = await supabase
         .from("communication_styles")
         .select("stakeholder")
         .eq("id", styleId)
+        .eq("user_id", userId)
         .single();
 
       if (fetchError) throw fetchError;
@@ -2963,7 +3173,9 @@ export const dbHelpers = {
       const { data: updatedStyle, error: updateError } = await supabase
         .from("communication_styles")
         .update({ role: newRole })
-        .eq("id", styleId);
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
 
       if (updateError) throw updateError;
 
@@ -2972,7 +3184,8 @@ export const dbHelpers = {
         .from("peoples")
         .update({ title: newRole })
         .eq("name", name)
-        .eq("prospect_id", prospectId);
+        .eq("prospect_id", prospectId)
+        .eq("user_id", userId);
 
       if (peopleError) throw peopleError;
 

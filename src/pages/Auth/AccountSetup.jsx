@@ -366,7 +366,44 @@ const AccountSetup = () => {
         inviteData.title_id = orgAdminTitle.id; // Assign it for use in profile creation
       }
 
-      // Step 2: Create user profile
+      // Step 2: Create Supabase Auth user
+      let supabaseAuthUserId = null;
+      try {
+        // Create a unique email for Supabase Auth using username
+        const uniqueEmail = `${formData.username
+          .toLowerCase()
+          .replace(/\s+/g, "")}@${organizationId}.local`;
+
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: inviteData.email,
+            password: formData.password,
+            // options: {
+            //   emailRedirectTo: `${window.location.origin}/auth/login`,
+            //   data: {
+            //     email_confirm: false,
+            //     skip_confirmation: true,
+            //   },
+            // },
+          }
+        );
+
+        if (authError) {
+          console.warn("Supabase Auth signup failed:", authError.message);
+          // Continue with custom auth flow
+        } else {
+          supabaseAuthUserId = authData.user?.id;
+          console.log(
+            "Supabase Auth user created successfully:",
+            supabaseAuthUserId
+          );
+        }
+      } catch (authError) {
+        console.warn("Supabase Auth signup error:", authError);
+        // Continue with custom auth flow
+      }
+
+      // Step 3: Create user profile (with both custom and Supabase auth support)
       const hashedPassword = hashPassword(formData.password);
 
       const { data: profile, error: profileError } = await supabase
@@ -379,6 +416,7 @@ const AccountSetup = () => {
             title_id: inviteData.title_id || null,
             status_id: 1, // Active status
             hashed_password: hashedPassword,
+            auth_user_id: supabaseAuthUserId, // Link to Supabase Auth user if created
           },
         ])
         .select()
@@ -388,7 +426,7 @@ const AccountSetup = () => {
         throw new Error(`Failed to create profile: ${profileError.message}`);
       }
 
-      // Step 3: Update invite status to completed
+      // Step 4: Update invite status to completed
       const { error: updateError } = await supabase
         .from("invites")
         .update({
@@ -400,6 +438,11 @@ const AccountSetup = () => {
 
       if (updateError) {
         console.warn("Failed to update invite status:", updateError);
+      }
+
+      // Step 5: Sign out from Supabase Auth (user will login manually)
+      if (supabaseAuthUserId) {
+        await supabase.auth.signOut();
       }
 
       toast.success("Account created successfully!");

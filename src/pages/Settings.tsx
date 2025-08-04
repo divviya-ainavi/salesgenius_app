@@ -71,6 +71,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
+import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
   setCompany_size,
@@ -87,6 +88,14 @@ import {
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
 import CryptoJS from "crypto-js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -337,7 +346,12 @@ export const Settings = () => {
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
   const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
     useState(false);
-
+  const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
+  const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
+  const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState(null);
+  const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
   const dispatch = useDispatch();
 
   // console.log(
@@ -431,7 +445,27 @@ export const Settings = () => {
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
+    getInternalUploadedFiles();
   }, []);
+
+  const getInternalUploadedFiles = async () => {
+    try {
+      const data = await dbHelpers.getInternalUploadedFiles(
+        organizationDetails?.id
+      );
+
+      const updatedData = data.map((item) => ({
+        ...item,
+        status: "processed",
+      }));
+      const getActiveData = await dbHelpers.getFilteredFiles();
+      console.log(getActiveData, "check active data");
+      setInternalUploadedFiles(updatedData);
+    } catch (error) {
+      console.error("Error checking Fireflies status:", error);
+      setInternalUploadedFiles([]);
+    }
+  };
 
   const checkFirefliesStatus = async () => {
     try {
@@ -441,6 +475,19 @@ export const Settings = () => {
       console.error("Error checking Fireflies status:", error);
       setFirefliesStatus({ connected: false, hasToken: false });
     }
+  };
+
+  const formatFileSize = (bytes) => {
+    return `${(bytes / 1024).toFixed(2)} KB`;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   const handleFirefliesConnect = async () => {
@@ -564,13 +611,13 @@ export const Settings = () => {
 
     loadHubSpotStatus();
   }, [organizationDetails?.id, dispatch]);
-
+  console.log(userRoleId, user?.title_id, "check user role id and title id");
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         let users = [];
 
-        if (user?.title_id == null) {
+        if (user?.title_id == 45) {
           // Super Admin
           const allOrgs = await dbHelpers.getAllOrganizations();
           // console.log(allOrgs, "all orgs 445");
@@ -832,100 +879,195 @@ export const Settings = () => {
     setNewUserRole(null);
   };
 
-  const handleRemoveUser = (userId: string) => {
+  // Drag and drop configuration for business files
+  const onDropBusiness = (acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      handleFileUpload(acceptedFiles[0], "business");
+    }
+  };
+
+  const {
+    getRootProps: getBusinessRootProps,
+    getInputProps: getBusinessInputProps,
+    isDragActive: isBusinessDragActive,
+  } = useDropzone({
+    onDrop: onDropBusiness,
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "text/plain": [".txt"],
+      "video/mp4": [".mp4"],
+      "video/quicktime": [".mov"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
+    },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024, // 10MB
+    disabled: isUploadingBusiness,
+  });
+
+  const handleRemoveUser = (userId) => {
     setOrgUsers((prev) => prev.filter((user) => user.id !== userId));
     toast.success("User removed from organization");
   };
 
-  const handleFileUpload = async (
-    file: File,
-    category: "general" | "business" | "personal"
-  ) => {
+  const handleDeleteClick = (material) => {
+    setFileToDelete(material);
+    setShowDeleteConfirmDialog(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirmDialog(false);
+    setFileToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!fileToDelete) return;
+
+    setIsDeletingBusinessFile(true);
+    try {
+      await handleDeleteBusinessMaterial(fileToDelete.id);
+      setShowDeleteConfirmDialog(false);
+      setFileToDelete(null);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      toast.error("Failed to delete file");
+    } finally {
+      setIsDeletingBusinessFile(false);
+    }
+  };
+
+  const handleFileUpload = async (file, category) => {
     if (!file) return;
 
     // Check permissions
-    if (category === "general" && mockCurrentUser.role !== "super_admin") {
-      toast.error("Only Super Admins can upload general materials");
-      return;
-    }
+
     if (category === "business" && !canUploadOrgMaterials) {
       toast.error("You do not have permission to upload business materials");
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    if (category === "business") {
+      setIsUploadingBusiness(true);
+      setBusinessUploadProgress(0);
+    } else {
+      setIsUploading(true);
+      setUploadProgress(0);
+    }
 
     try {
-      // Simulate upload progress
+      // Upload progress simulation
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
+        if (category === "business") {
+          setBusinessUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        } else {
+          setUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }
       }, 200);
 
-      // Simulate upload delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call dbHelpers to save the uploaded file
+      const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+        user?.id,
+        file,
+        organizationDetails.id
+      );
+      // console.log(uploadedFile, "check uploaded file");
+      const formData = new FormData();
+      formData.append("file_name", uploadedFile?.filename);
+      formData.append("file_id", uploadedFile.id);
+      formData.append("organization_id", organizationDetails.id);
+      formData.append("organization_name", organizationDetails.name);
+      formData.append("file", file);
+      formData.append("is_active", true);
+      // Send encrypted token to n8n API
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.vectorFileUpload}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`
+        );
+      }
       clearInterval(progressInterval);
-      setUploadProgress(100);
+      if (category === "business") {
+        setBusinessUploadProgress(100);
+      } else {
+        setUploadProgress(100);
+      }
 
-      // Add to materials list
-      const newMaterial = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type.includes("video")
-          ? "video"
-          : file.type.includes("presentation")
-          ? "presentation"
-          : "document",
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadedAt: new Date().toISOString().split("T")[0],
-        status: "processing",
+      // Update internalUploadedFiles state with the new file
+      const newFileData = {
+        ...uploadedFile,
+        status: "processed",
       };
 
-      setTrainingMaterials((prev) => ({
-        ...prev,
-        [category]: [...prev[category], newMaterial],
-      }));
-
-      // Simulate processing completion
-      setTimeout(() => {
-        setTrainingMaterials((prev) => ({
-          ...prev,
-          [category]: prev[category].map((material) =>
-            material.id === newMaterial.id
-              ? { ...material, status: "processed" }
-              : material
-          ),
-        }));
-        toast.success("File processed and ready for AI training");
-      }, 3000);
+      setInternalUploadedFiles((prev) => [...prev, newFileData]);
 
       toast.success("File uploaded successfully");
     } catch (error) {
+      console.error("❌ Error uploading file:", error);
       toast.error("Failed to upload file");
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      if (category === "business") {
+        setIsUploadingBusiness(false);
+        setBusinessUploadProgress(0);
+      } else {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
     }
   };
 
-  const handleDeleteMaterial = (
-    materialId: string,
-    category: "general" | "business" | "personal"
-  ) => {
-    setTrainingMaterials((prev) => ({
-      ...prev,
-      [category]: prev[category].filter(
-        (material) => material.id !== materialId
-      ),
-    }));
-    toast.success("Training material deleted");
+  const handleDeleteMaterial = (materialId, category) => {
+    if (category === "business") {
+      handleDeleteBusinessMaterial(materialId);
+    } else {
+      setTrainingMaterials((prev) => ({
+        ...prev,
+        [category]: prev[category].filter(
+          (material) => material.id !== materialId
+        ),
+      }));
+      toast.success("Training material deleted");
+    }
+  };
+
+  const handleDeleteBusinessMaterial = async (materialId: string) => {
+    try {
+      // Update is_active to false in database
+      await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
+      await dbHelpers.updateIsActiveFalseByUploadedId(materialId);
+
+      // Update UI by removing the file from the list
+      setInternalUploadedFiles((prev) =>
+        prev.filter((file) => file.id !== materialId)
+      );
+
+      toast.success("Business material deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business material:", error);
+      toast.error("Failed to delete business material");
+    }
   };
 
   const generateApiKey = () => {
@@ -978,7 +1120,7 @@ export const Settings = () => {
         // Save the encrypted token to organization
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          hubspotToken
+          jwtToken
         );
 
         // Update Redux state
@@ -1129,13 +1271,15 @@ export const Settings = () => {
             <Shield className="w-4 h-4" />
             <span>Security</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="ai-training"
-            className="flex items-center space-x-2"
-          >
-            <Brain className="w-4 h-4" />
-            <span>AI Training</span>
-          </TabsTrigger>
+          {userRoleId == 2 && (
+            <TabsTrigger
+              value="ai-training"
+              className="flex items-center space-x-2"
+            >
+              <Brain className="w-4 h-4" />
+              <span>AI Training</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="analytics"
             className="flex items-center space-x-2"
@@ -2157,7 +2301,7 @@ export const Settings = () => {
                 "check details from settings",
                 user
               )} */}
-              {(userRole?.id == 2 || user?.title_id == null) && (
+              {(userRole?.id == 2 || user?.title_id == 45) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -2178,7 +2322,7 @@ export const Settings = () => {
                           type="email"
                         />
                       </div>
-                      {user?.title_id != null && (
+                      {user?.title_id != 45 && (
                         <div>
                           <label className="text-sm font-medium mb-2 block">
                             Role
@@ -2235,19 +2379,19 @@ export const Settings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
-                      {user?.title_id == null
+                      {user?.title_id == 45
                         ? "Organizations"
                         : "Organization Users"}
                     </span>
                     <Badge variant="secondary">
-                      {user?.title_id == null
+                      {user?.title_id == 45
                         ? getOrgList?.length + " organizations"
                         : getUserslist?.length + " users"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {user?.title_id == null ? (
+                  {user?.title_id == 45 ? (
                     <div className="space-y-4">
                       {getOrgList?.length > 0 &&
                         getOrgList?.map((org) => {
@@ -2444,7 +2588,7 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleRemoveUser(user.id)}
+                                    onClick={() => handleDeleteClick(material)}
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -2721,7 +2865,7 @@ export const Settings = () => {
                           Upload General Training Material
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, TXT, MP4, PPT (Max 100MB)
+                          PDF, DOC, TXT, MP4, PPT (Max 10MB)
                         </p>
                       </label>
                     </div>
@@ -2797,22 +2941,16 @@ export const Settings = () => {
                         Organization Level
                       </Badge>
                     </div>
-                    <Badge
+                    {/* <Badge
                       variant="outline"
                       className="bg-orange-50 text-orange-700 border-orange-200"
                     >
                       Coming Soon for Your Organization
-                    </Badge>
+                    </Badge> */}
                   </CardTitle>
                   {/* <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
                     <span>Business-Specific Knowledge</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-100 text-blue-800 border-blue-200"
-                    >
-                      Organization Level
-                    </Badge>
                   </CardTitle> */}
                   <p className="text-sm text-muted-foreground">
                     Company playbooks, product documentation, presentations, and
@@ -2820,82 +2958,129 @@ export const Settings = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        id="business-upload"
-                        className="hidden"
-                        onChange={(e) =>
-                          e.target.files?.[0] &&
-                          handleFileUpload(e.target.files[0], "business")
-                        }
-                        accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                  {/* Upload Progress for Business Files */}
+                  {isUploadingBusiness && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium text-blue-800">
+                          Uploading business material...
+                        </span>
+                      </div>
+                      <Progress
+                        value={businessUploadProgress}
+                        className="w-full"
                       />
-                      <label
-                        htmlFor="business-upload"
-                        className="cursor-pointer"
-                      >
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium">
-                          Upload Business Material
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          PDF, DOC, TXT, MP4, PPT (Max 100MB)
-                        </p>
-                      </label>
+                      <p className="text-sm text-blue-700 mt-2">
+                        {businessUploadProgress < 50
+                          ? "Uploading file..."
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
+                      {isUploadingBusiness ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Material"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop files here"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      {trainingMaterials.business.map((material) => (
-                        <div
-                          key={material.id}
-                          className="flex items-center justify-between p-3 border border-border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <FileText className="w-5 h-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">
-                                {material.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {material.size} • {material.uploadedAt}
-                              </p>
+                      {internalUploadedFiles?.length > 0 &&
+                        internalUploadedFiles.map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {/* {material.original_filename} */}
+                                  <a
+                                    href={material.file_url} // ensure this is the correct Supabase file URL
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline text-primary"
+                                  >
+                                    {material.original_filename}
+                                  </a>
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(material.file_size)} •{" "}
+                                  {formatDate(material.updated_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge
+                                variant={
+                                  material.status === "processed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {material.status === "processed" ? (
+                                  <>
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Processed
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    Processing
+                                  </>
+                                )}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  // handleDeleteMaterial(material.id, "business")
+                                  handleDeleteClick(material)
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge
-                              variant={
-                                material.status === "processed"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {material.status === "processed" ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Processed
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                                  Processing
-                                </>
-                              )}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleDeleteMaterial(material.id, "business")
-                              }
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 </CardContent>
@@ -3177,6 +3362,50 @@ export const Settings = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <span>Confirm Delete</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>{fileToDelete?.original_filename}</strong>
+              "? This action will mark the file as inactive and it won't be
+              available for AI training.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelDelete}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeletingBusinessFile}
+            >
+              {isDeletingBusinessFile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

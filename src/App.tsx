@@ -14,6 +14,8 @@ import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import UserManagementPage from "@/pages/admin/UserManagement";
 import LoginPage from "@/pages/Auth/LoginPage";
+import ForgotPassword from "@/pages/Auth/ForgotPassword";
+import ResetPassword from "@/pages/Auth/ResetPassword";
 import AccountSetup from "@/pages/Auth/AccountSetup";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import HubSpotCallback from "@/pages/HubSpotCallback";
@@ -62,6 +64,8 @@ const App = () => {
           <Routes>
             {/* Public Routes */}
             <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/setup" element={<AccountSetup />} />
             <Route path="/hubspot-callback" element={<HubSpotCallback />} />
 

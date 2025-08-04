@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ const LoginPage = () => {
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -34,7 +35,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  // const { roles } = useSelector((state) => state.org);
+  const { userRole } = useSelector((state) => state.auth);
 
   // Compute form validity
   const isFormValid =
@@ -53,6 +54,11 @@ const LoginPage = () => {
       }
     };
     checkAuth();
+
+    // Show success message if redirected from password reset
+    if (location.state?.message) {
+      toast.success(location.state.message);
+    }
   }, [navigate]);
 
   const handleInputChange = (field, value) => {
@@ -87,17 +93,79 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      // Sign in with custom password authentication
-      const userId = await authHelpers.loginWithCustomPassword(
-        formData.email,
-        formData.password
-      );
+      let userId = null;
+      let profile = null;
 
+      // Try Supabase Auth first
+      try {
+        const { data: authData, error: authError } =
+          await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
+
+        if (authError) {
+          console.log(
+            "Supabase Auth failed, trying custom auth:",
+            authError.message
+          );
+          // Fall back to custom authentication
+          userId = await authHelpers.loginWithCustomPassword(
+            formData.email,
+            formData.password
+          );
+        } else {
+          // Supabase Auth successful - get profile by auth_user_id
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("auth_user_id", authData.user.id);
+          console.log("profileData", profileData);
+          if (profileError || !profileData || profileData.length === 0) {
+            // Profile not found with auth_user_id, try by email
+            const { data: emailProfile, error: emailError } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("email", formData.email);
+
+            if (emailError || !emailProfile || emailProfile.length === 0) {
+              throw new Error("Profile not found for authenticated user");
+            }
+
+            // Link the profile to the Supabase Auth user
+            const { error: linkError } = await supabase
+              .from("profiles")
+              .update({ auth_user_id: authData.user.id })
+              .eq("id", emailProfile[0].id);
+
+            if (linkError) {
+              console.warn("Failed to link profile to auth user:", linkError);
+            }
+
+            profile = emailProfile[0];
+          } else {
+            profile = profileData[0];
+          }
+
+          userId = profile.id;
+          console.log("Supabase Auth login successful");
+        }
+      } catch (supabaseError) {
+        console.log("Supabase Auth error, using custom auth:", supabaseError);
+        // Fall back to custom authentication
+        userId = await authHelpers.loginWithCustomPassword(
+          formData.email,
+          formData.password
+        );
+      }
+      console.log("User ID from auth:", userId);
       if (userId) {
-        const profile = await authHelpers.getUserProfile(userId);
+        // Get profile if not already fetched
+        // if (!profile) {
+        profile = await authHelpers.getUserProfile(userId);
+        // }
 
         if (!profile) throw new Error("User profile not found");
-        // console.log("User profile:", profile);
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -126,11 +194,6 @@ const LoginPage = () => {
           const roles = await dbHelpers.getRoles();
           const roleId = await dbHelpers.getRoleIdByTitleId(profile.title_id);
           dispatch(setUserRoleId(roleId));
-          // console.log(
-          //   "Role details 120:",
-          //   roles,
-          //   roles?.filter((x) => x.id == roleId)
-          // );
           if (roles?.length > 0) {
             dispatch(setUserRole(roles?.filter((x) => x.id == roleId)?.[0]));
           } else {
@@ -165,6 +228,7 @@ const LoginPage = () => {
     }
   };
 
+  console.log("user role", userRole);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -285,8 +349,8 @@ const LoginPage = () => {
                 </button>
               </p>
               <button
-                className="text-sm text-blue-600 hover:text-blue-800"
-                onClick={() => toast.info("Password reset coming soon!")}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                onClick={() => navigate("/auth/forgot-password")}
               >
                 Forgot your password?
               </button>

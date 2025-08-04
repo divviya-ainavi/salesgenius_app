@@ -229,7 +229,10 @@ const CallInsights = () => {
         );
         const enrichedInsights = await Promise.all(
           insights.map(async (insight) => {
-            const people = await dbHelpers.getPeopleByProspectId(insight.id);
+            const people = await dbHelpers.getPeopleByProspectId(
+              insight.id,
+              user?.id
+            );
             return { ...insight, people, company_id: insight?.company?.id };
           })
         );
@@ -262,7 +265,8 @@ const CallInsights = () => {
             defaultInsight?.company?.name || "Unknown Company";
 
           const people = await dbHelpers.getPeopleByProspectId(
-            defaultInsight.id
+            defaultInsight.id,
+            user?.id
           );
           // console.log(defaultInsight, "check default insight");
           const prospect = {
@@ -329,7 +333,7 @@ const CallInsights = () => {
     //   .from("communication_styles")
     //   .select("*")
     //   .in("id", styleIds);
-    const data = await dbHelpers.getCommunicationStylesData(styleIds);
+    const data = await dbHelpers.getCommunicationStylesData(styleIds, user?.id);
 
     // Sort: is_primary first
     return data.sort((a, b) => {
@@ -360,7 +364,8 @@ const CallInsights = () => {
   // };
   const loadProspectInsights = async (insightData) => {
     const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-      insightData.id
+      insightData.id,
+      user?.id
     );
     setInsights(groupedInsights); // You may need to map this to your display structure
 
@@ -369,7 +374,10 @@ const CallInsights = () => {
     );
     setCommunicationStyles(styles);
 
-    const peopleList = await dbHelpers.getPeopleByProspectId(insightData.id);
+    const peopleList = await dbHelpers.getPeopleByProspectId(
+      insightData.id,
+      user?.id
+    );
     setPeople(peopleList);
   };
   // console.log(people, "get people list");
@@ -492,6 +500,7 @@ const CallInsights = () => {
         is_selected: true,
         source: "User Input",
         timestamp: new Date().toISOString(),
+        user_id: user?.id,
       };
 
       // 1. Insert into sales_insights
@@ -506,7 +515,8 @@ const CallInsights = () => {
 
       // 3. Refresh insights list for the UI
       const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-        selectedProspect.id
+        selectedProspect.id,
+        user?.id
       );
       setInsights(groupedInsights);
 
@@ -589,7 +599,8 @@ const CallInsights = () => {
       // ✅ Update the insight content in Supabase
       const updated = await dbHelpers.updateSalesInsightContent(
         id,
-        content.trim()
+        content.trim(),
+        user?.id
       );
 
       if (updated) {
@@ -632,9 +643,13 @@ const CallInsights = () => {
 
     try {
       // ✅ Mark the insight as inactive in Supabase
-      const updated = await dbHelpers.deleteSalesInsightContent(insightId, {
-        is_active: false,
-      });
+      const updated = await dbHelpers.deleteSalesInsightContent(
+        insightId,
+        {
+          is_active: false,
+        },
+        user?.id
+      );
 
       if (updated) {
         console.log("Insight marked as inactive:", updated);
@@ -709,7 +724,8 @@ const CallInsights = () => {
       await dbHelpers?.updateCommunicationStyleRole(
         commStyleId,
         editRoleValue,
-        selectedProspect?.id
+        selectedProspect?.id,
+        user?.id
       );
 
       // Update local state
@@ -958,6 +974,101 @@ const CallInsights = () => {
             </CardContent>
           </Card>
 
+          {/* Cummulative Intelligence Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Calls:</span>
+                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
+                  <Badge
+                    variant={selectedProspect?.calls ? "default" : "secondary"}
+                  >
+                    {(selectedProspect?.communication_style_ids != null &&
+                      selectedProspect?.calls) ||
+                      0}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      researchCompanyCount > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Research:</span>
+                  <Badge
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
+                  >
+                    0{/* {researchCompanyCount} */}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Internal data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
+              )}
+            </CardContent>
+          </Card>
           {/* Sales Insights Section */}
           <Card>
             <CardHeader>
@@ -1300,6 +1411,7 @@ const CallInsights = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {console.log(cummulativeSpinner, "cummulative spinner")}
               {cummulativeSpinner ? (
                 <div className="space-y-6">
                   {/* Skeleton for stakeholder cards */}
@@ -1698,100 +1810,6 @@ const CallInsights = () => {
           )} */}
 
           {/* Cumulative Intelligence Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="w-5 h-5" />
-                <span>Cumulative Intelligence</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <ExternalLink
-                    className={cn(
-                      "w-4 h-4",
-                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Calls:</span>
-                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
-                  <Badge
-                    variant={selectedProspect?.calls ? "default" : "secondary"}
-                  >
-                    {(selectedProspect?.communication_style_ids != null &&
-                      selectedProspect?.calls) ||
-                      0}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Database
-                    className={cn(
-                      "w-4 h-4",
-                      selectedProspect.dataSources.hubspot > 0
-                        ? "text-orange-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">HubSpot Data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.dataSources.hubspot > 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.dataSources.hubspot}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <FileText
-                    className={cn(
-                      "w-4 h-4",
-                      researchCompanyCount > 0
-                        ? "text-purple-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Research:</span>
-                  <Badge
-                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
-                    variant={"secondary"}
-                  >
-                    0{/* {researchCompanyCount} */}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MessageSquare
-                    className={cn(
-                      "w-4 h-4",
-                      selectedProspect.dataSources.emails > 0
-                        ? "text-green-600"
-                        : "text-gray-400"
-                    )}
-                  />
-                  <span className="text-sm">Internal data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.dataSources.emails > 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.dataSources.emails}
-                  </Badge>
-                </div>
-              </div>
-
-              {cummulativeSpinner ? (
-                <Skeleton className="h-4 w-full" />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {cummulativeSummary || ""}
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </>
       )}
     </div>

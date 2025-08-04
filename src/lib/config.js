@@ -42,10 +42,14 @@ export const config = {
       getFirefliesTranscriptById: 'get-fireflies-transcripts-byid',
       processSalesCall: 'process-call-data-ai-v2',
       cummulativeSalesData: 'cumulative-comm',
-      userInvite: 'user-invite',
+      userInvite: 'user-invite-dev',//dev
+      userInviteProd: 'user-invite', //prod
       hubspotConnectionCheck: 'hubspotconnection-check',
       firefliesConnectionCheck: 'FF-check',
       getFirefliesFiles: 'get-FF-transcripts',
+      vectorFileUpload: 'upload-rag',
+      passwordReset: 'forgot-password-dev',//dev
+      passwordResetProd: 'forgot-password', //prod
     }
   }
 };

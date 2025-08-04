@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
+import DOMPurify from 'dompurify';
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
@@ -335,7 +336,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       toast.success(`Research completed for ${formData.companyName}`);
     } catch (error) {
       console.error("Research API Error:", error);
-      toast.error(`Failed to fetch research: ${error.message}`);
+      toast.error(error.message || "Failed to fetch research. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -491,7 +492,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   {formData.prospectLinkedIn.map((url, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
-                        disabled
+                        // disabled
                         type="url"
                         // disabled
                         placeholder="https://www.linkedin.com/in/username"
@@ -514,7 +515,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   ))}
 
                   <Button
-                    disabled
+                    // disabled
                     type="button"
                     variant="outline"
                     onClick={addProspectField}
@@ -634,10 +635,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       <h3 className="text-lg font-semibold mb-3 flex items-center">
                         <FileText className="w-4 h-4 mr-2" />
                         Company Overview
-                      </h3>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        {researchResult?.companyOverview}
-                      </p>
+                      </h3>                      <p className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(researchResult?.companyOverview || '') }} />
                     </div>
 
                     {/* Key Details Grid */}
@@ -702,7 +700,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                             <li
                               key={index}
                               className="flex items-start space-x-2"
-                            >
+                            >                              
                               <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
                               <span className="text-sm text-muted-foreground leading-relaxed">
                                 {opportunity}
@@ -741,9 +739,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                         Summary Note
                       </h3>
                       <div className="bg-muted/50 rounded-lg p-4">
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          {researchResult?.summaryNote}
-                        </p>
+                        <p className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(researchResult?.summaryNote || '') }} />
                       </div>
                     </div>
                   </div>
@@ -818,7 +814,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     </h3>
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                       <p className="text-sm leading-relaxed">
-                        {researchResult?.recommendations?.primaryMeetingGoal}
+                        {DOMPurify.sanitize(researchResult?.recommendations?.primaryMeetingGoal || '')}
                       </p>
                     </div>
                   </div>
@@ -863,7 +859,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                                 onClick={() => toggleQuestion(index)}
                               >
                                 <span className="text-sm font-medium">
-                                  Q{index + 1}: {question.substring(0, 60)}...
+                                  Q{index + 1}: {DOMPurify.sanitize(question.substring(0, 60))}...
                                 </span>
                                 <ChevronDown
                                   className={cn(
@@ -874,7 +870,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                                 />
                               </Button>
                             </CollapsibleTrigger>
-                            <CollapsibleContent className="px-3 pb-3">
+                            <CollapsibleContent className="px-3 pb-3" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(question) }}>
                               <p className="text-sm text-muted-foreground leading-relaxed">
                                 {question}
                               </p>
@@ -920,7 +916,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                           <li
                             key={index}
                             className="flex items-start space-x-2"
-                          >
+                          >                            
                             <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
                             <span className="text-sm text-muted-foreground leading-relaxed">
                               {item}

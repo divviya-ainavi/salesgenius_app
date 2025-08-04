@@ -222,7 +222,7 @@ const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"];
 const Analytics = () => {
   const { userRoleId } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState(
-    userRoleId ? "individual" : "super_admin"
+    userRoleId != 1 ? "individual" : "super_admin"
   ); // super_admin, org_admin, individual
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("productivity");
@@ -236,13 +236,6 @@ const Analytics = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
-
-  // Real data state
-  const [realCounts, setRealCounts] = useState({
-    activeUsers: 0,
-    totalOrganizations: 0,
-    loading: true,
-  });
 
   const [feedbackFilters, setFeedbackFilters] = useState({
     pageRoute: "all",
@@ -283,41 +276,8 @@ const Analytics = () => {
   useEffect(() => {
     if (userRole === "super_admin") {
       loadFeedbackData();
-      loadRealCounts();
     }
   }, [feedbackFilters, userRole]);
-
-  const loadRealCounts = async () => {
-    console.log();
-    try {
-      setRealCounts((prev) => ({ ...prev, loading: true }));
-
-      // Get active users count (users with status_id = 1 which is active)
-      const { count: activeUsersCount, error: usersError } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("status_id", 1);
-
-      if (usersError) throw usersError;
-
-      // Get total organizations count
-      const { count: organizationsCount, error: orgsError } = await supabase
-        .from("organizations")
-        .select("*", { count: "exact", head: true });
-
-      if (orgsError) throw orgsError;
-
-      setRealCounts({
-        activeUsers: activeUsersCount || 0,
-        totalOrganizations: organizationsCount || 0,
-        loading: false,
-      });
-    } catch (error) {
-      console.error("Error loading real counts:", error);
-      toast.error("Failed to load user and organization counts");
-      setRealCounts((prev) => ({ ...prev, loading: false }));
-    }
-  };
 
   const loadFeedbackData = async () => {
     setIsLoadingFeedback(true);
@@ -516,9 +476,6 @@ const Analytics = () => {
   // Simulate data refresh
   const handleRefresh = async () => {
     setIsLoading(true);
-    if (userRole === "super_admin") {
-      await loadRealCounts();
-    }
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
     toast.success("Analytics data refreshed");
@@ -928,7 +885,7 @@ const Analytics = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Active Users</p>
                 <p className="text-2xl font-bold">
-                  {realCounts?.activeUsers || 0}
+                  {mockAnalyticsData.superAdmin.platformHealth.activeUsers.toLocaleString()}
                 </p>
               </div>
               <Users className="w-8 h-8 text-purple-600" />
@@ -942,7 +899,10 @@ const Analytics = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Organizations</p>
                 <p className="text-2xl font-bold">
-                  {realCounts?.totalOrganizations || 0}
+                  {
+                    mockAnalyticsData.superAdmin.platformHealth
+                      .totalOrganizations
+                  }
                 </p>
               </div>
               <Target className="w-8 h-8 text-orange-600" />

@@ -111,6 +111,7 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               disabled={isLoading}
+              aria-describedby={errors.name ? "prospect-name-error" : undefined}
               className={errors.name ? 'border-red-500' : ''}
             />
             {errors.name && (
