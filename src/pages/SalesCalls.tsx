@@ -584,6 +584,7 @@ export const SalesCalls = () => {
             });
             try {
               if (prospectDetails?.communication_style_ids != null) {
+                console.log(587, "true check");
                 dispatch(setCummulativeSpin(true));
                 const [existingStyles, call_summariesRaw] = await Promise.all([
                   dbHelpers.getCommunicationStylesData(
@@ -614,6 +615,8 @@ export const SalesCalls = () => {
                 );
 
                 if (!cumulativeRes.ok) {
+                  console.log(618, "false check");
+
                   dispatch(setCummulativeSpin(false));
                   throw new Error("Failed to call cumulative-comm API");
                 }
@@ -643,6 +646,8 @@ export const SalesCalls = () => {
                     secondary_objectives:
                       cumulativeData?.[0]?.recommended_objective,
                   });
+                  console.log(649, "false check");
+
                   dispatch(setCummulativeSpin(false));
                   // ✅ 5. Replace the styles in processedData for UI usage
                   processedData.communication_styles = newStyles.map(
@@ -652,13 +657,19 @@ export const SalesCalls = () => {
                     })
                   );
                 } else {
+                  console.log(660, "false check");
+
                   dispatch(setCummulativeSpin(false));
                 }
+              } else {
+                dispatch(setCummulativeSpin(false));
               }
             } catch (err) {
+              console.log(666, "false check");
+              dispatch(setCummulativeSpin(false));
+
               console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
-              dispatch(setCummulativeSpin(false));
             }
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);

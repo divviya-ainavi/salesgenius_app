@@ -493,7 +493,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       <Input
                         disabled
                         type="url"
-                        disabled
+                        // disabled
                         placeholder="https://www.linkedin.com/in/username"
                         value={url}
                         onChange={(e) =>
@@ -518,7 +518,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     type="button"
                     variant="outline"
                     onClick={addProspectField}
-                    disabled
+                    // disabled
                   >
                     + Add Another Prospect
                   </Button>
