@@ -1,0 +1,30 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - '*'
+variables:
+  Devozy_DUMMY_VARIABLE: ID_GIIKuOJF
+  IMAGE_NAME: PLN1000015_MERN_Production
+  group: frontend-secrets
+  name: IMAGE_NAME
+  value: PLN1000014_MERN_Development
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - task: PublishBuildArtifacts@1
+    inputs:
+      versionSpec: 22.15.0
+    displayName: node
+  - script: npm install --force
+    displayName: npm
+  - script: npm run build
+    displayName: npm build
+  - script: cd dist;sudo tar -czvf pln1000015.tar.gz *;mv pln1000015.tar.gz ..
+    displayName: Create tar.gz Archive of Build Files
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: $(System.DefaultWorkingDirectory)/pln1000015.tar.gz
+      artifactName: react-build
