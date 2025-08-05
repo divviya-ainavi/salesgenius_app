@@ -97,7 +97,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { RotateCcw } from "lucide-react";
-import { toast } from "sonner";
 import { dbHelpers } from "@/lib/supabase";
 import { useDispatch } from "react-redux";
 import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
