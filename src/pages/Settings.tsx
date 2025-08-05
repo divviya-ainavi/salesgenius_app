@@ -47,6 +47,8 @@ import {
   Globe,
   Building,
   User,
+  PlayCircle,
+  RotateCcw,
   Bell,
   Database,
   Cloud,
@@ -87,6 +89,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
 import CryptoJS from "crypto-js";
 import {
   Dialog,
@@ -310,6 +313,7 @@ export const Settings = () => {
     getOrgList,
     allStatus,
   } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -342,6 +346,7 @@ export const Settings = () => {
   // Fireflies integration state
   const [firefliesToken, setFirefliesToken] = useState("");
   const [showFirefliesToken, setShowFirefliesToken] = useState(false);
+  const [isRestartingTour, setIsRestartingTour] = useState(false);
   const [firefliesStatus, setFirefliesStatus] = useState(null);
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
   const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
@@ -855,6 +860,7 @@ export const Settings = () => {
           method: "POST",
           body: formData,
         }
+    hasSeenOnboardingTour,
       );
       // console.log(response, "check response");
       toast.success(
@@ -1185,6 +1191,30 @@ export const Settings = () => {
   };
 
   // console.log(
+  const handleRestartTour = async () => {
+    setIsRestartingTour(true);
+    
+    try {
+      // Reset tour status in database
+      await dbHelpers.updateOnboardingTourStatus(user.id, false);
+      
+      // Update Redux state
+      dispatch(setHasSeenOnboardingTour(false));
+      
+      // Restart the tour using the global function
+      if (window.restartOnboardingTour) {
+        window.restartOnboardingTour();
+        toast.success("Onboarding tour restarted!");
+      } else {
+        toast.info("Please refresh the page to restart the tour");
+      }
+    } catch (error) {
+      console.error("Error restarting tour:", error);
+      toast.error("Failed to restart tour: " + error.message);
+    } finally {
+      setIsRestartingTour(false);
+    }
+  };
   //   user,
   //   organizationDetails,
   //   "user and org details in settings page"
@@ -3260,6 +3290,70 @@ export const Settings = () => {
                         <Building className="w-5 h-5 text-blue-600" />
                         <div>
                           <p className="text-sm font-medium">
+          {/* Onboarding Tour Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <PlayCircle className="w-5 h-5" />
+                <span>Onboarding Tour</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Tour Status</p>
+                  <p className="text-sm text-muted-foreground">
+                    {hasSeenOnboardingTour 
+                      ? "You have completed the onboarding tour" 
+                      : "You haven't completed the onboarding tour yet"}
+                  </p>
+                </div>
+                <Badge 
+                  variant={hasSeenOnboardingTour ? "default" : "outline"}
+                  className={hasSeenOnboardingTour 
+                    ? "bg-green-100 text-green-800 border-green-200" 
+                    : "bg-yellow-100 text-yellow-800 border-yellow-200"
+                  }
+                >
+                  {hasSeenOnboardingTour ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3 h-3 mr-1" />
+                      Pending
+                    </>
+                  )}
+                </Badge>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <Button
+                  onClick={handleRestartTour}
+                  disabled={isRestartingTour}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  {isRestartingTour ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Restarting Tour...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Restart Onboarding Tour
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Take the guided tour again to learn about SalesGenius.ai features
+                </p>
+              </div>
+            </CardContent>
+          </Card>
                             Organization Analytics
                           </p>
                           <p className="text-xs text-muted-foreground">
