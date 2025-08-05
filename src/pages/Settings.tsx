@@ -797,7 +797,17 @@ const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Shield className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  You don't have permission to manage organization settings
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
