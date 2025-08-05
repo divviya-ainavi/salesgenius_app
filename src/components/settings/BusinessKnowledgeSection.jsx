@@ -82,12 +82,9 @@ const BusinessKnowledgeSection = () => {
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-<<<<<<< HEAD
-      console.log('📞 BusinessKnowledgeSection - Calling businessKnowledgeService.getFiles for org:', organizationDetails.id);
-      const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
-      console.log('📄 BusinessKnowledgeSection - Loaded files:', filesData?.length || 0, 'files', filesData);
-=======
-      console.log('📞 Calling businessKnowledgeService.getFiles with org ID:', organizationDetails.id);
+
+     
+     
       const filesData = await businessKnowledgeService.getFiles(organizationDetails.id);
       console.log('📄 Received files data:', filesData);
 >>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
