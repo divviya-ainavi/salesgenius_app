@@ -306,14 +306,15 @@ export const Settings = () => {
     hubspotIntegration,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
-  const {
-    company_size,
-    sales_methodology,
-    industry,
-    roles,
-    allTitles,
-    getUserslist,
+ 
   const [isResettingTour, setIsResettingTour] = useState(false);
+   // const {
+  //   company_size,
+  //   sales_methodology,
+  //   industry,
+  //   roles,
+  //   allTitles,
+  //   getUserslist,
     getOrgList,
     allStatus,
   } = useSelector((state) => state.org);
