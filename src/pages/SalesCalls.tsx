@@ -927,6 +927,7 @@ export const SalesCalls = () => {
               </CardHeader>
               <CardContent>
                 <div
+                  data-tour="file-upload-area"
                   {...getRootProps()}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
@@ -968,7 +969,9 @@ export const SalesCalls = () => {
             {/* Recent Uploads */}
             <Card className="flex-1">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Recent Uploads</CardTitle>
+                <CardTitle data-tour="recent-uploads-tab">
+                  Recent Uploads
+                </CardTitle>
                 <Button variant="outline" size="sm" onClick={loadUploadedFiles}>
                   {recentUploadRefresh ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
