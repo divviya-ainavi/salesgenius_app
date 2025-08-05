@@ -96,7 +96,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { dbHelpers } from "@/lib/supabase";
