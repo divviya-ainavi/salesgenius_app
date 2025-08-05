@@ -109,7 +109,38 @@ export const SalesCallsTour = () => {
   
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [tourKey, setTourKey] = useState('sales-calls-tour');
+
+  // Check if tour should run for first-time users
+  useEffect(() => {
+    const shouldRunTour = () => {
+      // Don't run if user hasn't been loaded yet
+      if (!user) {
+        return false;
+      }
+
+      // Don't run if user has already seen the tour
+      if (user.has_seen_onboarding_tour) {
+        return false;
+      }
+
+      // Only run on Sales Calls page or main app pages
+      if (location.pathname.startsWith('/auth/')) {
+        return false;
+      }
+
+      // Run the tour for first-time users
+      return true;
+    };
+
+    if (shouldRunTour()) {
+      // Small delay to ensure DOM elements are rendered
+      const timer = setTimeout(() => {
+        setRun(true);
+      }, 1500); // Slightly longer delay for Sales Calls tour
+
+      return () => clearTimeout(timer);
+    }
+  }, [user, location.pathname]);
 
   const handleJoyrideCallback = async (data) => {
     const { action, index, status, type } = data;
@@ -134,6 +165,9 @@ export const SalesCallsTour = () => {
 
   const handleTourComplete = async (wasSkipped = false) => {
     try {
+      // Update database to mark tour as seen
+      await dbHelpers.updateOnboardingTourStatus(user.id, true);
+      
       // Stop the tour
       setRun(false);
       setStepIndex(0);
@@ -145,7 +179,7 @@ export const SalesCallsTour = () => {
         total_steps: salesCallsTourSteps.length,
       });
 
-      console.log('✅ Sales Calls tour completed');
+      console.log('✅ Sales Calls tour completed and saved to database');
     } catch (error) {
       console.error('❌ Error completing Sales Calls tour:', error);
       setRun(false);
@@ -157,7 +191,7 @@ export const SalesCallsTour = () => {
     setStepIndex(0);
     setRun(true);
     
-    analytics.track('sales_calls_tour_started', {
+    analytics.track('sales_calls_tour_restarted', {
       page: location.pathname,
       trigger: 'manual',
     });
@@ -174,7 +208,6 @@ export const SalesCallsTour = () => {
 
   return (
     <Joyride
-      key={tourKey}
       steps={salesCallsTourSteps}
       run={run}
       stepIndex={stepIndex}

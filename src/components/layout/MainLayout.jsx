@@ -8,7 +8,6 @@ import { Bell, Zap } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
-import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
 
 export const MainLayout = () => {
@@ -87,10 +86,7 @@ export const MainLayout = () => {
       {/* Feedback Widget - Available to all users */}
       <FeedbackWidget />
 
-      {/* Onboarding Tour */}
-      <OnboardingTour />
-
-      {/* Sales Calls Specific Tour */}
+      {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
     </div>
   );

@@ -209,7 +209,9 @@ const LoginPage = () => {
         // Load onboarding tour status
         try {
           const tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
-          dispatch(setHasSeenOnboardingTour(tourStatus));
+          // For now, we'll use Sales Calls tour as primary onboarding
+          // Set this to false to always show Sales Calls tour for new users
+          dispatch(setHasSeenOnboardingTour(false));
           console.log("✅ Loaded onboarding tour status:", tourStatus);
         } catch (error) {
           console.warn("⚠️ Failed to load onboarding tour status:", error);
