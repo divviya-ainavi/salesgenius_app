@@ -60,8 +60,6 @@ import {
   FileText,
   BarChart3,
   Zap,
-  RotateCcw,
-  Play,
   RefreshCw,
   ExternalLink,
   Copy,
@@ -89,8 +87,6 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
-import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
-import { analytics } from "@/lib/analytics";
 import CryptoJS from "crypto-js";
 import {
   Dialog,
@@ -295,7 +291,6 @@ export const Settings = () => {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
 
-  const dispatch = useDispatch();
   const {
     userProfileInfo,
     userRole,
@@ -304,11 +299,8 @@ export const Settings = () => {
     organizationDetails,
     user,
     hubspotIntegration,
-    hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
- 
-  const [isResettingTour, setIsResettingTour] = useState(false);
-   const {
+  const {
     company_size,
     sales_methodology,
     industry,
@@ -316,7 +308,7 @@ export const Settings = () => {
     allTitles,
     getUserslist,
     getOrgList,
-    allStatus
+    allStatus,
   } = useSelector((state) => state.org);
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
@@ -3263,77 +3255,6 @@ export const Settings = () => {
                   )}
 
                   {canViewOrgAnalytics && (
-              {/* Onboarding Tour Section */}
-              <div className="pt-6 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Onboarding Tour</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Take a guided tour of SalesGenius.ai features and functionality.
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Badge
-                      variant="outline"
-                      className={
-                        hasSeenOnboardingTour
-                          ? "bg-green-100 text-green-800 border-green-200"
-                          : "bg-yellow-100 text-yellow-800 border-yellow-200"
-                      }
-                    >
-                      {hasSeenOnboardingTour ? (
-                        <>
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Completed
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Not Started
-                        </>
-                      )}
-                    </Badge>
-                    <Button
-                      onClick={handleResetOnboardingTour}
-                      disabled={isResettingTour}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {isResettingTour ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Resetting...
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          Reset Tour
-                        </>
-                      )}
-                    </Button>
-                    {hasSeenOnboardingTour && (
-                      <Button
-                        onClick={() => {
-                          if (window.restartOnboardingTour) {
-                            window.restartOnboardingTour();
-                          } else {
-                            toast.error("Tour not available. Please refresh the page and try again.");
-                          }
-                        }}
-                        variant="default"
-                        size="sm"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Start Tour
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  The onboarding tour will guide you through all the key features of SalesGenius.ai.
-                  You can restart it anytime or reset your completion status.
-                </div>
-              </div>
                     <div className="flex items-center justify-between p-3 border border-border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Building className="w-5 h-5 text-blue-600" />
@@ -3419,36 +3340,6 @@ export const Settings = () => {
                         <Download className="w-4 h-4 mr-1" />
                         Export
                       </Button>
-  const handleResetOnboardingTour = async () => {
-    setIsResettingTour(true);
-    try {
-      // Update database
-      await dbHelpers.updateOnboardingTourStatus(user.id, false);
-      
-      // Update Redux state
-      dispatch(setHasSeenOnboardingTour(false));
-      
-      // Track the reset
-      analytics.track('onboarding_tour_reset', {
-        user_id: user.id,
-        reset_from: 'settings_page',
-      });
-      
-      toast.success("Onboarding tour reset! It will start on your next page navigation.");
-      
-      // Optionally start the tour immediately
-      if (window.restartOnboardingTour) {
-        setTimeout(() => {
-          window.restartOnboardingTour();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error("Error resetting onboarding tour:", error);
-      toast.error("Failed to reset onboarding tour: " + error.message);
-    } finally {
-      setIsResettingTour(false);
-    }
-  };
                     </div>
                   )}
                 </div>
