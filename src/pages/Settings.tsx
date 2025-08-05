@@ -97,7 +97,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { RotateCcw } from "lucide-react";
-import { useDispatch } from "react-redux";
 import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
 
 // Mock user data - in real app this would come from auth context
