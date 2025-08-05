@@ -912,13 +912,6 @@ export const SalesCalls = () => {
           >
             <ExternalLink className="w-4 h-4" />
             <span>Fireflies.ai Imports</span>
-            {hasSeenOnboardingTour && (
-              <TooltipProvider>
-                    <p>Replay Complete Sales Flow Tour</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </TabsTrigger>
           <TabsTrigger value="past" className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
