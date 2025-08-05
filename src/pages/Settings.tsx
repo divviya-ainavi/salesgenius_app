@@ -288,9 +288,16 @@ export const Settings = () => {
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
+import { dbHelpers } from "@/lib/supabase";
+import { useDispatch } from "react-redux";
+import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
 
+  const dispatch = useDispatch();
   const {
     userProfileInfo,
     userRole,
@@ -299,8 +306,20 @@ export const Settings = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
   const {
+  const handleResetOnboardingTour = async () => {
+    try {
+      await dbHelpers.resetOnboardingTour(user.id);
+      dispatch(setHasSeenOnboardingTour(false));
+      toast.success("Onboarding tour reset! It will show on your next page navigation.");
+    } catch (error) {
+      console.error("Error resetting onboarding tour:", error);
+      toast.error("Failed to reset onboarding tour");
+    }
+  };
+
     company_size,
     sales_methodology,
     industry,
@@ -3123,6 +3142,29 @@ export const Settings = () => {
                   Your personal sales knowledge, experiences, and preferred
                   approaches
                 </p>
+                
+                {/* Reset Onboarding Tour */}
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium">Onboarding Tour</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {hasSeenOnboardingTour 
+                          ? "You have completed the onboarding tour" 
+                          : "You haven't seen the onboarding tour yet"}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetOnboardingTour}
+                      data-tour="reset-tour-button"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1" />
+                      Reset Tour
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

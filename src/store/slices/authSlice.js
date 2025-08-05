@@ -101,6 +101,7 @@ export const {
     setOrganizationDetails,
     setHubspotIntegration,
     setIshavefirefliesData,
-    setFirefliesData
+    setFirefliesData,
+    setHasSeenOnboardingTour
 } = authSlice.actions;
 export default authSlice.reducer;

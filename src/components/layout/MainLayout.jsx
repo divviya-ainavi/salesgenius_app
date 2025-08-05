@@ -84,6 +84,9 @@ export const MainLayout = () => {
 
       {/* Feedback Widget - Available to all users */}
       <FeedbackWidget />
+
+      {/* Onboarding Tour - Only for first-time users */}
+      <OnboardingTour />
     </div>
   );
 };
