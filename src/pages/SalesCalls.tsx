@@ -37,7 +37,6 @@ import {
   Target,
   TrendingUp,
   MessageSquare,
-  HelpCircle,
   Mail,
   Sparkles,
   ArrowRight,
