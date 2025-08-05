@@ -209,9 +209,8 @@ const LoginPage = () => {
         // Load onboarding tour status
         try {
           const tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
-          // For now, we'll use Sales Calls tour as primary onboarding
-          // Set this to false to always show Sales Calls tour for new users
-          dispatch(setHasSeenOnboardingTour(false));
+          // Set tour status based on database - false means tour will run
+          dispatch(setHasSeenOnboardingTour(tourStatus || false));
           console.log("✅ Loaded onboarding tour status:", tourStatus);
         } catch (error) {
           console.warn("⚠️ Failed to load onboarding tour status:", error);
@@ -219,6 +218,14 @@ const LoginPage = () => {
           dispatch(setHasSeenOnboardingTour(false));
         }
         toast.success("Login successful!");
+        
+        // Start Sales Calls tour after successful login
+        setTimeout(() => {
+          if (window.startSalesCallsTour) {
+            window.startSalesCallsTour();
+          }
+        }, 2000); // 2 second delay to ensure page loads and tour is ready
+        
         navigate("/calls");
       }
     } catch (error) {

@@ -113,23 +113,9 @@ export const SalesCallsTour = () => {
   // Check if tour should run for first-time users
   useEffect(() => {
     const shouldRunTour = () => {
-      // Don't run if user hasn't been loaded yet
-      if (!user) {
-        return false;
-      }
-
-      // Don't run if user has already seen the tour
-      if (user.has_seen_onboarding_tour) {
-        return false;
-      }
-
-      // Only run on Sales Calls page or main app pages
-      if (location.pathname.startsWith('/auth/')) {
-        return false;
-      }
-
-      // Run the tour for first-time users
-      return true;
+      // This tour is now manually triggered from login
+      // Don't auto-run based on conditions
+      return false;
     };
 
     if (shouldRunTour()) {
