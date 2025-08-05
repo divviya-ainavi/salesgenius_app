@@ -4,7 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { UserDropdown } from "./UserDropdown";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Zap } from "lucide-react";
+import { Bell, Zap, HelpCircle } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
@@ -20,6 +20,7 @@ export const MainLayout = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
   console.log(user, "check user");
   return (
@@ -66,6 +67,23 @@ export const MainLayout = () => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-2">
+            {/* Guidelines Icon - Only show after tour completion */}
+            {user && hasSeenOnboardingTour && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  if (window.replaySalesFlowTour) {
+                    window.replaySalesFlowTour();
+                  }
+                }}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                title="Replay Complete Sales Flow Tour"
+                aria-label="Replay Complete Sales Flow Tour"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" aria-label="Notifications">
               <Bell className="w-4 h-4" />
             </Button>
