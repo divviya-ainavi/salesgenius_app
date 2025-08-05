@@ -178,6 +178,7 @@ export const UserDropdown = () => {
             size="sm"
             className="h-9 w-9 rounded-full hover:bg-accent focus:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2"
             aria-label="User menu"
+            data-tour="user-dropdown"
           >
             <User className="w-4 h-4" />
           </Button>
