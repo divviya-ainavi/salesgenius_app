@@ -90,7 +90,6 @@ import {
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
 import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
-import { dbHelpers } from "@/lib/supabase";
 import { analytics } from "@/lib/analytics";
 import CryptoJS from "crypto-js";
 import {
