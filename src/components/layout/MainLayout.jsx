@@ -9,6 +9,7 @@ import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -88,6 +89,9 @@ export const MainLayout = () => {
 
       {/* Onboarding Tour */}
       <OnboardingTour />
+
+      {/* Sales Calls Specific Tour */}
+      <SalesCallsTour />
     </div>
   );
 };
