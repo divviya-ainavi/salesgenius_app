@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { HelpCircle } from "lucide-react";
 import {
   Upload,
   FileText,
@@ -1016,6 +1017,7 @@ export const SalesCalls = () => {
                             size="sm"
                             onClick={() => handleProcessClick(file, "upload")}
                             disabled={processingFileId === file.id}
+                            data-tour="process-button"
                           >
                             {processingFileId === file.id ? (
                               <>
@@ -1058,6 +1060,7 @@ export const SalesCalls = () => {
                   variant="outline"
                   onClick={loadFirefliesData}
                   disabled={isLoadingFireflies}
+                  data-tour="fireflies-connect"
                 >
                   {isLoadingFireflies ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
