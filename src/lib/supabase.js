@@ -856,6 +856,40 @@ export const getFeedbackForAdmin = async (filters = {}) => {
   }
 };
 
+// Onboarding tour helpers
+export const updateOnboardingTourStatus = async (userId, hasSeenTour) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ has_seen_onboarding_tour: hasSeenTour })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating onboarding tour status:', error);
+    throw error;
+  }
+};
+
+export const getOnboardingTourStatus = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('has_seen_onboarding_tour')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    return data?.has_seen_onboarding_tour || false;
+  } catch (error) {
+    console.error('Error getting onboarding tour status:', error);
+    return false;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -3284,6 +3318,10 @@ export const dbHelpers = {
 
     return data;
   },
+
+  // Onboarding tour
+  updateOnboardingTourStatus,
+  getOnboardingTourStatus,
 
   saveFeedback,
   getUserFeedback,
