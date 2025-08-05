@@ -20,7 +20,7 @@ const salesCallsTourSteps = [
     disableBeacon: true,
   },
   {
-    target: '[data-tour="file-upload-area"]',
+    target: '.react-dropzone',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 1: Upload Your Transcript 📁</h3>
@@ -31,7 +31,7 @@ const salesCallsTourSteps = [
     placement: 'bottom',
   },
   {
-    target: '[data-tour="recent-uploads-tab"]',
+    target: '[role="tab"]:nth-child(2)',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 2: Check Recent Uploads 📋</h3>
@@ -41,7 +41,7 @@ const salesCallsTourSteps = [
     placement: 'top',
   },
   {
-    target: '[data-tour="process-button"]',
+    target: 'button:has-text("Process")',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 3: Process Your Transcript ⚡</h3>
@@ -49,9 +49,10 @@ const salesCallsTourSteps = [
       </div>
     ),
     placement: 'left',
+     spotlightClicks: true,
   },
   {
-    target: '[data-tour="company-selector"]',
+    target: 'input[placeholder*="Search for a company"]',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 4: Select or Create Company 🏢</h3>
@@ -61,7 +62,7 @@ const salesCallsTourSteps = [
     placement: 'right',
   },
   {
-    target: '[data-tour="prospect-selector"]',
+    target: 'input[placeholder*="Search for a prospect"]',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 5: Select or Create Prospect 👤</h3>
@@ -71,7 +72,7 @@ const salesCallsTourSteps = [
     placement: 'right',
   },
   {
-    target: '[data-tour="fireflies-tab"]',
+    target: '[role="tab"]:nth-child(3)',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 6: Fireflies Integration 🔥</h3>
@@ -81,7 +82,7 @@ const salesCallsTourSteps = [
     placement: 'top',
   },
   {
-    target: '[data-tour="fireflies-connect"]',
+    target: 'button:has-text("Connect Fireflies")',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 7: Connect Fireflies 🔗</h3>
