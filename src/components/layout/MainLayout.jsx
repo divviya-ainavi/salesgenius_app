@@ -8,6 +8,7 @@ import { Bell, Zap } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -84,6 +85,9 @@ export const MainLayout = () => {
 
       {/* Feedback Widget - Available to all users */}
       <FeedbackWidget />
+
+      {/* Onboarding Tour */}
+      <OnboardingTour />
     </div>
   );
 };
