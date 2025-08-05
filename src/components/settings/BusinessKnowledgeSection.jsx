@@ -57,19 +57,7 @@ const BusinessKnowledgeSection = () => {
   // Get user data from Redux store
   const { user, organizationDetails, userRoleId } = useSelector((state) => state.auth);
 
-<<<<<<< HEAD
-  console.log('🔍 BusinessKnowledgeSection - Component mounted with user data:', {
-    userId: user?.id,
-    organizationId: organizationDetails?.id,
-    userRoleId,
-    isOrgAdmin: userRoleId === 2,
-    userEmail: user?.email,
-    orgName: organizationDetails?.name
-  });
 
-=======
->>>>>>> parent of 465fa99 (Fix Business Knowledge Storage System)
-  // Check if user is org admin (userRoleId === 2)
   const isOrgAdmin = userRoleId === 2;
 
   // Load files on component mount
