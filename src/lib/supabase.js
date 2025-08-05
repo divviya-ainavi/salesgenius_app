@@ -1563,29 +1563,6 @@ export const dbHelpers = {
     }
   },
 
-  // Update user onboarding tour status
-  async updateOnboardingTourStatus(userId, hasSeenTour) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ has_seen_onboarding_tour: hasSeenTour })
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating onboarding tour status:', error);
-      throw error;
-    }
-  },
-
-  // Reset onboarding tour (for settings)
-  async resetOnboardingTour(userId) {
-    return this.updateOnboardingTourStatus(userId, false);
-  },
-
   // User management helpers
   async getUserHubSpotCredentials(userId) {
     return await authHelpers.getHubSpotCredentials(userId);
