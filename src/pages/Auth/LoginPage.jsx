@@ -15,6 +15,7 @@ import {
   setUserRole,
   setUserRoleId,
   setIsAuthenticated,
+  setHasSeenOnboardingTour,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
@@ -205,6 +206,16 @@ const LoginPage = () => {
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
+        // Load onboarding tour status
+        try {
+          const tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
+          dispatch(setHasSeenOnboardingTour(tourStatus));
+          console.log("✅ Loaded onboarding tour status:", tourStatus);
+        } catch (error) {
+          console.warn("⚠️ Failed to load onboarding tour status:", error);
+          // Default to false if we can't load the status
+          dispatch(setHasSeenOnboardingTour(false));
+        }
         toast.success("Login successful!");
         navigate("/calls");
       }
