@@ -96,6 +96,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
+import { dbHelpers } from "@/lib/supabase";
+import { useDispatch } from "react-redux";
+import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -288,14 +294,6 @@ export const Settings = () => {
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
-import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
-import { toast } from "sonner";
-import { dbHelpers } from "@/lib/supabase";
-import { useDispatch } from "react-redux";
-import { setHasSeenOnboardingTour } from "@/store/slices/authSlice";
-    return `${encodedHeader}.${encodedPayload}.${signature}`;
-  };
 
   const dispatch = useDispatch();
   const {
