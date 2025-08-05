@@ -308,15 +308,15 @@ export const Settings = () => {
   } = useSelector((state) => state.auth);
  
   const [isResettingTour, setIsResettingTour] = useState(false);
-   // const {
-  //   company_size,
-  //   sales_methodology,
-  //   industry,
-  //   roles,
-  //   allTitles,
-  //   getUserslist,
+   const {
+    company_size,
+    sales_methodology,
+    industry,
+    roles,
+    allTitles,
+    getUserslist,
     getOrgList,
-    allStatus,
+    allStatus
   } = useSelector((state) => state.org);
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
