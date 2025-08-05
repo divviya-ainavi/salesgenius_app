@@ -15,6 +15,7 @@ import {
   setUserRole,
   setUserRoleId,
   setIsAuthenticated,
+  setHasSeenOnboardingTour,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
@@ -174,6 +175,7 @@ const LoginPage = () => {
         dispatch(setUser(profileWithoutOrgDetails));
         dispatch(setIsAuthenticated(true));
         dispatch(setUserProfileInfo(profile.full_name || profile.email));
+        dispatch(setHasSeenOnboardingTour(profile.has_seen_onboarding_tour || false));
         const titles = await dbHelpers?.getTitles(organization_details?.id);
         dispatch(setAllTitles(titles));
         // Store organization_details separately
