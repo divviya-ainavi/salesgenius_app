@@ -291,7 +291,7 @@ export const Settings = () => {
       .replace(/=/g, "");
 
 
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const {
     userProfileInfo,
     userRole,
@@ -302,7 +302,7 @@ export const Settings = () => {
     hubspotIntegration,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
-  const {
+  
   const handleResetOnboardingTour = async () => {
     try {
       await dbHelpers.resetOnboardingTour(user.id);
@@ -313,7 +313,7 @@ export const Settings = () => {
       toast.error("Failed to reset onboarding tour");
     }
   };
-
+const {
     company_size,
     sales_methodology,
     industry,
