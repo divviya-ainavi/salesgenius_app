@@ -72,6 +72,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 
 export const SalesCalls = () => {
@@ -123,6 +124,7 @@ export const SalesCalls = () => {
     hubspotIntegration,
     ishavefirefliesData,
     firefliesData,
+    hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
 
   // Load initial data
@@ -906,10 +908,33 @@ export const SalesCalls = () => {
           </TabsTrigger>
           <TabsTrigger
             value="fireflies"
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 relative"
           >
             <ExternalLink className="w-4 h-4" />
             <span>Fireflies.ai Imports</span>
+            {hasSeenOnboardingTour && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.replaySalesFlowTour) {
+                          window.replaySalesFlowTour();
+                        }
+                      }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors z-10"
+                      aria-label="Replay Sales Flow Tour"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Replay Complete Sales Flow Tour</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </TabsTrigger>
           <TabsTrigger value="past" className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
