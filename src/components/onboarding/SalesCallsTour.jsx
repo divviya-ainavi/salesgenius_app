@@ -20,73 +20,73 @@ const salesCallsTourSteps = [
     disableBeacon: true,
   },
   {
-    target: '.react-dropzone',
+    target: '[data-tour="file-upload-area"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 1: Upload Your Transcript 📁</h3>
-        <p>Start by uploading your call transcript file here. You can drag and drop files or click to browse.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 2: Drop Your Transcript Here 📁</h3>
+        <p>Drop your transcript file here or click to browse. This is where you upload your call recordings or transcript files.</p>
         <p className="text-sm text-gray-600 mt-2">Supported formats: TXT, VTT, PDF, and audio files</p>
       </div>
     ),
     placement: 'bottom',
   },
   {
-    target: '[role="tab"]:nth-child(2)',
+    target: '[data-tour="recent-uploads-tab"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 2: Check Recent Uploads 📋</h3>
-        <p>After uploading, your files will appear in the "Recent Uploads" tab. This is where you'll manage and process your transcripts.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 3: Process Uploaded Files 📋</h3>
+        <p>After uploading, your files appear here. Click the "Process" button on any file to start AI analysis.</p>
       </div>
     ),
     placement: 'top',
   },
   {
-    target: 'button:has-text("Process")',
+    target: '[data-tour="process-button"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 3: Process Your Transcript ⚡</h3>
-        <p>Click the "Process" button to start AI analysis of your call transcript. This will extract insights, action items, and generate follow-up content.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 4: Start Processing ⚡</h3>
+        <p>Click "Process" to begin AI analysis. This will open a dialog where you'll associate the call with a company and prospect.</p>
       </div>
     ),
     placement: 'left',
      spotlightClicks: true,
   },
   {
-    target: 'input[placeholder*="Search for a company"]',
+    target: '[data-tour="company-selector"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 4: Select or Create Company 🏢</h3>
-        <p>Choose the company this call was with. If it's a new company, you can create it by typing the name and clicking "Create New Company".</p>
+        <h3 className="text-lg font-semibold mb-2">Step 5: Create or Select Company 🏢</h3>
+        <p>Search for the company this call was with. If it's new, click "Create New Company" to add it to your database.</p>
       </div>
     ),
     placement: 'right',
   },
   {
-    target: 'input[placeholder*="Search for a prospect"]',
+    target: '[data-tour="prospect-selector"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 5: Select or Create Prospect 👤</h3>
-        <p>Now select the specific prospect (deal/opportunity) this call was about. You can create a new prospect if needed.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 6: Create or Select Prospect 👤</h3>
+        <p>After selecting a company, choose the specific prospect (deal/opportunity). Click "Create New Prospect" if this is a new opportunity.</p>
       </div>
     ),
     placement: 'right',
   },
   {
-    target: '[role="tab"]:nth-child(3)',
+    target: '[data-tour="fireflies-tab"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 6: Fireflies Integration 🔥</h3>
-        <p>You can also connect with Fireflies.ai to automatically import your recorded calls and transcripts.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 7: Fireflies Integration 🔥</h3>
+        <p>Alternative to manual uploads: Connect with Fireflies.ai to automatically import your recorded calls and transcripts.</p>
       </div>
     ),
     placement: 'top',
   },
   {
-    target: 'button:has-text("Connect Fireflies")',
+    target: '[data-tour="fireflies-connect"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 7: Connect Fireflies 🔗</h3>
-        <p>Click here to connect your Fireflies.ai account and automatically sync your call recordings.</p>
+        <h3 className="text-lg font-semibold mb-2">Step 8: Connect Your Account 🔗</h3>
+        <p>Click here to connect your Fireflies.ai account for automatic call import and processing.</p>
       </div>
     ),
     placement: 'bottom',
@@ -95,7 +95,7 @@ const salesCallsTourSteps = [
     target: 'body',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">You're Ready to Go! 🎉</h3>
+        <h3 className="text-lg font-semibold mb-2">Sales Calls Tour Complete! 🎉</h3>
         <p>You now know how to upload transcripts, process them with AI, and organize them by company and prospect. Start by uploading your first call transcript!</p>
       </div>
     ),
