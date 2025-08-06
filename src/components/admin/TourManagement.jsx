@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Route, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Route as RouteIcon, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers } from '@/lib/supabase';
@@ -217,7 +217,7 @@ const TourManagement = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Route className="w-5 h-5" />
+            <RouteIcon className="w-5 h-5" />
             <span>Tour Management</span>
             <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
               <Crown className="w-3 h-3 mr-1" />
@@ -308,7 +308,7 @@ const TourManagement = () => {
           </div>
         ) : tourSteps.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <Route className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <RouteIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p className="mb-2">No tour steps found</p>
             <p className="text-sm">Create your first tour step to get started</p>
           </div>
