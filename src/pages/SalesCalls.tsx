@@ -77,6 +77,7 @@ import {
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
+  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -142,6 +143,13 @@ export const SalesCalls = () => {
   }, [activeTab]);
 
   const loadUploadedFiles = async () => {
+    // Check if user is available before making the query
+    if (!user?.id) {
+      console.log("No user ID available, skipping file load");
+      setIsLoadingFiles(false);
+      return;
+    }
+
     setRecentUploadRefresh(true);
     try {
       // Only load unprocessed files for the staging queue
@@ -154,7 +162,7 @@ export const SalesCalls = () => {
         size: formatFileSize(file.file_size),
       }));
 
-      setUploadedFiles(enrichedFiles.filter((file) => !file.is_processed));
+      const files = await dbHelpers.getUploadedFiles(user.id);
       setRecentUploadRefresh(false);
     } catch (error) {
       console.error("Error loading uploaded files:", error);
