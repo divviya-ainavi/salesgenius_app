@@ -15,6 +15,7 @@ import {
   setUserRole,
   setUserRoleId,
   setIsAuthenticated,
+  setHasSeenOnboardingTour,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
@@ -205,7 +206,34 @@ const LoginPage = () => {
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
+        // Load onboarding tour status
+        let tourStatus = false;
+        try {
+          tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
+          // Set tour status based on database - false means tour will run
+          dispatch(setHasSeenOnboardingTour(tourStatus || false));
+          console.log("✅ Loaded onboarding tour status:", tourStatus);
+        } catch (error) {
+          console.warn("⚠️ Failed to load onboarding tour status:", error);
+          // Default to false if we can't load the status
+          dispatch(setHasSeenOnboardingTour(false));
+        }
+
         toast.success("Login successful!");
+        
+        // Start Sales Calls tour only for first-time users
+        const shouldStartTour = !(tourStatus || false); // If tourStatus is false/null, start tour
+        if (shouldStartTour) {
+          setTimeout(() => {
+            if (window.startSalesCallsTour) {
+              console.log("🎯 Starting tour for first-time user");
+              window.startSalesCallsTour();
+            }
+          }, 2000); // 2 second delay to ensure page loads and tour is ready
+        } else {
+          console.log("👤 Returning user - tour already completed, skipping auto-start");
+        }
+        
         navigate("/calls");
       }
     } catch (error) {

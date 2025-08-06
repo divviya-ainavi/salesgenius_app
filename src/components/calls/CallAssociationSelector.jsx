@@ -217,6 +217,7 @@ export const CallAssociationSelector = ({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
+                  data-tour="company-selector"
                   placeholder="Search for a company..."
                   value={companySearch}
                   onChange={(e) => setCompanySearch(e.target.value)}
@@ -304,6 +305,7 @@ export const CallAssociationSelector = ({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
+                  data-tour="prospect-selector"
                   placeholder="Search for a prospect..."
                   value={prospectSearch}
                   onChange={(e) => setProspectSearch(e.target.value)}

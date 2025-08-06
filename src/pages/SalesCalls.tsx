@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { HelpCircle } from "lucide-react";
 import {
   Upload,
   FileText,
@@ -71,6 +72,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 
 export const SalesCalls = () => {
@@ -122,6 +124,7 @@ export const SalesCalls = () => {
     hubspotIntegration,
     ishavefirefliesData,
     firefliesData,
+    hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
 
   // Load initial data
@@ -905,7 +908,7 @@ export const SalesCalls = () => {
           </TabsTrigger>
           <TabsTrigger
             value="fireflies"
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 relative"
           >
             <ExternalLink className="w-4 h-4" />
             <span>Fireflies.ai Imports</span>
@@ -926,6 +929,7 @@ export const SalesCalls = () => {
               </CardHeader>
               <CardContent>
                 <div
+                  data-tour="file-upload-area"
                   {...getRootProps()}
                   className={cn(
                     "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
@@ -967,7 +971,9 @@ export const SalesCalls = () => {
             {/* Recent Uploads */}
             <Card className="flex-1">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Recent Uploads</CardTitle>
+                <CardTitle data-tour="recent-uploads-tab">
+                  Recent Uploads
+                </CardTitle>
                 <Button variant="outline" size="sm" onClick={loadUploadedFiles}>
                   {recentUploadRefresh ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -1016,6 +1022,7 @@ export const SalesCalls = () => {
                             size="sm"
                             onClick={() => handleProcessClick(file, "upload")}
                             disabled={processingFileId === file.id}
+                            data-tour="recent-uploads-process"
                           >
                             {processingFileId === file.id ? (
                               <>
@@ -1058,6 +1065,7 @@ export const SalesCalls = () => {
                   variant="outline"
                   onClick={loadFirefliesData}
                   disabled={isLoadingFireflies}
+                  data-tour="fireflies-connect"
                 >
                   {isLoadingFireflies ? (
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />

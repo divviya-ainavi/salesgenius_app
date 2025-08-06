@@ -21,7 +21,8 @@ const initialState = {
         accountInfo: null,
     },
     ishavefirefliesData: false,
-    firefliesData: []
+    firefliesData: [],
+    hasSeenOnboardingTour: false
 };
 
 const authSlice = createSlice({
@@ -77,6 +78,9 @@ const authSlice = createSlice({
         setFirefliesData: (state, action) => {
             state.firefliesData = action.payload;
         },
+        setHasSeenOnboardingTour: (state, action) => {
+            state.hasSeenOnboardingTour = action.payload;
+        },
         resetAuthState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -101,6 +105,7 @@ export const {
     setOrganizationDetails,
     setHubspotIntegration,
     setIshavefirefliesData,
-    setFirefliesData
+    setFirefliesData,
+    setHasSeenOnboardingTour
 } = authSlice.actions;
 export default authSlice.reducer;

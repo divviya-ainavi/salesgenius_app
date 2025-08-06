@@ -140,6 +140,19 @@ export const Sidebar = () => {
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 )}
+                data-tour={
+                  item.title === "Research"
+                    ? "research"
+                    : item.title === "Sales Calls"
+                    ? "sales-calls"
+                    : item.title === "Call Insights"
+                    ? "call-insights"
+                    : item.title === "Analytics"
+                    ? "analytics"
+                    : item.title === "Settings"
+                    ? "settings"
+                    : undefined
+                }
               >
                 <item.icon className="w-5 h-5" />
                 <span>{item.title}</span>
@@ -153,6 +166,7 @@ export const Sidebar = () => {
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground"
                 )}
+                data-tour="follow-ups"
               >
                 <item.icon className="w-5 h-5" />
                 <span>{item.title}</span>
@@ -172,6 +186,15 @@ export const Sidebar = () => {
                         ? "bg-accent text-accent-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                     )}
+                    data-tour={
+                      subItem.title === "Email"
+                        ? "menu-email"
+                        : subItem.title === "Presentation"
+                        ? "menu-presentation"
+                        : subItem.title === "Actions"
+                        ? "menu-actions"
+                        : undefined
+                    }
                   >
                     <subItem.icon className="w-4 h-4" />
                     <span>{subItem.title}</span>

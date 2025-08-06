@@ -962,30 +962,41 @@ ${updatedBlocks
                 {isLoadingProspects ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
-                  <Select
-                    value={selectedProspect?.id}
-                    onValueChange={handleProspectSelect}
+                  <div
+                    data-tour={
+                      artefactType == "email"
+                        ? "chosen-prospect"
+                        : "chosen-prospect-presentation"
+                    }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a prospect" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {prospects.map((prospect) => (
-                        <SelectItem key={prospect.id} value={prospect.id}>
-                          <div
-                            style={{ display: "flex", flexDirection: "column" }}
-                          >
-                            <span className="font-semibold">
-                              {prospect.companyName}
-                            </span>
-                            <span className="text-muted-foreground text-left">
-                              {prospect.name}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      value={selectedProspect?.id}
+                      onValueChange={handleProspectSelect}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a prospect" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {prospects.map((prospect) => (
+                          <SelectItem key={prospect.id} value={prospect.id}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              <span className="font-semibold">
+                                {prospect.companyName}
+                              </span>
+                              <span className="text-muted-foreground text-left">
+                                {prospect.name}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1531,7 +1542,7 @@ ${updatedBlocks
 
             {/* Email Recipients Selector (Conditional) */}
             {artefactType === "email" && selectedProspect && (
-              <Card>
+              <Card data-tour="email-recipients">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Email Recipients</CardTitle>
                 </CardHeader>
@@ -1590,7 +1601,13 @@ ${updatedBlocks
             )}
 
             {/* Sales Play Selector */}
-            <Card>
+            <Card
+              data-tour={
+                artefactType === "email"
+                  ? "sales-play"
+                  : "sales-play-presentation"
+              }
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Sales Play</CardTitle>
                 <CardDescription>
@@ -1663,7 +1680,13 @@ ${updatedBlocks
             </Card>
 
             {/* Secondary Objectives */}
-            <Card>
+            <Card
+              data-tour={
+                artefactType === "email"
+                  ? "objectives"
+                  : "objectives-presentation"
+              }
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Secondary Objectives</CardTitle>
                 <CardDescription>
@@ -1753,6 +1776,11 @@ ${updatedBlocks
 
             {/* Generate Button */}
             <Button
+              data-tour={
+                artefactType === "email"
+                  ? "generate-email"
+                  : "presentation-generate"
+              }
               className="w-full"
               size="lg"
               onClick={handleGenerate}

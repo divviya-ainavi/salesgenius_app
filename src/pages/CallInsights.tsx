@@ -975,7 +975,7 @@ const CallInsights = () => {
           </Card>
 
           {/* Cummulative Intelligence Section */}
-          <Card>
+          <Card data-tour="cumulative-intelligence">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Database className="w-5 h-5" />
@@ -1070,7 +1070,7 @@ const CallInsights = () => {
             </CardContent>
           </Card>
           {/* Sales Insights Section */}
-          <Card>
+          <Card data-tour="sales-insights-section">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1400,7 +1400,7 @@ const CallInsights = () => {
           </Card>
 
           {/* Communication Styles Detected with Behavioral Insights */}
-          <Card>
+          <Card data-tour="communication-style-section">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
