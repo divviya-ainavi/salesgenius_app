@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React, { useState, useEffect } from "react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -17,34 +23,59 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Router as RouteIcon, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { dbHelpers } from '@/lib/supabase';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+} from "@/components/ui/dropdown-menu";
+import {
+  Router as RouteIcon,
+  Play,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  MoreVertical,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  Loader2,
+  RefreshCw,
+  Crown,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { dbHelpers } from "@/lib/supabase";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 // Rich text editor configuration
 const quillModules = {
   toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    ['link', 'code-block'],
-    [{ 'align': [] }],
-    ['clean']
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["link", "code-block"],
+    [{ align: [] }],
+    ["clean"],
   ],
 };
 
 const quillFormats = [
-  'header', 'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet', 'link', 'code-block', 'align'
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "link",
+  "code-block",
+  "align",
 ];
 
 const TourManagement = () => {
@@ -58,21 +89,21 @@ const TourManagement = () => {
 
   // Form state for creating/editing steps
   const [formData, setFormData] = useState({
-    step_order: '',
-    target: '',
-    title: '',
-    content: '',
-    placement: 'right',
+    step_order: "",
+    target: "",
+    title: "",
+    content: "",
+    placement: "right",
     disable_beacon: false,
     is_active: true,
   });
 
   const placementOptions = [
-    { value: 'top', label: 'Top' },
-    { value: 'bottom', label: 'Bottom' },
-    { value: 'left', label: 'Left' },
-    { value: 'right', label: 'Right' },
-    { value: 'center', label: 'Center' },
+    { value: "top", label: "Top" },
+    { value: "bottom", label: "Bottom" },
+    { value: "left", label: "Left" },
+    { value: "right", label: "Right" },
+    { value: "center", label: "Center" },
   ];
 
   // Load tour steps on component mount
@@ -86,27 +117,27 @@ const TourManagement = () => {
       const steps = await dbHelpers.getTourSteps();
       setTourSteps(steps);
     } catch (error) {
-      console.error('Error loading tour steps:', error);
-      toast.error('Failed to load tour steps');
+      console.error("Error loading tour steps:", error);
+      toast.error("Failed to load tour steps");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const resetForm = () => {
     setFormData({
-      step_order: '',
-      target: '',
-      title: '',
-      content: '',
-      placement: 'right',
+      step_order: "",
+      target: "",
+      title: "",
+      content: "",
+      placement: "right",
       disable_beacon: false,
       is_active: true,
     });
@@ -116,10 +147,10 @@ const TourManagement = () => {
   const handleCreateStep = async () => {
     try {
       setIsUpdating(true);
-      
+
       // Validate required fields
       if (!formData.title || !formData.content || !formData.target) {
-        toast.error('Please fill in all required fields');
+        toast.error("Please fill in all required fields");
         return;
       }
 
@@ -132,10 +163,10 @@ const TourManagement = () => {
       await loadTourSteps();
       setShowCreateDialog(false);
       resetForm();
-      toast.success('Tour step created successfully');
+      toast.success("Tour step created successfully");
     } catch (error) {
-      console.error('Error creating tour step:', error);
-      toast.error('Failed to create tour step');
+      console.error("Error creating tour step:", error);
+      toast.error("Failed to create tour step");
     } finally {
       setIsUpdating(false);
     }
@@ -144,7 +175,7 @@ const TourManagement = () => {
   const handleUpdateStep = async () => {
     try {
       setIsUpdating(true);
-      
+
       const updates = {
         ...formData,
         step_order: parseInt(formData.step_order),
@@ -154,10 +185,10 @@ const TourManagement = () => {
       await loadTourSteps();
       setEditingStep(null);
       resetForm();
-      toast.success('Tour step updated successfully');
+      toast.success("Tour step updated successfully");
     } catch (error) {
-      console.error('Error updating tour step:', error);
-      toast.error('Failed to update tour step');
+      console.error("Error updating tour step:", error);
+      toast.error("Failed to update tour step");
     } finally {
       setIsUpdating(false);
     }
@@ -170,10 +201,10 @@ const TourManagement = () => {
       await loadTourSteps();
       setShowPreviewDialog(false);
       setPreviewStep(null);
-      toast.success('Tour step deleted successfully');
+      toast.success("Tour step deleted successfully");
     } catch (error) {
-      console.error('Error deleting tour step:', error);
-      toast.error('Failed to delete tour step');
+      console.error("Error deleting tour step:", error);
+      toast.error("Failed to delete tour step");
     } finally {
       setIsUpdating(false);
     }
@@ -214,10 +245,10 @@ const TourManagement = () => {
       setIsUpdating(true);
       await dbHelpers.reorderTourSteps(stepUpdates);
       await loadTourSteps();
-      toast.success('Tour steps reordered successfully');
+      toast.success("Tour steps reordered successfully");
     } catch (error) {
-      console.error('Error reordering tour steps:', error);
-      toast.error('Failed to reorder tour steps');
+      console.error("Error reordering tour steps:", error);
+      toast.error("Failed to reorder tour steps");
     } finally {
       setIsUpdating(false);
     }
@@ -227,7 +258,7 @@ const TourManagement = () => {
     if (window.replaySalesFlowTour) {
       window.replaySalesFlowTour();
     } else {
-      toast.error('Tour function not available');
+      toast.error("Tour function not available");
     }
   };
 
@@ -238,17 +269,16 @@ const TourManagement = () => {
           <div className="flex items-center space-x-2">
             <RouteIcon className="w-5 h-5" />
             <span>Tour Management</span>
-            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+            <Badge
+              variant="outline"
+              className="bg-purple-100 text-purple-800 border-purple-200"
+            >
               <Crown className="w-3 h-3 mr-1" />
               Super Admin Only
             </Badge>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              onClick={testTour}
-              variant="outline"
-              size="sm"
-            >
+            <Button onClick={testTour} variant="outline" size="sm">
               <Play className="w-4 h-4 mr-1" />
               Test Tour
             </Button>
@@ -296,7 +326,12 @@ const TourManagement = () => {
                   </Button>
                   <Button
                     onClick={handleCreateStep}
-                    disabled={isUpdating || !formData.title || !formData.content || !formData.target}
+                    disabled={
+                      isUpdating ||
+                      !formData.title ||
+                      !formData.content ||
+                      !formData.target
+                    }
                   >
                     {isUpdating ? (
                       <>
@@ -304,7 +339,7 @@ const TourManagement = () => {
                         Creating...
                       </>
                     ) : (
-                      'Create Step'
+                      "Create Step"
                     )}
                   </Button>
                 </DialogFooter>
@@ -316,8 +351,8 @@ const TourManagement = () => {
 
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Manage the onboarding tour steps that guide new users through the platform. 
-          Drag and drop to reorder steps.
+          Manage the onboarding tour steps that guide new users through the
+          platform. Drag and drop to reorder steps.
         </p>
 
         {isLoading ? (
@@ -329,7 +364,9 @@ const TourManagement = () => {
           <div className="text-center py-8 text-muted-foreground">
             <RouteIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p className="mb-2">No tour steps found</p>
-            <p className="text-sm">Create your first tour step to get started</p>
+            <p className="text-sm">
+              Create your first tour step to get started
+            </p>
           </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -366,29 +403,45 @@ const TourManagement = () => {
                                   {step.step_order}
                                 </div>
                               </div>
-                              
+
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2 mb-2">
                                   <h4 className="font-medium">{step.title}</h4>
                                   <Badge
                                     variant="outline"
-                                    className={step.is_active ? 'text-green-600' : 'text-gray-500'}
+                                    className={
+                                      step.is_active
+                                        ? "text-green-600"
+                                        : "text-gray-500"
+                                    }
                                   >
-                                    {step.is_active ? 'Active' : 'Inactive'}
+                                    {step.is_active ? "Active" : "Inactive"}
                                   </Badge>
                                   <Badge variant="outline" className="text-xs">
                                     {step.placement}
                                   </Badge>
                                 </div>
-                                
-                                <div 
+
+                                <div
                                   className="text-sm text-muted-foreground mb-2 line-clamp-2 prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: step.content }}
+                                  dangerouslySetInnerHTML={{
+                                    __html: step.content,
+                                  }}
                                 />
-                                
+
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span>Target: <code className="bg-gray-100 px-1 rounded">{step.target}</code></span>
-                                  <span>Updated: {new Date(step.updated_at).toLocaleDateString()}</span>
+                                  <span>
+                                    Target:{" "}
+                                    <code className="bg-gray-100 px-1 rounded">
+                                      {step.target}
+                                    </code>
+                                  </span>
+                                  <span>
+                                    Updated:{" "}
+                                    {new Date(
+                                      step.updated_at
+                                    ).toLocaleDateString()}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -401,7 +454,7 @@ const TourManagement = () => {
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm">
@@ -424,7 +477,11 @@ const TourManagement = () => {
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setPreviewStep(step);
-                                      if (window.confirm(`Are you sure you want to delete "${step.title}"?`)) {
+                                      if (
+                                        window.confirm(
+                                          `Are you sure you want to delete "${step.title}"?`
+                                        )
+                                      ) {
                                         handleDeleteStep();
                                       }
                                     }}
@@ -449,7 +506,10 @@ const TourManagement = () => {
         )}
 
         {/* Edit Step Dialog */}
-        <Dialog open={!!editingStep} onOpenChange={(open) => !open && setEditingStep(null)}>
+        <Dialog
+          open={!!editingStep}
+          onOpenChange={(open) => !open && setEditingStep(null)}
+        >
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Tour Step</DialogTitle>
@@ -475,7 +535,12 @@ const TourManagement = () => {
               </Button>
               <Button
                 onClick={handleUpdateStep}
-                disabled={isUpdating || !formData.title || !formData.content || !formData.target}
+                disabled={
+                  isUpdating ||
+                  !formData.title ||
+                  !formData.content ||
+                  !formData.target
+                }
               >
                 {isUpdating ? (
                   <>
@@ -502,39 +567,45 @@ const TourManagement = () => {
             {previewStep && (
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-2">{previewStep.title}</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {previewStep.title}
+                  </h3>
                   <div
                     className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: previewStep.content }}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Target:</span>
-                    <p className="text-muted-foreground font-mono">{previewStep.target}</p>
+                    <p className="text-muted-foreground font-mono">
+                      {previewStep.target}
+                    </p>
                   </div>
                   <div>
                     <span className="font-medium">Placement:</span>
-                    <p className="text-muted-foreground">{previewStep.placement}</p>
+                    <p className="text-muted-foreground">
+                      {previewStep.placement}
+                    </p>
                   </div>
                   <div>
                     <span className="font-medium">Order:</span>
-                    <p className="text-muted-foreground">{previewStep.step_order}</p>
+                    <p className="text-muted-foreground">
+                      {previewStep.step_order}
+                    </p>
                   </div>
                   <div>
                     <span className="font-medium">Beacon:</span>
                     <p className="text-muted-foreground">
-                      {previewStep.disable_beacon ? 'Disabled' : 'Enabled'}
+                      {previewStep.disable_beacon ? "Disabled" : "Enabled"}
                     </p>
                   </div>
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button onClick={() => setShowPreviewDialog(false)}>
-                Close
-              </Button>
+              <Button onClick={() => setShowPreviewDialog(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -555,15 +626,15 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
             type="number"
             placeholder="1"
             value={formData.step_order}
-            onChange={(e) => onInputChange('step_order', e.target.value)}
+            onChange={(e) => onInputChange("step_order", e.target.value)}
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="placement">Placement</Label>
           <Select
             value={formData.placement}
-            onValueChange={(value) => onInputChange('placement', value)}
+            onValueChange={(value) => onInputChange("placement", value)}
           >
             <SelectTrigger>
               <SelectValue />
@@ -585,11 +656,12 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
           id="target"
           placeholder='[data-tour="example"] or body'
           value={formData.target}
-          onChange={(e) => onInputChange('target', e.target.value)}
+          onChange={(e) => onInputChange("target", e.target.value)}
           className="font-mono"
         />
         <p className="text-xs text-muted-foreground">
-          CSS selector for the element to highlight (e.g., [data-tour="research"], body)
+          CSS selector for the element to highlight (e.g.,
+          [data-tour="research"], body)
         </p>
       </div>
 
@@ -599,7 +671,7 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
           id="title"
           placeholder="Step title with emoji"
           value={formData.title}
-          onChange={(e) => onInputChange('title', e.target.value)}
+          onChange={(e) => onInputChange("title", e.target.value)}
         />
       </div>
 
@@ -609,19 +681,20 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
           <ReactQuill
             theme="snow"
             value={formData.content}
-            onChange={(value) => onInputChange('content', value)}
+            onChange={(value) => onInputChange("content", value)}
             modules={quillModules}
             formats={quillFormats}
             placeholder="Step description and instructions..."
-            style={{ minHeight: '200px' }}
+            style={{ minHeight: "200px" }}
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Use the rich text editor to format your content. HTML will be generated automatically.
+          Use the rich text editor to format your content. HTML will be
+          generated automatically.
         </p>
       </div>
 
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="html-preview">HTML Preview</Label>
         <Textarea
           id="html-preview"
@@ -634,14 +707,16 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
         <p className="text-xs text-muted-foreground">
           You can also edit the raw HTML directly here if needed.
         </p>
-      </div>
+      </div> */}
 
       <div className="flex items-center space-x-6">
         <div className="flex items-center space-x-2">
           <Switch
             id="disable-beacon"
             checked={formData.disable_beacon}
-            onCheckedChange={(checked) => onInputChange('disable_beacon', checked)}
+            onCheckedChange={(checked) =>
+              onInputChange("disable_beacon", checked)
+            }
           />
           <Label htmlFor="disable-beacon" className="text-sm">
             Disable Beacon
@@ -652,7 +727,7 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
           <Switch
             id="is-active"
             checked={formData.is_active}
-            onCheckedChange={(checked) => onInputChange('is_active', checked)}
+            onCheckedChange={(checked) => onInputChange("is_active", checked)}
           />
           <Label htmlFor="is-active" className="text-sm">
             Active
