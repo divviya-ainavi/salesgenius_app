@@ -3319,6 +3319,99 @@ export const dbHelpers = {
     return data;
   },
 
+  // Tour Steps Management
+  async getTourSteps() {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .select('*')
+        .eq('is_active', true)
+        .order('step_order', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching tour steps:', error);
+      throw error;
+    }
+  },
+
+  async updateTourStep(stepId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', stepId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating tour step:', error);
+      throw error;
+    }
+  },
+
+  async createTourStep(stepData) {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .insert([{
+          step_order: stepData.step_order,
+          target: stepData.target,
+          title: stepData.title,
+          content: stepData.content,
+          placement: stepData.placement || 'right',
+          disable_beacon: stepData.disable_beacon || false,
+          is_active: stepData.is_active !== false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error creating tour step:', error);
+      throw error;
+    }
+  },
+
+  async deleteTourStep(stepId) {
+    try {
+      const { error } = await supabase
+        .from('tour_steps')
+        .update({ is_active: false })
+        .eq('id', stepId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting tour step:', error);
+      throw error;
+    }
+  },
+
+  async reorderTourSteps(stepUpdates) {
+    try {
+      const updates = stepUpdates.map(({ id, step_order }) => 
+        supabase
+          .from('tour_steps')
+          .update({ step_order })
+          .eq('id', id)
+      );
+
+      await Promise.all(updates);
+      return true;
+    } catch (error) {
+      console.error('Error reordering tour steps:', error);
+      throw error;
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
