@@ -96,9 +96,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { usePageTimer } from "../hooks/userPageTimer";
-import BusinessKnowledgeSection from "@/components/settings/BusinessKnowledgeSection";
-import TourManagement from "@/components/admin/TourManagement";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -296,7 +293,7 @@ export const Settings = () => {
 
   const {
     userProfileInfo,
-    userRole, 
+    userRole,
     userRoleId,
     titleName,
     organizationDetails,
@@ -355,12 +352,7 @@ export const Settings = () => {
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const dispatch = useDispatch();
-
-  // Check if user is super admin
-  const isSuperAdmin = userRole?.key === 'super_admin';
 
   // console.log(
   //   userProfileInfo,
@@ -1256,14 +1248,6 @@ export const Settings = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="organization">Organization</TabsTrigger>
-          {isSuperAdmin && (
-            <TabsTrigger value="tour-management">Tour Management</TabsTrigger>
-          )}
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="business-knowledge">Knowledge Base</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center space-x-2">
             <User className="w-4 h-4" />
             <span>Profile</span>
@@ -2944,14 +2928,163 @@ export const Settings = () => {
 
             {/* Business-Specific Knowledge */}
             {canUploadOrgMaterials && (
-              <BusinessKnowledgeSection />
-            )}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building className="w-5 h-5" />
+                      <span>Business-Specific Knowledge</span>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 border-blue-200"
+                      >
+                        Organization Level
+                      </Badge>
+                    </div>
+                    {/* <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge> */}
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center space-x-2">
+                    <Building className="w-5 h-5" />
+                    <span>Business-Specific Knowledge</span>
+                  </CardTitle> */}
+                  <p className="text-sm text-muted-foreground">
+                    Company playbooks, product documentation, presentations, and
+                    unique selling propositions
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {/* Upload Progress for Business Files */}
+                  {isUploadingBusiness && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium text-blue-800">
+                          Uploading business material...
+                        </span>
+                      </div>
+                      <Progress
+                        value={businessUploadProgress}
+                        className="w-full"
+                      />
+                      <p className="text-sm text-blue-700 mt-2">
+                        {businessUploadProgress < 50
+                          ? "Uploading file..."
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
 
-            {/* Tour Management Tab - Super Admin Only */}
-            {isSuperAdmin && (
-              <TabsContent value="tour-management" className="space-y-6">
-                <TourManagement />
-              </TabsContent>
+                  <div className="space-y-4">
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
+                      {isUploadingBusiness ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Material"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop files here"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {internalUploadedFiles?.length > 0 &&
+                        internalUploadedFiles.map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {/* {material.original_filename} */}
+                                  <a
+                                    href={material.file_url} // ensure this is the correct Supabase file URL
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:underline text-primary"
+                                  >
+                                    {material.original_filename}
+                                  </a>
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(material.file_size)} •{" "}
+                                  {formatDate(material.updated_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge
+                                variant={
+                                  material.status === "processed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {material.status === "processed" ? (
+                                  <>
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Processed
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    Processing
+                                  </>
+                                )}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  // handleDeleteMaterial(material.id, "business")
+                                  handleDeleteClick(material)
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Personal Insights */}
