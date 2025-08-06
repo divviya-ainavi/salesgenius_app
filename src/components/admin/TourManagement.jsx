@@ -301,7 +301,7 @@ const TourManagement = () => {
                   Add Step
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-2xl">
+              <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Tour Step</DialogTitle>
                   <DialogDescription>
@@ -423,7 +423,7 @@ const TourManagement = () => {
                                 </div>
 
                                 <div
-                                  className="text-sm text-muted-foreground mb-2 line-clamp-2 prose prose-sm max-w-none"
+                                  className="text-sm text-muted-foreground mb-2 prose prose-sm max-w-none [&>*]:my-1 [&>p]:leading-relaxed [&>ul]:my-1 [&>li]:my-0"
                                   dangerouslySetInnerHTML={{
                                     __html: step.content,
                                   }}
@@ -508,9 +508,14 @@ const TourManagement = () => {
         {/* Edit Step Dialog */}
         <Dialog
           open={!!editingStep}
-          onOpenChange={(open) => !open && setEditingStep(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingStep(null);
+              resetForm();
+            }
+          }}
         >
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Tour Step</DialogTitle>
               <DialogDescription>
@@ -560,18 +565,18 @@ const TourManagement = () => {
 
         {/* Preview Step Dialog */}
         <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Preview Tour Step</DialogTitle>
             </DialogHeader>
             {previewStep && (
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-none">
                   <h3 className="text-lg font-semibold mb-2">
                     {previewStep.title}
                   </h3>
                   <div
-                    className="prose prose-sm max-w-none"
+                    className="prose prose-sm max-w-none text-gray-700"
                     dangerouslySetInnerHTML={{ __html: previewStep.content }}
                   />
                 </div>
@@ -617,7 +622,7 @@ const TourManagement = () => {
 // Tour Step Form Component
 const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="step-order">Step Order</Label>
@@ -677,7 +682,7 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
 
       <div className="space-y-2">
         <Label htmlFor="content">Content *</Label>
-        <div className="border border-input rounded-md">
+        <div className="border border-input rounded-md min-h-[300px]">
           <ReactQuill
             theme="snow"
             value={formData.content}
@@ -685,7 +690,7 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
             modules={quillModules}
             formats={quillFormats}
             placeholder="Step description and instructions..."
-            style={{ minHeight: "200px" }}
+            style={{ minHeight: "250px" }}
           />
         </div>
         <p className="text-xs text-muted-foreground">
@@ -694,20 +699,18 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
         </p>
       </div>
 
-      {/* <div className="space-y-2">
+      <div className="space-y-2">
         <Label htmlFor="html-preview">HTML Preview</Label>
-        <Textarea
-          id="html-preview"
-          value={formData.content}
-          onChange={(e) => onInputChange('content', e.target.value)}
-          rows={4}
-          className="font-mono text-sm"
-          placeholder="Raw HTML (auto-generated from rich editor above)"
-        />
+        <div className="border border-input rounded-md p-4 bg-gray-50 max-h-32 overflow-y-auto">
+          <div 
+            className="prose prose-sm max-w-none text-gray-700"
+            dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-gray-400 italic">Content preview will appear here...</p>' }}
+          />
+        </div>
         <p className="text-xs text-muted-foreground">
-          You can also edit the raw HTML directly here if needed.
+          Live preview of how the content will appear in the tour.
         </p>
-      </div> */}
+      </div>
 
       <div className="flex items-center space-x-6">
         <div className="flex items-center space-x-2">

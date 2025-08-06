@@ -191,6 +191,8 @@
   min-height: 150px;
   font-size: 14px;
   line-height: 1.5;
+  max-height: 250px;
+  overflow-y: auto;
 }
 
 .ql-toolbar {
@@ -239,6 +241,26 @@
 
 .prose li {
   margin: 0.25rem 0;
+}
+
+/* Tour management specific prose styles */
+.prose [&>*]:my-1 > * {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.prose [&>p]:leading-relaxed p {
+  line-height: 1.6 !important;
+}
+
+.prose [&>ul]:my-1 ul {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.prose [&>li]:my-0 li {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* Text wrapping utility for consistent list item heights */
