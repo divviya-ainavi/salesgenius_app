@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Route as RouteIcon, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Router as RouteIcon, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers } from '@/lib/supabase';
