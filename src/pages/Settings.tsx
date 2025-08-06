@@ -96,6 +96,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import TourManagement from "@/components/admin/TourManagement";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -310,6 +311,10 @@ export const Settings = () => {
     getOrgList,
     allStatus,
   } = useSelector((state) => state.org);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const isSuperAdmin = userRole?.key === "super_admin";
+  console.log(isSuperAdmin, "check super admin");
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -1266,6 +1271,9 @@ export const Settings = () => {
               <Users className="w-4 h-4" />
               <span>Users</span>
             </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="tour-management">Tour Management</TabsTrigger>
           )}
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
@@ -2605,6 +2613,11 @@ export const Settings = () => {
           </TabsContent>
         )}
 
+        {isSuperAdmin && (
+          <TabsContent value="tour-management" className="space-y-6">
+            <TourManagement />
+          </TabsContent>
+        )}
         {/* Security Settings */}
         <TabsContent value="security" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
