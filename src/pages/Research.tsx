@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,32 +59,11 @@ interface ResearchResult {
   recommendations: any;
 }
 
-interface StoredResearch {
-  id: string;
-  company_name: string;
-  company_url: string;
-  prospect_urls: string[];
-  company_analysis: string;
-  prospect_analysis: string;
-  sources: string[];
-  recommendations: string;
-  summary_note: string;
-  market_trends: string[];
-  growth_opportunities: string[];
-  key_positioning: string;
-  nature_of_business: string;
-  geographic_scope: string;
-  size: string;
-  sector: string;
-  created_at: string;
-}
-
 const Research = () => {
   usePageTimer("Research");
 
-  const [currentView, setCurrentView] = useState<"form" | "results" | "history">("form");
+  const [currentView, setCurrentView] = useState<"form" | "results">("form");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
@@ -94,7 +73,6 @@ const Research = () => {
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(
     null
   );
-  const [researchHistory, setResearchHistory] = useState<StoredResearch[]>([]);
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
@@ -107,52 +85,6 @@ const Research = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-
-  // Load research history on component mount
-  useEffect(() => {
-    if (user?.id) {
-      loadResearchHistory();
-    }
-  }, [user?.id]);
-
-  const loadResearchHistory = async () => {
-    if (!user?.id) return;
-    
-    setIsLoadingHistory(true);
-    try {
-      const history = await dbHelpers.getResearchHistory(user.id);
-      setResearchHistory(history || []);
-    } catch (error) {
-      console.error("Error loading research history:", error);
-      toast.error("Failed to load research history");
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  const handleHistoryItemClick = (historyItem: StoredResearch) => {
-    // Transform stored research back to display format
-    const transformedResult: ResearchResult = {
-      companyName: historyItem.company_name,
-      companyOverview: historyItem.company_analysis,
-      sector: historyItem.sector,
-      size: historyItem.size,
-      geographicScope: historyItem.geographic_scope,
-      natureOfBusiness: historyItem.nature_of_business,
-      keyPositioning: historyItem.key_positioning,
-      growthOpportunities: historyItem.growth_opportunities,
-      marketTrends: historyItem.market_trends,
-      summaryNote: historyItem.summary_note,
-      sources: historyItem.sources,
-      recommendations: typeof historyItem.recommendations === 'string' 
-        ? JSON.parse(historyItem.recommendations) 
-        : historyItem.recommendations,
-    };
-
-    setResearchResult(transformedResult);
-    setCurrentView("results");
-    setActiveTab("analysis");
-  };
 
   // Form validation
   const isFormValid =
@@ -422,111 +354,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     });
     setResearchResult(null);
     setActiveTab("analysis");
-  // Render history view
-  if (currentView === "history") {
-    return (
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Research History</h1>
-            <p className="text-muted-foreground">
-              View and access your previous research results
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={handleNewResearch}>
-              <Plus className="w-4 h-4 mr-1" />
-              New Research
-            </Button>
-            <Button variant="outline" onClick={loadResearchHistory} disabled={isLoadingHistory}>
-              {isLoadingHistory ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* History List */}
-        {isLoadingHistory ? (
-          <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading research history...</p>
-          </div>
-        ) : researchHistory.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Search className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No Research History</h3>
-              <p className="text-muted-foreground mb-4">
-                You haven't performed any research yet. Start by researching a company.
-              </p>
-              <Button onClick={handleNewResearch}>
-                <Search className="w-4 h-4 mr-2" />
-                Start Research
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {researchHistory.map((item) => (
-              <Card 
-                key={item.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleHistoryItemClick(item)}
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center space-x-2">
-                    <Building className="w-5 h-5" />
-                    <span className="truncate">{item.company_name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                    {item.sector && (
-                      <Badge variant="outline" className="text-xs">
-                        {item.sector}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {item.summary_note && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {item.summary_note}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      {item.prospect_urls && item.prospect_urls.length > 0 && (
-                        <span className="flex items-center space-x-1">
-                          <User className="w-3 h-3" />
-                          <span>{item.prospect_urls.length} prospect(s)</span>
-                        </span>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
     setProspectInCRM(false);
-  };
-
-  const handleViewHistory = () => {
-    setCurrentView("history");
-    loadResearchHistory();
   };
 
   // Handle copy to clipboard
@@ -579,17 +407,11 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     return (
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Research</h1>
-            <p className="text-muted-foreground">
-              Get comprehensive analysis and insights for your sales outreach
-            </p>
-          </div>
-          <Button variant="outline" onClick={handleViewHistory}>
-            <FileText className="w-4 h-4 mr-1" />
-            View History
-          </Button>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">Research</h1>
+          <p className="text-muted-foreground">
+            Get comprehensive analysis and insights for your sales outreach
+          </p>
         </div>
 
         {/* Input Form */}
@@ -789,10 +611,6 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 {prospectInCRM ? "On" : "Off"}
               </span>
             </div>
-            <Button variant="outline" onClick={handleViewHistory}>
-              <FileText className="w-4 h-4 mr-1" />
-              History
-            </Button>
             <Button variant="outline" onClick={handleNewResearch}>
               <Plus className="w-4 h-4 mr-1" />
               New Research
