@@ -92,8 +92,14 @@ export const SalesCallsTour = () => {
     });
 
     if ([EVENTS.STEP_AFTER, EVENTS.TARGET_NOT_FOUND].includes(type)) {
-      // Update step index
-      setStepIndex(index + (action === ACTIONS.PREV ? -1 : 1));
+      if (action === ACTIONS.PREV) {
+        setStepIndex(index - 1);
+      } else if (action === ACTIONS.NEXT) {
+        setStepIndex(index + 1);
+      } else {
+        // Don't change stepIndex for other actions like 'close'
+        setStepIndex(index);
+      }
     } else if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       // Tour completed or skipped
       await handleTourComplete(status === STATUS.SKIPPED);

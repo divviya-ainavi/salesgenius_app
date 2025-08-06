@@ -1253,7 +1253,11 @@ export const Settings = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="profile" className="flex items-center space-x-2">
+          <TabsTrigger
+            value="profile"
+            className="flex items-center space-x-2"
+            data-tour="settings-tab-profile"
+          >
             <User className="w-4 h-4" />
             <span>Profile</span>
           </TabsTrigger>
@@ -1261,13 +1265,18 @@ export const Settings = () => {
             <TabsTrigger
               value="organization"
               className="flex items-center space-x-2"
+              data-tour="settings-tab-organization"
             >
               <Building className="w-4 h-4" />
               <span>Organization</span>
             </TabsTrigger>
           )}
           {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
-            <TabsTrigger value="users" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="users"
+              className="flex items-center space-x-2"
+              data-tour="settings-tab-users"
+            >
               <Users className="w-4 h-4" />
               <span>Users</span>
             </TabsTrigger>
@@ -1283,6 +1292,7 @@ export const Settings = () => {
             <TabsTrigger
               value="ai-training"
               className="flex items-center space-x-2"
+              data-tour="settings-tab-ai-training"
             >
               <Brain className="w-4 h-4" />
               <span>AI Training</span>

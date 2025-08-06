@@ -1070,8 +1070,8 @@ const CallInsights = () => {
             </CardContent>
           </Card>
           {/* Sales Insights Section */}
-          <Card>
-            <CardHeader data-tour="sales-insights-section">
+          <Card data-tour="sales-insights-section">
+            <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-5 h-5" />
@@ -1400,8 +1400,8 @@ const CallInsights = () => {
           </Card>
 
           {/* Communication Styles Detected with Behavioral Insights */}
-          <Card>
-            <CardHeader data-tour="communication-style-section">
+          <Card data-tour="communication-style-section">
+            <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
                 <span>Prospect Behavioral & Communication Insights</span>

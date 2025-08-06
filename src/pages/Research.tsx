@@ -431,6 +431,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     Company Name *
                   </label>
                   <Input
+                    data-tour="company-name"
                     id="companyName"
                     type="text"
                     placeholder="Enter company name"
@@ -451,6 +452,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     Company Website URL *
                   </label>
                   <Input
+                    data-tour="company-url"
                     id="companyWebsite"
                     type="url"
                     placeholder="e.g., https://www.salesgenius.ai"
@@ -531,6 +533,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
                 {/* Submit Button */}
                 <Button
+                  data-tour="research-button"
                   type="submit"
                   disabled={!isFormValid || isLoading}
                   className="w-full"

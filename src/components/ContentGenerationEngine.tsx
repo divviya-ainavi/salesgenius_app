@@ -958,40 +958,45 @@ ${updatedBlocks
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Prospect Context</CardTitle>
               </CardHeader>
-              <CardContent
-                data-tour={
-                  artefactType == "email"
-                    ? "chosen-prospect"
-                    : "chosen-prospect-presentation"
-                }
-              >
+              <CardContent>
                 {isLoadingProspects ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
-                  <Select
-                    value={selectedProspect?.id}
-                    onValueChange={handleProspectSelect}
+                  <div
+                    data-tour={
+                      artefactType == "email"
+                        ? "chosen-prospect"
+                        : "chosen-prospect-presentation"
+                    }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a prospect" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {prospects.map((prospect) => (
-                        <SelectItem key={prospect.id} value={prospect.id}>
-                          <div
-                            style={{ display: "flex", flexDirection: "column" }}
-                          >
-                            <span className="font-semibold">
-                              {prospect.companyName}
-                            </span>
-                            <span className="text-muted-foreground text-left">
-                              {prospect.name}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      value={selectedProspect?.id}
+                      onValueChange={handleProspectSelect}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a prospect" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {prospects.map((prospect) => (
+                          <SelectItem key={prospect.id} value={prospect.id}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              <span className="font-semibold">
+                                {prospect.companyName}
+                              </span>
+                              <span className="text-muted-foreground text-left">
+                                {prospect.name}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </CardContent>
             </Card>
