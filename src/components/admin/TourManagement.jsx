@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +29,23 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers } from '@/lib/supabase';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
+// Rich text editor configuration
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    ['link', 'code-block'],
+    [{ 'align': [] }],
+    ['clean']
+  ],
+};
+
+const quillFormats = [
+  'header', 'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet', 'link', 'code-block', 'align'
+];
 
 const TourManagement = () => {
   const [tourSteps, setTourSteps] = useState([]);
@@ -362,9 +381,10 @@ const TourManagement = () => {
                                   </Badge>
                                 </div>
                                 
-                                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                                  <span dangerouslySetInnerHTML={{ __html: step.content }} />
-                                </p>
+                                <div 
+                                  className="text-sm text-muted-foreground mb-2 line-clamp-2 prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: step.content }}
+                                />
                                 
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                   <span>Target: <code className="bg-gray-100 px-1 rounded">{step.target}</code></span>
@@ -481,10 +501,10 @@ const TourManagement = () => {
             </DialogHeader>
             {previewStep && (
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-2">{previewStep.title}</h3>
                   <div
-                    className="text-sm"
+                    className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: previewStep.content }}
                   />
                 </div>
@@ -585,16 +605,34 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
 
       <div className="space-y-2">
         <Label htmlFor="content">Content *</Label>
+        <div className="border border-input rounded-md">
+          <ReactQuill
+            theme="snow"
+            value={formData.content}
+            onChange={(value) => onInputChange('content', value)}
+            modules={quillModules}
+            formats={quillFormats}
+            placeholder="Step description and instructions..."
+            style={{ minHeight: '200px' }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Use the rich text editor to format your content. HTML will be generated automatically.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="html-preview">HTML Preview</Label>
         <Textarea
-          id="content"
-          placeholder="Step description and instructions (HTML supported)..."
+          id="html-preview"
           value={formData.content}
           onChange={(e) => onInputChange('content', e.target.value)}
-          rows={8}
+          rows={4}
           className="font-mono text-sm"
+          placeholder="Raw HTML (auto-generated from rich editor above)"
         />
         <p className="text-xs text-muted-foreground">
-          HTML tags are supported: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;code&gt;, etc.
+          You can also edit the raw HTML directly here if needed.
         </p>
       </div>
 
