@@ -30,13 +30,15 @@ const completeSalesFlowTourSteps = [
       <div>
         <h3 className="text-lg font-semibold mb-2">Step 1: Research 🔍</h3>
         <p>
-          Start here to research companies and prospects. Get AI-powered
-          insights about your target companies, key stakeholders, and strategic
-          talking points before your sales calls.
+          Enter a company name and website to generate AI-powered research. You
+          can also add LinkedIn URLs for prospect insights.
         </p>
-        <p className="text-sm text-gray-600 mt-2">
-          Enter company name and website to get comprehensive analysis and
-          recommendations.
+        <p className="mt-2 text-sm">
+          SalesGenius will validate the domain, analyze the company, recommend
+          talking points, and summarize key details.
+        </p>
+        <p className="mt-2 text-sm text-gray-600">
+          Save to CRM or copy insights for follow-ups — all in one place.
         </p>
       </div>
     ),
@@ -53,18 +55,19 @@ const completeSalesFlowTourSteps = [
         </p>
         <p>
           Upload files, process them by selecting company and prospect, then get
-          AI-powered analysis.
+          Sales Insights and Communication Styles.
         </p>
       </div>
     ),
     placement: "right",
   },
+
   {
     target: '[data-tour="file-upload-area"]',
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">
-          Step 2: Drop Your Transcript Here 📁
+          Drop Your Transcript Here 📁
         </h3>
         <p>
           Drop your transcript file here or click to browse. This is where you
@@ -82,7 +85,7 @@ const completeSalesFlowTourSteps = [
     content: (
       <div>
         <h3 className="text-lg font-semibold mb-2">
-          Steps 3–6: Process Uploaded Calls 📋
+          Process Uploaded Calls 📋
         </h3>
         <p>
           Once you upload a file, it will appear here. Click the{" "}
@@ -108,6 +111,72 @@ const completeSalesFlowTourSteps = [
     placement: "top",
   },
   {
+    target: '[data-tour="recent-uploads-process"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Process Uploaded Call 📁</h3>
+        <p>
+          Click <strong>Process</strong> on any uploaded transcript to begin
+          analysis. You'll select the company and prospect in the next step.
+        </p>
+        <p className="text-sm text-gray-600 mt-2">
+          This triggers AI to generate insights, summaries, and action items
+          from your sales call.
+        </p>
+      </div>
+    ),
+    placement: "left",
+  },
+  // {
+  //   target: '[data-tour="select-company"]',
+  //   content: (
+  //     <div>
+  //       <h3 className="text-lg font-semibold mb-2">
+  //         Step 1: Select a Company 🏢
+  //       </h3>
+  //       <p>
+  //         Start by selecting the company this call was with. You can search from
+  //         the list or click <strong>"Create New Company"</strong> if it's not
+  //         listed yet.
+  //       </p>
+  //     </div>
+  //   ),
+  //   placement: "right",
+  // },
+  // {
+  //   target: '[data-tour="select-prospect"]',
+  //   content: (
+  //     <div>
+  //       <h3 className="text-lg font-semibold mb-2">
+  //         Step 2: Select a Prospect 👤
+  //       </h3>
+  //       <p>
+  //         Now, choose or create the person (prospect) who was on the call. This
+  //         links insights directly to the right contact.
+  //       </p>
+  //     </div>
+  //   ),
+  //   placement: "right",
+  // },
+  // {
+  //   target: '[data-tour="process-button"]',
+  //   content: (
+  //     <div>
+  //       <h3 className="text-lg font-semibold mb-2">
+  //         Step 3: Process the Call 📊
+  //       </h3>
+  //       <p>
+  //         Once you’ve selected both a company and a prospect, click{" "}
+  //         <strong>Process</strong> to begin AI analysis of the transcript.
+  //       </p>
+  //       <p className="text-sm text-gray-600 mt-2">
+  //         This will generate summaries, action items, and sales insights.
+  //       </p>
+  //     </div>
+  //   ),
+  //   placement: "top",
+  // },
+  {
     target: '[data-tour="call-insights"]',
     content: (
       <div>
@@ -125,27 +194,215 @@ const completeSalesFlowTourSteps = [
     placement: "right",
   },
   {
-    target: '[data-tour="follow-ups"]',
+    target: '[data-tour="cumulative-intelligence"]',
     content: (
       <div>
-        <h3 className="text-lg font-semibold mb-2">Step 4: Follow-ups 📧</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          Cumulative Intelligence 🧠
+        </h3>
         <p>
-          Generate personalized follow-up content based on your processed calls:
+          This AI-generated summary captures the key moments, themes, and
+          updates discussed during the call.
         </p>
-        <ul className="list-disc pl-5 my-2 text-sm">
-          <li>
-            <strong>Email</strong> - AI-generated follow-up emails
-          </li>
-          <li>
-            <strong>Presentation</strong> - Custom presentation prompts
-          </li>
-          <li>
-            <strong>Actions</strong> - Track commitments and action items
-          </li>
+        <p className="text-sm text-gray-600 mt-2">
+          Use it to quickly recall what was said — no need to reread the full
+          transcript.
+        </p>
+      </div>
+    ),
+    placement: "top",
+  },
+  {
+    target: '[data-tour="sales-insights-section"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Sales Insights 💡</h3>
+        <p>
+          These are the most important takeaways — like decision makers,
+          objections, and buying timelines.
+        </p>
+        <ul className="list-disc pl-5 mt-2 text-sm">
+          <li>Edit or delete AI suggestions</li>
+          <li>Add your own insights manually</li>
+          <li>Track scoring to prioritize follow-ups</li>
         </ul>
-        <p className="text-sm text-gray-600">
-          All content is personalized for your specific prospects and call
-          context.
+      </div>
+    ),
+    placement: "top",
+  },
+  {
+    target: '[data-tour="communication-style-section"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">
+          Behavioral & Communication Insights 🗣️
+        </h3>
+        <p>
+          Understand each stakeholder’s personality type and communication
+          preferences.
+        </p>
+        <p className="text-sm text-gray-600 mt-2">
+          Use this to tailor your follow-up style — whether it's analytical,
+          direct, or collaborative.
+        </p>
+      </div>
+    ),
+    placement: "top",
+  },
+  {
+    target: '[data-tour="menu-email"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Email Templates ✉️</h3>
+        <p>
+          Generate and refine AI-powered follow-up emails tailored to each
+          prospect’s behavior and conversation history.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="chosen-prospect"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">
+          Step 1: Prospect Selected
+        </h3>
+        <p>
+          The prospect is pre-selected based on your previous actions. All
+          follow-up materials will be personalized for this contact.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="email-recipients"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">
+          Step 2: Select Recipients
+        </h3>
+        <p>
+          Choose stakeholders who should receive the email. You can target
+          individuals or multiple contacts.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="sales-play"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Step 3: Sales Play</h3>
+        <p>
+          Pick the most relevant sales strategy to apply. SalesGenius will use
+          this to shape tone, content, and intent.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="objectives"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Step 4: Add Objectives</h3>
+        <p>
+          Select secondary goals to include in your follow-up—such as urgency,
+          ROI, or purchase closure.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="generate-email"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Step 5: Generate Email</h3>
+        <p>
+          Once ready, click here to instantly generate a personalized email
+          based on your selections.
+        </p>
+      </div>
+    ),
+    placement: "top",
+  },
+  {
+    target: '[data-tour="menu-presentation"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Presentation Builder 📊</h3>
+        <p>
+          Generate tailored slide outlines based on call insights using AI.
+          Perfect for Gamma.app or any sales deck workflow.
+        </p>
+        <p className="text-sm text-gray-600 mt-1">
+          Structure, tone, and content align with the selected sales
+          methodology.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="chosen-prospect-presentation"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">
+          Step 1: Prospect Selected
+        </h3>
+        <p>
+          The prospect is pre-selected based on your previous actions. All
+          follow-up materials will be personalized for this contact.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="sales-play-presentation"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Step 2: Sales Play</h3>
+        <p>
+          Pick the strategic sales play that best suits your current deal
+          status. Recommended plays are highlighted.
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="objectives-presentation"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Step 3: Add Objectives</h3>
+        <p>
+          Boost your strategy with optional objectives like ROI demonstration or
+          urgency building
+        </p>
+      </div>
+    ),
+    placement: "right",
+  },
+  {
+    target: '[data-tour="presentation-generate"]',
+    content:
+      "Once you’ve selected your play and objectives, click here to generate the tailored presentation framework.",
+    placement: "top",
+  },
+  {
+    target: '[data-tour="menu-actions"]',
+    content: (
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Action Items ✅</h3>
+        <p>
+          Review and manage commitments from your calls. These are automatically
+          extracted tasks that can be pushed to your CRM.
         </p>
       </div>
     ),

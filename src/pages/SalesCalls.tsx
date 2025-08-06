@@ -1022,7 +1022,7 @@ export const SalesCalls = () => {
                             size="sm"
                             onClick={() => handleProcessClick(file, "upload")}
                             disabled={processingFileId === file.id}
-                            data-tour="process-button"
+                            data-tour="recent-uploads-process"
                           >
                             {processingFileId === file.id ? (
                               <>
