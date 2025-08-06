@@ -207,8 +207,9 @@ const LoginPage = () => {
         localStorage.setItem("login_timestamp", Date.now().toString());
 
         // Load onboarding tour status
+        let tourStatus = false;
         try {
-          const tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
+          tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
           // Set tour status based on database - false means tour will run
           dispatch(setHasSeenOnboardingTour(tourStatus || false));
           console.log("✅ Loaded onboarding tour status:", tourStatus);
