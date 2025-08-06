@@ -223,23 +223,11 @@ export const SalesCallsTour = () => {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // Check if tour should run for first-time users
+  // Tour should NOT auto-run - only manual trigger
   useEffect(() => {
-    const shouldRunTour = () => {
-      // This tour is now manually triggered from login
-      // Don't auto-run based on conditions
-      return false;
-    };
-
-    if (shouldRunTour()) {
-      // Small delay to ensure DOM elements are rendered
-      const timer = setTimeout(() => {
-        setRun(true);
-      }, 1500); // Slightly longer delay for Sales Calls tour
-
-      return () => clearTimeout(timer);
-    }
-  }, [user, location.pathname]);
+    // This tour is only triggered manually - no auto-start
+    // Auto-start is handled from LoginPage for first-time users only
+  }, []);
 
   const handleJoyrideCallback = async (data) => {
     const { action, index, status, type } = data;

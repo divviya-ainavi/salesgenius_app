@@ -74,6 +74,7 @@ export const MainLayout = () => {
                 size="sm" 
                 onClick={() => {
                   if (window.replaySalesFlowTour) {
+                    console.log("🎯 User manually triggered tour replay from header");
                     window.replaySalesFlowTour();
                   }
                 }}

@@ -217,14 +217,21 @@ const LoginPage = () => {
           // Default to false if we can't load the status
           dispatch(setHasSeenOnboardingTour(false));
         }
+
         toast.success("Login successful!");
         
-        // Start Sales Calls tour after successful login
-        setTimeout(() => {
-          if (window.startSalesCallsTour) {
-            window.startSalesCallsTour();
-          }
-        }, 2000); // 2 second delay to ensure page loads and tour is ready
+        // Start Sales Calls tour only for first-time users
+        const shouldStartTour = !(tourStatus || false); // If tourStatus is false/null, start tour
+        if (shouldStartTour) {
+          setTimeout(() => {
+            if (window.startSalesCallsTour) {
+              console.log("🎯 Starting tour for first-time user");
+              window.startSalesCallsTour();
+            }
+          }, 2000); // 2 second delay to ensure page loads and tour is ready
+        } else {
+          console.log("👤 Returning user - tour already completed, skipping auto-start");
+        }
         
         navigate("/calls");
       }
