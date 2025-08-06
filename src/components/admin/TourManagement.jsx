@@ -23,20 +23,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Router as Route, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Route, Play, Plus, Edit, Trash2, Save, X, MoreVertical, ArrowUp, ArrowDown, Eye, Loader2, RefreshCw, Crown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { dbHelpers } from '@/lib/supabase';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const TourManagement = () => {
   const [tourSteps, setTourSteps] = useState([]);
@@ -44,8 +35,6 @@ const TourManagement = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingStep, setEditingStep] = useState(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [stepToDelete, setStepToDelete] = useState(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewStep, setPreviewStep] = useState(null);
 
@@ -159,10 +148,10 @@ const TourManagement = () => {
   const handleDeleteStep = async () => {
     try {
       setIsUpdating(true);
-      await dbHelpers.deleteTourStep(stepToDelete.id);
+      await dbHelpers.deleteTourStep(previewStep.id);
       await loadTourSteps();
-      setShowDeleteDialog(false);
-      setStepToDelete(null);
+      setShowPreviewDialog(false);
+      setPreviewStep(null);
       toast.success('Tour step deleted successfully');
     } catch (error) {
       console.error('Error deleting tour step:', error);
@@ -415,8 +404,10 @@ const TourManagement = () => {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      setStepToDelete(step);
-                                      setShowDeleteDialog(true);
+                                      setPreviewStep(step);
+                                      if (window.confirm(`Are you sure you want to delete "${step.title}"?`)) {
+                                        handleDeleteStep();
+                                      }
                                     }}
                                     className="text-destructive"
                                   >
@@ -530,38 +521,6 @@ const TourManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-                <span>Delete Tour Step</span>
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{stepToDelete?.title}"? This will remove it from the onboarding tour.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isUpdating}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteStep}
-                disabled={isUpdating}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </CardContent>
     </Card>
   );
