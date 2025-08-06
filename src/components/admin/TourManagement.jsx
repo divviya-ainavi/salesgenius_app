@@ -363,7 +363,7 @@ const TourManagement = () => {
                                 </div>
                                 
                                 <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                                  {step.content}
+                                  <span dangerouslySetInnerHTML={{ __html: step.content }} />
                                 </p>
                                 
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -483,11 +483,9 @@ const TourManagement = () => {
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">{previewStep.title}</h3>
-                  <div 
+                  <div
                     className="text-sm"
-                    dangerouslySetInnerHTML={{ 
-                      __html: previewStep.content.replace(/\n/g, '<br />') 
-                    }} 
+                    dangerouslySetInnerHTML={{ __html: previewStep.content }}
                   />
                 </div>
                 
@@ -589,13 +587,14 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
         <Label htmlFor="content">Content *</Label>
         <Textarea
           id="content"
-          placeholder="Step description and instructions..."
+          placeholder="Step description and instructions (HTML supported)..."
           value={formData.content}
           onChange={(e) => onInputChange('content', e.target.value)}
-          rows={6}
+          rows={8}
+          className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          Use \n for line breaks. HTML tags are not supported.
+          HTML tags are supported: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;code&gt;, etc.
         </p>
       </div>
 
