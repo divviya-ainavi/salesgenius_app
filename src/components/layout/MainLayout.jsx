@@ -9,6 +9,7 @@ import { CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
+import { toast } from "sonner";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -73,9 +74,13 @@ export const MainLayout = () => {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => {
+                  console.log("🎯 User clicked guidelines icon in header");
                   if (window.replaySalesFlowTour) {
                     console.log("🎯 User manually triggered tour replay from header");
                     window.replaySalesFlowTour();
+                  } else {
+                    console.error("❌ replaySalesFlowTour function not available");
+                    toast.error("Tour is not ready yet. Please try again in a moment.");
                   }
                 }}
                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"

@@ -124,22 +124,26 @@ export const SalesCallsTour = () => {
   // Manual tour start function
   const startTour = () => {
     if (isLoadingSteps || tourSteps.length === 0) {
-      console.warn('Tour steps not loaded yet or empty');
+      console.warn('Tour steps not loaded yet or empty', { isLoadingSteps, stepsCount: tourSteps.length });
       return;
     }
 
+    console.log('🎯 Starting tour manually with steps:', tourSteps.length);
     setStepIndex(0);
     setRun(true);
 
     analytics.track("sales_calls_tour_restarted", {
       page: location.pathname,
-      trigger: "guidelines_icon",
       trigger: "manual",
     });
   };
 
   // Expose start function globally
   useEffect(() => {
+    console.log('🔧 Exposing tour functions globally', { 
+      stepsLoaded: !isLoadingSteps, 
+      stepsCount: tourSteps.length 
+    });
     window.startSalesCallsTour = startTour;
     window.replaySalesFlowTour = startTour;
 
@@ -147,7 +151,7 @@ export const SalesCallsTour = () => {
       delete window.startSalesCallsTour;
       delete window.replaySalesFlowTour;
     };
-  }, []);
+  }, [isLoadingSteps, tourSteps.length]);
 
   return (
     <Joyride
