@@ -19,7 +19,7 @@ export const SalesCallsTour = () => {
   const [isLoadingSteps, setIsLoadingSteps] = useState(true);
 
   // Check if user is super admin
-  const isSuperAdmin = userRole?.key === 'super_admin';
+  const isSuperAdmin = userRole?.key === "super_admin";
 
   // Load tour steps from database
   useEffect(() => {
@@ -29,40 +29,44 @@ export const SalesCallsTour = () => {
   const loadTourSteps = async () => {
     try {
       setIsLoadingSteps(true);
-      
+
       const { data, error } = await supabase
-        .from('tour_steps')
-        .select('*')
-        .eq('is_active', true)
-        .order('step_order', { ascending: true });
+        .from("tour_steps")
+        .select("*")
+        .eq("is_active", true)
+        .order("step_order", { ascending: true });
 
       if (error) {
-        console.error('Error loading tour steps:', error);
+        console.error("Error loading tour steps:", error);
         // Fallback to empty array if database fails
         setTourSteps([]);
         return;
       }
 
       // Transform database data to Joyride format
-      const transformedSteps = data.map(step => ({
+      const transformedSteps = data.map((step) => ({
         target: step.target,
         content: (
           <div>
             <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-            <div 
+            <div
+              className="prose prose-sm max-w-none text-gray-700"
+              dangerouslySetInnerHTML={{ __html: step.content }}
+            />
+            {/* <div 
               dangerouslySetInnerHTML={{ 
                 __html: step.content.replace(/\n/g, '<br />') 
               }} 
-            />
+            /> */}
           </div>
         ),
-        placement: step.placement || 'right',
+        placement: step.placement || "right",
         disableBeacon: step.disable_beacon || false,
       }));
 
       setTourSteps(transformedSteps);
     } catch (error) {
-      console.error('Error loading tour steps:', error);
+      console.error("Error loading tour steps:", error);
       setTourSteps([]);
     } finally {
       setIsLoadingSteps(false);
@@ -124,11 +128,14 @@ export const SalesCallsTour = () => {
   // Manual tour start function
   const startTour = () => {
     if (isLoadingSteps || tourSteps.length === 0) {
-      console.warn('Tour steps not loaded yet or empty', { isLoadingSteps, stepsCount: tourSteps.length });
+      console.warn("Tour steps not loaded yet or empty", {
+        isLoadingSteps,
+        stepsCount: tourSteps.length,
+      });
       return;
     }
 
-    console.log('🎯 Starting tour manually with steps:', tourSteps.length);
+    console.log("🎯 Starting tour manually with steps:", tourSteps.length);
     setStepIndex(0);
     setRun(true);
 
@@ -140,9 +147,9 @@ export const SalesCallsTour = () => {
 
   // Expose start function globally
   useEffect(() => {
-    console.log('🔧 Exposing tour functions globally', { 
-      stepsLoaded: !isLoadingSteps, 
-      stepsCount: tourSteps.length 
+    console.log("🔧 Exposing tour functions globally", {
+      stepsLoaded: !isLoadingSteps,
+      stepsCount: tourSteps.length,
     });
     window.startSalesCallsTour = startTour;
     window.replaySalesFlowTour = startTour;

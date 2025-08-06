@@ -113,33 +113,59 @@
 
 /* Custom animations for processing modal */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes orbit-1 {
-  0% { transform: rotate(0deg) translateX(30px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(30px) rotate(-360deg); }
+  0% {
+    transform: rotate(0deg) translateX(30px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(30px) rotate(-360deg);
+  }
 }
 
 @keyframes orbit-2 {
-  0% { transform: rotate(90deg) translateX(30px) rotate(-90deg); }
-  100% { transform: rotate(450deg) translateX(30px) rotate(-450deg); }
+  0% {
+    transform: rotate(90deg) translateX(30px) rotate(-90deg);
+  }
+  100% {
+    transform: rotate(450deg) translateX(30px) rotate(-450deg);
+  }
 }
 
 @keyframes orbit-3 {
-  0% { transform: rotate(180deg) translateX(30px) rotate(-180deg); }
-  100% { transform: rotate(540deg) translateX(30px) rotate(-540deg); }
+  0% {
+    transform: rotate(180deg) translateX(30px) rotate(-180deg);
+  }
+  100% {
+    transform: rotate(540deg) translateX(30px) rotate(-540deg);
+  }
 }
 
 @keyframes orbit-4 {
-  0% { transform: rotate(270deg) translateX(30px) rotate(-270deg); }
-  100% { transform: rotate(630deg) translateX(30px) rotate(-630deg); }
+  0% {
+    transform: rotate(270deg) translateX(30px) rotate(-270deg);
+  }
+  100% {
+    transform: rotate(630deg) translateX(30px) rotate(-630deg);
+  }
 }
 
 .animate-blink {
@@ -218,7 +244,9 @@
   color: hsl(var(--foreground));
 }
 
-.prose h1, .prose h2, .prose h3 {
+.prose h1,
+.prose h2,
+.prose h3 {
   color: hsl(var(--foreground));
   font-weight: 600;
 }
@@ -235,32 +263,13 @@
   font-size: 0.875em;
 }
 
-.prose ul, .prose ol {
+.prose ul,
+.prose ol {
   margin: 0.5rem 0;
 }
 
 .prose li {
   margin: 0.25rem 0;
-}
-
-/* Tour management specific prose styles */
-.prose [&>*]:my-1 > * {
-  margin-top: 0.25rem !important;
-  margin-bottom: 0.25rem !important;
-}
-
-.prose [&>p]:leading-relaxed p {
-  line-height: 1.6 !important;
-}
-
-.prose [&>ul]:my-1 ul {
-  margin-top: 0.25rem !important;
-  margin-bottom: 0.25rem !important;
-}
-
-.prose [&>li]:my-0 li {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
 }
 
 /* Text wrapping utility for consistent list item heights */

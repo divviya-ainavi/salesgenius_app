@@ -682,7 +682,7 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
 
       <div className="space-y-2">
         <Label htmlFor="content">Content *</Label>
-        <div className="border border-input rounded-md min-h-[300px]">
+        <div className="border border-input rounded-md">
           <ReactQuill
             theme="snow"
             value={formData.content}
@@ -690,26 +690,9 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
             modules={quillModules}
             formats={quillFormats}
             placeholder="Step description and instructions..."
-            style={{ minHeight: "250px" }}
+            style={{ minHeight: "150px" }}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Use the rich text editor to format your content. HTML will be
-          generated automatically.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="html-preview">HTML Preview</Label>
-        <div className="border border-input rounded-md p-4 bg-gray-50 max-h-32 overflow-y-auto">
-          <div 
-            className="prose prose-sm max-w-none text-gray-700"
-            dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-gray-400 italic">Content preview will appear here...</p>' }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Live preview of how the content will appear in the tour.
-        </p>
       </div>
 
       <div className="flex items-center space-x-6">
