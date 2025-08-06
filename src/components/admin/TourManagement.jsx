@@ -627,3 +627,5 @@ const TourStepForm = ({ formData, onInputChange, placementOptions }) => {
 };
 
 export default TourManagement;
+
+export default TourManagement
