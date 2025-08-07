@@ -478,11 +478,17 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     return (
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Page Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Research</h1>
-          <p className="text-muted-foreground">
-            Get comprehensive analysis and insights for your sales outreach
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="text-center flex-1">
+            <h1 className="text-3xl font-bold text-foreground">Research</h1>
+            <p className="text-muted-foreground">
+              Get comprehensive analysis and insights for your sales outreach
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleViewHistory}>
+            <Search className="w-4 h-4 mr-1" />
+            View History
+          </Button>
         </div>
 
         {/* Input Form */}
@@ -621,13 +627,6 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                       Research
                     </>
                   )}
-                </Button>
-
-                {/* View History Button */}
-
-                <Button variant="outline" onClick={handleViewHistory}>
-                  <Search className="w-4 h-4 mr-1" />
-                  View History
                 </Button>
               </form>
             </CardContent>
