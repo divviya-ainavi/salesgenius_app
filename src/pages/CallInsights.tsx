@@ -52,7 +52,6 @@ import {
   Ear,
   Hand,
   Brain,
-  ChevronLeft,
   Loader2,
   Headphones,
   Info,
