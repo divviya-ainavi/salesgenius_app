@@ -67,6 +67,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
+import useEmblaCarousel from "embla-carousel-react";
 
 const communicationStyleConfigs = {
   Visual: {
