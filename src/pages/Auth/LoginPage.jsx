@@ -371,7 +371,7 @@ const LoginPage = () => {
                 Don't have an account?{" "}
                 <button
                   className="text-blue-600 hover:text-blue-800 font-medium"
-                  onClick={() => toast.info("Registration coming soon!")}
+                  onClick={() => window.location.href = "mailto:admin@ainavi.co.uk?subject=Account Registration Request&body=Hello,%0D%0A%0D%0AI would like to request access to SalesGenius.ai.%0D%0A%0D%0APlease provide me with registration details.%0D%0A%0D%0AThank you."}
                 >
                   Contact your administrator
                 </button>
