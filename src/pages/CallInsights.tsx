@@ -167,10 +167,24 @@ const CallInsights = () => {
   useEffect(() => {
     if (!emblaApi) return;
 
-    setScrollSnaps(emblaApi.scrollSnapList());
-    emblaApi.on("select", () =>
-      setSelectedIndex(emblaApi.selectedScrollSnap())
-    );
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    const onInit = () => {
+      setScrollSnaps(emblaApi.scrollSnapList());
+      onSelect();
+    };
+
+    emblaApi.on("init", onInit);
+    emblaApi.on("reInit", onInit);
+    emblaApi.on("select", onSelect);
+
+    // Run once immediately
+    onInit();
+
+    return () => {
+      emblaApi.off("init", onInit);
+      emblaApi.off("reInit", onInit);
+      emblaApi.off("select", onSelect);
+    };
   }, [emblaApi]);
 
   function resolveInsightIcon(iconName) {
