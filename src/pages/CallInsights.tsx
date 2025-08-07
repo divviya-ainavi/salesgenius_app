@@ -939,79 +939,101 @@ const CallInsights = () => {
 
                   return (
                     <div
-                      key={prospect.id}
                       className={cn(
-                        "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                        "min-w-[300px] max-w-[300px] shrink-0 rounded-lg p-[2px] transition-all", // outer wrapper
                         selectedProspect?.id === prospect.id
-                          ? "border-primary bg-primary/5 shadow-md"
-                          : "border-border hover:border-primary/50"
+                          ? "bg-gradient-to-r from-green-500 to-blue-500"
+                          : "bg-border"
                       )}
-                      onClick={() =>
-                        handleProspectSelect({
-                          id: prospect.id,
-                          name: prospect.name,
-                          companyName,
-                          company_id: prospect?.company_id,
-                          prospectNames,
-                          titles,
-                          totalCalls,
-                          lastCallDate: prospect.created_at,
-                          lastEngagement,
-                          status,
-                          dealValue,
-                          probability,
-                          nextAction: "Initial follow-up",
-                          dataSources: {
-                            fireflies: 1,
-                            hubspot: 0,
-                            presentations: 0,
-                            emails: 0,
-                          },
-                          fullInsight: prospect,
-                          calls: prospect?.calls || 1,
-                          people: prospect.people,
-                          call_summary: prospect?.call_summary,
-                          communication_style_ids:
-                            prospect?.communication_style_ids,
-                        })
-                      }
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-sm">
-                            {companyName}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {prospectNames}
-                          </p>
-                        </div>
-                        <span className={cn("text-xs", getStatusColor(status))}>
-                          {status}
-                        </span>
-                      </div>
+                      <div
+                        key={prospect.id}
+                        className={cn(
+                          "h-full w-full rounded-lg bg-white p-4 cursor-pointer transition-all hover:shadow-md",
+                          selectedProspect?.id === prospect.id
+                            ? "shadow-md"
+                            : "hover:border-primary/50"
+                        )}
+                        // className={cn(
+                        //   "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                        //   selectedProspect?.id === prospect.id
+                        //     ? "border-primary bg-primary/5 shadow-md"
+                        //     : "border-border hover:border-primary/50"
+                        // )}
 
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Calls:</span>
-                          <span className="font-medium">{totalCalls}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Deal Value:
+                        onClick={() =>
+                          handleProspectSelect({
+                            id: prospect.id,
+                            name: prospect.name,
+                            companyName,
+                            company_id: prospect?.company_id,
+                            prospectNames,
+                            titles,
+                            totalCalls,
+                            lastCallDate: prospect.created_at,
+                            lastEngagement,
+                            status,
+                            dealValue,
+                            probability,
+                            nextAction: "Initial follow-up",
+                            dataSources: {
+                              fireflies: 1,
+                              hubspot: 0,
+                              presentations: 0,
+                              emails: 0,
+                            },
+                            fullInsight: prospect,
+                            calls: prospect?.calls || 1,
+                            people: prospect.people,
+                            call_summary: prospect?.call_summary,
+                            communication_style_ids:
+                              prospect?.communication_style_ids,
+                          })
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-sm">
+                              {companyName}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {prospectNames}
+                            </p>
+                          </div>
+                          <span
+                            className={cn("text-xs", getStatusColor(status))}
+                          >
+                            {status}
                           </span>
-                          <span className="font-medium">{dealValue}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Last Engagement:
-                          </span>
-                          <span className="font-medium">{lastEngagement}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Opportunity:
-                          </span>
-                          <span className="font-medium">{prospect.name}</span>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Calls:
+                            </span>
+                            <span className="font-medium">{totalCalls}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Deal Value:
+                            </span>
+                            <span className="font-medium">{dealValue}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Last Engagement:
+                            </span>
+                            <span className="font-medium">
+                              {lastEngagement}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Opportunity:
+                            </span>
+                            <span className="font-medium">{prospect.name}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
