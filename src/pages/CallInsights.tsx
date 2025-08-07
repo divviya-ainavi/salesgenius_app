@@ -44,6 +44,8 @@ import {
   Save,
   X,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Search,
   Filter,
@@ -77,6 +79,10 @@ const communicationStyleConfigs = {
   },
   Auditory: {
     icon: Ear,
+  
+  // Carousel state
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const CARDS_PER_VIEW = 4;
     color: "bg-green-100 text-green-800 border-green-200",
     description: "Learns through listening and verbal communication",
   },
@@ -117,6 +123,49 @@ const CallInsights = () => {
     type: "my_insights",
     typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
   });
+
+  // Calculate carousel values
+  const totalPages = Math.ceil(filteredProspects.length / CARDS_PER_VIEW);
+  const showCarousel = filteredProspects.length > CARDS_PER_VIEW;
+  const startIndex = currentIndex * CARDS_PER_VIEW;
+  const endIndex = Math.min(startIndex + CARDS_PER_VIEW, filteredProspects.length);
+  const visibleProspects = showCarousel 
+    ? filteredProspects.slice(startIndex, endIndex)
+    : filteredProspects;
+
+  // Carousel navigation functions
+  const handlePrevious = () => {
+    setCurrentIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex(prev => Math.min(totalPages - 1, prev + 1));
+  };
+
+  const handleDotClick = (pageIndex) => {
+    setCurrentIndex(pageIndex);
+  };
+
+  // Reset carousel when search changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchTerm]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.closest('.prospect-carousel')) {
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+          handlePrevious();
+        } else if (e.key === 'ArrowRight' && currentIndex < totalPages - 1) {
+          handleNext();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, totalPages]);
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [editingInsightId, setEditingInsightId] = useState(null);
@@ -517,10 +566,43 @@ const CallInsights = () => {
       !newInsight.typeId
     ) {
       toast.error("Missing required fields");
-      return;
-    }
+          {/* Prospect List with Carousel */}
+          <div className="relative prospect-carousel" tabIndex={0}>
+            {showCarousel && (
+              <>
+                {/* Navigation Arrows */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm shadow-md hover:bg-white/90"
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                  aria-label="Previous prospects"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm shadow-md hover:bg-white/90"
+                  onClick={handleNext}
+                  disabled={currentIndex >= totalPages - 1}
+                  aria-label="Next prospects"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
+            )}
 
-    try {
+            {/* Cards Container */}
+            <div className={cn(
+              "transition-all duration-300 ease-in-out",
+              showCarousel 
+                ? "grid grid-cols-4 gap-4 mx-8" 
+                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            )}>
+              {(showCarousel ? visibleProspects : filteredProspects).map((prospect) => {
       const newEntry = {
         content: newInsight.content.trim(),
         type_id: newInsight.typeId,
@@ -967,6 +1049,33 @@ const CallInsights = () => {
                 ></button>
               ))}
             </div>
+
+            {/* Carousel Controls */}
+            {showCarousel && (
+              <div className="flex items-center justify-center mt-4 space-x-4">
+                {/* Progress Counter */}
+                <span className="text-sm text-muted-foreground">
+                  {startIndex + 1}-{endIndex} of {filteredProspects.length}
+                </span>
+                
+                {/* Dot Indicators */}
+                <div className="flex space-x-2">
+                  {Array.from({ length: totalPages }, (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDotClick(index)}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-colors",
+                        currentIndex === index
+                          ? "bg-primary"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      )}
+                      aria-label={`Go to page ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -1238,7 +1347,8 @@ const CallInsights = () => {
                   insight?.insights?.length > 0 && (
                     <div
                       key={insight.id}
-                      className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                      "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                      showCarousel ? "w-full" : "min-w-[300px]",
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
