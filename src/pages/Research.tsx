@@ -85,7 +85,9 @@ interface StoredResearch {
 const Research = () => {
   usePageTimer("Research");
 
-  const [currentView, setCurrentView] = useState<"form" | "results" | "history">("form");
+  const [currentView, setCurrentView] = useState<
+    "form" | "results" | "history"
+  >("form");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [formData, setFormData] = useState<ResearchFormData>({
@@ -412,7 +414,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       marketTrends: storedResearch.market_trends,
       summaryNote: storedResearch.summary_note,
       sources: storedResearch.sources,
-      recommendations: storedResearch.recommendations ? JSON.parse(storedResearch.recommendations) : {},
+      recommendations: storedResearch.recommendations
+        ? JSON.parse(storedResearch.recommendations)
+        : {},
     };
 
     setResearchResult(result);
@@ -620,25 +624,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 </Button>
 
                 {/* View History Button */}
-                <Button
-                  variant="outline"
-                  onClick={handleViewHistory}
-                  disabled={isLoadingHistory}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isLoadingHistory ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Loading History...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-5 h-5 mr-2" />
-                      View Research History
-                    </>
-                  )}
-                </Button>
+
                 <Button variant="outline" onClick={handleViewHistory}>
                   <Search className="w-4 h-4 mr-1" />
                   View History
@@ -663,14 +649,20 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Research
               </Button>
-              <h1 className="text-3xl font-bold text-foreground">Research History</h1>
+              <h1 className="text-3xl font-bold text-foreground">
+                Research History
+              </h1>
             </div>
             <p className="text-muted-foreground">
               View your previous research results and analysis
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={handleViewHistory} disabled={isLoadingHistory}>
+            <Button
+              variant="outline"
+              onClick={handleViewHistory}
+              disabled={isLoadingHistory}
+            >
               {isLoadingHistory ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
@@ -697,7 +689,8 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
               <Search className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">No Research History</h3>
               <p className="text-muted-foreground mb-4">
-                You haven't conducted any research yet. Start by researching a company.
+                You haven't conducted any research yet. Start by researching a
+                company.
               </p>
               <Button onClick={handleNewResearch}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -708,8 +701,8 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {researchHistory.map((research) => (
-              <Card 
-                key={research.id} 
+              <Card
+                key={research.id}
                 className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:border-primary/50"
                 onClick={() => handleViewStoredResearch(research)}
               >
@@ -727,16 +720,18 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                         {research.company_url}
                       </span>
                     </div>
-                    
-                    {research.prospect_urls && research.prospect_urls.length > 0 && (
-                      <div className="flex items-center space-x-2 text-sm">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {research.prospect_urls.length} prospect{research.prospect_urls.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    )}
-                    
+
+                    {research.prospect_urls &&
+                      research.prospect_urls.length > 0 && (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {research.prospect_urls.length} prospect
+                            {research.prospect_urls.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
+
                     <div className="flex items-center space-x-2 text-sm">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">
@@ -758,7 +753,11 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   )}
 
                   <div className="pt-2 border-t border-border">
-                    <Button variant="ghost" size="sm" className="w-full text-primary hover:text-primary">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-primary hover:text-primary"
+                    >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
                     </Button>
