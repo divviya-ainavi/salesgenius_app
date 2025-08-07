@@ -160,6 +160,7 @@ const CallInsights = () => {
     return insightIcons[iconName] || Lightbulb;
   }
 
+  console.log(communicationStyles, "communication styles data");
   function mapInsightTypesToObject(insightTypesArray) {
     return insightTypesArray.reduce((acc, item) => {
       acc[item.key] = {
@@ -368,7 +369,10 @@ const CallInsights = () => {
       user?.id
     );
     setInsights(groupedInsights); // You may need to map this to your display structure
-
+    console.log(
+      insightData.communication_style_ids,
+      "insightData.communication_style_ids"
+    );
     const styles = await fetchCommunicationStyles(
       insightData.communication_style_ids
     );
@@ -803,7 +807,7 @@ const CallInsights = () => {
 
           {/* Prospect List */}
           <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory scroll-smooth">
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth scrollbar-none">
               {filteredProspects.map((prospect) => {
                 // console.log(prospect, "get prospect details");
                 const companyName = prospect.company?.name || "Unknown Company";

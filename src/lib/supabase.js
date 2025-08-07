@@ -1318,6 +1318,27 @@ export const dbHelpers = {
     }
   },
 
+  // Get research history for a user
+  async getResearchHistory(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('ResearchCompany')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching research history:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getResearchHistory:', error);
+      throw error;
+    }
+  },
+
   // ResearchCompany operations
   async saveResearchCompany(data) {
     try {
