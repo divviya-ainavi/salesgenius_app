@@ -54,7 +54,6 @@ import {
   Loader2,
   Headphones,
   Info,
-  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -144,40 +143,6 @@ const CallInsights = () => {
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
   const { communicationStyleTypes } = useSelector((state) => state.org);
-
-  // Carousel state
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const CARDS_PER_VIEW = 4;
-  const maxIndex = Math.max(0, filteredProspects.length - CARDS_PER_VIEW);
-
-  // Reset carousel when prospects change
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [filteredProspects.length]);
-
-  const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex(prev => Math.min(maxIndex, prev + 1));
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevious();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleNext();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -389,4 +354,1471 @@ const CallInsights = () => {
 
   // const loadProspectInsights = (insightData) => {
   //   setInsights(insightData.sales_insights || []);
-  //   setC
+  //   setCommunicationStyles(insightData.communication_styles || []);
+
+  //   // Load mock data for demonstration - in real app this would come from the database
+  //   if (insightData.id && mockCumulativeInsights.acme_corp) {
+  //     setHowToEngageSummary(
+  //       mockCumulativeInsights.acme_corp.howToEngageSummary
+  //     );
+  //   }
+  // };
+  const loadProspectInsights = async (insightData) => {
+    const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+      insightData.id,
+      user?.id
+    );
+    setInsights(groupedInsights); // You may need to map this to your display structure
+    console.log(
+      insightData.communication_style_ids,
+      "insightData.communication_style_ids"
+    );
+    const styles = await fetchCommunicationStyles(
+      insightData.communication_style_ids
+    );
+    setCommunicationStyles(styles);
+
+    const peopleList = await dbHelpers.getPeopleByProspectId(
+      insightData.id,
+      user?.id
+    );
+    setPeople(peopleList);
+  };
+  // console.log(people, "get people list");
+
+  const refreshCommunicationStyles = async () => {
+    const styles = await fetchCommunicationStyles(
+      selectedProspect?.communication_style_ids
+    );
+
+    setCommunicationStyles(styles);
+  };
+
+  const refreshCummulativeSummary = async () => {
+    // console.log(selectedProspect?.id, "check spin summary");
+    if (selectedProspect?.id != undefined) {
+      const summary = await dbHelpers.getProspectSummary(selectedProspect?.id);
+      // console.log(summary, "check spin summary");
+      setCummulativeSummary(summary?.call_summary);
+    }
+  };
+
+  useEffect(() => {
+    refreshCommunicationStyles();
+    refreshCummulativeSummary();
+  }, [cummulativeSpinner]);
+  // console.log(
+  //   communicationStyles,
+  //   cummulativeSpinner,
+  //   selectedProspect?.communication_style_ids,
+  //   "check spin"
+  // );
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+    setCummulativeSummary(prospect?.call_summary);
+    loadProspectInsights(prospect.fullInsight);
+    toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
+
+  const handleEditCompanyName = () => {
+    setIsEditingCompanyName(true);
+    setEditingCompanyName(selectedProspect.companyName);
+  };
+
+  // console.log(selectedProspect, "check selected prospect");
+
+  const handleSaveCompanyName = async () => {
+    if (!editingCompanyName.trim()) {
+      toast.error("Company name cannot be empty");
+      return;
+    }
+
+    try {
+      const newCompanyName = editingCompanyName.trim();
+
+      // Update company table
+      await dbHelpers.updateCompanyName(
+        selectedProspect.company_id,
+        newCompanyName
+      );
+
+      // Update local state (important: update company.name if used in UI)
+      setSelectedProspect((prev) => ({
+        ...prev,
+        companyName: newCompanyName,
+        company: {
+          ...prev.company,
+          name: newCompanyName,
+        },
+        fullInsight: {
+          ...prev.fullInsight,
+          company_details: {
+            ...prev.fullInsight.company_details,
+            name: newCompanyName,
+          },
+        },
+      }));
+      setAllInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === selectedProspect.id
+            ? {
+                ...insight,
+                company: {
+                  ...insight.company,
+                  name: newCompanyName,
+                },
+              }
+            : insight
+        )
+      );
+
+      setIsEditingCompanyName(false);
+      setEditingCompanyName("");
+      toast.success("Company name updated successfully");
+    } catch (error) {
+      console.error("Error updating company name:", error);
+      toast.error("Failed to update company name");
+    }
+  };
+
+  const handleCancelEditCompanyName = () => {
+    setIsEditingCompanyName(false);
+    setEditingCompanyName("");
+  };
+
+  const handleAddInsight = async () => {
+    if (
+      !newInsight.content.trim() ||
+      !selectedProspect?.id ||
+      !newInsight.typeId
+    ) {
+      toast.error("Missing required fields");
+      return;
+    }
+
+    try {
+      const newEntry = {
+        content: newInsight.content.trim(),
+        type_id: newInsight.typeId,
+        relevance_score: 0,
+        is_selected: true,
+        source: "User Input",
+        timestamp: new Date().toISOString(),
+        user_id: user?.id,
+      };
+
+      // 1. Insert into sales_insights
+      const inserted = await dbHelpers.insertSalesInsight(newEntry);
+      if (!inserted) throw new Error("Insert failed");
+
+      // 2. Update recent insight row by adding this sales_insight id
+      await dbHelpers.updateInsightWithNewSalesInsightId(
+        selectedProspect.id,
+        inserted.id
+      );
+
+      // 3. Refresh insights list for the UI
+      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+        selectedProspect.id,
+        user?.id
+      );
+      setInsights(groupedInsights);
+
+      // 4. Reset form state
+      setNewInsight({
+        content: "",
+        type: "my_insights",
+        typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035", // Default 'my_insights' typeId
+      });
+      setIsAddingInsight(false);
+
+      toast.success("Insight added successfully");
+    } catch (error) {
+      console.error("Error in handleAddInsight:", error);
+      toast.error("Failed to add insight");
+    }
+  };
+
+  const handleMoveInsight = async (typeId, direction) => {
+    if (!selectedProspect?.id || !insights || insights.length === 0) return;
+
+    // Clone the current insights array
+    const newInsights = [...insights];
+
+    // Find the index of the block with the matching type_id
+    const currentIndex = newInsights.findIndex(
+      (insight) => insight.type_id === typeId
+    );
+
+    if (
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === newInsights.length - 1)
+    ) {
+      // Can't move
+      return;
+    }
+
+    // Swap logic
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    [newInsights[currentIndex], newInsights[targetIndex]] = [
+      newInsights[targetIndex],
+      newInsights[currentIndex],
+    ];
+
+    // Reassign new priority based on position
+    const updatedPriorityList = newInsights.map((insight, index) => ({
+      type_id: insight.type_id,
+      priority: index + 1,
+      average_score: insight.average_score,
+    }));
+
+    // Update in Supabase
+    const success = await dbHelpers.updateSalesInsightPriorityList(
+      selectedProspect.id,
+      updatedPriorityList
+    );
+
+    if (success) {
+      setInsights(newInsights);
+      toast.success("Insight priority updated");
+    } else {
+      toast.error("Failed to update priority list");
+    }
+  };
+
+  const handleEditInsightContent = (insightId, content) => {
+    setEditingInsightId(insightId);
+    setEditingInsightContent(content);
+  };
+
+  const handleSaveInsightContent = async (id, content) => {
+    if (!content.trim()) {
+      toast.error("Content cannot be empty");
+      return;
+    }
+
+    setIsSavingInsight(true);
+    try {
+      // ✅ Update the insight content in Supabase
+      const updated = await dbHelpers.updateSalesInsightContent(
+        id,
+        content.trim(),
+        user?.id
+      );
+
+      if (updated) {
+        console.log("Insight updated successfully:", updated);
+      }
+
+      // ✅ Update local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.map((insight) =>
+            insight.id === id
+              ? { ...insight, content: content.trim() }
+              : insight
+          ),
+        }))
+      );
+
+      setEditingInsightId(null);
+      setEditingInsightContent("");
+      toast.success("Insight updated successfully");
+    } catch (error) {
+      console.error("Error updating insight:", error);
+      toast.error("Failed to update insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
+  };
+
+  const handleCancelInsightEdit = () => {
+    setEditingInsightId(null);
+    setEditingInsightContent("");
+  };
+
+  const handleDeleteInsightContent = async (insightId) => {
+    if (!insightId) {
+      toast.error("Invalid insight ID");
+      return;
+    }
+
+    try {
+      // ✅ Mark the insight as inactive in Supabase
+      const updated = await dbHelpers.deleteSalesInsightContent(
+        insightId,
+        {
+          is_active: false,
+        },
+        user?.id
+      );
+
+      if (updated) {
+        console.log("Insight marked as inactive:", updated);
+      }
+
+      // ✅ Remove the insight from local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.filter(
+            (insight) => insight.id !== insightId
+          ),
+        }))
+      );
+
+      toast.success("Insight deleted successfully");
+    } catch (error) {
+      console.log("Error deleting insight:", error);
+      toast.error("Failed to delete insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
+  };
+
+  // console.log(allInsights, "check all insights");
+  const filteredProspects = allInsights?.filter(
+    (prospect) =>
+      prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prospect?.company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  // console.log(allInsights, "all insights data");
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "hot":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "warm":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "cold":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "new":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case "increasing":
+        return <TrendingUp className="w-3 h-3 text-green-600" />;
+      case "decreasing":
+        return <TrendingUp className="w-3 h-3 text-red-600 rotate-180" />;
+      case "new":
+        return <Star className="w-3 h-3 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
+  const totalInsightsCount = insights?.reduce(
+    (sum, item) => sum + item?.insights?.length,
+    0
+  );
+
+  const handleRoleEdit = (commStyle) => {
+    setEditingRoleId(commStyle.id);
+    setEditRoleValue(commStyle.role || "");
+  };
+
+  // console.log(communicationStyles, "communication styles data");
+  const handleRoleSave = async (commStyleId) => {
+    try {
+      await dbHelpers?.updateCommunicationStyleRole(
+        commStyleId,
+        editRoleValue,
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === commStyleId ? { ...style, role: editRoleValue } : style
+        )
+      );
+
+      setEditingRoleId(null);
+      setEditRoleValue("");
+      toast.success("Role updated successfully");
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleRoleCancel = () => {
+    setEditingRoleId(null);
+    setEditRoleValue("");
+  };
+
+  // console.log("Total insights count:", totalInsightsCount);
+
+  // console.log(insights, "get list of insights");
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Call Insights
+          </h1>
+          <p className="text-muted-foreground">
+            Accelerating Prospect Conversion - Your ultimate hub for AI-driven
+            prospect intelligence
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/calls")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Sales Calls
+          </Button>
+        </div>
+      </div>
+
+      {/* Cumulative Intelligence Active Indicator */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
+
+      {/* Prospect Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Building className="w-5 h-5" />
+            <span>Prospect Selection</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search prospects by company or name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Prospect List */}
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth scrollbar-none">
+              {filteredProspects.map((prospect) => {
+                // console.log(prospect, "get prospect details");
+                const companyName = prospect.company?.name || "Unknown Company";
+                const prospectNames =
+                  prospect.people
+                    ?.map((p) => p.name)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const titles =
+                  prospect.people
+                    ?.map((p) => p.title)
+                    .filter(Boolean)
+                    .join(", ") || "Unknown";
+                const totalCalls = prospect?.calls;
+                const dealValue = "TBD";
+                const probability = 50;
+                const lastEngagement = new Date(
+                  prospect.created_at
+                ).toLocaleDateString();
+                const status = "new";
+
+                return (
+                  <div
+                    key={prospect.id}
+                    className={cn(
+                      "min-w-[300px] max-w-[300px] snap-start shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                      selectedProspect?.id === prospect.id
+                        ? "border-primary bg-primary/5 shadow-md"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() =>
+                      handleProspectSelect({
+                        id: prospect.id,
+                        name,
+                        companyName,
+                        company_id: prospect?.company_id,
+                        prospectNames,
+                        titles,
+                        totalCalls,
+                        lastCallDate: prospect.created_at,
+                        lastEngagement,
+                        status,
+                        dealValue,
+                        probability,
+                        nextAction: "Initial follow-up",
+                        dataSources: {
+                          fireflies: 1,
+                          hubspot: 0,
+                          presentations: 0,
+                          emails: 0,
+                        },
+                        fullInsight: prospect,
+                        calls: prospect?.calls || 1,
+                        people: prospect.people, // ✅ add this
+                        call_summary: prospect?.call_summary,
+                        communication_style_ids:
+                          prospect?.communication_style_ids,
+                      })
+                    }
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-sm">{companyName}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {prospectNames}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs", getStatusColor(status))}
+                      >
+                        {status}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Calls:</span>
+                        <span className="font-medium">{totalCalls}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Deal Value:
+                        </span>
+                        <span className="font-medium">{dealValue}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Last Enagement:
+                        </span>
+                        <span className="font-medium">{lastEngagement}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Opportunity:
+                        </span>
+                        <span className="font-medium">{prospect?.name}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedProspect && (
+        <>
+          {/* Company Name Section with Edit Capability */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>Company Information</span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Company Name:
+                </span>
+                {isEditingCompanyName ? (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Input
+                      value={editingCompanyName}
+                      onChange={(e) => setEditingCompanyName(e.target.value)}
+                      className="flex-1"
+                      placeholder="Enter company name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveCompanyName();
+                        if (e.key === "Escape") handleCancelEditCompanyName();
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyName}
+                      disabled={!editingCompanyName.trim()}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEditCompanyName}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <span className="text-lg font-semibold">
+                      {selectedProspect.companyName}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditCompanyName}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cummulative Intelligence Section */}
+          <Card data-tour="cumulative-intelligence">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Calls:</span>
+                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
+                  <Badge
+                    variant={selectedProspect?.calls ? "default" : "secondary"}
+                  >
+                    {(selectedProspect?.communication_style_ids != null &&
+                      selectedProspect?.calls) ||
+                      0}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      researchCompanyCount > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Research:</span>
+                  <Badge
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
+                  >
+                    0{/* {researchCompanyCount} */}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Internal data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          {/* Sales Insights Section */}
+          <Card data-tour="sales-insights-section">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sales Insights</span>
+                  <Badge variant="secondary">
+                    {totalInsightsCount} insights
+                  </Badge>
+                </div>
+                <Button
+                  onClick={() => setIsAddingInsight(true)}
+                  disabled={isAddingInsight}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Insight
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Insight */}
+              {/* {console.log(newInsight, "newInsight type")} */}
+              {isAddingInsight && (
+                <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Select
+                      value={newInsight.type}
+                      onValueChange={(value) => {
+                        const selectedType = Object.entries(insightTypes).find(
+                          ([key]) => key === value
+                        );
+
+                        const selectedTypeId = selectedType?.[1]?.id || null;
+
+                        setNewInsight((prev) => ({
+                          ...prev,
+                          type: value,
+                          typeId: selectedTypeId,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(insightTypes).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center space-x-2">
+                              <config.icon className="w-4 h-4" />
+                              <span>{config.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Textarea
+                    value={newInsight.content}
+                    onChange={(e) =>
+                      setNewInsight((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter your insight about this prospect..."
+                    className="min-h-20"
+                    autoFocus
+                  />
+
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" onClick={handleAddInsight}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Insight
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingInsight(false);
+                        setNewInsight({
+                          content: "",
+                          type: "my_insights",
+                          typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
+                        });
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insights List */}
+              {insights?.map((insight, index) => {
+                const typeConfig = insightTypes[insight?.type] || {
+                  label: "My Insight",
+                  color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                  icon: Lightbulb,
+                };
+                // console.log(insightTypes, "get insight types 905");
+                const TypeIcon = typeConfig?.icon;
+
+                return (
+                  insight?.insights?.length > 0 && (
+                    <div
+                      key={insight.id}
+                      className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs", typeConfig?.color)}
+                              >
+                                {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
+
+                                {typeConfig?.label || ""}
+                                <Info className="ml-1 w-3 h-3" />
+                              </Badge>
+                            </TooltipTrigger>
+
+                            <TooltipContent
+                              side="top"
+                              align="center"
+                              className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                            >
+                              <p className="leading-snug">
+                                {typeConfig?.description ||
+                                  "No description available."}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Badge variant="secondary" className="text-xs">
+                            Score: {insight?.average_score || 0}
+                          </Badge>
+                          {/* {getTrendIcon(insight.trend)} */}
+                          {/* <span className="text-xs text-muted-foreground">
+                          {insight.source} • {insight.timestamp}
+                        </span> */}
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleMoveInsight(insight.type_id, "up")
+                            }
+                            disabled={index === 0}
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleMoveInsight(insight.type_id, "down")
+                            }
+                            disabled={index === insights.length - 1}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Insights content */}
+                      <div className="ml-6">
+                        <div
+                          className={cn(
+                            "space-y-2",
+                            insight?.insights?.length > 3 &&
+                              "max-h-60 overflow-y-auto pr-2"
+                          )}
+                        >
+                          {insight?.insights?.map((x) => (
+                            <div key={x.id} className="relative">
+                              {editingInsightId === x.id ? (
+                                // Edit Mode
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-md p-3 space-y-3">
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex items-center space-x-4">
+                                      <span>
+                                        <strong>Speaker:</strong>{" "}
+                                        {x.speaker || "Unknown"}
+                                      </span>
+                                      <span>
+                                        <strong>Score:</strong>{" "}
+                                        {x.relevance_score || "N/A"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <Textarea
+                                    value={editingInsightContent}
+                                    onChange={(e) =>
+                                      setEditingInsightContent(e.target.value)
+                                    }
+                                    className="min-h-20 text-sm resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        handleSaveInsightContent(
+                                          x.id,
+                                          editingInsightContent
+                                        )
+                                      }
+                                      disabled={
+                                        isSavingInsight ||
+                                        !editingInsightContent.trim()
+                                      }
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      {isSavingInsight ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="w-3 h-3 mr-1" />
+                                          Save
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleCancelInsightEdit}
+                                      disabled={isSavingInsight}
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                // View Mode
+                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group hover:bg-muted/60 transition-colors">
+                                  <p className="pr-16 leading-relaxed">
+                                    {x.content}
+                                  </p>
+
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Speaker:
+                                      </span>
+                                      <span>{x.speaker || "Unknown"}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Relevance Score:
+                                      </span>
+                                      <span>{x.relevance_score || "N/A"}</span>
+                                    </div>
+                                    {/* Arrow pointer */}
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
+                                  </div>
+
+                                  {/* Edit and Delete buttons */}
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-background/80"
+                                      onClick={() =>
+                                        handleEditInsightContent(
+                                          x.id,
+                                          x.content
+                                        )
+                                      }
+                                      title="Edit insight"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-destructive/20 text-destructive"
+                                      onClick={() =>
+                                        handleDeleteInsightContent(x.id)
+                                      }
+                                      title="Delete insight"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                );
+              })}
+
+              {/* {console.log(insights, "isAddingInsight state")} */}
+              {totalInsightsCount === 0 && !isAddingInsight && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No insights available yet</p>
+                  <p className="text-sm mb-4">
+                    Add your first insight about this prospect
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingInsight(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add First Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Communication Styles Detected with Behavioral Insights */}
+          <Card data-tour="communication-style-section">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Prospect Behavioral & Communication Insights</span>
+                <Badge variant="secondary">
+                  {communicationStyles.length} stakeholders
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {console.log(cummulativeSpinner, "cummulative spinner")}
+              {cummulativeSpinner ? (
+                <div className="space-y-6">
+                  {/* Skeleton for stakeholder cards */}
+                  {[1, 2].map((index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-16" />
+                          <Skeleton className="h-5 w-20" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Personality Type Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        </div>
+
+                        {/* Communication Modality Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-4 w-20" />
+                          </div>
+                        </div>
+
+                        {/* Evidence Section Skeleton */}
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-2" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4 mt-1" />
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Skeleton className="h-4 w-20 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Skeleton className="h-4 w-28 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles?.map((stakeholder) => {
+                    const styleConfig =
+                      communicationStyleConfigs[stakeholder.style];
+                    const PersonalityIcon = stakeholder.personality_type
+                      ? personalityTypeIcons[stakeholder.personality_type.key]
+                      : null;
+                    const ModalityIcon = stakeholder.modality
+                      ? communicationModalityIcons[stakeholder.modality.type]
+                      : null;
+
+                    const formattedStyles =
+                      stakeholder?.style?.split(",").map((s) => s.trim()) || [];
+
+                    const matchedStyles = formattedStyles.map((style) => {
+                      const match = communicationStyleTypes?.find(
+                        (s) => s.key?.toLowerCase() === style.toLowerCase()
+                      );
+                      return {
+                        style,
+                        description:
+                          match?.description || "No description available.",
+                      };
+                    });
+
+                    return (
+                      <div
+                        key={stakeholder.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                              <span>{stakeholder.stakeholder}</span>
+                              {PersonalityIcon && (
+                                <PersonalityIcon className="w-4 h-4 text-primary" />
+                              )}
+                            </h3>
+                            {/* <p className="text-sm text-muted-foreground">
+                              {stakeholder.role}
+                            </p> */}
+                            {editingRoleId === stakeholder.id ? (
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  value={editRoleValue}
+                                  onChange={(e) =>
+                                    setEditRoleValue(e.target.value)
+                                  }
+                                  className="h-6 text-xs px-2 w-32"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      handleRoleSave(stakeholder.id);
+                                    if (e.key === "Escape") handleRoleCancel();
+                                  }}
+                                  autoFocus
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRoleSave(stakeholder.id)}
+                                >
+                                  <Save className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={handleRoleCancel}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs cursor-pointer hover:bg-accent group"
+                                onClick={() => handleRoleEdit(stakeholder)}
+                              >
+                                {stakeholder.role || "Unknown Role"}
+                                <Edit className="w-3 h-3 ml-1" />
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {/* <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                styleConfig?.color
+                              )}
+                            >
+                              <Info className="mr-1 w-3 h-3" />
+                              {stakeholder.style
+                                ? stakeholder.style.charAt(0).toUpperCase() +
+                                  stakeholder.style.slice(1)
+                                : ""}
+                            </Badge> */}
+                            {/* <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
+                                </Badge>
+                              </TooltipTrigger>
+                              {styleMatch && (
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    {styleMatch?.description}
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip> */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  {/* {formattedStyles.join(", ")} */}
+                                  {stakeholder?.style}
+                                  <Info className="ml-1 w-3 h-3" />
+                                </Badge>
+                              </TooltipTrigger>
+
+                              <TooltipContent
+                                side="top"
+                                align="center"
+                                className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                              >
+                                <div className="space-y-2">
+                                  {matchedStyles.map(
+                                    ({ style, description }) => (
+                                      <div key={style}>
+                                        {/* {matchedStyles?.length > 1 && ( */}
+                                        <p className="font-semibold">{style}</p>
+                                        {/* )} */}
+                                        <p className="text-gray-700 leading-snug">
+                                          {description}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-green-100 text-green-800 border-green-200"
+                            >
+                              {Math.round(stakeholder.confidence * 100)}%
+                              confidence
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Personality Type Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              <Brain className="w-4 h-4" />
+                              <span>Personality Type : </span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.personality_type ||
+                                  "Data not available"}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.personality_type ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.personality_type}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Personality Type: Data not available
+                              </p>
+                            )} */}
+                          </div>
+
+                          {/* Communication Modality Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              {/* {ModalityIcon && ( */}
+                              <Headphones className="w-4 h-4" />
+                              {/* )} */}
+                              <span>Preferred Communication Modality:</span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.style
+                                  ? stakeholder.style.charAt(0).toUpperCase() +
+                                    stakeholder.style.slice(1)
+                                  : ""}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.style ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.style}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stakeholder.guidance}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Communication Modality: Data not available
+                              </p>
+                            )} */}
+                          </div>
+
+                          {/* Evidence Section */}
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Evidence
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.evidence}
+                            </p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Preferences
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start space-x-2"
+                                  >
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Communication Tips
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map(
+                                  (tip, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start space-x-2"
+                                    >
+                                      <span className="text-primary mt-1">
+                                        •
+                                      </span>
+                                      <span>{tip}</span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No communication styles detected yet</p>
+                  <p className="text-sm">
+                    Communication styles will be identified as you have more
+                    calls with this prospect
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Consolidated "How To Engage" Summary */}
+          {/* {howToEngageSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Consolidated "How To Engage" Summary</span>
+                  <Badge variant="default">Strategic Guide</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(howToEngageSummary).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(howToEngageSummary).map(([category, tips]) => (
+                      <Collapsible key={category} defaultOpen={true}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <h4 className="font-medium text-sm">{category}</h4>
+                          <ChevronRight className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 ml-3">
+                          <ul className="space-y-2">
+                            {tips.map((tip, index) => (
+                              <li key={index} className="flex items-start space-x-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">
+                      Comprehensive Engagement Strategy: Insufficient data for a tailored summary.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )} */}
+
+          {/* Cumulative Intelligence Section */}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default CallInsights;
+export { CallInsights };
