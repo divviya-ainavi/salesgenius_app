@@ -146,6 +146,13 @@ export const SalesCalls = () => {
     try {
       // Only load unprocessed files for the staging queue
       const files = await dbHelpers.getUploadedFiles(userId);
+     // Check if user ID is available before making the query
+     if (!user?.id) {
+       console.warn("No user ID available, skipping file load");
+       setUploadedFiles([]);
+       return;
+     }
+
       const unprocessedFiles = files.filter((file) => !file.is_processed);
 
       const enrichedFiles = files.map((file) => ({

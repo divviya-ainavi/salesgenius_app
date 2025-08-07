@@ -24,6 +24,10 @@ import {
   TrendingUp,
   BarChart3,
   MessageSquare,
+  RefreshCw,
+  ArrowLeft,
+  Eye,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
