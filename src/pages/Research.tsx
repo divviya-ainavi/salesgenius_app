@@ -644,10 +644,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={handleNewResearch}>
+              {/* <Button variant="outline" onClick={handleNewResearch}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Research
-              </Button>
+              </Button> */}
               <h1 className="text-3xl font-bold text-foreground">
                 Research History
               </h1>
@@ -781,7 +781,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back to History
             </Button>
-            <h1 className="text-2xl font-bold text-foreground">Research</h1>
+            {/* <h1 className="text-2xl font-bold text-foreground">Research</h1> */}
           </div>
 
           {/* Middle: Tab Navigation */}
@@ -827,10 +827,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 {prospectInCRM ? "On" : "Off"}
               </span>
             </div>
-            <Button variant="outline" onClick={handleViewHistory}>
+            {/* <Button variant="outline" onClick={handleViewHistory}>
               <Search className="w-4 h-4 mr-1" />
               View History
-            </Button>
+            </Button> */}
             <Button variant="outline" onClick={handleNewResearch}>
               <Plus className="w-4 h-4 mr-1" />
               New Research
