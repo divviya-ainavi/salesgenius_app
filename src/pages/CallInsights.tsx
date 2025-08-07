@@ -54,6 +54,7 @@ import {
   Loader2,
   Headphones,
   Info,
+  Brain,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -717,18 +718,21 @@ const CallInsights = () => {
   const totalPages = Math.ceil(filteredProspects.length / CARDS_PER_VIEW);
   const showCarousel = filteredProspects.length > CARDS_PER_VIEW;
   const startIndex = currentIndex * CARDS_PER_VIEW;
-  const endIndex = Math.min(startIndex + CARDS_PER_VIEW, filteredProspects.length);
-  const visibleProspects = showCarousel 
+  const endIndex = Math.min(
+    startIndex + CARDS_PER_VIEW,
+    filteredProspects.length
+  );
+  const visibleProspects = showCarousel
     ? filteredProspects.slice(startIndex, endIndex)
     : filteredProspects;
 
   // Carousel navigation functions
   const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(totalPages - 1, prev + 1));
+    setCurrentIndex((prev) => Math.min(totalPages - 1, prev + 1));
   };
 
   const handleDotClick = (pageIndex) => {
@@ -743,17 +747,17 @@ const CallInsights = () => {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.closest('.prospect-carousel')) {
-        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+      if (e.target.closest(".prospect-carousel")) {
+        if (e.key === "ArrowLeft" && currentIndex > 0) {
           handlePrevious();
-        } else if (e.key === 'ArrowRight' && currentIndex < totalPages - 1) {
+        } else if (e.key === "ArrowRight" && currentIndex < totalPages - 1) {
           handleNext();
         }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [currentIndex, totalPages]);
 
   // console.log(allInsights, "all insights data");
@@ -875,173 +879,6 @@ const CallInsights = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
-          </div>
-
-          {/* Prospect List with Carousel */}
-          <div className="relative prospect-carousel" tabIndex={0}>
-            {showCarousel && (
-              <>
-                {/* Navigation Arrows */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm shadow-md hover:bg-white/90"
-                  onClick={handlePrevious}
-                  disabled={currentIndex === 0}
-                  aria-label="Previous prospects"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm shadow-md hover:bg-white/90"
-                  onClick={handleNext}
-                  disabled={currentIndex >= totalPages - 1}
-                  aria-label="Next prospects"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-
-            {/* Cards Container */}
-            <div className={cn(
-              "transition-all duration-300 ease-in-out",
-              showCarousel 
-                ? "grid grid-cols-4 gap-4 mx-8" 
-                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            )}>
-              {(showCarousel ? visibleProspects : filteredProspects).map((prospect) => {
-                const companyName =
-                  prospect.company?.name || "Unknown Company";
-                const prospectNames =
-                  prospect.people
-                    ?.map((p) => p.name)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const titles =
-                  prospect.people
-                    ?.map((p) => p.title)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const totalCalls = prospect?.calls;
-                const dealValue = "TBD";
-                const probability = 50;
-                const lastEngagement = new Date(
-                  prospect.created_at
-                ).toLocaleDateString();
-                const status = "new";
-
-                return (
-                  <div
-                    key={prospect.id}
-                    className={cn(
-                      "border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                      selectedProspect?.id === prospect.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : "border-border hover:border-primary/50"
-                    )}
-                    onClick={() =>
-                      handleProspectSelect({
-                        id: prospect.id,
-                        name: prospect.name,
-                        companyName,
-                        company_id: prospect?.company_id,
-                        prospectNames,
-                        titles,
-                        totalCalls,
-                        lastCallDate: prospect.created_at,
-                        lastEngagement,
-                        status,
-                        dealValue,
-                        probability,
-                        nextAction: "Initial follow-up",
-                        dataSources: {
-                          fireflies: 1,
-                          hubspot: 0,
-                          presentations: 0,
-                          emails: 0,
-                        },
-                        fullInsight: prospect,
-                        calls: prospect?.calls || 1,
-                        people: prospect.people,
-                        call_summary: prospect?.call_summary,
-                        communication_style_ids:
-                          prospect?.communication_style_ids,
-                      })
-                    }
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-sm">
-                          {companyName}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {prospectNames}
-                        </p>
-                      </div>
-                      <span className={cn("text-xs", getStatusColor(status))}>
-                        {status}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Calls:</span>
-                        <span className="font-medium">{totalCalls}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Deal Value:
-                        </span>
-                        <span className="font-medium">{dealValue}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Last Engagement:
-                        </span>
-                        <span className="font-medium">{lastEngagement}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Opportunity:
-                        </span>
-                        <span className="font-medium">{prospect.name}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Carousel Controls */}
-            {showCarousel && (
-              <div className="flex items-center justify-center mt-4 space-x-4">
-                {/* Progress Counter */}
-                <span className="text-sm text-muted-foreground">
-                  {startIndex + 1}-{endIndex} of {filteredProspects.length}
-                </span>
-                
-                {/* Dot Indicators */}
-                <div className="flex space-x-2">
-                  {Array.from({ length: totalPages }, (_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDotClick(index)}
-                      className={cn(
-                        "w-2 h-2 rounded-full transition-colors",
-                        currentIndex === index
-                          ? "bg-primary"
-                          : "bg-gray-300 hover:bg-gray-400"
-                      )}
-                      aria-label={`Go to page ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Prospect List */}
