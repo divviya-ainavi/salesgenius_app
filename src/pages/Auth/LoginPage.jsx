@@ -220,7 +220,7 @@ const LoginPage = () => {
         }
 
         toast.success("Login successful!");
-        
+
         // Start Sales Calls tour only for first-time users
         const shouldStartTour = !(tourStatus || false); // If tourStatus is false/null, start tour
         if (shouldStartTour) {
@@ -231,9 +231,11 @@ const LoginPage = () => {
             }
           }, 2000); // 2 second delay to ensure page loads and tour is ready
         } else {
-          console.log("👤 Returning user - tour already completed, skipping auto-start");
+          console.log(
+            "👤 Returning user - tour already completed, skipping auto-start"
+          );
         }
-        
+
         navigate("/calls");
       }
     } catch (error) {
@@ -372,8 +374,21 @@ const LoginPage = () => {
                 <button
                   className="text-blue-600 hover:text-blue-800 font-medium"
                   onClick={() => {
-                    const mailtoLink = "mailto:admin@ainavi.co.uk?subject=Account Registration Request&body=Hello,%0D%0A%0D%0AI would like to request access to SalesGenius.ai.%0D%0A%0D%0APlease provide me with registration details.%0D%0A%0D%0AThank you.";
-                    window.open(mailtoLink, '_self');
+                    const email = "admin@ainavi.co.uk";
+                    const subject = encodeURIComponent(
+                      "Issue with SalesGenius.ai Access"
+                    );
+                    const body = encodeURIComponent(`Hello Admin,
+
+I'm currently facing an issue while trying to access or use SalesGenius.ai.
+
+Could you please assist or look into it?
+
+Thank you,
+[Your Name]`);
+
+                    const gmailLink = `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`;
+                    window.open(gmailLink, "_blank");
                   }}
                 >
                   Contact your administrator
