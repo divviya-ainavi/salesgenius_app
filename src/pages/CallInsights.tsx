@@ -51,7 +51,6 @@ import {
   Filter,
   Ear,
   Hand,
-  Brain,
   Loader2,
   Headphones,
   Info,
