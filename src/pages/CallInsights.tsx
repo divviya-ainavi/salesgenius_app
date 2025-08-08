@@ -147,6 +147,9 @@ const CallInsights = () => {
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
@@ -1664,7 +1667,57 @@ const CallInsights = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-2">
                             <h3 className="font-semibold flex items-center space-x-2">
-                              <span>{stakeholder.stakeholder}</span>
+                              {editingNameId === stakeholder.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editNameValue}
+                                    onChange={(e) => setEditNameValue(e.target.value)}
+                                    className="h-6 text-sm px-2 w-40 font-semibold"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape") handleNameCancel();
+                                    }}
+                                    autoFocus
+                                    disabled={isUpdatingName}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleNameSave(stakeholder.id)}
+                                    disabled={isUpdatingName}
+                                  >
+                                    {isUpdatingName ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleNameCancel}
+                                    disabled={isUpdatingName}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2 group">
+                                  <span className="cursor-pointer hover:text-primary" onClick={() => handleNameEdit(stakeholder)}>
+                                    {stakeholder.stakeholder}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
                               {PersonalityIcon && (
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
