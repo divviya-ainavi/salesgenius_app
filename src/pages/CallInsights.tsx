@@ -896,7 +896,7 @@ const CallInsights = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Building className="w-5 h-5" />
-              <span>Prospect Selection</span>
+              <span>Deal Selection</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -905,7 +905,7 @@ const CallInsights = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search prospects by company or name..."
+                placeholder="Search deals by company or name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -1288,7 +1288,7 @@ const CallInsights = () => {
                         content: e.target.value,
                       }))
                     }
-                    placeholder="Enter your insight about this prospect..."
+                    placeholder="Enter your insight about this deal..."
                     className="min-h-20"
                     autoFocus
                   />
@@ -1537,7 +1537,7 @@ const CallInsights = () => {
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
                   <p className="text-sm mb-4">
-                    Add your first insight about this prospect
+                    Add your first insight about this deal
                   </p>
                   <Button
                     variant="outline"
@@ -1557,7 +1557,7 @@ const CallInsights = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Prospect Behavioral & Communication Insights</span>
+                <span>Deal Behavioral & Communication Insights</span>
                 <Badge variant="secondary">
                   {communicationStyles.length} stakeholders
                 </Badge>
@@ -1911,7 +1911,7 @@ const CallInsights = () => {
                   <p className="mb-2">No communication styles detected yet</p>
                   <p className="text-sm">
                     Communication styles will be identified as you have more
-                    calls with this prospect
+                    calls with this deal
                   </p>
                 </div>
               )}

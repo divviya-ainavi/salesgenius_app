@@ -567,7 +567,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     className="text-sm font-medium"
                     style={{ color: "grey" }}
                   >
-                    Deal Contact LinkedIn URLs
+                    Prospect LinkedIn URLs
                   </label>
 
                   {formData.prospectLinkedIn.map((url, index) => (
@@ -604,7 +604,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                   </Button>
 
                   <p className="text-xs text-muted-foreground">
-                    Optional: Add for personalized contact analysis
+                    Optional: Add for personalized prospect analysis
                   </p>
                 </div>
 

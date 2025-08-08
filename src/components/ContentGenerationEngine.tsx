@@ -971,7 +971,7 @@ ${updatedBlocks
             {/* Prospect Switcher */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Prospect Context</CardTitle>
+                <CardTitle className="text-lg">Deal Context</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingProspects ? (
