@@ -146,10 +146,11 @@ const CallInsights = () => {
   const [cummulativeSummary, setCummulativeSummary] = useState("");
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
-  const { communicationStyleTypes } = useSelector((state) => state.org);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [editingNameId, setEditingNameId] = useState(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const { communicationStyleTypes } = useSelector((state) => state.org);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
@@ -811,12 +812,69 @@ const CallInsights = () => {
     0
   );
 
-  const handleRoleEdit = (commStyle) => {
-    setEditingRoleId(commStyle.id);
-    setEditRoleValue(commStyle.role || "");
+  // Name editing handlers
+  const handleNameEdit = (stakeholder) => {
+    // Cancel role editing if active
+    if (editingRoleId) {
+      setEditingRoleId(null);
+      setEditRoleValue("");
+    }
+    
+    setEditingNameId(stakeholder.id);
+    setEditNameValue(stakeholder.stakeholder);
   };
 
-  // console.log(communicationStyles, "communication styles data");
+  const handleNameSave = async (stakeholderId) => {
+    if (!editNameValue.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    setIsUpdatingName(true);
+    try {
+      await dbHelpers.updateCommunicationStyleName(
+        stakeholderId,
+        editNameValue.trim(),
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setCommunicationStyles(prev =>
+        prev.map(style =>
+          style.id === stakeholderId
+            ? { ...style, stakeholder: editNameValue.trim() }
+            : style
+        )
+      );
+
+      setEditingNameId(null);
+      setEditNameValue("");
+      toast.success("Name updated successfully");
+    } catch (error) {
+      console.error("Error updating name:", error);
+      toast.error("Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditingNameId(null);
+    setEditNameValue("");
+  };
+
+  const handleRoleEdit = (stakeholder) => {
+    // Cancel name editing if active
+    if (editingNameId) {
+      setEditingNameId(null);
+      setEditNameValue("");
+    }
+    
+    setEditingRoleId(stakeholder.id);
+    setEditRoleValue(stakeholder.role || "");
+  };
+
   const handleRoleSave = async (commStyleId) => {
     try {
       await dbHelpers?.updateCommunicationStyleRole(
