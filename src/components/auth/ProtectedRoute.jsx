@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { authHelpers, supabase } from "@/lib/supabase";
+import { authHelpers, supabase, handleSupabaseError } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 
@@ -12,18 +12,43 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check Supabase Auth first
-        const { data: { session } } = await supabase.auth.getSession();
+        // Check Supabase Auth first with error handling
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          await handleSupabaseError(error, 'protected_route_auth_check');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
         
         let isAuth = false;
         
         if (session) {
+          // Validate session expiry
+          const now = Math.floor(Date.now() / 1000);
+          if (session.expires_at && session.expires_at < now) {
+            console.log('🔐 Session expired in ProtectedRoute, triggering logout');
+            const { handleAutoLogout } = await import('@/lib/supabase');
+            await handleAutoLogout();
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
+          
           // User is authenticated with Supabase Auth
           // Verify they have a valid profile
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('auth_user_id', session.user.id);
+          
+          if (profileError) {
+            await handleSupabaseError(profileError, 'protected_route_profile_check');
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
           
           isAuth = !!(profile && profile.length > 0);
         } else {
@@ -34,6 +59,11 @@ const ProtectedRoute = ({ children }) => {
         setIsAuthenticated(isAuth);
       } catch (error) {
         console.error("Error checking authentication:", error);
+        // Handle potential auth errors
+        if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
+          const { handleAutoLogout } = await import('@/lib/supabase');
+          await handleAutoLogout();
+        }
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
