@@ -931,6 +931,46 @@ ${updatedBlocks
     toast.success("Content exported to email");
   };
 
+  // Helper functions for name editing
+  const handleNameEdit = (stakeholder) => {
+    setEditingNameId(stakeholder.id);
+    setEditNameValue(stakeholder.name);
+  };
+
+  const handleNameSave = async (stakeholderId) => {
+    setIsUpdatingName(true);
+    try {
+      await dbHelpers.updateCommunicationStyleName(
+        stakeholderId,
+        editNameValue,
+        selectedProspect?.id,
+        user?.id
+      );
+      
+      // Update local state
+      setStakeholders((prev) =>
+        prev.map((s) =>
+          s.id === stakeholderId
+            ? { ...s, name: editNameValue }
+            : s
+        )
+      );
+      
+      setEditingNameId(null);
+      toast.success("Name updated successfully");
+    } catch (err) {
+      console.error("Failed to update name:", err);
+      toast.error("Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditingNameId(null);
+    setEditNameValue("");
+  };
+
   // Derived data
   const primaryStakeholder = stakeholders.filter((s) => s.role === "primary");
   const secondaryStakeholders = stakeholders.filter(
@@ -1089,14 +1129,56 @@ ${updatedBlocks
                       {/* Primary Decision Maker Card */}
                       {primaryStakeholder?.length > 0 &&
                         primaryStakeholder?.map((x) => (
-                          <Card className="bg-primary/5 border-primary/20">
+                          <Card key={x.id} className="bg-primary/5 border-primary/20">
                             <CardHeader className="pb-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
                                   <Crown className="w-4 h-4 text-primary" />
-                                  <CardTitle className="text-base">
-                                    {x?.name}
-                                  </CardTitle>
+                                  <div className="flex items-center space-x-2">
+                                    {editingNameId === x.id ? (
+                                      <div className="flex items-center space-x-2">
+                                        <Input
+                                          value={editNameValue}
+                                          onChange={(e) => setEditNameValue(e.target.value)}
+                                          className="h-6 text-sm px-2 w-40 font-semibold"
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleNameSave(x.id);
+                                            if (e.key === "Escape") handleNameCancel();
+                                          }}
+                                          autoFocus
+                                          disabled={isUpdatingName}
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => handleNameSave(x.id)}
+                                          disabled={isUpdatingName}
+                                        >
+                                          {isUpdatingName ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <Save className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={handleNameCancel}
+                                          disabled={isUpdatingName}
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <CardTitle className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                          onClick={() => handleNameEdit(x)}>
+                                        <span>{x.name}</span>
+                                        <User className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </CardTitle>
+                                    )}
+                                  </div>
                                 </div>
                                 <Badge>Primary Decision Maker</Badge>
                               </div>
@@ -1313,60 +1395,58 @@ ${updatedBlocks
                               </Collapsible>
                             </CardContent>
                           </Card>
-                            <div className="flex items-center space-x-2">
-                              {editingNameId === stakeholder.id ? (
-                                <div className="flex items-center space-x-2">
-                                  <Input
-                                    value={editNameValue}
-                                    onChange={(e) => setEditNameValue(e.target.value)}
-                                    className="h-6 text-sm px-2 w-40 font-semibold"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleNameSave(stakeholder.id);
-                                      if (e.key === "Escape") handleNameCancel();
-                                    }}
-                                    autoFocus
-                                    disabled={isUpdatingName}
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => handleNameSave(stakeholder.id)}
-                                    disabled={isUpdatingName}
-                                  >
-                                    {isUpdatingName ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <Save className="w-3 h-3" />
-                                    )}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={handleNameCancel}
-                                    disabled={isUpdatingName}
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <h3 className="font-semibold flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleNameEdit(stakeholder)}>
-                                  <span>{stakeholder.stakeholder}</span>
-                                  <User className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  {PersonalityIcon && (
-                                    <PersonalityIcon className="w-4 h-4 text-primary" />
-                                  )}
-                                </h3>
-                              )}
-                            </div>
+                        ))}
+
+                      {/* Secondary Stakeholders */}
+                      {secondaryStakeholders.map((stakeholder) => (
+                        <Card key={stakeholder.id} className="bg-muted/30">
+                          <CardHeader className="pb-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                                <CardTitle className="text-base">
-                                  {stakeholder.name}
-                                </CardTitle>
+                                {editingNameId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      value={editNameValue}
+                                      onChange={(e) => setEditNameValue(e.target.value)}
+                                      className="h-6 text-sm px-2 w-40 font-semibold"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleNameSave(stakeholder.id);
+                                        if (e.key === "Escape") handleNameCancel();
+                                      }}
+                                      autoFocus
+                                      disabled={isUpdatingName}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => handleNameSave(stakeholder.id)}
+                                      disabled={isUpdatingName}
+                                    >
+                                      {isUpdatingName ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Save className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={handleNameCancel}
+                                      disabled={isUpdatingName}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <CardTitle className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                      onClick={() => handleNameEdit(stakeholder)}>
+                                    <User className="w-4 h-4 text-muted-foreground" />
+                                    <span>{stakeholder.name}</span>
+                                    <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </CardTitle>
+                                )}
                               </div>
                               <Badge variant="outline">Stakeholder</Badge>
                             </div>
@@ -2057,19 +2137,13 @@ ${updatedBlocks
                                     <X className="w-4 h-4" />
                                   </Button>
                                 </>
-                                  disabled={isUpdatingRole}
                               ) : (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditBlock(block.id)}
-                                  disabled={isUpdatingRole}
                                 >
-                                  {isUpdatingRole ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Save className="w-3 h-3" />
-                                  )}
+                                  <Edit className="w-4 h-4" />
                                 </Button>
                               )}
                             </div>
@@ -2102,10 +2176,9 @@ ${updatedBlocks
                                     </span>
                                   </div>
                                   <p className="text-sm text-muted-foreground">
-                                  disabled={isUpdatingRole}
                                     {block.strategicRationale}
                                   </p>
-                                <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
                               </div>
                             )}
                           </CardContent>
