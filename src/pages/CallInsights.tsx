@@ -1,219 +1,832 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Building,
-  User,
-  Search,
-  Calendar,
-  DollarSign,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  ArrowLeft,
+  Sparkles,
   TrendingUp,
+  Users,
+  Target,
+  Lightbulb,
+  Star,
+  Eye,
   MessageSquare,
   CheckSquare,
-  Mail,
-  Presentation,
-  Loader2,
+  FileText,
+  Building,
+  User,
+  Calendar,
+  Clock,
+  Database,
+  Layers,
+  Zap,
+  BarChart3,
+  RefreshCw,
+  ExternalLink,
+  Plus,
   Edit,
   Save,
   X,
-  Users,
-  Sparkles,
-  FileText,
-  Target,
-  Lightbulb,
-  BarChart3,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  Filter,
+  Ear,
+  Hand,
+  Loader2,
+  Headphones,
+  Info,
+  Brain,
   Phone,
-  Clock,
-  AlertCircle,
-  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@radix-ui/react-tooltip";
+import useEmblaCarousel from "embla-carousel-react";
 
-interface Deal {
-  id: string;
-  companyName: string;
-  peoplesName: string;
-  title: string;
-  status: string;
-  dealValue: string;
-  probability: number;
-  nextAction: string;
-  lastCallDate?: string;
-  created_at: string;
-  people: any[];
-  sales_insights: any[];
-  call_summary: string;
-  action_items: any[];
-  name: string;
-}
+const communicationStyleConfigs = {
+  Visual: {
+    icon: Eye,
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    description: "Prefers charts, graphs, and visual demonstrations",
+  },
+  Auditory: {
+    icon: Ear,
+    color: "bg-green-100 text-green-800 border-green-200",
+    description: "Learns through listening and verbal communication",
+  },
+  Kinesthetic: {
+    icon: Hand,
+    color: "bg-purple-100 text-purple-800 border-purple-200",
+    description: "Prefers hands-on experiences and practical examples",
+  },
+};
 
-interface CommunicationStyle {
-  id: string;
-  stakeholder: string;
-  role: string;
-  style: string;
-  confidence: number;
-  evidence: string;
-  preferences: string[];
-  communication_tips: string[];
-  personality_type: string;
-}
+// Personality type icons mapping
+const personalityTypeIcons = {
+  D: Brain,
+  I: MessageSquare,
+  S: Users,
+  C: BarChart3,
+};
 
-export const CallInsights = () => {
+// Communication modality icons mapping
+const communicationModalityIcons = {
+  Visual: Eye,
+  Auditory: Ear,
+  Kinesthetic: Hand,
+};
+
+const CallInsights = () => {
   usePageTimer("Call Insights");
-
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [selectedProspect, setSelectedProspect] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoadingDeals, setIsLoadingDeals] = useState(true);
-  const [activeTab, setActiveTab] = useState("insights");
-  const [communicationStyles, setCommunicationStyles] = useState<CommunicationStyle[]>([]);
-  const [isLoadingStyles, setIsLoadingStyles] = useState(false);
-  
-  // Edit states for communication styles
-  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
-  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [insights, setInsights] = useState([]);
+  const [communicationStyles, setCommunicationStyles] = useState([]);
+  const [howToEngageSummary, setHowToEngageSummary] = useState(null);
+  const [isAddingInsight, setIsAddingInsight] = useState(false);
+  const [newInsight, setNewInsight] = useState({
+    content: "",
+    type: "my_insights",
+    typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
+  });
+
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [editingInsightId, setEditingInsightId] = useState(null);
+  const [editingInsightContent, setEditingInsightContent] = useState("");
+  const [isSavingInsight, setIsSavingInsight] = useState(false);
+  const [allInsights, setAllInsights] = useState([]);
+
+  // Company name editing state
+  const [isEditingCompanyName, setIsEditingCompanyName] = useState(false);
+  const [editingCompanyName, setEditingCompanyName] = useState("");
+  const [researchCompanyCount, setResearchCompanyCount] = useState(null);
+  const [people, setPeople] = useState([]);
+
+  const [insightTypes, setInsightTypes] = useState({});
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+  } = useSelector((state) => state.auth);
+  const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const [cummulativeSummary, setCummulativeSummary] = useState("");
+  const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
-  const [editNameValue, setEditNameValue] = useState("");
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const { communicationStyleTypes } = useSelector((state) => state.org);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState([]);
 
-  const { user } = useSelector((state) => state.auth);
+  // Carousel state
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const CARDS_PER_VIEW = 4;
 
-  // Filter deals based on search term
-  const filteredDeals = deals.filter(
-    (deal) =>
-      deal.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deal.peoplesName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deal.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Arrow functions
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  // Dot click
+  const scrollTo = useCallback(
+    (index) => emblaApi?.scrollTo(index),
+    [emblaApi]
   );
 
-  // Load deals on component mount
   useEffect(() => {
-    const fetchDeals = async () => {
-      if (!user?.id) {
-        setIsLoadingDeals(false);
-        return;
-      }
+    if (!emblaApi) return;
 
-      setIsLoadingDeals(true);
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    const onInit = () => {
+      setScrollSnaps(emblaApi.scrollSnapList());
+      onSelect();
+    };
+
+    emblaApi.on("init", onInit);
+    emblaApi.on("reInit", onInit);
+    emblaApi.on("select", onSelect);
+
+    // Run once immediately
+    onInit();
+
+    return () => {
+      emblaApi.off("init", onInit);
+      emblaApi.off("reInit", onInit);
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
+
+  function resolveInsightIcon(iconName) {
+    const insightIcons = {
+      TrendingUp,
+      Target,
+      Star,
+      Users,
+      Clock,
+      Lightbulb,
+      Eye,
+      MessageSquare,
+      Save,
+      X,
+    };
+    return insightIcons[iconName] || Lightbulb;
+  }
+
+  console.log(communicationStyles, "communication styles data");
+  function mapInsightTypesToObject(insightTypesArray) {
+    return insightTypesArray.reduce((acc, item) => {
+      acc[item.key] = {
+        id: item.id,
+        icon: resolveInsightIcon(item.icon), // e.g., "Lightbulb"
+        label: item.label,
+        description: item.description || "No description",
+        color:
+          item?.key == "buying_signal"
+            ? "bg-green-100 text-green-800 border-green-200"
+            : item?.key == "pain_point"
+            ? "bg-red-100 text-red-800 border-red-200"
+            : item?.key == "competitive_edge"
+            ? "bg-blue-100 text-blue-800 border-blue-200"
+            : item?.key == "stakeholder_dynamics"
+            ? "bg-purple-100 text-purple-800 border-purple-200"
+            : item?.key == "budget_insight"
+            ? "bg-orange-100 text-orange-800 border-orange-200"
+            : item?.key == "champion_identified"
+            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+            : item?.key == "risk_or_objection"
+            ? "bg-orange-100 text-orange-800 border-orange-200"
+            : item?.key == "comptetior_mention"
+            ? "bg-blue-100 text-blue-800 border-blue-200"
+            : item?.key == "decision_maker_identified"
+            ? "bg-purple-100 text-purple-800 border-purple-200"
+            : item?.key == "timeline_insight"
+            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+            : "bg-yellow-100 text-yellow-800 border-yellow-200", // fallback
+      };
+      return acc;
+    }, {});
+  }
+
+  useEffect(() => {
+    const loadInsightTypes = async () => {
+      const types = await dbHelpers.getSalesInsightTypes();
+      const mapped = mapInsightTypesToObject(types);
+      setInsightTypes(mapped);
+    };
+    loadInsightTypes();
+  }, []);
+  // console.log(insightTypes, "insight types");
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (!user?.id) return;
       try {
-        const insights = await dbHelpers.getProspectData(user.id);
+        const result = await dbHelpers?.getResearchCompanyCountByUser(user?.id);
+        setResearchCompanyCount(result);
+      } catch (error) {
+        console.error("Failed to load research count:", error);
+        setResearchCompanyCount(null);
+      } finally {
+        console.log("Research count fetched");
+      }
+    };
 
-        const enrichedDeals = await Promise.all(
-          (insights || [])
-            .filter((x) => x.communication_style_ids != null)
-            .map(async (insight) => {
-              const people = await dbHelpers.getPeopleByProspectId(
-                insight.id,
-                user.id
-              );
+    fetchCount();
+    const fetchInsightsAndSetProspect = async () => {
+      try {
+        let insights = await dbHelpers.getProspectData(user?.id);
+        // console.log(insights, "get insights data");
 
-              return {
-                id: insight.id,
-                companyName: insight.company?.name || "Unknown Company",
-                peoplesName:
-                  (insight.prospect_details || [])
-                    .map((p) => p.name)
-                    .join(", ") || "Unknown",
-                title:
-                  (insight.prospect_details || [])
-                    .map((p) => p.title)
-                    .join(", ") || "Unknown",
-                prospect_details: insight.prospect_details || [],
-                people,
-                status: "new",
-                dealValue: "TBD",
-                probability: 50,
-                nextAction: "Initial follow-up",
-                created_at: insight.created_at,
-                sales_insights: insight.sales_insights || [],
-                call_summary: insight.call_summary,
-                action_items: insight.action_items || [],
-                name: insight?.name,
-              };
-            })
+        // Sort insights by created_at descending
+        insights = insights.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+        const enrichedInsights = await Promise.all(
+          insights.map(async (insight) => {
+            const people = await dbHelpers.getPeopleByProspectId(
+              insight.id,
+              user?.id
+            );
+            return { ...insight, people, company_id: insight?.company?.id };
+          })
         );
 
-        setDeals(enrichedDeals);
-        if (enrichedDeals.length > 0) {
-          setSelectedDeal(enrichedDeals[0]);
+        setAllInsights(enrichedInsights);
+
+        // setAllInsights(insights);
+        let defaultInsight;
+
+        if (location.state?.selectedCall) {
+          const selectedCall = location.state.selectedCall;
+          // console.log(selectedCall?.id, "check passed id call insights");
+          defaultInsight = insights.find(
+            (insight) => insight.id == selectedCall.id
+          );
+          // console.log(
+          //   insights.find((insight) => insight.id == selectedCall.id),
+          //   insights,
+          //   selectedCall.id,
+          //   "check default insights 237"
+          // );
         }
-      } catch (err) {
-        console.error("Failed to load call insights:", err);
-        toast.error("Could not fetch call insights");
-      } finally {
-        setIsLoadingDeals(false);
-      }
-    };
+        // console.log(defaultInsight, "check default insights");
+        if (!defaultInsight && insights?.length > 0) {
+          defaultInsight = insights[0]; // most recent
+        }
 
-    fetchDeals();
-  }, [user?.id]);
+        if (defaultInsight) {
+          const companyName =
+            defaultInsight?.company?.name || "Unknown Company";
 
-  // Load communication styles when deal changes
-  useEffect(() => {
-    const loadCommunicationStyles = async () => {
-      if (!selectedDeal?.id) {
-        setCommunicationStyles([]);
-        return;
-      }
+          const people = await dbHelpers.getPeopleByProspectId(
+            defaultInsight.id,
+            user?.id
+          );
+          // console.log(defaultInsight, "check default insight");
+          const prospect = {
+            id: defaultInsight.id,
+            name: defaultInsight?.name,
+            companyName,
+            company_id: defaultInsight?.company?.id,
+            calls: defaultInsight?.calls,
+            prospectName:
+              people
+                ?.map((p) => p.name)
+                .filter(Boolean)
+                .join(", ") || "Unknown",
+            title:
+              people
+                ?.map((p) => p.title)
+                .filter(Boolean)
+                .join(", ") || "Unknown",
+            totalCalls: 1,
+            lastCallDate: defaultInsight.created_at,
+            lastEngagement: "Just now",
+            status: "new",
+            dealValue: "TBD",
+            probability: 50,
+            nextAction: "Initial follow-up",
+            dataSources: {
+              fireflies: 1,
+              hubspot: 0,
+              presentations: 0,
+              emails: 0,
+            },
+            fullInsight: defaultInsight,
+            people, // ✅ attach people to selectedProspect
+            call_summary: defaultInsight?.call_summary || "",
+            communication_style_ids: defaultInsight?.communication_style_ids,
+          };
 
-      setIsLoadingStyles(true);
-      try {
-        const styles = await dbHelpers.getCommunicationStylesByProspectId(selectedDeal.id);
-        setCommunicationStyles(styles || []);
+          // console.log(
+          //   prospect,
+          //   "selected prospect",
+          //   defaultInsight,
+          //   "get default insight"
+          // );
+          setCummulativeSummary(defaultInsight?.call_summary);
+          setSelectedProspect(prospect);
+          loadProspectInsights(defaultInsight);
+        } else {
+          toast.info("No call insights found yet.");
+        }
       } catch (error) {
-        console.error("Failed to load communication styles:", error);
-        toast.error("Could not load communication styles");
-      } finally {
-        setIsLoadingStyles(false);
+        console.error("Failed to fetch call insights", error);
+        toast.error("Error loading call insight data");
       }
     };
 
-    loadCommunicationStyles();
-  }, [selectedDeal?.id]);
+    fetchInsightsAndSetProspect();
+  }, [location.state]);
 
-  const handleDealSelect = (deal: Deal) => {
-    setSelectedDeal(deal);
-    // Reset edit states when switching deals
-    setEditingRoleId(null);
-    setEditingNameId(null);
-    setEditRoleValue("");
-    setEditNameValue("");
+  // console.log(allInsights, "get all insights 290");
+  const fetchCommunicationStyles = async (styleIds) => {
+    if (!styleIds?.length) return [];
+
+    // const { data, error } = await dbHelpers.supabase
+    //   .from("communication_styles")
+    //   .select("*")
+    //   .in("id", styleIds);
+    const data = await dbHelpers.getCommunicationStylesData(styleIds, user?.id);
+
+    // Sort: is_primary first
+    return data.sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return 0;
+    });
   };
 
-  // Role editing functions
-  const handleStartEditRole = (style: CommunicationStyle) => {
-    setEditingRoleId(style.id);
-    setEditRoleValue(style.role);
-    // Cancel name editing if active
-    setEditingNameId(null);
-    setEditNameValue("");
+  const updateAllInsightsEntry = (updatedInsight) => {
+    setAllInsights((prev) =>
+      prev.map((insight) =>
+        insight.id === updatedInsight.id ? updatedInsight : insight
+      )
+    );
   };
 
-  const handleSaveRole = async () => {
-    if (!editingRoleId || !editRoleValue.trim()) {
-      toast.error("Please enter a valid role");
+  // const loadProspectInsights = (insightData) => {
+  //   setInsights(insightData.sales_insights || []);
+  //   setCommunicationStyles(insightData.communication_styles || []);
+
+  //   // Load mock data for demonstration - in real app this would come from the database
+  //   if (insightData.id && mockCumulativeInsights.acme_corp) {
+  //     setHowToEngageSummary(
+  //       mockCumulativeInsights.acme_corp.howToEngageSummary
+  //     );
+  //   }
+  // };
+  const loadProspectInsights = async (insightData) => {
+    const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+      insightData.id,
+      user?.id
+    );
+    setInsights(groupedInsights); // You may need to map this to your display structure
+    console.log(
+      insightData.communication_style_ids,
+      "insightData.communication_style_ids"
+    );
+    const styles = await fetchCommunicationStyles(
+      insightData.communication_style_ids
+    );
+    setCommunicationStyles(styles);
+
+    const peopleList = await dbHelpers.getPeopleByProspectId(
+      insightData.id,
+      user?.id
+    );
+    setPeople(peopleList);
+  };
+  // console.log(people, "get people list");
+
+  const refreshCommunicationStyles = async () => {
+    const styles = await fetchCommunicationStyles(
+      selectedProspect?.communication_style_ids
+    );
+
+    setCommunicationStyles(styles);
+  };
+
+  const refreshCummulativeSummary = async () => {
+    // console.log(selectedProspect?.id, "check spin summary");
+    if (selectedProspect?.id != undefined) {
+      const summary = await dbHelpers.getProspectSummary(selectedProspect?.id);
+      // console.log(summary, "check spin summary");
+      setCummulativeSummary(summary?.call_summary);
+    }
+  };
+
+  useEffect(() => {
+    refreshCommunicationStyles();
+    refreshCummulativeSummary();
+  }, [cummulativeSpinner]);
+  // console.log(
+  //   communicationStyles,
+  //   cummulativeSpinner,
+  //   selectedProspect?.communication_style_ids,
+  //   "check spin"
+  // );
+  const handleProspectSelect = (prospect) => {
+    setSelectedProspect(prospect);
+    setCummulativeSummary(prospect?.call_summary);
+    loadProspectInsights(prospect.fullInsight);
+    toast.success(`Loaded insights for ${prospect.companyName}`);
+  };
+
+  const handleEditCompanyName = () => {
+    setIsEditingCompanyName(true);
+    setEditingCompanyName(selectedProspect.companyName);
+  };
+
+  // console.log(selectedProspect, "check selected prospect");
+
+  const handleSaveCompanyName = async () => {
+    if (!editingCompanyName.trim()) {
+      toast.error("Company name cannot be empty");
       return;
     }
 
-    setIsUpdatingRole(true);
     try {
-      await dbHelpers.updateCommunicationStyleRole(editingRoleId, editRoleValue.trim());
-      
+      const newCompanyName = editingCompanyName.trim();
+
+      // Update company table
+      await dbHelpers.updateCompanyName(
+        selectedProspect.company_id,
+        newCompanyName
+      );
+
+      // Update local state (important: update company.name if used in UI)
+      setSelectedProspect((prev) => ({
+        ...prev,
+        companyName: newCompanyName,
+        company: {
+          ...prev.company,
+          name: newCompanyName,
+        },
+        fullInsight: {
+          ...prev.fullInsight,
+          company_details: {
+            ...prev.fullInsight.company_details,
+            name: newCompanyName,
+          },
+        },
+      }));
+      setAllInsights((prev) =>
+        prev.map((insight) =>
+          insight.id === selectedProspect.id
+            ? {
+                ...insight,
+                company: {
+                  ...insight.company,
+                  name: newCompanyName,
+                },
+              }
+            : insight
+        )
+      );
+
+      setIsEditingCompanyName(false);
+      setEditingCompanyName("");
+      toast.success("Company name updated successfully");
+    } catch (error) {
+      console.error("Error updating company name:", error);
+      toast.error("Failed to update company name");
+    }
+  };
+
+  const handleCancelEditCompanyName = () => {
+    setIsEditingCompanyName(false);
+    setEditingCompanyName("");
+  };
+
+  const handleAddInsight = async () => {
+    if (
+      !newInsight.content.trim() ||
+      !selectedProspect?.id ||
+      !newInsight.typeId
+    ) {
+      toast.error("Missing required fields");
+      return;
+    }
+
+    try {
+      const newEntry = {
+        content: newInsight.content.trim(),
+        type_id: newInsight.typeId,
+        relevance_score: 0,
+        is_selected: true,
+        source: "User Input",
+        timestamp: new Date().toISOString(),
+        user_id: user?.id,
+      };
+
+      // 1. Insert into sales_insights
+      const inserted = await dbHelpers.insertSalesInsight(newEntry);
+      if (!inserted) throw new Error("Insert failed");
+
+      // 2. Update recent insight row by adding this sales_insight id
+      await dbHelpers.updateInsightWithNewSalesInsightId(
+        selectedProspect.id,
+        inserted.id
+      );
+
+      // 3. Refresh insights list for the UI
+      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+        selectedProspect.id,
+        user?.id
+      );
+      setInsights(groupedInsights);
+
+      // 4. Reset form state
+      setNewInsight({
+        content: "",
+        type: "my_insights",
+        typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035", // Default 'my_insights' typeId
+      });
+      setIsAddingInsight(false);
+
+      toast.success("Insight added successfully");
+    } catch (error) {
+      console.error("Error in handleAddInsight:", error);
+      toast.error("Failed to add insight");
+    }
+  };
+
+  const handleMoveInsight = async (typeId, direction) => {
+    if (!selectedProspect?.id || !insights || insights.length === 0) return;
+
+    // Clone the current insights array
+    const newInsights = [...insights];
+
+    // Find the index of the block with the matching type_id
+    const currentIndex = newInsights.findIndex(
+      (insight) => insight.type_id === typeId
+    );
+
+    if (
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === newInsights.length - 1)
+    ) {
+      // Can't move
+      return;
+    }
+
+    // Swap logic
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    [newInsights[currentIndex], newInsights[targetIndex]] = [
+      newInsights[targetIndex],
+      newInsights[currentIndex],
+    ];
+
+    // Reassign new priority based on position
+    const updatedPriorityList = newInsights.map((insight, index) => ({
+      type_id: insight.type_id,
+      priority: index + 1,
+      average_score: insight.average_score,
+    }));
+
+    // Update in Supabase
+    const success = await dbHelpers.updateSalesInsightPriorityList(
+      selectedProspect.id,
+      updatedPriorityList
+    );
+
+    if (success) {
+      setInsights(newInsights);
+      toast.success("Insight priority updated");
+    } else {
+      toast.error("Failed to update priority list");
+    }
+  };
+
+  const handleEditInsightContent = (insightId, content) => {
+    setEditingInsightId(insightId);
+    setEditingInsightContent(content);
+  };
+
+  const handleSaveInsightContent = async (id, content) => {
+    if (!content.trim()) {
+      toast.error("Content cannot be empty");
+      return;
+    }
+
+    setIsSavingInsight(true);
+    try {
+      // ✅ Update the insight content in Supabase
+      const updated = await dbHelpers.updateSalesInsightContent(
+        id,
+        content.trim(),
+        user?.id
+      );
+
+      if (updated) {
+        console.log("Insight updated successfully:", updated);
+      }
+
+      // ✅ Update local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.map((insight) =>
+            insight.id === id
+              ? { ...insight, content: content.trim() }
+              : insight
+          ),
+        }))
+      );
+
+      setEditingInsightId(null);
+      setEditingInsightContent("");
+      toast.success("Insight updated successfully");
+    } catch (error) {
+      console.error("Error updating insight:", error);
+      toast.error("Failed to update insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
+  };
+
+  const handleCancelInsightEdit = () => {
+    setEditingInsightId(null);
+    setEditingInsightContent("");
+  };
+
+  const handleDeleteInsightContent = async (insightId) => {
+    if (!insightId) {
+      toast.error("Invalid insight ID");
+      return;
+    }
+
+    try {
+      // ✅ Mark the insight as inactive in Supabase
+      const updated = await dbHelpers.deleteSalesInsightContent(
+        insightId,
+        {
+          is_active: false,
+        },
+        user?.id
+      );
+
+      if (updated) {
+        console.log("Insight marked as inactive:", updated);
+      }
+
+      // ✅ Remove the insight from local state
+      setInsights((prev) =>
+        prev.map((group) => ({
+          ...group,
+          insights: group.insights.filter(
+            (insight) => insight.id !== insightId
+          ),
+        }))
+      );
+
+      toast.success("Insight deleted successfully");
+    } catch (error) {
+      console.log("Error deleting insight:", error);
+      toast.error("Failed to delete insight");
+    } finally {
+      setIsSavingInsight(false);
+    }
+  };
+
+  // console.log(allInsights, "check all insights");
+  const filteredProspects = allInsights?.filter(
+    (prospect) =>
+      prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prospect?.company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Calculate carousel values
+  const totalPages = Math.ceil(filteredProspects.length / CARDS_PER_VIEW);
+  const showCarousel = filteredProspects.length > CARDS_PER_VIEW;
+  const startIndex = currentIndex * CARDS_PER_VIEW;
+  const endIndex = Math.min(
+    startIndex + CARDS_PER_VIEW,
+    filteredProspects.length
+  );
+  const visibleProspects = showCarousel
+    ? filteredProspects.slice(startIndex, endIndex)
+    : filteredProspects;
+
+  // Carousel navigation functions
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(totalPages - 1, prev + 1));
+  };
+
+  const handleDotClick = (pageIndex) => {
+    setCurrentIndex(pageIndex);
+  };
+
+  // Reset carousel when search changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchTerm]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.closest(".prospect-carousel")) {
+        if (e.key === "ArrowLeft" && currentIndex > 0) {
+          handlePrevious();
+        } else if (e.key === "ArrowRight" && currentIndex < totalPages - 1) {
+          handleNext();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, totalPages]);
+
+  // console.log(allInsights, "all insights data");
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "hot":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "warm":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "cold":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "new":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case "increasing":
+        return <TrendingUp className="w-3 h-3 text-green-600" />;
+      case "decreasing":
+        return <TrendingUp className="w-3 h-3 text-red-600 rotate-180" />;
+      case "new":
+        return <Star className="w-3 h-3 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
+  const totalInsightsCount = insights?.reduce(
+    (sum, item) => sum + item?.insights?.length,
+    0
+  );
+
+  const handleRoleEdit = (commStyle) => {
+    setEditingRoleId(commStyle.id);
+    setEditRoleValue(commStyle.role || "");
+  };
+
+  // console.log(communicationStyles, "communication styles data");
+  const handleRoleSave = async (commStyleId) => {
+    try {
+      await dbHelpers?.updateCommunicationStyleRole(
+        commStyleId,
+        editRoleValue,
+        selectedProspect?.id,
+        user?.id
+      );
+
       // Update local state
-      setCommunicationStyles(prev => 
-        prev.map(style => 
-          style.id === editingRoleId 
-            ? { ...style, role: editRoleValue.trim() }
-            : style
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === commStyleId ? { ...style, role: editRoleValue } : style
         )
       );
 
@@ -223,599 +836,1138 @@ export const CallInsights = () => {
     } catch (error) {
       console.error("Error updating role:", error);
       toast.error("Failed to update role");
-    } finally {
-      setIsUpdatingRole(false);
     }
   };
 
-  const handleCancelEditRole = () => {
+  const handleRoleCancel = () => {
     setEditingRoleId(null);
     setEditRoleValue("");
   };
 
-  // Name editing functions
-  const handleStartEditName = (style: CommunicationStyle) => {
-    setEditingNameId(style.id);
-    setEditNameValue(style.stakeholder);
-    // Cancel role editing if active
-    setEditingRoleId(null);
-    setEditRoleValue("");
-  };
+  // console.log("Total insights count:", totalInsightsCount);
 
-  const handleSaveName = async () => {
-    if (!editingNameId || !editNameValue.trim()) {
-      toast.error("Please enter a valid name");
-      return;
-    }
-
-    setIsUpdatingName(true);
-    try {
-      await dbHelpers.updateCommunicationStyleName(editingNameId, editNameValue.trim());
-      
-      // Update local state
-      setCommunicationStyles(prev => 
-        prev.map(style => 
-          style.id === editingNameId 
-            ? { ...style, stakeholder: editNameValue.trim() }
-            : style
-        )
-      );
-
-      setEditingNameId(null);
-      setEditNameValue("");
-      toast.success("Name updated successfully");
-    } catch (error) {
-      console.error("Error updating name:", error);
-      toast.error("Failed to update name");
-    } finally {
-      setIsUpdatingName(false);
-    }
-  };
-
-  const handleCancelEditName = () => {
-    setEditingNameId(null);
-    setEditNameValue("");
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "hot":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "warm":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "cold":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-green-600";
-    if (confidence >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
+  // console.log(insights, "get list of insights");
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Call Insights & Deal Analysis
+            Call Insights
           </h1>
           <p className="text-muted-foreground">
-            AI-powered insights from your sales conversations with detailed deal analysis
+            Accelerating Prospect Conversion - Your ultimate hub for AI-driven
+            prospect intelligence
           </p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/calls")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Sales Calls
+          </Button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Sidebar - Deal Selector */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Building className="w-5 h-5" />
-                <span>Deals</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search deals..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      {/* Cumulative Intelligence Active Indicator */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
+
+      {filteredProspects.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">No Prospects Processed</h3>
+            <p className="text-muted-foreground mb-4">
+              No prospects have been processed yet. Upload and process call
+              transcripts to see prospect insights here.
+            </p>
+            <Button onClick={() => navigate("/calls")} variant="outline">
+              <Phone className="w-4 h-4 mr-2" />
+              Go to Sales Calls
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Deal Selection</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search */}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search deals by company or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Prospect List */}
+            <div className="relative">
+              {/* Left Arrow */}
+
+              <button
+                onClick={scrollPrev}
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Right Arrow */}
+
+              <button
+                onClick={scrollNext}
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Carousel Viewport */}
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {filteredProspects.map((prospect) => {
+                    const companyName =
+                      prospect.company?.name || "Unknown Company";
+                    const prospectNames =
+                      prospect.people
+                        ?.map((p) => p.name)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const titles =
+                      prospect.people
+                        ?.map((p) => p.title)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const totalCalls = prospect?.calls;
+                    const dealValue = "TBD";
+                    const probability = 50;
+                    const lastEngagement = new Date(
+                      prospect.created_at
+                    ).toLocaleDateString();
+                    const status = "new";
+
+                    return (
+                      <div
+                        key={prospect.id}
+                        className={cn(
+                          "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                          selectedProspect?.id === prospect.id
+                            ? "border-primary bg-primary/5 shadow-md"
+                            : "border-border hover:border-primary/50"
+                        )}
+                        onClick={() =>
+                          handleProspectSelect({
+                            id: prospect.id,
+                            name: prospect.name,
+                            companyName,
+                            company_id: prospect?.company_id,
+                            prospectNames,
+                            titles,
+                            totalCalls,
+                            lastCallDate: prospect.created_at,
+                            lastEngagement,
+                            status,
+                            dealValue,
+                            probability,
+                            nextAction: "Initial follow-up",
+                            dataSources: {
+                              fireflies: 1,
+                              hubspot: 0,
+                              presentations: 0,
+                              emails: 0,
+                            },
+                            fullInsight: prospect,
+                            calls: prospect?.calls || 1,
+                            people: prospect.people,
+                            call_summary: prospect?.call_summary,
+                            communication_style_ids:
+                              prospect?.communication_style_ids,
+                          })
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-sm">
+                              {companyName}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {prospectNames}
+                            </p>
+                          </div>
+                          <span
+                            className={cn("text-xs", getStatusColor(status))}
+                          >
+                            {status}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Calls:
+                            </span>
+                            <span className="font-medium">{totalCalls}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Deal Value:
+                            </span>
+                            <span className="font-medium">{dealValue}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Last Engagement:
+                            </span>
+                            <span className="font-medium">
+                              {lastEngagement}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Opportunity:
+                            </span>
+                            <span className="font-medium">{prospect.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Deals List */}
-              {isLoadingDeals ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Loading deals...</p>
+              {/* Dots */}
+              <div className="flex justify-center mt-4 gap-2">
+                {scrollSnaps.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollTo(index)}
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      index === selectedIndex ? "bg-primary" : "bg-gray-300"
+                    )}
+                  ></button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {/* Prospect Selection */}
+
+      {selectedProspect && (
+        <>
+          {/* Company Name Section with Edit Capability */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>Company Information</span>
                 </div>
-              ) : filteredDeals.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Building className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="mb-2">
-                    {searchTerm ? "No Deals Found" : "No Deals Processed"}
-                  </p>
-                  <p className="text-sm">
-                    {searchTerm
-                      ? "Try adjusting your search terms"
-                      : "Deals appear here after processing call transcripts"}
-                  </p>
-                  {!searchTerm && (
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Company Name:
+                </span>
+                {isEditingCompanyName ? (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Input
+                      value={editingCompanyName}
+                      onChange={(e) => setEditingCompanyName(e.target.value)}
+                      className="flex-1"
+                      placeholder="Enter company name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveCompanyName();
+                        if (e.key === "Escape") handleCancelEditCompanyName();
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyName}
+                      disabled={!editingCompanyName.trim()}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-4"
-                      onClick={() => (window.location.href = "/calls")}
+                      onClick={handleCancelEditCompanyName}
                     >
-                      <Phone className="w-4 h-4 mr-2" />
-                      Go to Sales Calls
+                      <X className="w-4 h-4" />
                     </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {filteredDeals.map((deal) => (
-                    <div
-                      key={deal.id}
-                      className={cn(
-                        "border rounded-lg p-3 cursor-pointer transition-all hover:shadow-sm",
-                        selectedDeal?.id === deal.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      )}
-                      onClick={() => handleDealSelect(deal)}
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 flex-1">
+                    <span className="text-lg font-semibold">
+                      {selectedProspect.companyName}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditCompanyName}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-sm truncate">
-                          {deal.companyName}
-                        </h4>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", getStatusColor(deal.status))}
-                        >
-                          {deal.status}
-                        </Badge>
-                      </div>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-                      <p className="text-xs text-muted-foreground mb-2 truncate">
-                        {deal.peoplesName} • {deal.title}
-                      </p>
-
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{deal.dealValue}</span>
-                        <span>
-                          {new Date(deal.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+          {/* Cummulative Intelligence Section */}
+          <Card data-tour="cumulative-intelligence">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="w-5 h-5" />
+                <span>Cumulative Intelligence</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ExternalLink
+                    className={cn(
+                      "w-4 h-4",
+                      insights?.length > 0 ? "text-blue-600" : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Calls:</span>
+                  {/* {console.log(selectedProspect, "selected prospect calls")} */}
+                  <Badge
+                    variant={selectedProspect?.calls ? "default" : "secondary"}
+                  >
+                    {(selectedProspect?.communication_style_ids != null &&
+                      selectedProspect?.calls) ||
+                      0}
+                  </Badge>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Database
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "text-orange-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">HubSpot Data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.hubspot > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.hubspot}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      researchCompanyCount > 0
+                        ? "text-purple-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Research:</span>
+                  <Badge
+                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
+                    variant={"secondary"}
+                  >
+                    0{/* {researchCompanyCount} */}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect.dataSources.emails > 0
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    )}
+                  />
+                  <span className="text-sm">Internal data:</span>
+                  <Badge
+                    variant={
+                      selectedProspect.dataSources.emails > 0
+                        ? "default"
+                        : "secondary"
+                    }
+                  >
+                    {selectedProspect.dataSources.emails}
+                  </Badge>
+                </div>
+              </div>
+
+              {cummulativeSpinner ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {cummulativeSummary || ""}
+                </p>
               )}
             </CardContent>
           </Card>
-        </div>
+          {/* Sales Insights Section */}
+          <Card data-tour="sales-insights-section">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sales Insights</span>
+                  <Badge variant="secondary">
+                    {totalInsightsCount} insights
+                  </Badge>
+                </div>
+                <Button
+                  onClick={() => setIsAddingInsight(true)}
+                  disabled={isAddingInsight}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Insight
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Insight */}
+              {/* {console.log(newInsight, "newInsight type")} */}
+              {isAddingInsight && (
+                <div className="border border-dashed border-primary rounded-lg p-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Select
+                      value={newInsight.type}
+                      onValueChange={(value) => {
+                        const selectedType = Object.entries(insightTypes).find(
+                          ([key]) => key === value
+                        );
 
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {selectedDeal ? (
-            <>
-              {/* Deal Header */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Building className="w-6 h-6 text-primary" />
-                      <div>
-                        <h2 className="text-xl font-bold">
-                          {selectedDeal.companyName}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedDeal.peoplesName} • {selectedDeal.title}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn("text-sm", getStatusColor(selectedDeal.status))}
+                        const selectedTypeId = selectedType?.[1]?.id || null;
+
+                        setNewInsight((prev) => ({
+                          ...prev,
+                          type: value,
+                          typeId: selectedTypeId,
+                        }));
+                      }}
                     >
-                      {selectedDeal.status}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-muted-foreground">Deal Value</p>
-                        <p className="font-medium">{selectedDeal.dealValue}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-muted-foreground">Probability</p>
-                        <p className="font-medium">{selectedDeal.probability}%</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-muted-foreground">Last Call</p>
-                        <p className="font-medium">
-                          {selectedDeal.lastCallDate || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-muted-foreground">Stakeholders</p>
-                        <p className="font-medium">{selectedDeal.people?.length || 0}</p>
-                      </div>
-                    </div>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(insightTypes).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center space-x-2">
+                              <config.icon className="w-4 h-4" />
+                              <span>{config.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Tabbed Content */}
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="insights">
-                    <Sparkles className="w-4 h-4 mr-1" />
-                    Insights
-                  </TabsTrigger>
-                  <TabsTrigger value="summary">
-                    <FileText className="w-4 h-4 mr-1" />
-                    Summary
-                  </TabsTrigger>
-                  <TabsTrigger value="communication">
-                    <MessageSquare className="w-4 h-4 mr-1" />
-                    Communication
-                  </TabsTrigger>
-                  <TabsTrigger value="actions">
-                    <CheckSquare className="w-4 h-4 mr-1" />
-                    Actions
-                  </TabsTrigger>
-                </TabsList>
+                  <Textarea
+                    value={newInsight.content}
+                    onChange={(e) =>
+                      setNewInsight((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter your insight about this deal..."
+                    className="min-h-20"
+                    autoFocus
+                  />
 
-                <TabsContent value="insights" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Sales Insights</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedDeal.sales_insights?.length > 0 ? (
-                        <div className="space-y-4">
-                          {selectedDeal.sales_insights.map((insight, index) => (
-                            <div
-                              key={index}
-                              className="border border-border rounded-lg p-4"
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" onClick={handleAddInsight}>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Insight
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingInsight(false);
+                        setNewInsight({
+                          content: "",
+                          type: "my_insights",
+                          typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
+                        });
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insights List */}
+              {insights?.map((insight, index) => {
+                const typeConfig = insightTypes[insight?.type] || {
+                  label: "My Insight",
+                  color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                  icon: Lightbulb,
+                };
+                // console.log(insightTypes, "get insight types 905");
+                const TypeIcon = typeConfig?.icon;
+
+                return (
+                  insight?.insights?.length > 0 && (
+                    <div
+                      key={insight.id}
+                      className="border rounded-lg p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs", typeConfig?.color)}
+                              >
+                                {/* <TypeIcon className="w-3 h-3 mr-1" /> */}
+
+                                {typeConfig?.label || ""}
+                                <Info className="ml-1 w-3 h-3" />
+                              </Badge>
+                            </TooltipTrigger>
+
+                            <TooltipContent
+                              side="top"
+                              align="center"
+                              className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
                             >
-                              <div className="flex items-start justify-between mb-2">
-                                <h4 className="font-medium">{insight.type || "General Insight"}</h4>
-                                <Badge variant="outline" className="text-xs">
-                                  {insight.relevance_score || 85}% relevance
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {insight.content || insight.insight}
+                              <p className="leading-snug">
+                                {typeConfig?.description ||
+                                  "No description available."}
                               </p>
-                              {insight.source && (
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Source: {insight.source}
-                                </p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Badge variant="secondary" className="text-xs">
+                            Score: {insight?.average_score || 0}
+                          </Badge>
+                          {/* {getTrendIcon(insight.trend)} */}
+                          {/* <span className="text-xs text-muted-foreground">
+                          {insight.source} • {insight.timestamp}
+                        </span> */}
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleMoveInsight(insight.type_id, "up")
+                            }
+                            disabled={index === 0}
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleMoveInsight(insight.type_id, "down")
+                            }
+                            disabled={index === insights.length - 1}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Insights content */}
+                      <div className="ml-6">
+                        <div
+                          className={cn(
+                            "space-y-2",
+                            insight?.insights?.length > 3 &&
+                              "max-h-60 overflow-y-auto pr-2"
+                          )}
+                        >
+                          {insight?.insights?.map((x) => (
+                            <div key={x.id} className="relative">
+                              {editingInsightId === x.id ? (
+                                // Edit Mode
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-md p-3 space-y-3">
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex items-center space-x-4">
+                                      <span>
+                                        <strong>Speaker:</strong>{" "}
+                                        {x.speaker || "Unknown"}
+                                      </span>
+                                      <span>
+                                        <strong>Score:</strong>{" "}
+                                        {x.relevance_score || "N/A"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <Textarea
+                                    value={editingInsightContent}
+                                    onChange={(e) =>
+                                      setEditingInsightContent(e.target.value)
+                                    }
+                                    className="min-h-20 text-sm resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        handleSaveInsightContent(
+                                          x.id,
+                                          editingInsightContent
+                                        )
+                                      }
+                                      disabled={
+                                        isSavingInsight ||
+                                        !editingInsightContent.trim()
+                                      }
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      {isSavingInsight ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="w-3 h-3 mr-1" />
+                                          Save
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleCancelInsightEdit}
+                                      disabled={isSavingInsight}
+                                      className="h-7 px-3 text-xs"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                // View Mode
+                                <div className="bg-muted/40 rounded-md p-3 text-sm relative group hover:bg-muted/60 transition-colors">
+                                  <p className="pr-16 leading-relaxed">
+                                    {x.content}
+                                  </p>
+
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Speaker:
+                                      </span>
+                                      <span>{x.speaker || "Unknown"}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Relevance Score:
+                                      </span>
+                                      <span>{x.relevance_score || "N/A"}</span>
+                                    </div>
+                                    {/* Arrow pointer */}
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
+                                  </div>
+
+                                  {/* Edit and Delete buttons */}
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-background/80"
+                                      onClick={() =>
+                                        handleEditInsightContent(
+                                          x.id,
+                                          x.content
+                                        )
+                                      }
+                                      title="Edit insight"
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 hover:bg-destructive/20 text-destructive"
+                                      onClick={() =>
+                                        handleDeleteInsightContent(x.id)
+                                      }
+                                      title="Delete insight"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Lightbulb className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No insights available for this deal</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                      </div>
+                    </div>
+                  )
+                );
+              })}
 
-                <TabsContent value="summary" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Call Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedDeal.call_summary ? (
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-sm leading-relaxed text-muted-foreground">
-                            {selectedDeal.call_summary}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No call summary available for this deal</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {/* {console.log(insights, "isAddingInsight state")} */}
+              {totalInsightsCount === 0 && !isAddingInsight && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No insights available yet</p>
+                  <p className="text-sm mb-4">
+                    Add your first insight about this deal
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingInsight(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add First Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                <TabsContent value="communication" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Communication Styles</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {isLoadingStyles ? (
-                        <div className="text-center py-8">
-                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                          <p className="text-muted-foreground">Loading communication styles...</p>
+          {/* Communication Styles Detected with Behavioral Insights */}
+          <Card data-tour="communication-style-section">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5" />
+                <span>Deal Behavioral & Communication Insights</span>
+                <Badge variant="secondary">
+                  {communicationStyles.length} stakeholders
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {console.log(cummulativeSpinner, "cummulative spinner")}
+              {cummulativeSpinner ? (
+                <div className="space-y-6">
+                  {/* Skeleton for stakeholder cards */}
+                  {[1, 2].map((index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
                         </div>
-                      ) : communicationStyles.length > 0 ? (
-                        <div className="space-y-4">
-                          {communicationStyles.map((style) => (
-                            <div
-                              key={style.id}
-                              className="border border-border rounded-lg p-4 space-y-3"
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-5 w-16" />
+                          <Skeleton className="h-5 w-20" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Personality Type Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        </div>
+
+                        {/* Communication Modality Section Skeleton */}
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-4 w-20" />
+                          </div>
+                        </div>
+
+                        {/* Evidence Section Skeleton */}
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-2" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4 mt-1" />
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Skeleton className="h-4 w-20 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Skeleton className="h-4 w-28 mb-2" />
+                            <div className="space-y-1">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-5/6" />
+                              <Skeleton className="h-3 w-4/5" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : communicationStyles.length > 0 ? (
+                <div className="space-y-6">
+                  {communicationStyles?.map((stakeholder) => {
+                    const styleConfig =
+                      communicationStyleConfigs[stakeholder.style];
+                    const PersonalityIcon = stakeholder.personality_type
+                      ? personalityTypeIcons[stakeholder.personality_type.key]
+                      : null;
+                    const ModalityIcon = stakeholder.modality
+                      ? communicationModalityIcons[stakeholder.modality.type]
+                      : null;
+
+                    const formattedStyles =
+                      stakeholder?.style?.split(",").map((s) => s.trim()) || [];
+
+                    const matchedStyles = formattedStyles.map((style) => {
+                      const match = communicationStyleTypes?.find(
+                        (s) => s.key?.toLowerCase() === style.toLowerCase()
+                      );
+                      return {
+                        style,
+                        description:
+                          match?.description || "No description available.",
+                      };
+                    });
+
+                    return (
+                      <div
+                        key={stakeholder.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                              <span>{stakeholder.stakeholder}</span>
+                              {PersonalityIcon && (
+                                <PersonalityIcon className="w-4 h-4 text-primary" />
+                              )}
+                            </h3>
+                            {/* <p className="text-sm text-muted-foreground">
+                              {stakeholder.role}
+                            </p> */}
+                            {editingRoleId === stakeholder.id ? (
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  value={editRoleValue}
+                                  onChange={(e) =>
+                                    setEditRoleValue(e.target.value)
+                                  }
+                                  className="h-6 text-xs px-2 w-32"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      handleRoleSave(stakeholder.id);
+                                    if (e.key === "Escape") handleRoleCancel();
+                                  }}
+                                  autoFocus
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRoleSave(stakeholder.id)}
+                                >
+                                  <Save className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={handleRoleCancel}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs cursor-pointer hover:bg-accent group"
+                                onClick={() => handleRoleEdit(stakeholder)}
+                              >
+                                {stakeholder.role || "Unknown Role"}
+                                <Edit className="w-3 h-3 ml-1" />
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {/* <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                styleConfig?.color
+                              )}
                             >
-                              {/* Name and Role Section */}
-                              <div className="flex items-start justify-between">
-                                <div className="space-y-2 flex-1">
-                                  {/* Name Editing */}
-                                  <div className="flex items-center space-x-2">
-                                    <User className="w-4 h-4 text-muted-foreground" />
-                                    {editingNameId === style.id ? (
-                                      <div className="flex items-center space-x-2 flex-1">
-                                        <Input
-                                          value={editNameValue}
-                                          onChange={(e) => setEditNameValue(e.target.value)}
-                                          className="flex-1"
-                                          placeholder="Enter name"
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveName();
-                                            if (e.key === 'Escape') handleCancelEditName();
-                                          }}
-                                          autoFocus
-                                        />
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={handleSaveName}
-                                          disabled={isUpdatingName}
-                                        >
-                                          {isUpdatingName ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                          ) : (
-                                            <Save className="w-4 h-4" />
-                                          )}
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={handleCancelEditName}
-                                          disabled={isUpdatingName}
-                                        >
-                                          <X className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center space-x-2 flex-1">
-                                        <span className="font-medium">
-                                          {style.stakeholder}
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleStartEditName(style)}
-                                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Role Editing */}
-                                  <div className="flex items-center space-x-2">
-                                    <Target className="w-4 h-4 text-muted-foreground" />
-                                    {editingRoleId === style.id ? (
-                                      <div className="flex items-center space-x-2 flex-1">
-                                        <Input
-                                          value={editRoleValue}
-                                          onChange={(e) => setEditRoleValue(e.target.value)}
-                                          className="flex-1"
-                                          placeholder="Enter role"
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveRole();
-                                            if (e.key === 'Escape') handleCancelEditRole();
-                                          }}
-                                          autoFocus
-                                        />
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={handleSaveRole}
-                                          disabled={isUpdatingRole}
-                                        >
-                                          {isUpdatingRole ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                          ) : (
-                                            <Save className="w-4 h-4" />
-                                          )}
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={handleCancelEditRole}
-                                          disabled={isUpdatingRole}
-                                        >
-                                          <X className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center space-x-2 flex-1 group">
-                                        <span className="text-sm text-muted-foreground">
-                                          {style.role}
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleStartEditRole(style)}
-                                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
+                              <Info className="mr-1 w-3 h-3" />
+                              {stakeholder.style
+                                ? stakeholder.style.charAt(0).toUpperCase() +
+                                  stakeholder.style.slice(1)
+                                : ""}
+                            </Badge> */}
+                            {/* <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "text-xs",
-                                    getConfidenceColor(style.confidence)
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
                                   )}
                                 >
-                                  {style.confidence}% confidence
+                                  <Info className="mr-1 w-3 h-3" />
+                                  {formattedStyle}
                                 </Badge>
-                              </div>
-
-                              {/* Communication Style Details */}
-                              <div className="space-y-3">
-                                <div>
-                                  <h5 className="text-sm font-medium mb-1">Communication Style</h5>
-                                  <p className="text-sm text-muted-foreground">
-                                    {style.style}
+                              </TooltipTrigger>
+                              {styleMatch && (
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    {styleMatch?.description}
                                   </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip> */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs bg-blue-100 text-blue-800 border-blue-200",
+                                    styleConfig?.color
+                                  )}
+                                >
+                                  {/* {formattedStyles.join(", ")} */}
+                                  {stakeholder?.style}
+                                  <Info className="ml-1 w-3 h-3" />
+                                </Badge>
+                              </TooltipTrigger>
+
+                              <TooltipContent
+                                side="top"
+                                align="center"
+                                className="z-50 bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200"
+                              >
+                                <div className="space-y-2">
+                                  {matchedStyles.map(
+                                    ({ style, description }) => (
+                                      <div key={style}>
+                                        {/* {matchedStyles?.length > 1 && ( */}
+                                        <p className="font-semibold">{style}</p>
+                                        {/* )} */}
+                                        <p className="text-gray-700 leading-snug">
+                                          {description}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
                                 </div>
+                              </TooltipContent>
+                            </Tooltip>
 
-                                {style.personality_type && (
-                                  <div>
-                                    <h5 className="text-sm font-medium mb-1">Personality Type</h5>
-                                    <Badge variant="outline" className="text-xs">
-                                      {style.personality_type}
-                                    </Badge>
-                                  </div>
-                                )}
-
-                                {style.evidence && (
-                                  <div>
-                                    <h5 className="text-sm font-medium mb-1">Evidence</h5>
-                                    <p className="text-xs text-muted-foreground">
-                                      {style.evidence}
-                                    </p>
-                                  </div>
-                                )}
-
-                                {style.preferences && style.preferences.length > 0 && (
-                                  <div>
-                                    <h5 className="text-sm font-medium mb-1">Preferences</h5>
-                                    <div className="flex flex-wrap gap-1">
-                                      {style.preferences.map((pref, index) => (
-                                        <Badge key={index} variant="secondary" className="text-xs">
-                                          {pref}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {style.communication_tips && style.communication_tips.length > 0 && (
-                                  <div>
-                                    <h5 className="text-sm font-medium mb-1">Communication Tips</h5>
-                                    <ul className="space-y-1">
-                                      {style.communication_tips.map((tip, index) => (
-                                        <li key={index} className="text-xs text-muted-foreground flex items-start space-x-1">
-                                          <span className="w-1 h-1 bg-primary rounded-full mt-2 flex-shrink-0" />
-                                          <span>{tip}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No communication styles available for this deal</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="actions" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Action Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedDeal.action_items?.length > 0 ? (
-                        <div className="space-y-3">
-                          {selectedDeal.action_items.map((item, index) => (
-                            <div
-                              key={index}
-                              className="flex items-start space-x-3 p-3 border border-border rounded-lg"
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-green-100 text-green-800 border-green-200"
                             >
-                              <CheckSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
-                              <div className="flex-1">
-                                <p className="text-sm leading-relaxed">
-                                  {item.task || item.commitment_text}
+                              {Math.round(stakeholder.confidence * 100)}%
+                              confidence
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Personality Type Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              <Brain className="w-4 h-4" />
+                              <span>Personality Type : </span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.personality_type ||
+                                  "Data not available"}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.personality_type ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.personality_type}
                                 </p>
-                                {item.owner && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Owner: {item.owner}
-                                  </p>
-                                )}
-                                {item.deadline && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Due: {new Date(item.deadline).toLocaleDateString()}
-                                  </p>
-                                )}
                               </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Personality Type: Data not available
+                              </p>
+                            )} */}
+                          </div>
+
+                          {/* Communication Modality Section */}
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <h4 className="text-sm font-medium mb-2 flex items-center space-x-2">
+                              {/* {ModalityIcon && ( */}
+                              <Headphones className="w-4 h-4" />
+                              {/* )} */}
+                              <span>Preferred Communication Modality:</span>
+                              <p className="font-medium text-sm">
+                                {stakeholder.style
+                                  ? stakeholder.style.charAt(0).toUpperCase() +
+                                    stakeholder.style.slice(1)
+                                  : ""}
+                              </p>
+                            </h4>
+                            {/* {stakeholder.style ? (
+                              <div>
+                                <p className="font-medium text-sm mb-2">
+                                  {stakeholder.style}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stakeholder.guidance}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Communication Modality: Data not available
+                              </p>
+                            )} */}
+                          </div>
+
+                          {/* Evidence Section */}
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Evidence
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {stakeholder.evidence}
+                            </p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Preferences
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.preferences.map((pref, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start space-x-2"
+                                  >
+                                    <span className="text-primary mt-1">•</span>
+                                    <span>{pref}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                          ))}
+
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">
+                                Communication Tips
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                {stakeholder.communication_tips.map(
+                                  (tip, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start space-x-2"
+                                    >
+                                      <span className="text-primary mt-1">
+                                        •
+                                      </span>
+                                      <span>{tip}</span>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>No action items available for this deal</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </>
-          ) : (
-            <Card className="shadow-sm">
-              <CardContent className="text-center py-12">
-                <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">Select a Deal</h3>
-                <p className="text-muted-foreground mb-4">
-                  {deals.length === 0
-                    ? "No deals available. Process some call transcripts first to generate insights for deals."
-                    : "Select a deal from the sidebar to view their insights and analysis."}
-                </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="mb-2">No communication styles detected yet</p>
+                  <p className="text-sm">
+                    Communication styles will be identified as you have more
+                    calls with this deal
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Consolidated "How To Engage" Summary */}
+          {/* {howToEngageSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="w-5 h-5" />
+                  <span>Consolidated "How To Engage" Summary</span>
+                  <Badge variant="default">Strategic Guide</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(howToEngageSummary).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(howToEngageSummary).map(([category, tips]) => (
+                      <Collapsible key={category} defaultOpen={true}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <h4 className="font-medium text-sm">{category}</h4>
+                          <ChevronRight className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-90" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 ml-3">
+                          <ul className="space-y-2">
+                            {tips.map((tip, index) => (
+                              <li key={index} className="flex items-start space-x-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">
+                      Comprehensive Engagement Strategy: Insufficient data for a tailored summary.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
-        </div>
-      </div>
+          )} */}
+
+          {/* Cumulative Intelligence Section */}
+        </>
+      )}
     </div>
   );
 };
+
+export default CallInsights;
+export { CallInsights };
