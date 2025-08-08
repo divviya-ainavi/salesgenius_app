@@ -133,14 +133,20 @@ export const UserDropdown = () => {
       const result = await authHelpers.signOut();
 
       if (result.success) {
-        // Reset org state when user logs out
+        // Clear storage
+        localStorage.clear(); // ✅ Clears all localStorage
+        sessionStorage.clear(); // ✅ Clears all sessionStorage
+
+        // Optionally clear Redux state
         dispatch(resetOrgState());
         dispatch(resetAuthState());
+
         toast.success("Logged out successfully");
         setShowLogoutDialog(false);
-        localStorage.removeItem("userId");
-        localStorage.removeItem("status");
-        navigate("/auth/login");
+
+        // Reload the page to clear any in-memory data
+        navigate("/auth/login"); // or use window.location.href
+        window.location.reload(); // ✅ Optional but ensures total clean-up
       } else {
         toast.error("Failed to logout: " + result.error);
       }
