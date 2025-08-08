@@ -69,6 +69,15 @@ const App = () => {
     }
   };
 
+  // Expose auto-logout function globally for error handlers
+  useEffect(() => {
+    window.handleAutoLogout = handleAutoLogout;
+    
+    return () => {
+      delete window.handleAutoLogout;
+    };
+  }, []);
+
   // Monitor auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
