@@ -3494,6 +3494,3 @@ export const userHelpers = {
   isAuthenticated: authHelpers.isAuthenticated,
   signOut: authHelpers.signOut,
 }
-
-export { supabase, authHelpers, dbHelpers, CURRENT_USER };
-export { handleSupabaseError, handleAutoLogout };
