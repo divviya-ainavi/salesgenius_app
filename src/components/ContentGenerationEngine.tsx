@@ -1313,12 +1313,54 @@ ${updatedBlocks
                               </Collapsible>
                             </CardContent>
                           </Card>
-                        ))}
-
-                      {/* Secondary Stakeholders */}
-                      {secondaryStakeholders.map((stakeholder) => (
-                        <Card key={stakeholder.id} className="border">
-                          <CardHeader className="pb-2">
+                            <div className="flex items-center space-x-2">
+                              {editingNameId === stakeholder.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editNameValue}
+                                    onChange={(e) => setEditNameValue(e.target.value)}
+                                    className="h-6 text-sm px-2 w-40 font-semibold"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape") handleNameCancel();
+                                    }}
+                                    autoFocus
+                                    disabled={isUpdatingName}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleNameSave(stakeholder.id)}
+                                    disabled={isUpdatingName}
+                                  >
+                                    {isUpdatingName ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleNameCancel}
+                                    disabled={isUpdatingName}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <h3 className="font-semibold flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => handleNameEdit(stakeholder)}>
+                                  <span>{stakeholder.stakeholder}</span>
+                                  <User className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  {PersonalityIcon && (
+                                    <PersonalityIcon className="w-4 h-4 text-primary" />
+                                  )}
+                                </h3>
+                              )}
+                            </div>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 <User className="w-4 h-4 text-muted-foreground" />
@@ -2015,13 +2057,19 @@ ${updatedBlocks
                                     <X className="w-4 h-4" />
                                   </Button>
                                 </>
+                                  disabled={isUpdatingRole}
                               ) : (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditBlock(block.id)}
+                                  disabled={isUpdatingRole}
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  {isUpdatingRole ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Save className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                             </div>
@@ -2054,9 +2102,10 @@ ${updatedBlocks
                                     </span>
                                   </div>
                                   <p className="text-sm text-muted-foreground">
+                                  disabled={isUpdatingRole}
                                     {block.strategicRationale}
                                   </p>
-                                </div>
+                                <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                             )}
                           </CardContent>
