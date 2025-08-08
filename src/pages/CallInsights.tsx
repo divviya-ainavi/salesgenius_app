@@ -154,29 +154,27 @@ const CallInsights = () => {
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
     if (!selectedProspect?.id || !user?.id) return;
-    
     try {
       const updatedPeople = await dbHelpers.getPeopleByProspectId(
         selectedProspect.id,
         user.id
       );
-      
+
       // Update the selected prospect with new peoples data
-      setSelectedProspect(prev => ({
+      setSelectedProspect((prev) => ({
         ...prev,
-        people: updatedPeople
+        people: updatedPeople,
       }));
-      
+
       // Also update the prospects list to keep it in sync
-      setProspects(prev => prev.map(prospect => 
-        prospect.id === selectedProspect.id 
-          ? { ...prospect, people: updatedPeople }
-          : prospect
-      ));
-      
-       // Refresh peoples data to reflect the name change
-       await refreshPeoplesData();
-       
+      setAllInsights((prev) =>
+        prev.map((prospect) =>
+          prospect.id === selectedProspect.id
+            ? { ...prospect, people: updatedPeople }
+            : prospect
+        )
+      );
+
       console.log("✅ Refreshed peoples data:", updatedPeople);
     } catch (error) {
       console.error("❌ Error refreshing peoples data:", error);
@@ -851,7 +849,7 @@ const CallInsights = () => {
       setEditingRoleId(null);
       setEditRoleValue("");
     }
-    
+
     setEditingNameId(stakeholder.id);
     setEditNameValue(stakeholder.stakeholder);
   };
@@ -872,8 +870,8 @@ const CallInsights = () => {
       );
 
       // Update local state
-      setCommunicationStyles(prev =>
-        prev.map(style =>
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
           style.id === stakeholderId
             ? { ...style, stakeholder: editNameValue.trim() }
             : style
@@ -882,10 +880,10 @@ const CallInsights = () => {
 
       setEditingNameId(null);
       setEditNameValue("");
-      
+
       // Refresh peoples data to sync with updated name
       await refreshPeoplesData();
-      
+
       toast.success("Name updated successfully");
     } catch (error) {
       console.error("Error updating name:", error);
@@ -906,7 +904,7 @@ const CallInsights = () => {
       setEditingNameId(null);
       setEditNameValue("");
     }
-    
+
     setEditingRoleId(stakeholder.id);
     setEditRoleValue(stakeholder.role || "");
   };
@@ -1765,11 +1763,15 @@ const CallInsights = () => {
                                 <div className="flex items-center space-x-2">
                                   <Input
                                     value={editNameValue}
-                                    onChange={(e) => setEditNameValue(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditNameValue(e.target.value)
+                                    }
                                     className="h-6 text-sm px-2 w-40 font-semibold"
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleNameSave(stakeholder.id);
-                                      if (e.key === "Escape") handleNameCancel();
+                                      if (e.key === "Enter")
+                                        handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape")
+                                        handleNameCancel();
                                     }}
                                     autoFocus
                                     disabled={isUpdatingName}
@@ -1778,7 +1780,9 @@ const CallInsights = () => {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0"
-                                    onClick={() => handleNameSave(stakeholder.id)}
+                                    onClick={() =>
+                                      handleNameSave(stakeholder.id)
+                                    }
                                     disabled={isUpdatingName}
                                   >
                                     {isUpdatingName ? (
@@ -1799,7 +1803,10 @@ const CallInsights = () => {
                                 </div>
                               ) : (
                                 <div className="flex items-center space-x-2 group">
-                                  <span className="cursor-pointer hover:text-primary" onClick={() => handleNameEdit(stakeholder)}>
+                                  <span
+                                    className="cursor-pointer hover:text-primary"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
                                     {stakeholder.stakeholder}
                                   </span>
                                   <Button
