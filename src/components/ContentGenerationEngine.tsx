@@ -68,6 +68,7 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import { Save, X, User } from "lucide-react";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -176,6 +177,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [recommendedObjectives, setRecommendedObjectives] = useState<string[]>(
     []
   );
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [isLoadingProspects, setIsLoadingProspects] = useState(true);
   const [isRefining, setIsRefining] = useState(false);
