@@ -69,6 +69,8 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import useEmblaCarousel from "embla-carousel-react";
+import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -142,7 +144,9 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const { cummulativeSpinner, callInsightSelectedId } = useSelector(
+    (state) => state.prospect
+  );
   const [cummulativeSummary, setCummulativeSummary] = useState("");
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
@@ -151,6 +155,7 @@ const CallInsights = () => {
   const [editNameValue, setEditNameValue] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
     if (!selectedProspect?.id || !user?.id) return;
@@ -327,12 +332,22 @@ const CallInsights = () => {
           defaultInsight = insights.find(
             (insight) => insight.id == selectedCall.id
           );
+
           // console.log(
           //   insights.find((insight) => insight.id == selectedCall.id),
           //   insights,
           //   selectedCall.id,
           //   "check default insights 237"
           // );
+        }
+        if (
+          !defaultInsight &&
+          insights?.length > 0 &&
+          insights?.filter((x) => x.id == callInsightSelectedId)?.length > 0
+        ) {
+          defaultInsight = insights?.filter(
+            (x) => x.id == callInsightSelectedId
+          )?.[0]; // most recent
         }
         // console.log(defaultInsight, "check default insights");
         if (!defaultInsight && insights?.length > 0) {
@@ -392,6 +407,7 @@ const CallInsights = () => {
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
+          dispatch(setCallInsightSelectedId(defaultInsight?.id));
         } else {
           toast.info("No call insights found yet.");
         }
@@ -495,6 +511,7 @@ const CallInsights = () => {
     setSelectedProspect(prospect);
     setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
+    dispatch(setCallInsightSelectedId(prospect?.id));
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
 

@@ -68,6 +68,8 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -200,6 +202,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     hubspotIntegration,
   } = useSelector((state) => state.auth);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const { callInsightSelectedId } = useSelector((state) => state.prospect);
+  const dispatch = useDispatch();
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -291,7 +295,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         // console.log("Fetched email insights:", insights);
 
         const enrichedProspects = insights
-          ?.filter((x) => x.communication_style_ids != null)
+          // ?.filter((x) => x.communication_style_ids != null)
           ?.map((insight) => ({
             id: insight.id,
             companyName: insight.company?.name || "Unknown Company",
@@ -314,7 +318,12 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         setProspects(enrichedProspects);
 
         if (enrichedProspects.length > 0) {
-          const initialProspect = enrichedProspects[0];
+          const checkId = callInsightSelectedId
+            ? enrichedProspects?.filter((x) => x.id == callInsightSelectedId)
+            : [];
+          const initialProspect =
+            checkId?.length == 0 ? enrichedProspects[0] : checkId?.[0];
+          console.log(checkId, initialProspect, "check initial prospect");
           setSelectedProspect(initialProspect);
           const styles = await dbHelpers.getCommunicationStylesData(
             initialProspect.communication_style_ids,
@@ -429,7 +438,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const handleProspectSelect = async (prospectId: string) => {
     const prospect = prospects.find((p) => p.id === prospectId);
     if (!prospect) return;
-
+    dispatch(setCallInsightSelectedId(prospect?.id));
     setSelectedProspect(prospect);
 
     setSelectedObjectives([]);

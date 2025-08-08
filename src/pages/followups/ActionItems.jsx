@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
 import { usePageTimer } from "../../hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import { setCallInsightSelectedId } from "../../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 // Mock data for action items based on selected prospect
 const getActionItemsForProspect = (prospectId) => {
@@ -165,6 +167,8 @@ export const ActionItems = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const { callInsightSelectedId } = useSelector((state) => state.prospect);
+  const dispatch = useDispatch();
 
   // Use current authenticated user
   const userId = CURRENT_USER.id;
@@ -190,7 +194,7 @@ export const ActionItems = () => {
 
         const enrichedProspects = await Promise.all(
           (insights || [])
-            .filter((x) => x.communication_style_ids != null)
+            // .filter((x) => x.communication_style_ids != null)
             .map(async (insight) => {
               const people = await dbHelpers.getPeopleByProspectId(
                 insight.id,
@@ -224,8 +228,13 @@ export const ActionItems = () => {
         );
 
         setProspects(enrichedProspects);
+        const checkId = callInsightSelectedId
+          ? enrichedProspects?.filter((x) => x.id == callInsightSelectedId)
+          : [];
         if (enrichedProspects.length > 0) {
-          setSelectedProspect(enrichedProspects[0]);
+          const defaultInsight =
+            checkId?.length == 0 ? enrichedProspects[0] : checkId?.[0];
+          setSelectedProspect(defaultInsight);
         }
       } catch (err) {
         console.error("Failed to load email insights:", err);
@@ -285,6 +294,7 @@ export const ActionItems = () => {
   };
 
   const handleProspectSelect = (prospect) => {
+    dispatch(setCallInsightSelectedId(prospect?.id));
     setSelectedProspect(prospect);
   };
 
@@ -954,9 +964,7 @@ export const ActionItems = () => {
             <Card className="shadow-sm">
               <CardContent className="text-center py-12">
                 <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">
-                  No Deal Selected
-                </h3>
+                <h3 className="text-lg font-medium mb-2">No Deal Selected</h3>
                 <p className="text-muted-foreground mb-4">
                   {prospects.length === 0
                     ? "No deals available. Process some call transcripts first to generate action items."
