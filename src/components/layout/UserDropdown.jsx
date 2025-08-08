@@ -146,7 +146,6 @@ export const UserDropdown = () => {
 
         // Reload the page to clear any in-memory data
         navigate("/auth/login"); // or use window.location.href
-        window.location.reload(); // ✅ Optional but ensures total clean-up
       } else {
         toast.error("Failed to logout: " + result.error);
       }
