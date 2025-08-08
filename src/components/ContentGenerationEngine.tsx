@@ -783,7 +783,7 @@ ${output?.blocks
     toast.success("Content copied to clipboard");
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!generatedArtefact) return;
 
     if (artefactType === "email") {
@@ -795,11 +795,26 @@ ${output?.blocks
 
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
 
-      window.open(gmailUrl, "_blank"); // Opens in new tab
+      window.open(gmailUrl, "_blank");
 
       toast.success("Opening Gmail compose window...");
+    } else if (artefactType === "presentation") {
+      try {
+        await handleCopy();
+
+        // Show toast immediately
+        toast.success("Prompt copied! Redirecting to Gamma...");
+
+        // Add a short delay (e.g., 300ms)
+        setTimeout(() => {
+          window.open("https://gamma.app/create/paste", "_blank");
+        }, 300);
+      } catch (error) {
+        console.error("Failed to copy:", error);
+        toast.error("Failed to copy prompt to clipboard.");
+      }
     } else {
-      toast.success("Presentation exported to Gamma");
+      toast.error("Unsupported artefact type.");
     }
   };
 
@@ -913,7 +928,7 @@ ${updatedBlocks
   };
 
   // Derived data
-  const primaryStakeholder = stakeholders.find((s) => s.role === "primary");
+  const primaryStakeholder = stakeholders.filter((s) => s.role === "primary");
   const secondaryStakeholders = stakeholders.filter(
     (s) => s.role !== "primary"
   );
@@ -1068,201 +1083,203 @@ ${updatedBlocks
                   ) : (
                     <>
                       {/* Primary Decision Maker Card */}
-                      {primaryStakeholder && (
-                        <Card className="bg-primary/5 border-primary/20">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <Crown className="w-4 h-4 text-primary" />
-                                <CardTitle className="text-base">
-                                  {primaryStakeholder.name}
-                                </CardTitle>
+                      {primaryStakeholder?.length > 0 &&
+                        primaryStakeholder?.map((x) => (
+                          <Card className="bg-primary/5 border-primary/20">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Crown className="w-4 h-4 text-primary" />
+                                  <CardTitle className="text-base">
+                                    {x?.name}
+                                  </CardTitle>
+                                </div>
+                                <Badge>Primary Decision Maker</Badge>
                               </div>
-                              <Badge>Primary Decision Maker</Badge>
-                            </div>
-                            <CardDescription>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-muted-foreground">
-                                  Role:
-                                </span>
-                                {editingRoleId === primaryStakeholder.id ? (
-                                  <div className="flex items-center space-x-1">
-                                    <Input
-                                      value={editingRoleText}
-                                      onChange={(e) =>
-                                        setEditingRoleText(e.target.value)
-                                      }
-                                      className="h-7 text-xs w-40"
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                          dbHelpers
-                                            .updateCommunicationStyleRole(
-                                              primaryStakeholder.id,
-                                              editingRoleText,
-                                              selectedProspect.id,
-                                              user?.id
-                                            )
-                                            .then(() => {
-                                              // Update local state
-                                              setStakeholders((prev) =>
-                                                prev.map((s) =>
-                                                  s.id === primaryStakeholder.id
-                                                    ? {
-                                                        ...s,
-                                                        title: editingRoleText,
-                                                      }
-                                                    : s
-                                                )
-                                              );
-                                              setEditingRoleId(null);
-                                              toast.success(
-                                                "Role updated successfully"
-                                              );
-                                            })
-                                            .catch((err) => {
-                                              console.error(
-                                                "Failed to update role:",
-                                                err
-                                              );
-                                              toast.error(
-                                                "Failed to update role"
-                                              );
-                                            });
-                                        } else if (e.key === "Escape") {
-                                          setEditingRoleId(null);
-                                        }
-                                      }}
-                                      autoFocus
-                                    />
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0"
-                                      onClick={() => setEditingRoleId(null)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span
-                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
-                                    onClick={() => {
-                                      setEditingRoleId(primaryStakeholder.id);
-                                      setEditingRoleText(
-                                        primaryStakeholder.title
-                                      );
-                                    }}
-                                  >
-                                    {primaryStakeholder.title}
-                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                              <CardDescription>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-muted-foreground">
+                                    Role:
                                   </span>
-                                )}
-                              </div>
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-3 pt-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">
-                                Confidence:
-                              </span>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-100 text-green-800 border-green-200"
-                                  >
-                                    {primaryStakeholder.confidenceScore}%
-                                    <Info className="ml-1 w-3 h-3" />
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    {primaryStakeholder.confidenceJustification}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-
-                            <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-muted-foreground">
-                                  Communication Style:
-                                </span>
-                                {(() => {
-                                  const styles =
-                                    primaryStakeholder.communicationStyle
-                                      ?.split(",")
-                                      .map((s) => s.trim()) || [];
-
-                                  const matchedStyles = styles.map((style) => {
-                                    const match = communicationStyleTypes.find(
-                                      (opt) =>
-                                        opt.key?.toLowerCase() ===
-                                        style.toLowerCase()
-                                    );
-                                    return {
-                                      style,
-                                      label: match?.label || style,
-                                      description:
-                                        match?.description ||
-                                        "No description available.",
-                                    };
-                                  });
-
-                                  return matchedStyles.length > 0 ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="text-sm font-medium flex items-center cursor-help">
-                                          {matchedStyles
-                                            .map((s) => s.label)
-                                            .join(", ")}
-                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
-                                        </span>
-                                      </TooltipTrigger>
-
-                                      <TooltipContent className="max-w-xs bg-white text-sm text-gray-800 border border-gray-200 p-3 rounded-md shadow-md">
-                                        <div className="space-y-2">
-                                          {matchedStyles.map(
-                                            ({ style, description }) => (
-                                              <div key={style}>
-                                                <p className="font-semibold">
-                                                  {style}
-                                                </p>
-                                                <p className="text-gray-700 leading-snug">
-                                                  {description}
-                                                </p>
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
+                                  {editingRoleId === x.id ? (
+                                    <div className="flex items-center space-x-1">
+                                      <Input
+                                        value={editingRoleText}
+                                        onChange={(e) =>
+                                          setEditingRoleText(e.target.value)
+                                        }
+                                        className="h-7 text-xs w-40"
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            dbHelpers
+                                              .updateCommunicationStyleRole(
+                                                x.id,
+                                                editingRoleText,
+                                                selectedProspect.id,
+                                                user?.id
+                                              )
+                                              .then(() => {
+                                                // Update local state
+                                                setStakeholders((prev) =>
+                                                  prev.map((s) =>
+                                                    s.id === x.id
+                                                      ? {
+                                                          ...s,
+                                                          title:
+                                                            editingRoleText,
+                                                        }
+                                                      : s
+                                                  )
+                                                );
+                                                setEditingRoleId(null);
+                                                toast.success(
+                                                  "Role updated successfully"
+                                                );
+                                              })
+                                              .catch((err) => {
+                                                console.error(
+                                                  "Failed to update role:",
+                                                  err
+                                                );
+                                                toast.error(
+                                                  "Failed to update role"
+                                                );
+                                              });
+                                          } else if (e.key === "Escape") {
+                                            setEditingRoleId(null);
+                                          }
+                                        }}
+                                        autoFocus
+                                      />
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => setEditingRoleId(null)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   ) : (
-                                    <span className="text-sm font-medium">
-                                      {primaryStakeholder.communicationStyle}
+                                    <span
+                                      className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                      onClick={() => {
+                                        setEditingRoleId(x.id);
+                                        setEditingRoleText(x.title);
+                                      }}
+                                    >
+                                      {x.title}
+                                      <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
                                     </span>
-                                  );
-                                })()}
-                              </div>
+                                  )}
+                                </div>
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 pt-0">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">
-                                  Personality Type:
+                                  Confidence:
                                 </span>
-                                <span className="text-sm font-medium">
-                                  {primaryStakeholder.personalityType}
-                                </span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-100 text-green-800 border-green-200"
+                                    >
+                                      {x.confidenceScore}%
+                                      <Info className="ml-1 w-3 h-3" />
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      {x.confidenceJustification}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
-                            </div>
 
-                            <Collapsible className="border-t border-primary/10 pt-2">
-                              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                                Key Traits
-                                <ChevronDown className="w-4 h-4" />
-                              </CollapsibleTrigger>
-                              <CollapsibleContent className="pt-2">
-                                <div className="flex flex-wrap gap-1">
-                                  {primaryStakeholder.keyTraits.map(
-                                    (trait, i) => (
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-muted-foreground">
+                                    Communication Style:
+                                  </span>
+                                  {(() => {
+                                    const styles =
+                                      x.communicationStyle
+                                        ?.split(",")
+                                        .map((s) => s.trim()) || [];
+
+                                    const matchedStyles = styles.map(
+                                      (style) => {
+                                        const match =
+                                          communicationStyleTypes.find(
+                                            (opt) =>
+                                              opt.key?.toLowerCase() ===
+                                              style.toLowerCase()
+                                          );
+                                        return {
+                                          style,
+                                          label: match?.label || style,
+                                          description:
+                                            match?.description ||
+                                            "No description available.",
+                                        };
+                                      }
+                                    );
+
+                                    return matchedStyles.length > 0 ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm font-medium flex items-center cursor-help">
+                                            {matchedStyles
+                                              .map((s) => s.label)
+                                              .join(", ")}
+                                            <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                          </span>
+                                        </TooltipTrigger>
+
+                                        <TooltipContent className="max-w-xs bg-white text-sm text-gray-800 border border-gray-200 p-3 rounded-md shadow-md">
+                                          <div className="space-y-2">
+                                            {matchedStyles.map(
+                                              ({ style, description }) => (
+                                                <div key={style}>
+                                                  <p className="font-semibold">
+                                                    {style}
+                                                  </p>
+                                                  <p className="text-gray-700 leading-snug">
+                                                    {description}
+                                                  </p>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span className="text-sm font-medium">
+                                        {x.communicationStyle}
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">
+                                    Personality Type:
+                                  </span>
+                                  <span className="text-sm font-medium">
+                                    {x.personalityType}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <Collapsible className="border-t border-primary/10 pt-2">
+                                <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+                                  Key Traits
+                                  <ChevronDown className="w-4 h-4" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="pt-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {x?.keyTraits.map((trait, i) => (
                                       <Badge
                                         key={i}
                                         variant="outline"
@@ -1270,30 +1287,29 @@ ${updatedBlocks
                                       >
                                         {trait}
                                       </Badge>
-                                    )
-                                  )}
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
+                                    ))}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
 
-                            <Collapsible className="border-t border-primary/10 pt-2">
-                              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                                Communication Preferences
-                                <ChevronDown className="w-4 h-4" />
-                              </CollapsibleTrigger>
-                              <CollapsibleContent className="pt-2">
-                                <ul className="text-sm space-y-1 list-disc pl-4">
-                                  {primaryStakeholder.communicationPreferences.map(
-                                    (pref, i) => (
-                                      <li key={i}>{pref}</li>
-                                    )
-                                  )}
-                                </ul>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          </CardContent>
-                        </Card>
-                      )}
+                              <Collapsible className="border-t border-primary/10 pt-2">
+                                <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+                                  Communication Preferences
+                                  <ChevronDown className="w-4 h-4" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="pt-2">
+                                  <ul className="text-sm space-y-1 list-disc pl-4">
+                                    {x.communicationPreferences.map(
+                                      (pref, i) => (
+                                        <li key={i}>{pref}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </CardContent>
+                          </Card>
+                        ))}
 
                       {/* Secondary Stakeholders */}
                       {secondaryStakeholders.map((stakeholder) => (
@@ -1853,7 +1869,7 @@ ${updatedBlocks
                   <Button
                     size="sm"
                     onClick={handleExport}
-                    disabled={artefactType !== "email"}
+                    // disabled={artefactType !== "email"}
                   >
                     <ExternalLink className="w-4 h-4 mr-1" />
                     Export to {artefactType === "email" ? "Email" : "Gamma"}

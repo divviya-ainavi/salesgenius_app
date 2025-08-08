@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,16 +44,17 @@ import {
   Save,
   X,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Search,
   Filter,
   Ear,
   Hand,
-  Brain,
-  ChevronRight,
   Loader2,
   Headphones,
   Info,
+  Brain,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
+import useEmblaCarousel from "embla-carousel-react";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -115,6 +117,7 @@ const CallInsights = () => {
     type: "my_insights",
     typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
   });
+
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [editingInsightId, setEditingInsightId] = useState(null);
@@ -143,6 +146,46 @@ const CallInsights = () => {
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState([]);
+
+  // Carousel state
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const CARDS_PER_VIEW = 4;
+
+  // Arrow functions
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  // Dot click
+  const scrollTo = useCallback(
+    (index) => emblaApi?.scrollTo(index),
+    [emblaApi]
+  );
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    const onInit = () => {
+      setScrollSnaps(emblaApi.scrollSnapList());
+      onSelect();
+    };
+
+    emblaApi.on("init", onInit);
+    emblaApi.on("reInit", onInit);
+    emblaApi.on("select", onSelect);
+
+    // Run once immediately
+    onInit();
+
+    return () => {
+      emblaApi.off("init", onInit);
+      emblaApi.off("reInit", onInit);
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -684,6 +727,53 @@ const CallInsights = () => {
       prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prospect?.company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Calculate carousel values
+  const totalPages = Math.ceil(filteredProspects.length / CARDS_PER_VIEW);
+  const showCarousel = filteredProspects.length > CARDS_PER_VIEW;
+  const startIndex = currentIndex * CARDS_PER_VIEW;
+  const endIndex = Math.min(
+    startIndex + CARDS_PER_VIEW,
+    filteredProspects.length
+  );
+  const visibleProspects = showCarousel
+    ? filteredProspects.slice(startIndex, endIndex)
+    : filteredProspects;
+
+  // Carousel navigation functions
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(totalPages - 1, prev + 1));
+  };
+
+  const handleDotClick = (pageIndex) => {
+    setCurrentIndex(pageIndex);
+  };
+
+  // Reset carousel when search changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchTerm]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.closest(".prospect-carousel")) {
+        if (e.key === "ArrowLeft" && currentIndex > 0) {
+          handlePrevious();
+        } else if (e.key === "ArrowRight" && currentIndex < totalPages - 1) {
+          handleNext();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, totalPages]);
+
   // console.log(allInsights, "all insights data");
   const getStatusColor = (status) => {
     switch (status) {
@@ -807,109 +897,141 @@ const CallInsights = () => {
 
           {/* Prospect List */}
           <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth scrollbar-none">
-              {filteredProspects.map((prospect) => {
-                // console.log(prospect, "get prospect details");
-                const companyName = prospect.company?.name || "Unknown Company";
-                const prospectNames =
-                  prospect.people
-                    ?.map((p) => p.name)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const titles =
-                  prospect.people
-                    ?.map((p) => p.title)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const totalCalls = prospect?.calls;
-                const dealValue = "TBD";
-                const probability = 50;
-                const lastEngagement = new Date(
-                  prospect.created_at
-                ).toLocaleDateString();
-                const status = "new";
+            {/* Left Arrow */}
+            <button
+              onClick={scrollPrev}
+              className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
 
-                return (
-                  <div
-                    key={prospect.id}
-                    className={cn(
-                      "min-w-[300px] max-w-[300px] snap-start shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                      selectedProspect?.id === prospect.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : "border-border hover:border-primary/50"
-                    )}
-                    onClick={() =>
-                      handleProspectSelect({
-                        id: prospect.id,
-                        name,
-                        companyName,
-                        company_id: prospect?.company_id,
-                        prospectNames,
-                        titles,
-                        totalCalls,
-                        lastCallDate: prospect.created_at,
-                        lastEngagement,
-                        status,
-                        dealValue,
-                        probability,
-                        nextAction: "Initial follow-up",
-                        dataSources: {
-                          fireflies: 1,
-                          hubspot: 0,
-                          presentations: 0,
-                          emails: 0,
-                        },
-                        fullInsight: prospect,
-                        calls: prospect?.calls || 1,
-                        people: prospect.people, // ✅ add this
-                        call_summary: prospect?.call_summary,
-                        communication_style_ids:
-                          prospect?.communication_style_ids,
-                      })
-                    }
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-sm">{companyName}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {prospectNames}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", getStatusColor(status))}
-                      >
-                        {status}
-                      </Badge>
-                    </div>
+            {/* Right Arrow */}
+            <button
+              onClick={scrollNext}
+              className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
 
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Calls:</span>
-                        <span className="font-medium">{totalCalls}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Deal Value:
+            {/* Carousel Viewport */}
+            <div className="overflow-hidden" ref={emblaRef}>
+              <div className="flex gap-4">
+                {filteredProspects.map((prospect) => {
+                  const companyName =
+                    prospect.company?.name || "Unknown Company";
+                  const prospectNames =
+                    prospect.people
+                      ?.map((p) => p.name)
+                      .filter(Boolean)
+                      .join(", ") || "Unknown";
+                  const titles =
+                    prospect.people
+                      ?.map((p) => p.title)
+                      .filter(Boolean)
+                      .join(", ") || "Unknown";
+                  const totalCalls = prospect?.calls;
+                  const dealValue = "TBD";
+                  const probability = 50;
+                  const lastEngagement = new Date(
+                    prospect.created_at
+                  ).toLocaleDateString();
+                  const status = "new";
+
+                  return (
+                    <div
+                      key={prospect.id}
+                      className={cn(
+                        "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                        selectedProspect?.id === prospect.id
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-border hover:border-primary/50"
+                      )}
+                      onClick={() =>
+                        handleProspectSelect({
+                          id: prospect.id,
+                          name: prospect.name,
+                          companyName,
+                          company_id: prospect?.company_id,
+                          prospectNames,
+                          titles,
+                          totalCalls,
+                          lastCallDate: prospect.created_at,
+                          lastEngagement,
+                          status,
+                          dealValue,
+                          probability,
+                          nextAction: "Initial follow-up",
+                          dataSources: {
+                            fireflies: 1,
+                            hubspot: 0,
+                            presentations: 0,
+                            emails: 0,
+                          },
+                          fullInsight: prospect,
+                          calls: prospect?.calls || 1,
+                          people: prospect.people,
+                          call_summary: prospect?.call_summary,
+                          communication_style_ids:
+                            prospect?.communication_style_ids,
+                        })
+                      }
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-sm">
+                            {companyName}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {prospectNames}
+                          </p>
+                        </div>
+                        <span className={cn("text-xs", getStatusColor(status))}>
+                          {status}
                         </span>
-                        <span className="font-medium">{dealValue}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Last Enagement:
-                        </span>
-                        <span className="font-medium">{lastEngagement}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Opportunity:
-                        </span>
-                        <span className="font-medium">{prospect?.name}</span>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Calls:</span>
+                          <span className="font-medium">{totalCalls}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Deal Value:
+                          </span>
+                          <span className="font-medium">{dealValue}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Last Engagement:
+                          </span>
+                          <span className="font-medium">{lastEngagement}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Opportunity:
+                          </span>
+                          <span className="font-medium">{prospect.name}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dots */}
+            <div className="flex justify-center mt-4 gap-2">
+              {scrollSnaps.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => scrollTo(index)}
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    index === selectedIndex ? "bg-primary" : "bg-gray-300"
+                  )}
+                ></button>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -1182,7 +1304,7 @@ const CallInsights = () => {
                   insight?.insights?.length > 0 && (
                     <div
                       key={insight.id}
-                      className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                      className="border rounded-lg p-4 space-y-3"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
