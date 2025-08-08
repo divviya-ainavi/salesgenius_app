@@ -55,6 +55,7 @@ import {
   Headphones,
   Info,
   Brain,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -875,167 +876,193 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* Prospect Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Building className="w-5 h-5" />
-            <span>Prospect Selection</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search prospects by company or name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {filteredProspects.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">No Prospects Processed</h3>
+            <p className="text-muted-foreground mb-4">
+              No prospects have been processed yet. Upload and process call
+              transcripts to see prospect insights here.
+            </p>
+            <Button onClick={() => navigate("/calls")} variant="outline">
+              <Phone className="w-4 h-4 mr-2" />
+              Go to Sales Calls
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Prospect Selection</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search */}
 
-          {/* Prospect List */}
-          <div className="relative">
-            {/* Left Arrow */}
-            <button
-              onClick={scrollPrev}
-              className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search prospects by company or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-            {/* Right Arrow */}
-            <button
-              onClick={scrollNext}
-              className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {/* Prospect List */}
+            <div className="relative">
+              {/* Left Arrow */}
 
-            {/* Carousel Viewport */}
-            <div className="overflow-hidden" ref={emblaRef}>
-              <div className="flex gap-4">
-                {filteredProspects.map((prospect) => {
-                  const companyName =
-                    prospect.company?.name || "Unknown Company";
-                  const prospectNames =
-                    prospect.people
-                      ?.map((p) => p.name)
-                      .filter(Boolean)
-                      .join(", ") || "Unknown";
-                  const titles =
-                    prospect.people
-                      ?.map((p) => p.title)
-                      .filter(Boolean)
-                      .join(", ") || "Unknown";
-                  const totalCalls = prospect?.calls;
-                  const dealValue = "TBD";
-                  const probability = 50;
-                  const lastEngagement = new Date(
-                    prospect.created_at
-                  ).toLocaleDateString();
-                  const status = "new";
+              <button
+                onClick={scrollPrev}
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
 
-                  return (
-                    <div
-                      key={prospect.id}
-                      className={cn(
-                        "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                        selectedProspect?.id === prospect.id
-                          ? "border-primary bg-primary/5 shadow-md"
-                          : "border-border hover:border-primary/50"
-                      )}
-                      onClick={() =>
-                        handleProspectSelect({
-                          id: prospect.id,
-                          name: prospect.name,
-                          companyName,
-                          company_id: prospect?.company_id,
-                          prospectNames,
-                          titles,
-                          totalCalls,
-                          lastCallDate: prospect.created_at,
-                          lastEngagement,
-                          status,
-                          dealValue,
-                          probability,
-                          nextAction: "Initial follow-up",
-                          dataSources: {
-                            fireflies: 1,
-                            hubspot: 0,
-                            presentations: 0,
-                            emails: 0,
-                          },
-                          fullInsight: prospect,
-                          calls: prospect?.calls || 1,
-                          people: prospect.people,
-                          call_summary: prospect?.call_summary,
-                          communication_style_ids:
-                            prospect?.communication_style_ids,
-                        })
-                      }
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-sm">
-                            {companyName}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {prospectNames}
-                          </p>
+              {/* Right Arrow */}
+
+              <button
+                onClick={scrollNext}
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Carousel Viewport */}
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {filteredProspects.map((prospect) => {
+                    const companyName =
+                      prospect.company?.name || "Unknown Company";
+                    const prospectNames =
+                      prospect.people
+                        ?.map((p) => p.name)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const titles =
+                      prospect.people
+                        ?.map((p) => p.title)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const totalCalls = prospect?.calls;
+                    const dealValue = "TBD";
+                    const probability = 50;
+                    const lastEngagement = new Date(
+                      prospect.created_at
+                    ).toLocaleDateString();
+                    const status = "new";
+
+                    return (
+                      <div
+                        key={prospect.id}
+                        className={cn(
+                          "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                          selectedProspect?.id === prospect.id
+                            ? "border-primary bg-primary/5 shadow-md"
+                            : "border-border hover:border-primary/50"
+                        )}
+                        onClick={() =>
+                          handleProspectSelect({
+                            id: prospect.id,
+                            name: prospect.name,
+                            companyName,
+                            company_id: prospect?.company_id,
+                            prospectNames,
+                            titles,
+                            totalCalls,
+                            lastCallDate: prospect.created_at,
+                            lastEngagement,
+                            status,
+                            dealValue,
+                            probability,
+                            nextAction: "Initial follow-up",
+                            dataSources: {
+                              fireflies: 1,
+                              hubspot: 0,
+                              presentations: 0,
+                              emails: 0,
+                            },
+                            fullInsight: prospect,
+                            calls: prospect?.calls || 1,
+                            people: prospect.people,
+                            call_summary: prospect?.call_summary,
+                            communication_style_ids:
+                              prospect?.communication_style_ids,
+                          })
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-sm">
+                              {companyName}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {prospectNames}
+                            </p>
+                          </div>
+                          <span
+                            className={cn("text-xs", getStatusColor(status))}
+                          >
+                            {status}
+                          </span>
                         </div>
-                        <span className={cn("text-xs", getStatusColor(status))}>
-                          {status}
-                        </span>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Calls:
+                            </span>
+                            <span className="font-medium">{totalCalls}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Deal Value:
+                            </span>
+                            <span className="font-medium">{dealValue}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Last Engagement:
+                            </span>
+                            <span className="font-medium">
+                              {lastEngagement}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Opportunity:
+                            </span>
+                            <span className="font-medium">{prospect.name}</span>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Calls:</span>
-                          <span className="font-medium">{totalCalls}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Deal Value:
-                          </span>
-                          <span className="font-medium">{dealValue}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Last Engagement:
-                          </span>
-                          <span className="font-medium">{lastEngagement}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Opportunity:
-                          </span>
-                          <span className="font-medium">{prospect.name}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Dots */}
+              <div className="flex justify-center mt-4 gap-2">
+                {scrollSnaps.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollTo(index)}
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      index === selectedIndex ? "bg-primary" : "bg-gray-300"
+                    )}
+                  ></button>
+                ))}
               </div>
             </div>
-
-            {/* Dots */}
-            <div className="flex justify-center mt-4 gap-2">
-              {scrollSnaps.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => scrollTo(index)}
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    index === selectedIndex ? "bg-primary" : "bg-gray-300"
-                  )}
-                ></button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+      {/* Prospect Selection */}
 
       {selectedProspect && (
         <>
