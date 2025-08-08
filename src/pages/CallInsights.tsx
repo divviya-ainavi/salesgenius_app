@@ -151,6 +151,38 @@ const CallInsights = () => {
   const [editNameValue, setEditNameValue] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  // Function to refresh peoples data
+  const refreshPeoplesData = async () => {
+    if (!selectedProspect?.id || !user?.id) return;
+    
+    try {
+      const updatedPeople = await dbHelpers.getPeopleByProspectId(
+        selectedProspect.id,
+        user.id
+      );
+      
+      // Update the selected prospect with new peoples data
+      setSelectedProspect(prev => ({
+        ...prev,
+        people: updatedPeople
+      }));
+      
+      // Also update the prospects list to keep it in sync
+      setProspects(prev => prev.map(prospect => 
+        prospect.id === selectedProspect.id 
+          ? { ...prospect, people: updatedPeople }
+          : prospect
+      ));
+      
+       // Refresh peoples data to reflect the name change
+       await refreshPeoplesData();
+       
+      console.log("✅ Refreshed peoples data:", updatedPeople);
+    } catch (error) {
+      console.error("❌ Error refreshing peoples data:", error);
+    }
+  };
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
