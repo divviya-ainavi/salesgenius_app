@@ -102,19 +102,6 @@ const handleResponseError = async (response, endpoint, method) => {
   // Handle specific status codes
   switch (response.status) {
     case 401:
-      // Check for token expiry
-      if (errorData.details && (
-        errorData.details.code === 'AUTH_TOKEN_EXPIRED' ||
-        errorData.message?.includes('JWT expired') ||
-        errorData.message?.includes('token expired')
-      )) {
-        console.log('🔐 API returned token expired, triggering auto-logout');
-        // Import and call handleAutoLogout
-        const { handleAutoLogout } = await import('./supabase');
-        await handleAutoLogout();
-        return;
-      }
-      
       // Check for specific backend error codes if available
       if (errorData.details && errorData.details.code) {
         switch (errorData.details.code) {

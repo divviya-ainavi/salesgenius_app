@@ -564,12 +564,6 @@ export const authHelpers = {
   // Sign out user
   async signOut() {
     try {
-      // Mark as manual logout to prevent auto-logout trigger
-      sessionStorage.setItem('manual_logout', 'true');
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut();
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
