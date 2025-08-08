@@ -566,10 +566,10 @@ export const authHelpers = {
     try {
       // Mark as manual logout to prevent auto-logout trigger
       sessionStorage.setItem('manual_logout', 'true');
-
+      
       // Sign out from Supabase
       await supabase.auth.signOut();
-
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
@@ -3463,7 +3463,7 @@ export const dbHelpers = {
 
   async reorderTourSteps(stepUpdates) {
     try {
-      const updates = stepUpdates.map(({ id, step_order }) =>
+      const updates = stepUpdates.map(({ id, step_order }) => 
         supabase
           .from('tour_steps')
           .update({ step_order })
@@ -3495,5 +3495,5 @@ export const userHelpers = {
   signOut: authHelpers.signOut,
 }
 
-// export { supabase, authHelpers, dbHelpers, CURRENT_USER };
+export { supabase, authHelpers, dbHelpers, CURRENT_USER };
 export { handleSupabaseError, handleAutoLogout };
