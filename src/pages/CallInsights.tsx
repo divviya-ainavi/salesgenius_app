@@ -882,6 +882,10 @@ const CallInsights = () => {
 
       setEditingNameId(null);
       setEditNameValue("");
+      
+      // Refresh peoples data to sync with updated name
+      await refreshPeoplesData();
+      
       toast.success("Name updated successfully");
     } catch (error) {
       console.error("Error updating name:", error);
