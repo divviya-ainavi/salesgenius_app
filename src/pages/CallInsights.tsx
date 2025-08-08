@@ -898,20 +898,24 @@ const CallInsights = () => {
           {/* Prospect List */}
           <div className="relative">
             {/* Left Arrow */}
-            <button
-              onClick={scrollPrev}
-              className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            {filteredProspects?.length > 0 && (
+              <button
+                onClick={scrollPrev}
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Right Arrow */}
-            <button
-              onClick={scrollNext}
-              className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {filteredProspects?.length > 0 && (
+              <button
+                onClick={scrollNext}
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Carousel Viewport */}
             <div className="overflow-hidden" ref={emblaRef}>
