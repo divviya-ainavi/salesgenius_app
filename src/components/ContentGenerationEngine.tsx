@@ -68,7 +68,6 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
-import { Save, X, User } from "lucide-react";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -946,16 +945,14 @@ ${updatedBlocks
         selectedProspect?.id,
         user?.id
       );
-      
+
       // Update local state
       setStakeholders((prev) =>
         prev.map((s) =>
-          s.id === stakeholderId
-            ? { ...s, name: editNameValue }
-            : s
+          s.id === stakeholderId ? { ...s, name: editNameValue } : s
         )
       );
-      
+
       setEditingNameId(null);
       toast.success("Name updated successfully");
     } catch (err) {
@@ -1129,7 +1126,10 @@ ${updatedBlocks
                       {/* Primary Decision Maker Card */}
                       {primaryStakeholder?.length > 0 &&
                         primaryStakeholder?.map((x) => (
-                          <Card key={x.id} className="bg-primary/5 border-primary/20">
+                          <Card
+                            key={x.id}
+                            className="bg-primary/5 border-primary/20"
+                          >
                             <CardHeader className="pb-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
@@ -1139,11 +1139,15 @@ ${updatedBlocks
                                       <div className="flex items-center space-x-2">
                                         <Input
                                           value={editNameValue}
-                                          onChange={(e) => setEditNameValue(e.target.value)}
+                                          onChange={(e) =>
+                                            setEditNameValue(e.target.value)
+                                          }
                                           className="h-6 text-sm px-2 w-40 font-semibold"
                                           onKeyDown={(e) => {
-                                            if (e.key === "Enter") handleNameSave(x.id);
-                                            if (e.key === "Escape") handleNameCancel();
+                                            if (e.key === "Enter")
+                                              handleNameSave(x.id);
+                                            if (e.key === "Escape")
+                                              handleNameCancel();
                                           }}
                                           autoFocus
                                           disabled={isUpdatingName}
@@ -1172,8 +1176,10 @@ ${updatedBlocks
                                         </Button>
                                       </div>
                                     ) : (
-                                      <CardTitle className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                          onClick={() => handleNameEdit(x)}>
+                                      <CardTitle
+                                        className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleNameEdit(x)}
+                                      >
                                         <span>{x.name}</span>
                                         <User className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </CardTitle>
@@ -1407,11 +1413,15 @@ ${updatedBlocks
                                   <div className="flex items-center space-x-2">
                                     <Input
                                       value={editNameValue}
-                                      onChange={(e) => setEditNameValue(e.target.value)}
+                                      onChange={(e) =>
+                                        setEditNameValue(e.target.value)
+                                      }
                                       className="h-6 text-sm px-2 w-40 font-semibold"
                                       onKeyDown={(e) => {
-                                        if (e.key === "Enter") handleNameSave(stakeholder.id);
-                                        if (e.key === "Escape") handleNameCancel();
+                                        if (e.key === "Enter")
+                                          handleNameSave(stakeholder.id);
+                                        if (e.key === "Escape")
+                                          handleNameCancel();
                                       }}
                                       autoFocus
                                       disabled={isUpdatingName}
@@ -1420,7 +1430,9 @@ ${updatedBlocks
                                       variant="ghost"
                                       size="sm"
                                       className="h-6 w-6 p-0"
-                                      onClick={() => handleNameSave(stakeholder.id)}
+                                      onClick={() =>
+                                        handleNameSave(stakeholder.id)
+                                      }
                                       disabled={isUpdatingName}
                                     >
                                       {isUpdatingName ? (
@@ -1440,8 +1452,10 @@ ${updatedBlocks
                                     </Button>
                                   </div>
                                 ) : (
-                                  <CardTitle className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                      onClick={() => handleNameEdit(stakeholder)}>
+                                  <CardTitle
+                                    className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
                                     <User className="w-4 h-4 text-muted-foreground" />
                                     <span>{stakeholder.name}</span>
                                     <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
