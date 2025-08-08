@@ -23,18 +23,121 @@ import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers, supabase } from "@/lib/supabase";
 import {
   setCommunicationTypes,
   setGetAllStatus,
   setInsightTypes,
   setRoles,
 } from "./store/slices/orgSlice";
+import { resetAuthState } from "./store/slices/authSlice";
+import { resetOrgState } from "./store/slices/orgSlice";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  // Auto-logout function
+  const handleAutoLogout = async () => {
+    try {
+      console.log("🔄 Auto-logout triggered due to token expiry");
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Reset Redux state
+      dispatch(resetAuthState());
+      dispatch(resetOrgState());
+      
+      // Show notification
+      toast.error("Your session has expired. Please log in again.");
+      
+      // Redirect to login
+      navigate("/auth/login");
+    } catch (error) {
+      console.error("Error during auto-logout:", error);
+      // Force redirect even if cleanup fails
+      window.location.href = "/auth/login";
+    }
+  };
+
+  // Monitor auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("🔐 Auth state change:", event, session ? "Session exists" : "No session");
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log("✅ Token refreshed successfully");
+        } else if (event === 'SIGNED_OUT') {
+          console.log("👋 User signed out");
+          // Only auto-logout if this wasn't a manual logout
+          const isManualLogout = sessionStorage.getItem('manual_logout');
+          if (!isManualLogout) {
+            handleAutoLogout();
+          } else {
+            sessionStorage.removeItem('manual_logout');
+          }
+        } else if (event === 'USER_UPDATED' && !session) {
+          console.log("🔄 User updated but no session - possible token expiry");
+          handleAutoLogout();
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [navigate, dispatch]);
+
+  // Check token expiry periodically
+  useEffect(() => {
+    const checkTokenExpiry = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          if (error.message?.includes('JWT') || error.message?.includes('expired')) {
+            handleAutoLogout();
+          }
+          return;
+        }
+        
+        if (session) {
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt - now;
+          
+          // If token expires in less than 5 minutes, try to refresh
+          if (timeUntilExpiry < 300) {
+            console.log("🔄 Token expiring soon, attempting refresh...");
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              console.error("Token refresh failed:", refreshError);
+              handleAutoLogout();
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking token expiry:", error);
+      }
+    };
+
+    // Check immediately and then every 5 minutes
+    checkTokenExpiry();
+    const interval = setInterval(checkTokenExpiry, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Initialize analytics
   useEffect(() => {
     // Track app initialization
