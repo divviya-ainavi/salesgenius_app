@@ -613,7 +613,7 @@ export const ActionItems = () => {
               <CardContent className="p-6">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Loading prospects...</p>
+                  <p className="text-muted-foreground">Loading deals...</p>
                 </div>
               </CardContent>
             </Card>
@@ -622,15 +622,15 @@ export const ActionItems = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Building className="w-5 h-5" />
-                  <span>No Prospects Available</span>
+                  <span>No Deals Available</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-center py-8">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <p className="text-muted-foreground mb-2">No prospects found</p>
+                <p className="text-muted-foreground mb-2">No deals found</p>
                 <p className="text-sm text-muted-foreground">
                   Process some call transcripts first to generate action items
-                  for prospects.
+                  for deals.
                 </p>
               </CardContent>
             </Card>
@@ -944,7 +944,7 @@ export const ActionItems = () => {
                     </p>
                     <p className="text-sm">
                       Action items will appear here after processing calls with
-                      this prospect
+                      this deal
                     </p>
                   </div>
                 )}
@@ -955,12 +955,12 @@ export const ActionItems = () => {
               <CardContent className="text-center py-12">
                 <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">
-                  No Prospect Selected
+                  No Deal Selected
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   {prospects.length === 0
-                    ? "No prospects available. Process some call transcripts first to generate action items."
-                    : "Select a prospect from the sidebar to view their action items."}
+                    ? "No deals available. Process some call transcripts first to generate action items."
+                    : "Select a deal from the sidebar to view their action items."}
                 </p>
               </CardContent>
             </Card>
