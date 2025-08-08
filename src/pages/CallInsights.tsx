@@ -1667,7 +1667,57 @@ const CallInsights = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-2">
                             <h3 className="font-semibold flex items-center space-x-2">
-                              <span>{stakeholder.stakeholder}</span>
+                              {editingNameId === stakeholder.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editNameValue}
+                                    onChange={(e) => setEditNameValue(e.target.value)}
+                                    className="h-6 text-sm px-2 w-40 font-semibold"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape") handleNameCancel();
+                                    }}
+                                    autoFocus
+                                    disabled={isUpdatingName}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleNameSave(stakeholder.id)}
+                                    disabled={isUpdatingName}
+                                  >
+                                    {isUpdatingName ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleNameCancel}
+                                    disabled={isUpdatingName}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2 group">
+                                  <span className="cursor-pointer hover:text-primary" onClick={() => handleNameEdit(stakeholder)}>
+                                    {stakeholder.stakeholder}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
                               {PersonalityIcon && (
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
@@ -1689,27 +1739,20 @@ const CallInsights = () => {
                                     if (e.key === "Escape") handleRoleCancel();
                                   }}
                                   autoFocus
-                                   disabled={isUpdatingRole}
                                 />
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0"
                                   onClick={() => handleRoleSave(stakeholder.id)}
-                                   disabled={isUpdatingRole}
                                 >
-                                  {isUpdatingRole ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Save className="w-3 h-3" />
-                                  )}
+                                  <Save className="w-3 h-3" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0"
                                   onClick={handleRoleCancel}
-                                   disabled={isUpdatingRole}
                                 >
                                   <X className="w-3 h-3" />
                                 </Button>
@@ -1721,7 +1764,7 @@ const CallInsights = () => {
                                 onClick={() => handleRoleEdit(stakeholder)}
                               >
                                 {stakeholder.role || "Unknown Role"}
-                                <Target className="w-3 h-3 ml-1" />
+                                <Edit className="w-3 h-3 ml-1" />
                               </Badge>
                             )}
                           </div>
