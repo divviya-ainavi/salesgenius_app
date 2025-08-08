@@ -122,9 +122,6 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
-      // Mark as manual logout to prevent auto-logout from triggering
-      sessionStorage.setItem('manual_logout', 'true');
-      
       // Sign out from Supabase Auth if user is authenticated there
       const {
         data: { session },
