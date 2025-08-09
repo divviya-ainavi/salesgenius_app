@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ActionItems } from "@/pages/followups/ActionItems";
 import { EmailTemplates } from "@/pages/followups/EmailTemplates";
@@ -94,7 +94,6 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
           <Routes>
             {/* Public Routes */}
             <Route path="/auth/login" element={<LoginPage />} />
@@ -136,7 +135,6 @@ const App = () => {
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
