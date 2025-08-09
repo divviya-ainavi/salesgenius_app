@@ -156,6 +156,10 @@ const CallInsights = () => {
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
   const dispatch = useDispatch();
+  
+  // Salesperson checkbox state
+  const [salespersonIds, setSalespersonIds] = useState(new Set());
+  const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
     if (!selectedProspect?.id || !user?.id) return;
@@ -471,6 +475,14 @@ const CallInsights = () => {
       insightData.communication_style_ids
     );
     setCommunicationStyles(styles);
+    
+    // Load existing salesperson selections
+    const existingSalespersonIds = new Set(
+      styles
+        .filter(style => style.is_salesperson)
+        .map(style => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
 
     const peopleList = await dbHelpers.getPeopleByProspectId(
       insightData.id,
@@ -486,6 +498,14 @@ const CallInsights = () => {
     );
 
     setCommunicationStyles(styles);
+    
+    // Update salesperson selections
+    const existingSalespersonIds = new Set(
+      styles
+        .filter(style => style.is_salesperson)
+        .map(style => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
   };
 
   const refreshCummulativeSummary = async () => {
@@ -956,6 +976,64 @@ const CallInsights = () => {
     setEditRoleValue("");
   };
 
+  // Handle salesperson checkbox change
+  const handleSalespersonToggle = async (stakeholderId, isChecked) => {
+    setIsUpdatingSalesperson(true);
+    
+    try {
+      // Update database
+      await dbHelpers.updateCommunicationStyleSalesperson(
+        stakeholderId,
+        isChecked,
+        selectedProspect?.id,
+        user?.id
+      );
+      
+      // Update local state
+      const newSalespersonIds = new Set(salespersonIds);
+      if (isChecked) {
+        newSalespersonIds.add(stakeholderId);
+      } else {
+        newSalespersonIds.delete(stakeholderId);
+      }
+      setSalespersonIds(newSalespersonIds);
+      
+      // Update communication styles to reflect the change
+      setCommunicationStyles(prev => 
+        prev.map(style => 
+          style.id === stakeholderId 
+            ? { ...style, is_salesperson: isChecked }
+            : style
+        )
+      );
+      
+      toast.success(
+        isChecked 
+          ? "Marked as salesperson" 
+          : "Removed salesperson marking"
+      );
+    } catch (error) {
+      console.error("Error updating salesperson status:", error);
+      toast.error("Failed to update salesperson status");
+    } finally {
+      setIsUpdatingSalesperson(false);
+    }
+  };
+
+  // Sort communication styles: primary first, then non-salesperson, then salesperson at bottom
+  const sortedCommunicationStyles = [...communicationStyles].sort((a, b) => {
+    // Primary decision makers always first
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    
+    // Among non-primary: salesperson goes to bottom
+    if (!a.is_primary && !b.is_primary) {
+      if (a.is_salesperson && !b.is_salesperson) return 1;
+      if (!a.is_salesperson && b.is_salesperson) return -1;
+    }
+    
+    return 0;
+  });
   // console.log("Total insights count:", totalInsightsCount);
 
   // console.log(insights, "get list of insights");
@@ -1744,7 +1822,7 @@ const CallInsights = () => {
                 </div>
               ) : communicationStyles.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles?.map((stakeholder) => {
+                  {sortedCommunicationStyles?.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
                     const PersonalityIcon = stakeholder.personality_type
@@ -1774,7 +1852,29 @@ const CallInsights = () => {
                         className="border rounded-lg p-4"
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3">
+                            {/* Salesperson Checkbox - Only show for non-primary stakeholders */}
+                            {!stakeholder.is_primary && (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`salesperson-${stakeholder.id}`}
+                                  checked={salespersonIds.has(stakeholder.id)}
+                                  onChange={(e) => 
+                                    handleSalespersonToggle(stakeholder.id, e.target.checked)
+                                  }
+                                  disabled={isUpdatingSalesperson}
+                                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                />
+                                <label 
+                                  htmlFor={`salesperson-${stakeholder.id}`}
+                                  className="text-xs text-muted-foreground cursor-pointer"
+                                >
+                                  Salesperson
+                                </label>
+                              </div>
+                            )}
+                            
                             <h3 className="font-semibold flex items-center space-x-2">
                               {editingNameId === stakeholder.id ? (
                                 <div className="flex items-center space-x-2">
@@ -1887,6 +1987,26 @@ const CallInsights = () => {
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
+                            {/* Primary Decision Maker Badge */}
+                            {stakeholder.is_primary && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-purple-100 text-purple-800 border-purple-200"
+                              >
+                                Primary Decision Maker
+                              </Badge>
+                            )}
+                            
+                            {/* Salesperson Badge */}
+                            {salespersonIds.has(stakeholder.id) && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                              >
+                                Salesperson
+                              </Badge>
+                            )}
+                            
                             {/* <Badge
                               variant="outline"
                               className={cn(
