@@ -24,17 +24,23 @@ import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import {
   setCommunicationTypes,
   setGetAllStatus,
   setInsightTypes,
   setRoles,
 } from "./store/slices/orgSlice";
+import { resetAuthState } from "./store/slices/authSlice";
+import { resetOrgState } from "./store/slices/orgSlice";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   // Initialize analytics
   useEffect(() => {
     // Track app initialization
@@ -55,6 +61,34 @@ const App = () => {
     fetchRoles();
   }, []);
 
+  // Monitor Supabase auth state for token expiry
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' && !sessionStorage.getItem('manual_logout')) {
+        // Token expired - auto logout
+        console.log('🔒 Supabase token expired - auto logout triggered');
+        
+        // Clear all storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Reset Redux state
+        dispatch(resetAuthState());
+        dispatch(resetOrgState());
+        
+        // Show message and redirect
+        toast.error('Your session has expired. Please log in again.');
+        navigate('/auth/login');
+      }
+      
+      // Clear manual logout flag after processing
+      if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('manual_logout');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [dispatch, navigate]);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
