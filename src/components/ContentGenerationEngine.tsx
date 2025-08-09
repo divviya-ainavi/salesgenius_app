@@ -1041,9 +1041,13 @@ ${updatedBlocks
 
   // Derived data
   const primaryStakeholder = stakeholders.filter((s) => s.role === "primary");
-  const secondaryStakeholders = stakeholders.filter(
-    (s) => s.role !== "primary"
-  );
+  const secondaryStakeholders = stakeholders
+    .filter((s) => s.role !== "primary")
+    .sort((a, b) => {
+      // Sort by is_salesperson: false first (regular stakeholders), true last (salesperson)
+      if (a.is_salesperson === b.is_salesperson) return 0;
+      return a.is_salesperson ? 1 : -1;
+    });
   const availableObjectives = selectedPlay
     ? getAvailableObjectives(selectedPlay)
     : secondaryObjectives;
