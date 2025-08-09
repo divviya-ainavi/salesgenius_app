@@ -1822,6 +1822,24 @@ export const dbHelpers = {
     }
   },
 
+  // Update user email client preference
+  async updateUserEmailClientPreference(userId, emailClient) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ email_client_preference: emailClient })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating email client preference:', error);
+      throw error;
+    }
+  },
+
   async updateOrganizationSettings(
     organizationId,
     toUpdateData
