@@ -3292,6 +3292,23 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleSalesperson(styleId, isChecked, prospectId, userId) {
+    try {
+      // Step 2: Update the communication_styles table with new name
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ is_salesperson: isChecked })
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style name and peoples name:", error);
+      throw error;
+    }
+  },
 
   async getActionItemsByProspectId(prospectId) {
     try {
@@ -3457,7 +3474,7 @@ export const dbHelpers = {
 
   async reorderTourSteps(stepUpdates) {
     try {
-      const updates = stepUpdates.map(({ id, step_order }) => 
+      const updates = stepUpdates.map(({ id, step_order }) =>
         supabase
           .from('tour_steps')
           .update({ step_order })
