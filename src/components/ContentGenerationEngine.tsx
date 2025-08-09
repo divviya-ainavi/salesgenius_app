@@ -92,6 +92,7 @@ interface Stakeholder {
   name: string;
   title: string;
   role: "primary" | "stakeholder";
+  is_salesperson?: boolean;
   confidenceScore: number;
   confidenceJustification: string;
   communicationStyle: string;
@@ -192,6 +193,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [allSummary, setAllSummary] = useState([""]);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [editingRoleText, setEditingRoleText] = useState("");
+  const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
   const {
     userProfileInfo,
     userRole,
@@ -337,6 +339,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               name: style.stakeholder || "Unknown",
               title: style.role || "Unknown Title",
               role: style.is_primary ? "primary" : "stakeholder",
+              is_salesperson: style.is_salesperson || false,
               confidenceScore: Math.round(style.confidence * 100),
               confidenceJustification:
                 style.evidence || "Inferred from past interactions",
@@ -458,6 +461,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       name: style.stakeholder || "Unknown",
       title: style.role || "Unknown Title",
       role: style.is_primary ? "primary" : "stakeholder",
+      is_salesperson: style.is_salesperson || false,
       confidenceScore: Math.round(style.confidence * 100),
       confidenceJustification:
         style.evidence || "Inferred from past interactions",
@@ -977,6 +981,65 @@ ${updatedBlocks
     setEditNameValue("");
   };
 
+  // Salesperson checkbox handlers
+  const handleSalespersonToggle = async (stakeholderId: string, currentValue: boolean) => {
+    setIsUpdatingSalesperson(true);
+    try {
+      const newValue = !currentValue;
+      
+      // Update database
+      await dbHelpers.updateCommunicationStyleSalesperson(
+        stakeholderId,
+        newValue,
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setStakeholders((prev) => {
+        const updated = prev.map((s) =>
+          s.id === stakeholderId 
+            ? { ...s, is_salesperson: newValue }
+            : s
+        );
+
+        // Sort: Primary first, then non-salesperson, then salesperson at bottom
+        return updated.sort((a, b) => {
+          if (a.role === "primary" && b.role !== "primary") return -1;
+          if (a.role !== "primary" && b.role === "primary") return 1;
+          
+          // Among non-primary stakeholders
+          if (a.role !== "primary" && b.role !== "primary") {
+            if (a.is_salesperson && !b.is_salesperson) return 1;
+            if (!a.is_salesperson && b.is_salesperson) return -1;
+          }
+          
+          return 0;
+        });
+      });
+
+      // Also update commStylesData to keep it in sync
+      setCommStylesData((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
+            ? { ...style, is_salesperson: newValue }
+            : style
+        )
+      );
+
+      toast.success(
+        newValue 
+          ? "Marked as salesperson" 
+          : "Removed salesperson designation"
+      );
+    } catch (error) {
+      console.error("Error updating salesperson status:", error);
+      toast.error("Failed to update salesperson status");
+    } finally {
+      setIsUpdatingSalesperson(false);
+    }
+  };
+
   // Derived data
   const primaryStakeholder = stakeholders.filter((s) => s.role === "primary");
   const secondaryStakeholders = stakeholders.filter(
@@ -1190,12 +1253,14 @@ ${updatedBlocks
                                         onClick={() => handleNameEdit(x)}
                                       >
                                         <span>{x.name}</span>
-                                        <User className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </CardTitle>
                                     )}
                                   </div>
                                 </div>
-                                <Badge>Primary Decision Maker</Badge>
+                                <div className="flex items-center space-x-2">
+                                  <Badge>Primary Decision Maker</Badge>
+                                </div>
                               </div>
                               <CardDescription>
                                 <div className="flex items-center justify-between mb-1">
@@ -1471,7 +1536,41 @@ ${updatedBlocks
                                   </CardTitle>
                                 )}
                               </div>
-                              <Badge variant="outline">Stakeholder</Badge>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`salesperson-${stakeholder.id}`}
+                                    checked={stakeholder.is_salesperson || false}
+                                    onCheckedChange={() =>
+                                      handleSalespersonToggle(
+                                        stakeholder.id,
+                                        stakeholder.is_salesperson || false
+                                      )
+                                    }
+                                    disabled={isUpdatingSalesperson}
+                                  />
+                                  <Label
+                                    htmlFor={`salesperson-${stakeholder.id}`}
+                                    className="text-xs text-muted-foreground cursor-pointer"
+                                  >
+                                    Salesperson
+                                  </Label>
+                                </div>
+                                <div className="flex flex-col space-y-1">
+                                  {stakeholder.is_salesperson ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-blue-100 text-blue-800 border-blue-200 text-xs"
+                                    >
+                                      Salesperson
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs">
+                                      Stakeholder
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                             <CardDescription>
                               <div className="flex items-center justify-between mb-1">
