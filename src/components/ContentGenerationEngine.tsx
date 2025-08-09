@@ -982,11 +982,14 @@ ${updatedBlocks
   };
 
   // Salesperson checkbox handlers
-  const handleSalespersonToggle = async (stakeholderId: string, currentValue: boolean) => {
+  const handleSalespersonToggle = async (
+    stakeholderId: string,
+    currentValue: boolean
+  ) => {
     setIsUpdatingSalesperson(true);
     try {
       const newValue = !currentValue;
-      
+
       // Update database
       await dbHelpers.updateCommunicationStyleSalesperson(
         stakeholderId,
@@ -998,22 +1001,20 @@ ${updatedBlocks
       // Update local state
       setStakeholders((prev) => {
         const updated = prev.map((s) =>
-          s.id === stakeholderId 
-            ? { ...s, is_salesperson: newValue }
-            : s
+          s.id === stakeholderId ? { ...s, is_salesperson: newValue } : s
         );
 
         // Sort: Primary first, then non-salesperson, then salesperson at bottom
         return updated.sort((a, b) => {
           if (a.role === "primary" && b.role !== "primary") return -1;
           if (a.role !== "primary" && b.role === "primary") return 1;
-          
+
           // Among non-primary stakeholders
           if (a.role !== "primary" && b.role !== "primary") {
             if (a.is_salesperson && !b.is_salesperson) return 1;
             if (!a.is_salesperson && b.is_salesperson) return -1;
           }
-          
+
           return 0;
         });
       });
@@ -1028,9 +1029,7 @@ ${updatedBlocks
       );
 
       toast.success(
-        newValue 
-          ? "Marked as salesperson" 
-          : "Removed salesperson designation"
+        newValue ? "Marked as salesperson" : "Removed salesperson designation"
       );
     } catch (error) {
       console.error("Error updating salesperson status:", error);
@@ -1540,7 +1539,9 @@ ${updatedBlocks
                                 <div className="flex items-center space-x-2">
                                   <Checkbox
                                     id={`salesperson-${stakeholder.id}`}
-                                    checked={stakeholder.is_salesperson || false}
+                                    checked={
+                                      stakeholder.is_salesperson || false
+                                    }
                                     onCheckedChange={() =>
                                       handleSalespersonToggle(
                                         stakeholder.id,
@@ -1565,7 +1566,10 @@ ${updatedBlocks
                                       Salesperson
                                     </Badge>
                                   ) : (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       Stakeholder
                                     </Badge>
                                   )}
@@ -1818,45 +1822,48 @@ ${updatedBlocks
                     </>
                   ) : (
                     <div className="space-y-3">
+                      {console.log(stakeholders, "stakeholders data")}
                       {stakeholders.length === 0 ? (
                         <div className="text-center py-3 text-muted-foreground">
                           No stakeholders available for this prospect
                         </div>
                       ) : (
-                        stakeholders.map((stakeholder) => (
-                          <div
-                            key={stakeholder.id}
-                            className="flex items-center space-x-3"
-                          >
-                            <Checkbox
-                              id={`recipient-${stakeholder.id}`}
-                              checked={selectedRecipients.includes(
-                                stakeholder.id
-                              )}
-                              onCheckedChange={() =>
-                                handleRecipientToggle(stakeholder.id)
-                              }
-                            />
-                            <Label
-                              htmlFor={`recipient-${stakeholder.id}`}
-                              className="flex-1 flex items-center justify-between"
+                        stakeholders
+                          ?.filter((s) => s.is_salesperson != true)
+                          .map((stakeholder) => (
+                            <div
+                              key={stakeholder.id}
+                              className="flex items-center space-x-3"
                             >
-                              <span>{stakeholder.name}</span>
-                              <Badge
-                                variant={
-                                  stakeholder.role === "primary"
-                                    ? "default"
-                                    : "outline"
+                              <Checkbox
+                                id={`recipient-${stakeholder.id}`}
+                                checked={selectedRecipients.includes(
+                                  stakeholder.id
+                                )}
+                                onCheckedChange={() =>
+                                  handleRecipientToggle(stakeholder.id)
                                 }
-                                className="text-xs"
+                              />
+                              <Label
+                                htmlFor={`recipient-${stakeholder.id}`}
+                                className="flex-1 flex items-center justify-between"
                               >
-                                {stakeholder.role === "primary"
-                                  ? "Primary"
-                                  : "Stakeholder"}
-                              </Badge>
-                            </Label>
-                          </div>
-                        ))
+                                <span>{stakeholder.name}</span>
+                                <Badge
+                                  variant={
+                                    stakeholder.role === "primary"
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  className="text-xs"
+                                >
+                                  {stakeholder.role === "primary"
+                                    ? "Primary"
+                                    : "Stakeholder"}
+                                </Badge>
+                              </Label>
+                            </div>
+                          ))
                       )}
                     </div>
                   )}
