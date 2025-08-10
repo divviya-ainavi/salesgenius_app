@@ -190,7 +190,8 @@ export const authHelpers = {
         title_id,
         fireflies_connected,
         timezone,
-        language
+        language,
+        email_client_preference
       `)
         .eq("id", userId)
         .single();

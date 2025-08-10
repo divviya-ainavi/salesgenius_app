@@ -61,6 +61,7 @@ import {
   Presentation,
   Mail,
   Clock,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,14 @@ import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
 import { useDispatch } from "react-redux";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -194,6 +203,11 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [editingRoleText, setEditingRoleText] = useState("");
   const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  const [emailClientPreference, setEmailClientPreference] = useState<
+    string | null
+  >(null);
+  const [showEmailClientDialog, setShowEmailClientDialog] = useState(false);
+  const [isUpdatingEmailClient, setIsUpdatingEmailClient] = useState(false);
   const {
     userProfileInfo,
     userRole,
@@ -281,9 +295,10 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       incompatibleWith: ["door-opener", "champion-enablement"],
     },
   ];
-
+  console.log(user, "check user data");
   // Load prospects from database
   useEffect(() => {
+    setEmailClientPreference(user?.email_client_preference || null);
     const fetchProspects = async () => {
       if (!user.id) {
         // console.log("No user ID available, skipping prospect fetch");
@@ -379,6 +394,51 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
 
     fetchProspects();
   }, []);
+
+  const handleEmailClientSelect = async (client: string) => {
+    setIsUpdatingEmailClient(true);
+    try {
+      await dbHelpers.updateUserEmailClientPreference(user.id, client);
+      setEmailClientPreference(client);
+      setShowEmailClientDialog(false);
+      toast.success(
+        `Email client preference set to ${
+          client === "gmail" ? "Gmail" : "Outlook"
+        }`
+      );
+
+      // Now export the email
+      await exportToEmailClient(client);
+    } catch (error) {
+      console.error("Error updating email client preference:", error);
+      toast.error("Failed to update email client preference");
+    } finally {
+      setIsUpdatingEmailClient(false);
+    }
+  };
+
+  const exportToEmailClient = async (client: string) => {
+    if (!generatedArtefact) return;
+
+    const subject = encodeURIComponent(
+      generatedArtefact?.subject || "Follow-up Email"
+    );
+    const body = encodeURIComponent(generatedArtefact.body || "");
+
+    if (client === "gmail") {
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+      window.open(gmailUrl, "_blank");
+      toast.success("Opening Gmail compose window...");
+    } else if (client === "outlook") {
+      const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`;
+      window.open(outlookUrl, "_blank");
+      toast.success("Opening Outlook compose window...");
+    }
+  };
+
+  const handleChangeEmailClient = () => {
+    setShowEmailClientDialog(true);
+  };
 
   // Recommendation logic
   const getRecommendedPlay = (crmStage: string): string => {
@@ -799,21 +859,17 @@ ${output?.blocks
     toast.success("Content copied to clipboard");
   };
 
+  console.log(emailClientPreference, "email client preference");
   const handleExport = async () => {
     if (!generatedArtefact) return;
 
     if (artefactType === "email") {
-      const subject = encodeURIComponent(
-        generatedArtefact?.subject || "Follow-up Email"
-      );
-
-      const body = encodeURIComponent(generatedArtefact.body || "");
-
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
-
-      window.open(gmailUrl, "_blank");
-
-      toast.success("Opening Gmail compose window...");
+      if (emailClientPreference) {
+        await exportToEmailClient(emailClientPreference);
+      } else {
+        // Show dialog to choose email client
+        setShowEmailClientDialog(true);
+      }
     } else if (artefactType === "presentation") {
       try {
         await handleCopy();
@@ -2130,9 +2186,34 @@ ${updatedBlocks
                     onClick={handleExport}
                     // disabled={artefactType !== "email"}
                   >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Export to {artefactType === "email" ? "Email" : "Gamma"}
+                    {/* <ExternalLink className="w-4 h-4 mr-1" /> */}
+                    {artefactType === "email" ? (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Export{" "}
+                        {emailClientPreference === "gmail"
+                          ? "to Gmail"
+                          : emailClientPreference === "outlook"
+                          ? "to Outlook"
+                          : ""}
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Export to Gamma
+                      </>
+                    )}
                   </Button>
+                  {artefactType === "email" && emailClientPreference && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleChangeEmailClient}
+                      title="Change email client preference"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
 
@@ -2361,6 +2442,62 @@ ${updatedBlocks
           </div>
         </div>
       )}
+      {/* Email Client Selection Dialog */}
+      <Dialog
+        open={showEmailClientDialog}
+        onOpenChange={setShowEmailClientDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Your Email Client</DialogTitle>
+            <DialogDescription>
+              Select your preferred email client for exporting emails. This
+              preference will be saved for future use.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2 hover:border-primary"
+              onClick={() => handleEmailClientSelect("gmail")}
+              disabled={isUpdatingEmailClient}
+            >
+              <Mail className="w-8 h-8 text-red-500" />
+              <span className="font-medium">Gmail</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2 hover:border-primary"
+              onClick={() => handleEmailClientSelect("outlook")}
+              disabled={isUpdatingEmailClient}
+            >
+              <Mail className="w-8 h-8 text-blue-500" />
+              <span className="font-medium">Outlook</span>
+            </Button>
+          </div>
+
+          {isUpdatingEmailClient && (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">
+                Saving preference...
+              </span>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowEmailClientDialog(false)}
+              disabled={isUpdatingEmailClient}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
