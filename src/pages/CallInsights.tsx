@@ -69,6 +69,8 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import useEmblaCarousel from "embla-carousel-react";
+import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -142,11 +144,52 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const { cummulativeSpinner, callInsightSelectedId } = useSelector(
+    (state) => state.prospect
+  );
   const [cummulativeSummary, setCummulativeSummary] = useState("");
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
+  
+  // Salesperson checkbox state
+  const [salespersonIds, setSalespersonIds] = useState(new Set());
+  const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  // Function to refresh peoples data
+  const refreshPeoplesData = async () => {
+    if (!selectedProspect?.id || !user?.id) return;
+    try {
+      const updatedPeople = await dbHelpers.getPeopleByProspectId(
+        selectedProspect.id,
+        user.id
+      );
+
+      // Update the selected prospect with new peoples data
+      setSelectedProspect((prev) => ({
+        ...prev,
+        people: updatedPeople,
+      }));
+
+      // Also update the prospects list to keep it in sync
+      setAllInsights((prev) =>
+        prev.map((prospect) =>
+          prospect.id === selectedProspect.id
+            ? { ...prospect, people: updatedPeople }
+            : prospect
+        )
+      );
+
+      console.log("✅ Refreshed peoples data:", updatedPeople);
+    } catch (error) {
+      console.error("❌ Error refreshing peoples data:", error);
+    }
+  };
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
@@ -293,12 +336,22 @@ const CallInsights = () => {
           defaultInsight = insights.find(
             (insight) => insight.id == selectedCall.id
           );
+
           // console.log(
           //   insights.find((insight) => insight.id == selectedCall.id),
           //   insights,
           //   selectedCall.id,
           //   "check default insights 237"
           // );
+        }
+        if (
+          !defaultInsight &&
+          insights?.length > 0 &&
+          insights?.filter((x) => x.id == callInsightSelectedId)?.length > 0
+        ) {
+          defaultInsight = insights?.filter(
+            (x) => x.id == callInsightSelectedId
+          )?.[0]; // most recent
         }
         // console.log(defaultInsight, "check default insights");
         if (!defaultInsight && insights?.length > 0) {
@@ -358,6 +411,7 @@ const CallInsights = () => {
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
+          dispatch(setCallInsightSelectedId(defaultInsight?.id));
         } else {
           toast.info("No call insights found yet.");
         }
@@ -421,6 +475,14 @@ const CallInsights = () => {
       insightData.communication_style_ids
     );
     setCommunicationStyles(styles);
+    
+    // Load existing salesperson selections
+    const existingSalespersonIds = new Set(
+      styles
+        .filter(style => style.is_salesperson)
+        .map(style => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
 
     const peopleList = await dbHelpers.getPeopleByProspectId(
       insightData.id,
@@ -436,6 +498,14 @@ const CallInsights = () => {
     );
 
     setCommunicationStyles(styles);
+    
+    // Update salesperson selections
+    const existingSalespersonIds = new Set(
+      styles
+        .filter(style => style.is_salesperson)
+        .map(style => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
   };
 
   const refreshCummulativeSummary = async () => {
@@ -461,6 +531,7 @@ const CallInsights = () => {
     setSelectedProspect(prospect);
     setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
+    dispatch(setCallInsightSelectedId(prospect?.id));
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
 
@@ -808,12 +879,73 @@ const CallInsights = () => {
     0
   );
 
-  const handleRoleEdit = (commStyle) => {
-    setEditingRoleId(commStyle.id);
-    setEditRoleValue(commStyle.role || "");
+  // Name editing handlers
+  const handleNameEdit = (stakeholder) => {
+    // Cancel role editing if active
+    if (editingRoleId) {
+      setEditingRoleId(null);
+      setEditRoleValue("");
+    }
+
+    setEditingNameId(stakeholder.id);
+    setEditNameValue(stakeholder.stakeholder);
   };
 
-  // console.log(communicationStyles, "communication styles data");
+  const handleNameSave = async (stakeholderId) => {
+    if (!editNameValue.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    setIsUpdatingName(true);
+    try {
+      await dbHelpers.updateCommunicationStyleName(
+        stakeholderId,
+        editNameValue.trim(),
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
+            ? { ...style, stakeholder: editNameValue.trim() }
+            : style
+        )
+      );
+
+      setEditingNameId(null);
+      setEditNameValue("");
+
+      // Refresh peoples data to sync with updated name
+      await refreshPeoplesData();
+
+      toast.success("Name updated successfully");
+    } catch (error) {
+      console.error("Error updating name:", error);
+      toast.error("Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditingNameId(null);
+    setEditNameValue("");
+  };
+
+  const handleRoleEdit = (stakeholder) => {
+    // Cancel name editing if active
+    if (editingNameId) {
+      setEditingNameId(null);
+      setEditNameValue("");
+    }
+
+    setEditingRoleId(stakeholder.id);
+    setEditRoleValue(stakeholder.role || "");
+  };
+
   const handleRoleSave = async (commStyleId) => {
     try {
       await dbHelpers?.updateCommunicationStyleRole(
@@ -844,6 +976,64 @@ const CallInsights = () => {
     setEditRoleValue("");
   };
 
+  // Handle salesperson checkbox change
+  const handleSalespersonToggle = async (stakeholderId, isChecked) => {
+    setIsUpdatingSalesperson(true);
+    
+    try {
+      // Update database
+      await dbHelpers.updateCommunicationStyleSalesperson(
+        stakeholderId,
+        isChecked,
+        selectedProspect?.id,
+        user?.id
+      );
+      
+      // Update local state
+      const newSalespersonIds = new Set(salespersonIds);
+      if (isChecked) {
+        newSalespersonIds.add(stakeholderId);
+      } else {
+        newSalespersonIds.delete(stakeholderId);
+      }
+      setSalespersonIds(newSalespersonIds);
+      
+      // Update communication styles to reflect the change
+      setCommunicationStyles(prev => 
+        prev.map(style => 
+          style.id === stakeholderId 
+            ? { ...style, is_salesperson: isChecked }
+            : style
+        )
+      );
+      
+      toast.success(
+        isChecked 
+          ? "Marked as salesperson" 
+          : "Removed salesperson marking"
+      );
+    } catch (error) {
+      console.error("Error updating salesperson status:", error);
+      toast.error("Failed to update salesperson status");
+    } finally {
+      setIsUpdatingSalesperson(false);
+    }
+  };
+
+  // Sort communication styles: primary first, then non-salesperson, then salesperson at bottom
+  const sortedCommunicationStyles = [...communicationStyles].sort((a, b) => {
+    // Primary decision makers always first
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    
+    // Among non-primary: salesperson goes to bottom
+    if (!a.is_primary && !b.is_primary) {
+      if (a.is_salesperson && !b.is_salesperson) return 1;
+      if (!a.is_salesperson && b.is_salesperson) return -1;
+    }
+    
+    return 0;
+  });
   // console.log("Total insights count:", totalInsightsCount);
 
   // console.log(insights, "get list of insights");
@@ -896,7 +1086,7 @@ const CallInsights = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Building className="w-5 h-5" />
-              <span>Prospect Selection</span>
+              <span>Deal Selection</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -905,7 +1095,7 @@ const CallInsights = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search prospects by company or name..."
+                placeholder="Search deals by company or name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -1288,7 +1478,7 @@ const CallInsights = () => {
                         content: e.target.value,
                       }))
                     }
-                    placeholder="Enter your insight about this prospect..."
+                    placeholder="Enter your insight about this deal..."
                     className="min-h-20"
                     autoFocus
                   />
@@ -1537,7 +1727,7 @@ const CallInsights = () => {
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
                   <p className="text-sm mb-4">
-                    Add your first insight about this prospect
+                    Add your first insight about this deal
                   </p>
                   <Button
                     variant="outline"
@@ -1557,7 +1747,7 @@ const CallInsights = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Prospect Behavioral & Communication Insights</span>
+                <span>Deal Behavioral & Communication Insights</span>
                 <Badge variant="secondary">
                   {communicationStyles.length} stakeholders
                 </Badge>
@@ -1632,7 +1822,7 @@ const CallInsights = () => {
                 </div>
               ) : communicationStyles.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles?.map((stakeholder) => {
+                  {sortedCommunicationStyles?.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
                     const PersonalityIcon = stakeholder.personality_type
@@ -1662,9 +1852,90 @@ const CallInsights = () => {
                         className="border rounded-lg p-4"
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3">
+                            {/* Salesperson Checkbox - Only show for non-primary stakeholders */}
+                            {!stakeholder.is_primary && (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`salesperson-${stakeholder.id}`}
+                                  checked={salespersonIds.has(stakeholder.id)}
+                                  onChange={(e) => 
+                                    handleSalespersonToggle(stakeholder.id, e.target.checked)
+                                  }
+                                  disabled={isUpdatingSalesperson}
+                                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                />
+                                <label 
+                                  htmlFor={`salesperson-${stakeholder.id}`}
+                                  className="text-xs text-muted-foreground cursor-pointer"
+                                >
+                                  Salesperson
+                                </label>
+                              </div>
+                            )}
+                            
                             <h3 className="font-semibold flex items-center space-x-2">
-                              <span>{stakeholder.stakeholder}</span>
+                              {editingNameId === stakeholder.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editNameValue}
+                                    onChange={(e) =>
+                                      setEditNameValue(e.target.value)
+                                    }
+                                    className="h-6 text-sm px-2 w-40 font-semibold"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape")
+                                        handleNameCancel();
+                                    }}
+                                    autoFocus
+                                    disabled={isUpdatingName}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() =>
+                                      handleNameSave(stakeholder.id)
+                                    }
+                                    disabled={isUpdatingName}
+                                  >
+                                    {isUpdatingName ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleNameCancel}
+                                    disabled={isUpdatingName}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2 group">
+                                  <span
+                                    className="cursor-pointer hover:text-primary"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    {stakeholder.stakeholder}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
                               {PersonalityIcon && (
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
@@ -1716,6 +1987,26 @@ const CallInsights = () => {
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
+                            {/* Primary Decision Maker Badge */}
+                            {stakeholder.is_primary && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-purple-100 text-purple-800 border-purple-200"
+                              >
+                                Primary Decision Maker
+                              </Badge>
+                            )}
+                            
+                            {/* Salesperson Badge */}
+                            {salespersonIds.has(stakeholder.id) && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                              >
+                                Salesperson
+                              </Badge>
+                            )}
+                            
                             {/* <Badge
                               variant="outline"
                               className={cn(
@@ -1911,7 +2202,7 @@ const CallInsights = () => {
                   <p className="mb-2">No communication styles detected yet</p>
                   <p className="text-sm">
                     Communication styles will be identified as you have more
-                    calls with this prospect
+                    calls with this deal
                   </p>
                 </div>
               )}

@@ -299,14 +299,14 @@ export const CallAssociationSelector = ({
               </div>
 
               <label className="text-sm font-medium text-gray-700">
-                Select Prospect
+                Select Deal
               </label>
 
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   data-tour="prospect-selector"
-                  placeholder="Search for a prospect..."
+                  placeholder="Search for a deal..."
                   value={prospectSearch}
                   onChange={(e) => setProspectSearch(e.target.value)}
                   className="pl-10"
@@ -322,17 +322,17 @@ export const CallAssociationSelector = ({
                 <p className="text-sm text-red-600 mt-1">{prospectSearchError}</p>
               )}
               <div className="space-y-3 mt-3">
-                {/* Create New Prospect Button - Moved above the list */}
+                {/* Create New Deal Button - Moved above the list */}
                 <Button
                   variant="ghost"
                   className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border border-gray-200 rounded-md mb-2"
                   onClick={() => setShowCreateProspectModal(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Create New Prospect...
+                  Create New Deal...
                 </Button>
 
-                {/* Prospects List */}
+                {/* Deals List */}
                 <div className="border border-gray-200 rounded-md min-h-40 max-h-40 overflow-y-auto">
                   {loadingProspects ? (
                     <div className="p-3 space-y-3">

@@ -190,7 +190,8 @@ export const authHelpers = {
         title_id,
         fireflies_connected,
         timezone,
-        language
+        language,
+        email_client_preference
       `)
         .eq("id", userId)
         .single();
@@ -1822,6 +1823,24 @@ export const dbHelpers = {
     }
   },
 
+  // Update user email client preference
+  async updateUserEmailClientPreference(userId, emailClient) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ email_client_preference: emailClient })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating email client preference:', error);
+      throw error;
+    }
+  },
+
   async updateOrganizationSettings(
     organizationId,
     toUpdateData
@@ -3212,6 +3231,45 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleName(styleId, newName, prospectId, userId) {
+    try {
+      // Step 1: Get the current communication style entry (to get the old name)
+      const { data: styleData, error: fetchError } = await supabase
+        .from("communication_styles")
+        .select("stakeholder")
+        .eq("id", styleId)
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      const oldName = styleData?.stakeholder;
+
+      // Step 2: Update the communication_styles table with new name
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ stakeholder: newName })
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      // Step 3: Update the peoples table (name) where old name and prospect_id match
+      const { data: updatedPeople, error: peopleError } = await supabase
+        .from("peoples")
+        .update({ name: newName })
+        .eq("name", oldName)
+        .eq("prospect_id", prospectId)
+        .eq("user_id", userId);
+
+      if (peopleError) throw peopleError;
+
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style name and peoples name:", error);
+      throw error;
+    }
+  },
+
   async updateCommunicationStyleRole(styleId, newRole, prospectId, userId) {
     try {
       // Step 1: Get the current communication style entry (to get the name)
@@ -3253,6 +3311,23 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleSalesperson(styleId, isChecked, prospectId, userId) {
+    try {
+      // Step 2: Update the communication_styles table with new name
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ is_salesperson: isChecked })
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style name and peoples name:", error);
+      throw error;
+    }
+  },
 
   async getActionItemsByProspectId(prospectId) {
     try {
@@ -3418,7 +3493,7 @@ export const dbHelpers = {
 
   async reorderTourSteps(stepUpdates) {
     try {
-      const updates = stepUpdates.map(({ id, step_order }) => 
+      const updates = stepUpdates.map(({ id, step_order }) =>
         supabase
           .from('tour_steps')
           .update({ step_order })

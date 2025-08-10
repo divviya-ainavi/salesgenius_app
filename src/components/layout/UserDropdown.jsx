@@ -122,6 +122,9 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
+      // Set flag to indicate this is a manual logout
+      sessionStorage.setItem('manual_logout', 'true');
+      
       // Sign out from Supabase Auth if user is authenticated there
       const {
         data: { session },
@@ -146,7 +149,6 @@ export const UserDropdown = () => {
 
         // Reload the page to clear any in-memory data
         navigate("/auth/login"); // or use window.location.href
-        window.location.reload(); // ✅ Optional but ensures total clean-up
       } else {
         toast.error("Failed to logout: " + result.error);
       }

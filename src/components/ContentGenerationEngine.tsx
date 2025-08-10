@@ -61,6 +61,7 @@ import {
   Presentation,
   Mail,
   Clock,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -68,6 +69,16 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -90,6 +101,7 @@ interface Stakeholder {
   name: string;
   title: string;
   role: "primary" | "stakeholder";
+  is_salesperson?: boolean;
   confidenceScore: number;
   confidenceJustification: string;
   communicationStyle: string;
@@ -176,6 +188,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [recommendedObjectives, setRecommendedObjectives] = useState<string[]>(
     []
   );
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [isLoadingProspects, setIsLoadingProspects] = useState(true);
   const [isRefining, setIsRefining] = useState(false);
@@ -187,6 +202,12 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const [allSummary, setAllSummary] = useState([""]);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [editingRoleText, setEditingRoleText] = useState("");
+  const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  const [emailClientPreference, setEmailClientPreference] = useState<
+    string | null
+  >(null);
+  const [showEmailClientDialog, setShowEmailClientDialog] = useState(false);
+  const [isUpdatingEmailClient, setIsUpdatingEmailClient] = useState(false);
   const {
     userProfileInfo,
     userRole,
@@ -197,6 +218,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     hubspotIntegration,
   } = useSelector((state) => state.auth);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const { callInsightSelectedId } = useSelector((state) => state.prospect);
+  const dispatch = useDispatch();
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -272,9 +295,10 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       incompatibleWith: ["door-opener", "champion-enablement"],
     },
   ];
-
+  console.log(user, "check user data");
   // Load prospects from database
   useEffect(() => {
+    setEmailClientPreference(user?.email_client_preference || null);
     const fetchProspects = async () => {
       if (!user.id) {
         // console.log("No user ID available, skipping prospect fetch");
@@ -288,7 +312,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         // console.log("Fetched email insights:", insights);
 
         const enrichedProspects = insights
-          ?.filter((x) => x.communication_style_ids != null)
+          // ?.filter((x) => x.communication_style_ids != null)
           ?.map((insight) => ({
             id: insight.id,
             companyName: insight.company?.name || "Unknown Company",
@@ -311,7 +335,12 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         setProspects(enrichedProspects);
 
         if (enrichedProspects.length > 0) {
-          const initialProspect = enrichedProspects[0];
+          const checkId = callInsightSelectedId
+            ? enrichedProspects?.filter((x) => x.id == callInsightSelectedId)
+            : [];
+          const initialProspect =
+            checkId?.length == 0 ? enrichedProspects[0] : checkId?.[0];
+          console.log(checkId, initialProspect, "check initial prospect");
           setSelectedProspect(initialProspect);
           const styles = await dbHelpers.getCommunicationStylesData(
             initialProspect.communication_style_ids,
@@ -325,6 +354,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               name: style.stakeholder || "Unknown",
               title: style.role || "Unknown Title",
               role: style.is_primary ? "primary" : "stakeholder",
+              is_salesperson: style.is_salesperson || false,
               confidenceScore: Math.round(style.confidence * 100),
               confidenceJustification:
                 style.evidence || "Inferred from past interactions",
@@ -364,6 +394,51 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
 
     fetchProspects();
   }, []);
+
+  const handleEmailClientSelect = async (client: string) => {
+    setIsUpdatingEmailClient(true);
+    try {
+      await dbHelpers.updateUserEmailClientPreference(user.id, client);
+      setEmailClientPreference(client);
+      setShowEmailClientDialog(false);
+      toast.success(
+        `Email client preference set to ${
+          client === "gmail" ? "Gmail" : "Outlook"
+        }`
+      );
+
+      // Now export the email
+      await exportToEmailClient(client);
+    } catch (error) {
+      console.error("Error updating email client preference:", error);
+      toast.error("Failed to update email client preference");
+    } finally {
+      setIsUpdatingEmailClient(false);
+    }
+  };
+
+  const exportToEmailClient = async (client: string) => {
+    if (!generatedArtefact) return;
+
+    const subject = encodeURIComponent(
+      generatedArtefact?.subject || "Follow-up Email"
+    );
+    const body = encodeURIComponent(generatedArtefact.body || "");
+
+    if (client === "gmail") {
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+      window.open(gmailUrl, "_blank");
+      toast.success("Opening Gmail compose window...");
+    } else if (client === "outlook") {
+      const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`;
+      window.open(outlookUrl, "_blank");
+      toast.success("Opening Outlook compose window...");
+    }
+  };
+
+  const handleChangeEmailClient = () => {
+    setShowEmailClientDialog(true);
+  };
 
   // Recommendation logic
   const getRecommendedPlay = (crmStage: string): string => {
@@ -426,7 +501,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const handleProspectSelect = async (prospectId: string) => {
     const prospect = prospects.find((p) => p.id === prospectId);
     if (!prospect) return;
-
+    dispatch(setCallInsightSelectedId(prospect?.id));
     setSelectedProspect(prospect);
 
     setSelectedObjectives([]);
@@ -446,6 +521,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       name: style.stakeholder || "Unknown",
       title: style.role || "Unknown Title",
       role: style.is_primary ? "primary" : "stakeholder",
+      is_salesperson: style.is_salesperson || false,
       confidenceScore: Math.round(style.confidence * 100),
       confidenceJustification:
         style.evidence || "Inferred from past interactions",
@@ -783,21 +859,17 @@ ${output?.blocks
     toast.success("Content copied to clipboard");
   };
 
+  console.log(emailClientPreference, "email client preference");
   const handleExport = async () => {
     if (!generatedArtefact) return;
 
     if (artefactType === "email") {
-      const subject = encodeURIComponent(
-        generatedArtefact?.subject || "Follow-up Email"
-      );
-
-      const body = encodeURIComponent(generatedArtefact.body || "");
-
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
-
-      window.open(gmailUrl, "_blank");
-
-      toast.success("Opening Gmail compose window...");
+      if (emailClientPreference) {
+        await exportToEmailClient(emailClientPreference);
+      } else {
+        // Show dialog to choose email client
+        setShowEmailClientDialog(true);
+      }
     } else if (artefactType === "presentation") {
       try {
         await handleCopy();
@@ -927,11 +999,111 @@ ${updatedBlocks
     toast.success("Content exported to email");
   };
 
+  // Helper functions for name editing
+  const handleNameEdit = (stakeholder) => {
+    setEditingNameId(stakeholder.id);
+    setEditNameValue(stakeholder.name);
+  };
+
+  const handleNameSave = async (stakeholderId) => {
+    setIsUpdatingName(true);
+    try {
+      await dbHelpers.updateCommunicationStyleName(
+        stakeholderId,
+        editNameValue,
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setStakeholders((prev) =>
+        prev.map((s) =>
+          s.id === stakeholderId ? { ...s, name: editNameValue } : s
+        )
+      );
+
+      setEditingNameId(null);
+      toast.success("Name updated successfully");
+    } catch (err) {
+      console.error("Failed to update name:", err);
+      toast.error("Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditingNameId(null);
+    setEditNameValue("");
+  };
+
+  // Salesperson checkbox handlers
+  const handleSalespersonToggle = async (
+    stakeholderId: string,
+    currentValue: boolean
+  ) => {
+    setIsUpdatingSalesperson(true);
+    try {
+      const newValue = !currentValue;
+
+      // Update database
+      await dbHelpers.updateCommunicationStyleSalesperson(
+        stakeholderId,
+        newValue,
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setStakeholders((prev) => {
+        const updated = prev.map((s) =>
+          s.id === stakeholderId ? { ...s, is_salesperson: newValue } : s
+        );
+
+        // Sort: Primary first, then non-salesperson, then salesperson at bottom
+        return updated.sort((a, b) => {
+          if (a.role === "primary" && b.role !== "primary") return -1;
+          if (a.role !== "primary" && b.role === "primary") return 1;
+
+          // Among non-primary stakeholders
+          if (a.role !== "primary" && b.role !== "primary") {
+            if (a.is_salesperson && !b.is_salesperson) return 1;
+            if (!a.is_salesperson && b.is_salesperson) return -1;
+          }
+
+          return 0;
+        });
+      });
+
+      // Also update commStylesData to keep it in sync
+      setCommStylesData((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
+            ? { ...style, is_salesperson: newValue }
+            : style
+        )
+      );
+
+      toast.success(
+        newValue ? "Marked as salesperson" : "Removed salesperson designation"
+      );
+    } catch (error) {
+      console.error("Error updating salesperson status:", error);
+      toast.error("Failed to update salesperson status");
+    } finally {
+      setIsUpdatingSalesperson(false);
+    }
+  };
+
   // Derived data
   const primaryStakeholder = stakeholders.filter((s) => s.role === "primary");
-  const secondaryStakeholders = stakeholders.filter(
-    (s) => s.role !== "primary"
-  );
+  const secondaryStakeholders = stakeholders
+    .filter((s) => s.role !== "primary")
+    .sort((a, b) => {
+      // Sort by is_salesperson: false first (regular stakeholders), true last (salesperson)
+      if (a.is_salesperson === b.is_salesperson) return 0;
+      return a.is_salesperson ? 1 : -1;
+    });
   const availableObjectives = selectedPlay
     ? getAvailableObjectives(selectedPlay)
     : secondaryObjectives;
@@ -971,7 +1143,7 @@ ${updatedBlocks
             {/* Prospect Switcher */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Prospect Context</CardTitle>
+                <CardTitle className="text-lg">Deal Context</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingProspects ? (
@@ -1085,16 +1257,69 @@ ${updatedBlocks
                       {/* Primary Decision Maker Card */}
                       {primaryStakeholder?.length > 0 &&
                         primaryStakeholder?.map((x) => (
-                          <Card className="bg-primary/5 border-primary/20">
+                          <Card
+                            key={x.id}
+                            className="bg-primary/5 border-primary/20"
+                          >
                             <CardHeader className="pb-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
                                   <Crown className="w-4 h-4 text-primary" />
-                                  <CardTitle className="text-base">
-                                    {x?.name}
-                                  </CardTitle>
+                                  <div className="flex items-center space-x-2">
+                                    {editingNameId === x.id ? (
+                                      <div className="flex items-center space-x-2">
+                                        <Input
+                                          value={editNameValue}
+                                          onChange={(e) =>
+                                            setEditNameValue(e.target.value)
+                                          }
+                                          className="h-6 text-sm px-2 w-40 font-semibold"
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter")
+                                              handleNameSave(x.id);
+                                            if (e.key === "Escape")
+                                              handleNameCancel();
+                                          }}
+                                          autoFocus
+                                          disabled={isUpdatingName}
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => handleNameSave(x.id)}
+                                          disabled={isUpdatingName}
+                                        >
+                                          {isUpdatingName ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <Save className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={handleNameCancel}
+                                          disabled={isUpdatingName}
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <CardTitle
+                                        className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleNameEdit(x)}
+                                      >
+                                        <span>{x.name}</span>
+                                        <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </CardTitle>
+                                    )}
+                                  </div>
                                 </div>
-                                <Badge>Primary Decision Maker</Badge>
+                                <div className="flex items-center space-x-2">
+                                  <Badge>Primary Decision Maker</Badge>
+                                </div>
                               </div>
                               <CardDescription>
                                 <div className="flex items-center justify-between mb-1">
@@ -1313,16 +1538,103 @@ ${updatedBlocks
 
                       {/* Secondary Stakeholders */}
                       {secondaryStakeholders.map((stakeholder) => (
-                        <Card key={stakeholder.id} className="border">
+                        <Card key={stakeholder.id} className="bg-muted/30">
                           <CardHeader className="pb-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                                <CardTitle className="text-base">
-                                  {stakeholder.name}
-                                </CardTitle>
+                                {editingNameId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      value={editNameValue}
+                                      onChange={(e) =>
+                                        setEditNameValue(e.target.value)
+                                      }
+                                      className="h-6 text-sm px-2 w-40 font-semibold"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter")
+                                          handleNameSave(stakeholder.id);
+                                        if (e.key === "Escape")
+                                          handleNameCancel();
+                                      }}
+                                      autoFocus
+                                      disabled={isUpdatingName}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() =>
+                                        handleNameSave(stakeholder.id)
+                                      }
+                                      disabled={isUpdatingName}
+                                    >
+                                      {isUpdatingName ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Save className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={handleNameCancel}
+                                      disabled={isUpdatingName}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <CardTitle
+                                    className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-4 h-4 text-muted-foreground" />
+                                    <span>{stakeholder.name}</span>
+                                    <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </CardTitle>
+                                )}
                               </div>
-                              <Badge variant="outline">Stakeholder</Badge>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`salesperson-${stakeholder.id}`}
+                                    checked={
+                                      stakeholder.is_salesperson || false
+                                    }
+                                    onCheckedChange={() =>
+                                      handleSalespersonToggle(
+                                        stakeholder.id,
+                                        stakeholder.is_salesperson || false
+                                      )
+                                    }
+                                    disabled={isUpdatingSalesperson}
+                                  />
+                                  <Label
+                                    htmlFor={`salesperson-${stakeholder.id}`}
+                                    className="text-xs text-muted-foreground cursor-pointer"
+                                  >
+                                    Salesperson
+                                  </Label>
+                                </div>
+                                <div className="flex flex-col space-y-1">
+                                  {stakeholder.is_salesperson ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-blue-100 text-blue-800 border-blue-200 text-xs"
+                                    >
+                                      Salesperson
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      Stakeholder
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                             <CardDescription>
                               <div className="flex items-center justify-between mb-1">
@@ -1570,45 +1882,48 @@ ${updatedBlocks
                     </>
                   ) : (
                     <div className="space-y-3">
+                      {console.log(stakeholders, "stakeholders data")}
                       {stakeholders.length === 0 ? (
                         <div className="text-center py-3 text-muted-foreground">
                           No stakeholders available for this prospect
                         </div>
                       ) : (
-                        stakeholders.map((stakeholder) => (
-                          <div
-                            key={stakeholder.id}
-                            className="flex items-center space-x-3"
-                          >
-                            <Checkbox
-                              id={`recipient-${stakeholder.id}`}
-                              checked={selectedRecipients.includes(
-                                stakeholder.id
-                              )}
-                              onCheckedChange={() =>
-                                handleRecipientToggle(stakeholder.id)
-                              }
-                            />
-                            <Label
-                              htmlFor={`recipient-${stakeholder.id}`}
-                              className="flex-1 flex items-center justify-between"
+                        stakeholders
+                          ?.filter((s) => s.is_salesperson != true)
+                          .map((stakeholder) => (
+                            <div
+                              key={stakeholder.id}
+                              className="flex items-center space-x-3"
                             >
-                              <span>{stakeholder.name}</span>
-                              <Badge
-                                variant={
-                                  stakeholder.role === "primary"
-                                    ? "default"
-                                    : "outline"
+                              <Checkbox
+                                id={`recipient-${stakeholder.id}`}
+                                checked={selectedRecipients.includes(
+                                  stakeholder.id
+                                )}
+                                onCheckedChange={() =>
+                                  handleRecipientToggle(stakeholder.id)
                                 }
-                                className="text-xs"
+                              />
+                              <Label
+                                htmlFor={`recipient-${stakeholder.id}`}
+                                className="flex-1 flex items-center justify-between"
                               >
-                                {stakeholder.role === "primary"
-                                  ? "Primary"
-                                  : "Stakeholder"}
-                              </Badge>
-                            </Label>
-                          </div>
-                        ))
+                                <span>{stakeholder.name}</span>
+                                <Badge
+                                  variant={
+                                    stakeholder.role === "primary"
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  className="text-xs"
+                                >
+                                  {stakeholder.role === "primary"
+                                    ? "Primary"
+                                    : "Stakeholder"}
+                                </Badge>
+                              </Label>
+                            </div>
+                          ))
                       )}
                     </div>
                   )}
@@ -1871,9 +2186,34 @@ ${updatedBlocks
                     onClick={handleExport}
                     // disabled={artefactType !== "email"}
                   >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Export to {artefactType === "email" ? "Email" : "Gamma"}
+                    {/* <ExternalLink className="w-4 h-4 mr-1" /> */}
+                    {artefactType === "email" ? (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Export{" "}
+                        {emailClientPreference === "gmail"
+                          ? "to Gmail"
+                          : emailClientPreference === "outlook"
+                          ? "to Outlook"
+                          : ""}
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Export to Gamma
+                      </>
+                    )}
                   </Button>
+                  {artefactType === "email" && emailClientPreference && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleChangeEmailClient}
+                      title="Change email client preference"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
 
@@ -2102,6 +2442,62 @@ ${updatedBlocks
           </div>
         </div>
       )}
+      {/* Email Client Selection Dialog */}
+      <Dialog
+        open={showEmailClientDialog}
+        onOpenChange={setShowEmailClientDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Your Email Client</DialogTitle>
+            <DialogDescription>
+              Select your preferred email client for exporting emails. This
+              preference will be saved for future use.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2 hover:border-primary"
+              onClick={() => handleEmailClientSelect("gmail")}
+              disabled={isUpdatingEmailClient}
+            >
+              <Mail className="w-8 h-8 text-red-500" />
+              <span className="font-medium">Gmail</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col items-center justify-center space-y-2 hover:border-primary"
+              onClick={() => handleEmailClientSelect("outlook")}
+              disabled={isUpdatingEmailClient}
+            >
+              <Mail className="w-8 h-8 text-blue-500" />
+              <span className="font-medium">Outlook</span>
+            </Button>
+          </div>
+
+          {isUpdatingEmailClient && (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">
+                Saving preference...
+              </span>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowEmailClientDialog(false)}
+              disabled={isUpdatingEmailClient}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
