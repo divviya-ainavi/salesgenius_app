@@ -267,109 +267,6 @@ const Research = () => {
       setIsUploadingFiles(false);
     }
   };
-  // Mock research data generation
-  const generateMockResearch = (data: ResearchFormData): ResearchResult => {
-    const companyAnalysis = `**Company Overview**
-
-${data.companyName} is a technology company that has established itself as a significant player in its market segment. Based on our analysis of their digital presence and public information, the company demonstrates strong market positioning with a focus on innovation and customer-centric solutions.¹
-
-**Financial Snapshot**
-
-The company shows indicators of healthy growth with expanding market presence and strategic investments in technology infrastructure. Recent funding rounds and partnership announcements suggest positive momentum in their business trajectory.²
-
-**Competitive Landscape**
-
-${data.companyName} operates in a competitive environment where differentiation through technology and customer experience is crucial. They appear to be positioning themselves as a premium solution provider with emphasis on quality and reliability.³
-
-**Business Challenges**
-
-Like many companies in their sector, ${data.companyName} likely faces challenges around scaling operations, maintaining competitive advantage, and adapting to rapidly changing market conditions. Digital transformation and customer acquisition appear to be key focus areas.⁴
-
-**Key Leadership Profiles**
-
-The leadership team demonstrates experience in scaling technology companies with backgrounds spanning product development, sales, and strategic partnerships. Their approach suggests a data-driven culture with emphasis on measurable outcomes.⁵`;
-
-    // Extract prospect name and create personalized analysis
-    const prospectName = data.prospectLinkedIn
-      ? extractProspectNameFromLinkedInUrl(data.prospectLinkedIn)
-      : "";
-
-    const prospectAnalysis = data.prospectLinkedIn
-      ? `
-
----
-
-**${prospectName} - Deep Dive Analysis**
-
-Based on the LinkedIn profile analysis, ${prospectName} appears to be a decision-maker with significant influence over technology purchasing decisions. Their background suggests they value innovative solutions that can demonstrate clear ROI.⁶
-
-**Professional Background**
-
-${prospectName} has a track record of implementing strategic initiatives and driving organizational change. Their experience indicates they understand the importance of technology in achieving business objectives.⁷
-
-**Key Drivers & Motivations**
-
-This individual likely prioritizes solutions that can scale with their organization and provide measurable business impact. ${prospectName} appears to value partnerships with vendors who can provide strategic guidance beyond just product delivery.⁸
-
-**Communication Style & Personality**
-
-Based on their professional presence, ${prospectName} prefers direct, data-driven conversations with clear value propositions. They likely appreciate consultative approaches that demonstrate deep understanding of their business challenges.⁹`
-      : "";
-
-    const sources = [
-      `${data.companyWebsite} - Company website and corporate information`,
-      "Industry reports and market analysis from leading research firms",
-      "Competitive intelligence from public filings and press releases",
-      "Technology sector analysis and growth projections",
-      "Leadership team profiles from professional networks",
-      ...(data.prospectLinkedIn
-        ? [
-            `${data.prospectLinkedIn} - LinkedIn professional profile`,
-            "Professional background and career progression analysis",
-            "Industry connections and engagement patterns",
-            "Communication style analysis from public posts and interactions",
-          ]
-        : []),
-    ];
-
-    const recommendations = `**Primary Meeting Goal**
-
-Position your solution as a strategic enabler that can help ${data.companyName} achieve their growth objectives while addressing their specific operational challenges. Focus on demonstrating measurable ROI and scalability.
-
-**Key Talking Points**
-
-• Emphasize how your solution addresses the specific challenges identified in their market segment
-• Highlight case studies from similar companies that have achieved significant results
-• Discuss your company's track record of successful implementations and ongoing support
-• Present a clear value proposition that aligns with their business priorities
-
-**High-Impact Questions to Ask**
-
-• "What are your top three business priorities for the next 12 months?"
-• "How are you currently measuring success in [relevant area]?"
-• "What challenges have you faced with previous technology implementations?"
-• "What would need to happen for this to be considered a successful partnership?"
-
-**Anticipated Objections**
-
-• **Budget concerns**: Be prepared to discuss flexible pricing models and ROI timelines
-• **Implementation complexity**: Highlight your proven implementation methodology and support resources
-• **Integration challenges**: Demonstrate your platform's compatibility and integration capabilities
-• **Vendor reliability**: Provide references and case studies that showcase long-term partnerships
-
-**Meeting Preparation Checklist**
-
-• Prepare 2-3 relevant case studies with quantifiable results
-• Research their recent company announcements or press releases
-• Identify potential integration points with their existing technology stack
-• Prepare questions that demonstrate understanding of their industry challenges`;
-
-    return {
-      companyAnalysis: companyAnalysis + prospectAnalysis,
-      sources,
-      recommendations,
-    };
-  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -378,47 +275,42 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
     setIsLoading(true);
     try {
-        // Create FormData for API request with proper file handling
-        const apiFormData = new FormData();
-        apiFormData.append('companyName', formData.companyName);
-        apiFormData.append('companyUrl', formData.companyUrl);
-        
-        // Add files to FormData with consistent naming
-        uploadedFiles.forEach((file, index) => {
-          console.log(`📎 Adding file ${index + 1} to FormData:`, {
-            name: file.name,
-            size: file.size,
-            type: file.type
+      // Create FormData for API request with proper file handling
+      const apiFormData = new FormData();
+      apiFormData.append("companyName", formData.companyName);
+      apiFormData.append("companyUrl", formData.companyWebsite);
+
+      // Add files to FormData with consistent naming
+      uploadedFiles.forEach((file, index) => {
+        apiFormData.append("profile", file?.file); // Use 'files' as the field name
+      });
+
+      // Add metadata
+      // apiFormData.append("fileCount", uploadedFiles.length.toString());
+      // apiFormData.append("userId", user?.id || "");
+
+      // Log FormData contents for debugging
+      console.log("📤 API FormData contents:");
+      for (let [key, value] of apiFormData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}:`, {
+            name: value.name,
+            size: value.size,
+            type: value.type,
           });
-          apiFormData.append('files', file); // Use 'files' as the field name
-        });
-        
-        // Add metadata
-        apiFormData.append('fileCount', uploadedFiles.length.toString());
-        apiFormData.append('userId', user?.id || '');
-        
-        // Log FormData contents for debugging
-        console.log('📤 API FormData contents:');
-        for (let [key, value] of apiFormData.entries()) {
-          if (value instanceof File) {
-            console.log(`  ${key}:`, {
-              name: value.name,
-              size: value.size,
-              type: value.type
-            });
-          } else {
-            console.log(`  ${key}:`, value);
-          }
+        } else {
+          console.log(`  ${key}:`, value);
         }
+      }
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
-          method: 'POST',
+          method: "POST",
           body: apiFormData,
-          headers: {
-            // Don't set Content-Type - let browser set it with boundary for FormData
-            'Authorization': `Bearer ${api.auth.getToken() || ''}`,
-          },
+          // headers: {
+          //   // Don't set Content-Type - let browser set it with boundary for FormData
+          //   Authorization: `Bearer ${api.auth.getToken() || ""}`,
+          // },
         }
       );
 
@@ -468,9 +360,11 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
-      
+
       const apiResponseData = await response.json();
       const data = apiResponseData;
       const result = data[0]?.output;
@@ -496,7 +390,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         user_id: user?.id,
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
-        prospect_urls: fileUrls, // Store file URLs in prospect_urls field
+        // prospect_urls: fileUrls, // Store file URLs in prospect_urls field
         company_analysis: output.companyOverview,
         prospect_analysis: "",
         sources: output.sources || [],
