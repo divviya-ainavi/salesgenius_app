@@ -380,14 +380,15 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
     try {
       // Step 1: Prepare API request with actual files
-
+      const apiFormData = new FormData();
       // Send actual files to API
       uploadedFiles.forEach((file, index) => {
-        apiFormData.append(`prospectFile${index}`, file);
+        apiFormData.append(`profile`, file);
+        console.log(file, "check profile");
       });
-      // Upload files to storage first
-      const fileUrls = await uploadFilesToStorage();
-      // Step 2: Call the research API
+
+      console.log(apiFormData, "api form data");
+
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
@@ -398,29 +399,30 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           body: JSON.stringify({
             companyName: formData.companyName,
             companyUrl: formData.companyWebsite,
-            prospectFiles: fileUrls, // Send file URLs instead of LinkedIn URLs
+            profile: apiFormData,
           }),
         }
       );
-      // Step 3: Upload files to storage after successful API response
+
       const uploadedFileData = [];
       for (const file of uploadedFiles) {
         try {
           const fileData = await fileStorage.uploadFile(file, userId);
-          
-          // Save file metadata to uploaded_files table
+
           const { data: fileRecord, error: fileError } = await supabase
-            .from('uploaded_files')
-            .insert([{
-              user_id: userId,
-              filename: fileData.fileName,
-              file_type: 'application/pdf',
-              file_size: fileData.fileSize,
-              content_type: fileData.contentType,
-              file_url: fileData.publicUrl,
-              storage_path: fileData.filePath,
-              is_processed: true
-            }])
+            .from("uploaded_files")
+            .insert([
+              {
+                user_id: userId,
+                filename: fileData.fileName,
+                file_type: "application/pdf",
+                file_size: fileData.fileSize,
+                content_type: fileData.contentType,
+                file_url: fileData.publicUrl,
+                storage_path: fileData.filePath,
+                is_processed: true,
+              },
+            ])
             .select()
             .single();
 
@@ -436,15 +438,16 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
             publicUrl: fileData.publicUrl,
             fileName: fileData.fileName,
             fileSize: fileData.fileSize,
-            contentType: fileData.contentType
+            contentType: fileData.contentType,
           });
         } catch (uploadError) {
           console.error("Error uploading file:", uploadError);
-          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+          throw new Error(
+            `Failed to upload ${file.name}: ${uploadError.message}`
+          );
         }
       }
 
-      // Step 4: Save research data to database with file information
       if (!response.ok) {
         throw new Error(`API returned status ${response.status}`);
       }
