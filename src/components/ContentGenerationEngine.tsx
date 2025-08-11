@@ -67,10 +67,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { usePageTimer } from "@/hooks/userPageTimer";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { config } from "@/lib/config";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
-import { useDispatch } from "react-redux";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +78,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import DOMPurify from "dompurify";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -220,6 +220,38 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const { communicationStyleTypes } = useSelector((state) => state.org);
   const { callInsightSelectedId } = useSelector((state) => state.prospect);
   const dispatch = useDispatch();
+
+  // Convert markdown formatting to HTML for email clients
+  const convertMarkdownToHtml = (text) => {
+    if (!text) return "";
+    
+    return text
+      // Convert **bold** and __bold__ to <b>bold</b>
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/__(.*?)__/g, '<b>$1</b>')
+      // Convert *italic* and _italic_ to <i>italic</i>
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<i>$1</i>')
+      .replace(/(?<!_)_([^_]+)_(?!_)/g, '<i>$1</i>')
+      // Convert line breaks to <br>
+      .replace(/\n/g, '<br>')
+      // Convert bullet points to HTML lists
+      .replace(/^[\s]*[•\-\*]\s+(.+)$/gm, '<li>$1</li>')
+      // Wrap consecutive <li> elements in <ul>
+      .replace(/(<li>.*<\/li>)/gs, (match) => {
+        if (!match.includes('<ul>')) {
+          return `<ul style="margin: 10px 0; padding-left: 20px;">${match}</ul>`;
+        }
+        return match;
+      });
+  };
+
+  // Sanitize HTML for safe display and email export
+  const sanitizeHtml = (html) => {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['b', 'i', 'strong', 'em', 'br', 'ul', 'li', 'p'],
+      ALLOWED_ATTR: ['style'],
+    });
+  };
 
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
@@ -420,13 +452,16 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const exportToEmailClient = async (client: string) => {
     if (!generatedArtefact) return;
 
+    // Convert markdown to HTML and sanitize
+    const htmlBody = sanitizeHtml(convertMarkdownToHtml(generatedArtefact.body || ""));
+
     const subject = encodeURIComponent(
       generatedArtefact?.subject || "Follow-up Email"
     );
-    const body = encodeURIComponent(generatedArtefact.body || "");
+    const body = encodeURIComponent(htmlBody);
 
     if (client === "gmail") {
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}&html=1`;
       window.open(gmailUrl, "_blank");
       toast.success("Opening Gmail compose window...");
     } else if (client === "outlook") {
@@ -994,9 +1029,27 @@ ${updatedBlocks
     });
   };
 
-  const handleExportToEmail = () => {
-    if (!generatedArtefact) return;
-    toast.success("Content exported to email");
+  const handleExportToEmail = (platform) => {
+    if (!generatedArtefact?.subject || !generatedArtefact?.body) {
+      toast.error("No email content to export");
+      return;
+    }
+
+    // Convert markdown to HTML and sanitize
+    const htmlBody = sanitizeHtml(convertMarkdownToHtml(generatedArtefact.body));
+    
+    const subject = encodeURIComponent(generatedArtefact.subject);
+    const body = encodeURIComponent(htmlBody);
+
+    let emailUrl;
+    if (platform === "gmail") {
+      emailUrl = `https://mail.google.com/mail/?view=cm&su=${subject}&body=${body}&html=1`;
+    } else if (platform === "outlook") {
+      emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`;
+    }
+
+    window.open(emailUrl, "_blank");
+    toast.success(`Email opened in ${platform === "gmail" ? "Gmail" : "Outlook"}`);
   };
 
   // Helper functions for name editing
