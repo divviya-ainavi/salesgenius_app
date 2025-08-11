@@ -377,24 +377,47 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     if (!isFormValid) return;
 
     setIsLoading(true);
-
-    try {
-      // Step 1: Prepare API request with actual files
-      const apiFormData = new FormData();
-      // Send actual files to API
-      uploadedFiles.forEach((file, index) => {
-        apiFormData.append(`profile`, file);
-        console.log(file, "check profile");
-      });
-
-      console.log(apiFormData, "api form data");
-
+        // Create FormData for API request with proper file handling
+        const apiFormData = new FormData();
+        apiFormData.append('companyName', formData.companyName);
+        apiFormData.append('companyUrl', formData.companyUrl);
+        
+        // Add files to FormData with consistent naming
+        uploadedFiles.forEach((file, index) => {
+          console.log(`📎 Adding file ${index + 1} to FormData:`, {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
+          apiFormData.append('files', file); // Use 'files' as the field name
+        });
+        
+        // Add metadata
+        apiFormData.append('fileCount', uploadedFiles.length.toString());
+        apiFormData.append('userId', user?.id || '');
+        
+        // Log FormData contents for debugging
+        console.log('📤 API FormData contents:');
+        for (let [key, value] of apiFormData.entries()) {
+          if (value instanceof File) {
+            console.log(`  ${key}:`, {
+              name: value.name,
+              size: value.size,
+              type: value.type
+            });
+          } else {
+            console.log(`  ${key}:`, value);
+          }
+        }
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
-          method: "POST",
+        const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.companyResearch}`, {
+          method: 'POST',
+          body: apiFormData,
           headers: {
-            "Content-Type": "application/json",
+            // Don't set Content-Type - let browser set it with boundary for FormData
+            'Authorization': `Bearer ${api.auth.getToken() || ''}`,
           },
           body: JSON.stringify({
             companyName: formData.companyName,
@@ -645,6 +668,13 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
               .trim()}\n${recommendations[key]}\n\n`;
           }
         });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        
+        const apiResponseData = await response.json();
 
         return formatted;
       };
