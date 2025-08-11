@@ -377,6 +377,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     if (!isFormValid) return;
 
     setIsLoading(true);
+    try {
         // Create FormData for API request with proper file handling
         const apiFormData = new FormData();
         apiFormData.append('companyName', formData.companyName);
@@ -412,18 +413,12 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
-        const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.companyResearch}`, {
           method: 'POST',
           body: apiFormData,
           headers: {
             // Don't set Content-Type - let browser set it with boundary for FormData
             'Authorization': `Bearer ${api.auth.getToken() || ''}`,
           },
-          body: JSON.stringify({
-            companyName: formData.companyName,
-            companyUrl: formData.companyWebsite,
-            profile: apiFormData,
-          }),
         }
       );
 
@@ -472,8 +467,11 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       }
 
       if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
+      
+      const apiResponseData = await response.json();
 
       const data = await response.json();
       const result = data[0]?.output;
@@ -668,13 +666,6 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
               .trim()}\n${recommendations[key]}\n\n`;
           }
         });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-        
-        const apiResponseData = await response.json();
 
         return formatted;
       };
