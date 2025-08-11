@@ -44,6 +44,8 @@ import { config } from "@/lib/config";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/lib/supabase";
 
+import { supabase } from "@/lib/supabase";
+import { fileStorage } from "@/lib/fileStorage";
 interface ResearchFormData {
   companyName: string;
   companyWebsite: string;
@@ -53,6 +55,8 @@ interface ResearchFormData {
 interface UploadedFile {
   id: string;
   file: File;
+  storagePath?: string;
+  publicUrl?: string;
   name: string;
   size: number;
   uploading: boolean;
