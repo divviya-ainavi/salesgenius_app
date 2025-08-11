@@ -41,11 +41,24 @@ import {
 } from "@/components/ui/collapsible";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import { useDropzone } from "react-dropzone";
+import { supabase } from "@/lib/supabase";
 
 interface ResearchFormData {
   companyName: string;
   companyWebsite: string;
-  prospectLinkedIn: string[]; // make it an array
+  prospectFiles: File[]; // PDF files for prospect analysis
+}
+
+interface UploadedFile {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  uploading: boolean;
+  uploaded: boolean;
+  storageUrl?: string;
+  error?: string;
 }
 
 interface ResearchResult {
@@ -93,8 +106,10 @@ const Research = () => {
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
-    prospectLinkedIn: [""], // initialize with one empty field
+    prospectFiles: [], // initialize with empty array
   });
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(
     null
@@ -123,34 +138,6 @@ const Research = () => {
     );
   };
 
-  // Extract prospect name from LinkedIn URL
-  const extractProspectNameFromLinkedInUrl = (linkedInUrl: string): string => {
-    try {
-      // Extract the username part from LinkedIn URL
-      const urlPattern = /linkedin\.com\/in\/([^\/\?]+)/i;
-      const match = linkedInUrl.match(urlPattern);
-
-      if (match && match[1]) {
-        const username = match[1];
-        // Convert hyphenated username to proper name format
-        // e.g., "john-doe-smith" becomes "John Doe Smith"
-        const formattedName = username
-          .split("-")
-          .map(
-            (part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-          )
-          .join(" ");
-
-        return formattedName;
-      }
-
-      // Fallback if pattern doesn't match
-      return "This Prospect";
-    } catch (error) {
-      // Fallback for any parsing errors
-      return "This Prospect";
-    }
-  };
 
   // Handle form input changes
   const handleInputChange = (field: keyof ResearchFormData, value: string) => {
@@ -160,6 +147,121 @@ const Research = () => {
     }));
   };
 
+  // File upload handling
+  const onDrop = (acceptedFiles: File[]) => {
+    const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      name: file.name,
+      size: file.size,
+      uploading: false,
+      uploaded: false,
+    }));
+
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    setFormData((prev) => ({
+      ...prev,
+      prospectFiles: [...prev.prospectFiles, ...acceptedFiles],
+    }));
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+    },
+    maxFiles: 5,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
+
+  const removeFile = (fileId: string) => {
+    setUploadedFiles((prev) => {
+      const updatedFiles = prev.filter((f) => f.id !== fileId);
+      const updatedFormFiles = updatedFiles.map((f) => f.file);
+      setFormData((prevForm) => ({
+        ...prevForm,
+        prospectFiles: updatedFormFiles,
+      }));
+      return updatedFiles;
+    });
+  };
+
+  const uploadFilesToStorage = async (): Promise<string[]> => {
+    if (uploadedFiles.length === 0) return [];
+
+    setIsUploadingFiles(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const fileItem of uploadedFiles) {
+        if (fileItem.uploaded) {
+          uploadedUrls.push(fileItem.storageUrl!);
+          continue;
+        }
+
+        // Update file status to uploading
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileItem.id ? { ...f, uploading: true } : f
+          )
+        );
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const uniqueFileName = `research-files/${user?.id}/${timestamp}_${fileItem.file.name}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('research-files')
+          .upload(uniqueFileName, fileItem.file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          // Update file status to error
+          setUploadedFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileItem.id
+                ? { ...f, uploading: false, error: uploadError.message }
+                : f
+            )
+          );
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('research-files')
+          .getPublicUrl(uniqueFileName);
+
+        // Update file status to uploaded
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileItem.id
+              ? {
+                  ...f,
+                  uploading: false,
+                  uploaded: true,
+                  storageUrl: urlData.publicUrl,
+                }
+              : f
+          )
+        );
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      return uploadedUrls;
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error('Failed to upload files');
+      return [];
+    } finally {
+      setIsUploadingFiles(false);
+    }
+  };
   // Mock research data generation
   const generateMockResearch = (data: ResearchFormData): ResearchResult => {
     const companyAnalysis = `**Company Overview**
@@ -288,6 +390,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
     setIsLoading(true);
     try {
+      // Upload files to storage first
+      const fileUrls = await uploadFilesToStorage();
+
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
@@ -295,17 +400,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           headers: {
             "Content-Type": "application/json",
           },
-          // body: JSON.stringify({
-          //   companyName: formData.companyName,
-          //   companyUrl: formData.companyWebsite,
-          //   prospectUrl: formData.prospectLinkedIn,
-          // }),
           body: JSON.stringify({
             companyName: formData.companyName,
             companyUrl: formData.companyWebsite,
-            prospectUrl: formData.prospectLinkedIn.filter(
-              (url) => url.trim() !== ""
-            ),
+            prospectFiles: fileUrls, // Send file URLs instead of LinkedIn URLs
           }),
         }
       );
@@ -316,10 +414,6 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
       const data = await response.json();
       const result = data[0]?.output;
-
-      // if (!result || !result.companyAnalysis) {
-      //   throw new Error("Invalid response format");
-      // }
 
       const output = result.output || result;
 
@@ -342,9 +436,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         user_id: user?.id,
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
-        prospect_urls: formData.prospectLinkedIn.filter(
-          (url) => url.trim() !== ""
-        ),
+        prospect_urls: fileUrls, // Store file URLs in prospect_urls field
         company_analysis: output.companyOverview,
         prospect_analysis: "",
         sources: output.sources || [],
@@ -377,8 +469,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setFormData({
       companyName: "",
       companyWebsite: "",
-      prospectLinkedIn: [""],
+      prospectFiles: [],
     });
+    setUploadedFiles([]);
     setResearchResult(null);
     setActiveTab("analysis");
     setProspectInCRM(false);
@@ -546,29 +639,12 @@ Generated by SalesGenius.ai
     setProspectInCRM(true);
   };
 
-  const handleProspectLinkedInChange = (index: number, value: string) => {
-    const updatedProspects = [...formData.prospectLinkedIn];
-    updatedProspects[index] = value;
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: updatedProspects,
-    }));
-  };
-
-  const addProspectField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: [...prev.prospectLinkedIn, ""],
-    }));
-  };
-
-  const removeProspectField = (index: number) => {
-    const updated = [...formData.prospectLinkedIn];
-    updated.splice(index, 1);
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: updated,
-    }));
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   // Render form view
@@ -640,69 +716,89 @@ Generated by SalesGenius.ai
                 </div>
 
                 {/* Prospect LinkedIn */}
-                {/* <div className="space-y-2">
-                  <label
-                    htmlFor="prospectLinkedIn"
-                    className="text-sm font-medium"
-                  >
-                    Prospect LinkedIn URL
-                  </label>
-                  <Input
-                    id="prospectLinkedIn"
-                    type="url"
-                    placeholder="e.g., https://www.linkedin.com/in/username"
-                    value={formData.prospectLinkedIn}
-                    onChange={(e) =>
-                      handleInputChange("prospectLinkedIn", e.target.value)
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Optional: Add for personalized prospect analysis
-                  </p>
-                </div> */}
+                {/* Prospect Files Upload */}
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    style={{ color: "grey" }}
-                  >
-                    Prospect LinkedIn URLs
+                  <label className="text-sm font-medium">
+                    Prospect Files (PDF)
                   </label>
 
-                  {formData.prospectLinkedIn.map((url, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        type="url"
-                        disabled
-                        placeholder="https://www.linkedin.com/in/username"
-                        value={url}
-                        onChange={(e) =>
-                          handleProspectLinkedInChange(index, e.target.value)
-                        }
-                      />
-                      {formData.prospectLinkedIn.length > 1 && (
-                        <Button
-                          disabled
-                          type="button"
-                          variant="ghost"
-                          onClick={() => removeProspectField(index)}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-
-                  <Button
-                    disabled
-                    type="button"
-                    variant="outline"
-                    onClick={addProspectField}
+                  {/* File Drop Zone */}
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                      isDragActive
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-300 hover:border-primary"
+                    )}
                   >
-                    + Add Another Prospect
-                  </Button>
+                    <input {...getInputProps()} />
+                    <div className="space-y-2">
+                      <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {isDragActive
+                            ? "Drop PDF files here"
+                            : "Click to upload or drag and drop PDF files"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          PDF files only, max 10MB each, up to 5 files
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Uploaded Files List */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Uploaded Files:</h4>
+                      <div className="space-y-2">
+                        {uploadedFiles.map((fileItem) => (
+                          <div
+                            key={fileItem.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {fileItem.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(fileItem.size)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {fileItem.uploading && (
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                              )}
+                              {fileItem.uploaded && (
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              )}
+                              {fileItem.error && (
+                                <AlertCircle className="w-4 h-4 text-red-600" />
+                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(fileItem.id)}
+                                disabled={fileItem.uploading}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <p className="text-xs text-muted-foreground">
-                    Optional: Add for personalized prospect analysis
+                    Optional: Upload PDF files containing prospect information for enhanced analysis
                   </p>
                 </div>
 
@@ -710,14 +806,14 @@ Generated by SalesGenius.ai
                 <Button
                   data-tour="research-button"
                   type="submit"
-                  disabled={!isFormValid || isLoading}
+                  disabled={!isFormValid || isLoading || isUploadingFiles}
                   className="w-full"
                   size="lg"
                 >
-                  {isLoading ? (
+                  {isLoading || isUploadingFiles ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Researching...
+                      {isUploadingFiles ? "Uploading files..." : "Researching..."}
                     </>
                   ) : (
                     <>
@@ -818,13 +914,12 @@ Generated by SalesGenius.ai
                       </span>
                     </div>
 
-                    {research.prospect_urls &&
-                      research.prospect_urls.length > 0 && (
+                    {research.prospect_urls && research.prospect_urls.length > 0 && (
                         <div className="flex items-center space-x-2 text-sm">
-                          <User className="w-4 h-4 text-muted-foreground" />
+                          <FileText className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
-                            {research.prospect_urls.length} prospect
-                            {research.prospect_urls.length > 1 ? "s" : ""}
+                            {research.prospect_urls.length} file
+                            {research.prospect_urls.length > 1 ? "s" : ""} uploaded
                           </span>
                         </div>
                       )}
