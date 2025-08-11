@@ -6,7 +6,7 @@ trigger:
     exclude:
       - '*'
 variables:
-  Devozy_DUMMY_VARIABLE: ID_zwozzTzr
+  Devozy_DUMMY_VARIABLE: ID_u7B6pFeY
   IMAGE_NAME: PLN1000015_MERN_Production
   group: frontend-secrets
   name: IMAGE_NAME
