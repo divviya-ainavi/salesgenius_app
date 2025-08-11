@@ -70,6 +70,7 @@ import { usePageTimer } from "@/hooks/userPageTimer";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import DOMPurify from "dompurify";
 import { useDispatch } from "react-redux";
 import {
   Dialog,
@@ -208,6 +209,55 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   >(null);
   const [showEmailClientDialog, setShowEmailClientDialog] = useState(false);
   const [isUpdatingEmailClient, setIsUpdatingEmailClient] = useState(false);
+  // Helper function to convert markdown to HTML
+  const convertMarkdownToHtml = (text) => {
+    if (!text) return '';
+    
+    return text
+      // Bold text: **text** or __text__ -> <strong>text</strong>
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic text: *text* or _text_ -> <em>text</em>
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Line breaks: \n -> <br>
+      .replace(/\n/g, '<br>')
+      // Bullet points: • or - at start of line -> <li>
+      .replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>')
+      // Wrap consecutive <li> elements in <ul>
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      // Clean up multiple consecutive <ul> tags
+      .replace(/<\/ul>\s*<ul>/g, '');
+  };
+
+  // Helper function to convert HTML back to plain text for display
+  const convertHtmlToPlainText = (html) => {
+    if (!html) return '';
+    
+    return html
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<li>(.*?)<\/li>/g, '• $1')
+      .replace(/<\/?ul>/g, '')
+      .replace(/\n\s*\n/g, '\n\n') // Clean up extra line breaks
+      .trim();
+  };
+
+  // Helper function to prepare email body for export
+  const prepareEmailBodyForExport = (content) => {
+    if (!content) return '';
+    
+    // Convert markdown to HTML for email clients
+    const htmlContent = convertMarkdownToHtml(content);
+    
+    // Sanitize the HTML to ensure it's safe
+    return DOMPurify.sanitize(htmlContent, {
+      ALLOWED_TAGS: ['strong', 'em', 'br', 'ul', 'li', 'p', 'div'],
+      ALLOWED_ATTR: []
+    });
+  };
+
   const {
     userProfileInfo,
     userRole,
@@ -905,6 +955,9 @@ ${output?.blocks
       return;
 
     const contentLines = editingContent
+    // Prepare the email body with proper HTML formatting
+    const formattedBody = prepareEmailBodyForExport(generatedContent.body);
+    
       .split("\n\n")
       .map((line) => line.trim())
       .filter(Boolean);
@@ -1054,7 +1107,7 @@ ${updatedBlocks
         user?.id
       );
 
-      // Update local state
+    const body = encodeURIComponent(formattedBody);
       setStakeholders((prev) => {
         const updated = prev.map((s) =>
           s.id === stakeholderId ? { ...s, is_salesperson: newValue } : s
@@ -2264,14 +2317,20 @@ ${updatedBlocks
                           Body
                         </Label>
                         <Textarea
-                          id="email-body"
-                          value={generatedArtefact?.body || ""}
-                          onChange={(e) =>
+                        <div 
+                          className="text-sm bg-muted p-3 rounded"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedContent.subject || ''))
+                          }}
+                        />
                             setGeneratedArtefact((prev) =>
                               prev ? { ...prev, body: e.target.value } : prev
                             )
-                          }
-                          className="mt-1 min-h-[300px] font-mono"
+                        <div 
+                          className="text-sm bg-muted p-4 rounded max-h-96 overflow-y-auto prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedContent.body || ''))
+                          }}
                         />
                       </div>
                     </div>
