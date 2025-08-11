@@ -233,34 +233,6 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   // Helper function to convert HTML back to plain text for display
   const convertHtmlToPlainText = (html) => {
     if (!html) return '';
-  // Enhanced function to convert markdown to HTML specifically for email clients
-  const convertMarkdownToEmailHtml = (text) => {
-    if (!text) return '';
-    
-    let html = text
-      // Convert bold text: **text** or __text__ to <b>text</b> (better email client support)
-      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-      .replace(/__(.*?)__/g, '<b>$1</b>')
-      // Convert italic text: *text* or _text_ to <i>text</i>
-      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<i>$1</i>')
-      .replace(/(?<!_)_([^_]+)_(?!_)/g, '<i>$1</i>')
-      // Convert line breaks to proper HTML
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>')
-      // Convert bullet points with proper HTML structure
-      .replace(/^[•\-\*]\s+(.+)$/gm, '<li>$1</li>')
-      // Wrap consecutive <li> elements in <ul> with proper spacing
-      .replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, '<ul style="margin: 10px 0; padding-left: 20px;">$1</ul>');
-    
-    // Wrap in paragraphs if not already wrapped
-    if (!html.includes('<p>') && !html.includes('<ul>')) {
-      html = `<p>${html}</p>`;
-    } else if (html.includes('<br>') && !html.includes('<p>')) {
-      html = `<p>${html}</p>`;
-    }
-    
-    return html;
-  };
     
     return html
       .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
@@ -276,13 +248,13 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   const prepareEmailBodyForExport = (content) => {
     if (!content) return '';
     
-    // Convert markdown to email-optimized HTML
-    const htmlContent = convertMarkdownToEmailHtml(content);
+    // Convert markdown to HTML for email clients
+    const htmlContent = convertMarkdownToHtml(content);
     
     // Sanitize the HTML to ensure it's safe
     return DOMPurify.sanitize(htmlContent, {
-      ALLOWED_TAGS: ['strong', 'em', 'br', 'ul', 'li', 'p', 'b', 'i'],
-      ALLOWED_ATTR: ['style']
+      ALLOWED_TAGS: ['strong', 'em', 'br', 'ul', 'li', 'p', 'div'],
+      ALLOWED_ATTR: []
     });
   };
 
@@ -885,18 +857,24 @@ ${output?.blocks
               current_email_content: generatedArtefact?.body,
               email_subject: generatedArtefact?.subject,
               refinement_prompt: refinementPrompt,
-      const emailBodyHtml = prepareEmailBodyForExport(generatedContent.body);
+            }),
           }
         );
         const json = await response.json();
         // console.log(json, "check json data");
         const output = json?.[0];
         // console.log(output, "follow up email");
-        // Gmail supports HTML in the body parameter
-        emailUrl = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyHtml)}`;
+        const postData = {
+          subject: output?.refined_email_subject,
+          body: output?.refined_email_content,
+          sales_play: selectedPlay,
+          secondary_objectives: selectedObjectives,
           prospect_id: selectedProspect?.id,
-        // Outlook also supports HTML in the body parameter
-        emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyHtml)}`;
+          is_refined: true,
+          refinement_text: refinementPrompt,
+        };
+        const newTemplate = await dbHelpers.upsertEmailTemplate(
+          emailTemplateId,
           postData,
           user?.id
         );
