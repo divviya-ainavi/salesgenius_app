@@ -595,12 +595,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
         style.evidence || "Inferred from past interactions",
       communicationStyle: style.style || "Direct",
       personalityType: style.personality_type || "Analytical",
-      keyTraits
-    }
-    )
-    )
-  }
-}: style.preferences || [],
+      keyTraits: style.preferences || [],
       communicationPreferences: style.communication_tips || [],
       prospectId: prospect.id,
     }));
