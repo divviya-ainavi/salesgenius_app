@@ -472,8 +472,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       }
       
       const apiResponseData = await response.json();
-
-      const data = await response.json();
+      const data = apiResponseData;
       const result = data[0]?.output;
 
       const output = result.output || result;
