@@ -593,9 +593,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     setTimeout(() => {
       setRecommendedPlay(prospect?.sales_play);
       setRecommendedObjectives(prospect?.secondary_objectives || []);
-      const getPlayId = salesPlays?.find(
-        (x) => x.title == prospect.sales_play
-      );
+      const getPlayId = salesPlays?.find((x) => x.title == prospect.sales_play);
       setSelectedPlay(getPlayId?.id);
       setIsAnalyzing(false);
     }, 1500);
@@ -957,6 +955,9 @@ ${output?.blocks
       return;
 
     const contentLines = editingContent
+    // Prepare the email body with proper HTML formatting
+    const formattedBody = prepareEmailBodyForExport(generatedContent.body);
+    
       .split("\n\n")
       .map((line) => line.trim())
       .filter(Boolean);
@@ -1106,7 +1107,7 @@ ${updatedBlocks
         user?.id
       );
 
-      // Update local state
+    const body = encodeURIComponent(formattedBody);
       setStakeholders((prev) => {
         const updated = prev.map((s) =>
           s.id === stakeholderId ? { ...s, is_salesperson: newValue } : s
@@ -2296,11 +2297,15 @@ ${updatedBlocks
                         >
                           Subject
                         </Label>
-                        <div 
-                          className="text-sm bg-muted p-3 rounded"
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedArtefact?.subject || ''))
-                          }}
+                        <Input
+                          id="email-subject"
+                          value={generatedArtefact?.subject || ""}
+                          onChange={(e) =>
+                            setGeneratedArtefact((prev) =>
+                              prev ? { ...prev, subject: e.target.value } : prev
+                            )
+                          }
+                          className="mt-1"
                         />
                       </div>
 
@@ -2311,10 +2316,20 @@ ${updatedBlocks
                         >
                           Body
                         </Label>
+                        <Textarea
+                        <div 
+                          className="text-sm bg-muted p-3 rounded"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedContent.subject || ''))
+                          }}
+                        />
+                            setGeneratedArtefact((prev) =>
+                              prev ? { ...prev, body: e.target.value } : prev
+                            )
                         <div 
                           className="text-sm bg-muted p-4 rounded max-h-96 overflow-y-auto prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedArtefact?.body || ''))
+                            __html: DOMPurify.sanitize(convertMarkdownToHtml(generatedContent.body || ''))
                           }}
                         />
                       </div>
