@@ -95,19 +95,19 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <DollarSign className="w-5 h-5" />
-            <span>Create New Prospect</span>
+            <span>Create New Deal</span>
           </DialogTitle>
           <DialogDescription>
-            Add a new prospect (deal) to associate with your call transcript.
+            Add a new deal to associate with your call transcript.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="prospect-name">Prospect Name *</Label>
+            <Label htmlFor="prospect-name">Deal Name *</Label>
             <Input
               id="prospect-name"
-              placeholder="Enter prospect or deal name"
+              placeholder="Enter deal name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               disabled={isLoading}
@@ -140,7 +140,7 @@ export const CreateProspectModal = ({ isOpen, onClose, onProspectCreated, compan
                 Creating...
               </>
             ) : (
-              'Create Prospect'
+              'Create Deal'
             )}
           </Button>
         </DialogFooter>

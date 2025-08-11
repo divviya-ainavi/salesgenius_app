@@ -99,7 +99,7 @@ export const ProspectSelector = ({
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Building className="w-5 h-5" />
-            <span>Prospect Context</span>
+            <span>Deal Context</span>
           </div>
           {compact && (
             <Button
@@ -116,12 +116,12 @@ export const ProspectSelector = ({
         {/* Search */}
         <div className="relative">
           <label htmlFor="prospect-search" className="sr-only">
-            Search prospects by company or name
+            Search deals by company or name
           </label>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             id="prospect-search"
-            placeholder="Search prospects..."
+            placeholder="Search deals..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -228,7 +228,7 @@ export const ProspectSelector = ({
 
         {/* Prospect List */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Select Different Prospect</h4>
+          <h4 className="text-sm font-medium">Select Different Deal</h4>
           <div className="max-h-48 overflow-y-auto space-y-2">
             {filteredProspects.map((prospect) => (
               <div

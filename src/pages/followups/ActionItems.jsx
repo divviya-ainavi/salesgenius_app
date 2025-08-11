@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import crmService from "@/services/crmService";
 import { usePageTimer } from "../../hooks/userPageTimer";
 import { useSelector } from "react-redux";
+import { setCallInsightSelectedId } from "../../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 // Mock data for action items based on selected prospect
 const getActionItemsForProspect = (prospectId) => {
@@ -165,6 +167,8 @@ export const ActionItems = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const { callInsightSelectedId } = useSelector((state) => state.prospect);
+  const dispatch = useDispatch();
 
   // Use current authenticated user
   const userId = CURRENT_USER.id;
@@ -190,7 +194,7 @@ export const ActionItems = () => {
 
         const enrichedProspects = await Promise.all(
           (insights || [])
-            .filter((x) => x.communication_style_ids != null)
+            // .filter((x) => x.communication_style_ids != null)
             .map(async (insight) => {
               const people = await dbHelpers.getPeopleByProspectId(
                 insight.id,
@@ -224,8 +228,13 @@ export const ActionItems = () => {
         );
 
         setProspects(enrichedProspects);
+        const checkId = callInsightSelectedId
+          ? enrichedProspects?.filter((x) => x.id == callInsightSelectedId)
+          : [];
         if (enrichedProspects.length > 0) {
-          setSelectedProspect(enrichedProspects[0]);
+          const defaultInsight =
+            checkId?.length == 0 ? enrichedProspects[0] : checkId?.[0];
+          setSelectedProspect(defaultInsight);
         }
       } catch (err) {
         console.error("Failed to load email insights:", err);
@@ -285,6 +294,7 @@ export const ActionItems = () => {
   };
 
   const handleProspectSelect = (prospect) => {
+    dispatch(setCallInsightSelectedId(prospect?.id));
     setSelectedProspect(prospect);
   };
 
@@ -613,7 +623,7 @@ export const ActionItems = () => {
               <CardContent className="p-6">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Loading prospects...</p>
+                  <p className="text-muted-foreground">Loading deals...</p>
                 </div>
               </CardContent>
             </Card>
@@ -622,15 +632,15 @@ export const ActionItems = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Building className="w-5 h-5" />
-                  <span>No Prospects Available</span>
+                  <span>No Deals Available</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-center py-8">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <p className="text-muted-foreground mb-2">No prospects found</p>
+                <p className="text-muted-foreground mb-2">No deals found</p>
                 <p className="text-sm text-muted-foreground">
                   Process some call transcripts first to generate action items
-                  for prospects.
+                  for deals.
                 </p>
               </CardContent>
             </Card>
@@ -944,7 +954,7 @@ export const ActionItems = () => {
                     </p>
                     <p className="text-sm">
                       Action items will appear here after processing calls with
-                      this prospect
+                      this deal
                     </p>
                   </div>
                 )}
@@ -954,13 +964,11 @@ export const ActionItems = () => {
             <Card className="shadow-sm">
               <CardContent className="text-center py-12">
                 <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">
-                  No Prospect Selected
-                </h3>
+                <h3 className="text-lg font-medium mb-2">No Deal Selected</h3>
                 <p className="text-muted-foreground mb-4">
                   {prospects.length === 0
-                    ? "No prospects available. Process some call transcripts first to generate action items."
-                    : "Select a prospect from the sidebar to view their action items."}
+                    ? "No deals available. Process some call transcripts first to generate action items."
+                    : "Select a deal from the sidebar to view their action items."}
                 </p>
               </CardContent>
             </Card>

@@ -24,6 +24,10 @@ import {
   TrendingUp,
   BarChart3,
   MessageSquare,
+  RefreshCw,
+  ArrowLeft,
+  Eye,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
@@ -59,11 +63,33 @@ interface ResearchResult {
   recommendations: any;
 }
 
+interface StoredResearch {
+  id: string;
+  company_name: string;
+  company_url: string;
+  prospect_urls: string[];
+  created_at: string;
+  sector: string;
+  size: string;
+  summary_note: string;
+  company_analysis: string;
+  geographic_scope: string;
+  nature_of_business: string;
+  key_positioning: string;
+  growth_opportunities: string[];
+  market_trends: string[];
+  sources: string[];
+  recommendations: string;
+}
+
 const Research = () => {
   usePageTimer("Research");
 
-  const [currentView, setCurrentView] = useState<"form" | "results">("form");
+  const [currentView, setCurrentView] = useState<
+    "form" | "results" | "history"
+  >("form");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
@@ -73,6 +99,7 @@ const Research = () => {
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(
     null
   );
+  const [researchHistory, setResearchHistory] = useState<StoredResearch[]>([]);
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
@@ -357,14 +384,156 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setProspectInCRM(false);
   };
 
+  // Handle view history
+  const handleViewHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const history = await dbHelpers.getResearchHistory(user?.id);
+      setResearchHistory(history);
+      setCurrentView("history");
+    } catch (error) {
+      console.error("Failed to load research history:", error);
+      toast.error("Failed to load research history");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Handle view stored research
+  const handleViewStoredResearch = (storedResearch: StoredResearch) => {
+    // Convert stored research back to ResearchResult format
+    const result: ResearchResult = {
+      companyName: storedResearch.company_name,
+      companyOverview: storedResearch.company_analysis,
+      sector: storedResearch.sector,
+      size: storedResearch.size,
+      geographicScope: storedResearch.geographic_scope,
+      natureOfBusiness: storedResearch.nature_of_business,
+      keyPositioning: storedResearch.key_positioning,
+      growthOpportunities: storedResearch.growth_opportunities,
+      marketTrends: storedResearch.market_trends,
+      summaryNote: storedResearch.summary_note,
+      sources: storedResearch.sources,
+      recommendations: storedResearch.recommendations
+        ? JSON.parse(storedResearch.recommendations)
+        : {},
+    };
+
+    setResearchResult(result);
+    setCurrentView("results");
+    setActiveTab("analysis");
+  };
+
+  // Handle back to history
+  const handleBackToHistory = () => {
+    setCurrentView("history");
+  };
   // Handle copy to clipboard
   const handleCopy = async () => {
     if (!researchResult) return;
 
     try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(researchResult, null, 2)
-      );
+      // Helper function to format recommendations object as readable text
+      const formatRecommendations = (recommendations) => {
+        if (typeof recommendations === 'string') {
+          return recommendations;
+        }
+        
+        if (!recommendations || typeof recommendations !== 'object') {
+          return 'No recommendations available';
+        }
+        
+        let formatted = '';
+        
+        if (recommendations.primaryMeetingGoal) {
+          formatted += `PRIMARY MEETING GOAL\n${recommendations.primaryMeetingGoal}\n\n`;
+        }
+        
+        if (recommendations.keyTalkingPoints && Array.isArray(recommendations.keyTalkingPoints)) {
+          formatted += `KEY TALKING POINTS\n`;
+          recommendations.keyTalkingPoints.forEach((point, index) => {
+            formatted += `${index + 1}. ${point}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (recommendations.highImpactSalesQuestions && Array.isArray(recommendations.highImpactSalesQuestions)) {
+          formatted += `HIGH-IMPACT SALES QUESTIONS\n`;
+          recommendations.highImpactSalesQuestions.forEach((question, index) => {
+            formatted += `${index + 1}. ${question}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (recommendations.anticipatedObjections && Array.isArray(recommendations.anticipatedObjections)) {
+          formatted += `ANTICIPATED OBJECTIONS\n`;
+          recommendations.anticipatedObjections.forEach((objection, index) => {
+            formatted += `${index + 1}. ${objection}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (recommendations.meetingChecklist && Array.isArray(recommendations.meetingChecklist)) {
+          formatted += `MEETING PREPARATION CHECKLIST\n`;
+          recommendations.meetingChecklist.forEach((item, index) => {
+            formatted += `${index + 1}. ${item}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        // Handle any other properties
+        Object.keys(recommendations).forEach(key => {
+          if (!['primaryMeetingGoal', 'keyTalkingPoints', 'highImpactSalesQuestions', 'anticipatedObjections', 'meetingChecklist'].includes(key)) {
+            formatted += `${key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}\n${recommendations[key]}\n\n`;
+          }
+        });
+        
+        return formatted.trim();
+      };
+
+      // Format the research result as readable text
+      const formattedText = `
+COMPANY RESEARCH ANALYSIS
+========================
+
+Company: ${researchResult.companyName}
+
+COMPANY OVERVIEW
+----------------
+${researchResult.companyOverview}
+
+KEY DETAILS
+-----------
+• Sector: ${researchResult.sector}
+• Company Size: ${researchResult.size}
+• Geographic Scope: ${researchResult.geographicScope}
+• Nature of Business: ${researchResult.natureOfBusiness}
+• Key Positioning: ${researchResult.keyPositioning}
+
+GROWTH OPPORTUNITIES
+--------------------
+${researchResult.growthOpportunities?.map((opportunity, index) => `${index + 1}. ${opportunity}`).join('\n') || 'None listed'}
+
+MARKET TRENDS
+-------------
+${researchResult.marketTrends?.map((trend, index) => `${index + 1}. ${trend}`).join('\n') || 'None listed'}
+
+SUMMARY NOTE
+------------
+${researchResult.summaryNote}
+
+SOURCES
+-------
+${researchResult.sources?.map((source, index) => `${index + 1}. ${source}`).join('\n') || 'None listed'}
+
+SALES RECOMMENDATIONS
+---------------------
+${formatRecommendations(researchResult.recommendations)}
+
+Generated by SalesGenius.ai
+      `.trim();
+
+      await navigator.clipboard.writeText(formattedText);
       toast.success("Analysis copied to clipboard");
     } catch (error) {
       toast.error("Failed to copy to clipboard");
@@ -407,11 +576,17 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     return (
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Page Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Research</h1>
-          <p className="text-muted-foreground">
-            Get comprehensive analysis and insights for your sales outreach
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="text-center flex-1">
+            <h1 className="text-3xl font-bold text-foreground">Research</h1>
+            <p className="text-muted-foreground">
+              Get comprehensive analysis and insights for your sales outreach
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleViewHistory}>
+            <Search className="w-4 h-4 mr-1" />
+            View History
+          </Button>
         </div>
 
         {/* Input Form */}
@@ -431,6 +606,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     Company Name *
                   </label>
                   <Input
+                    data-tour="company-name"
                     id="companyName"
                     type="text"
                     placeholder="Enter company name"
@@ -451,6 +627,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                     Company Website URL *
                   </label>
                   <Input
+                    data-tour="company-url"
                     id="companyWebsite"
                     type="url"
                     placeholder="e.g., https://www.salesgenius.ai"
@@ -531,6 +708,7 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
 
                 {/* Submit Button */}
                 <Button
+                  data-tour="research-button"
                   type="submit"
                   disabled={!isFormValid || isLoading}
                   className="w-full"
@@ -556,6 +734,139 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     );
   }
 
+  // Render history view
+  if (currentView === "history") {
+    return (
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center space-x-4">
+              {/* <Button variant="outline" onClick={handleNewResearch}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Research
+              </Button> */}
+              <h1 className="text-3xl font-bold text-foreground">
+                Research History
+              </h1>
+            </div>
+            <p className="text-muted-foreground">
+              View your previous research results and analysis
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              onClick={handleViewHistory}
+              disabled={isLoadingHistory}
+            >
+              {isLoadingHistory ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1" />
+              )}
+              Refresh
+            </Button>
+            <Button onClick={handleNewResearch}>
+              <Plus className="w-4 h-4 mr-1" />
+              New Research
+            </Button>
+          </div>
+        </div>
+
+        {/* Research History List */}
+        {isLoadingHistory ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading research history...</p>
+          </div>
+        ) : researchHistory.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <Search className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No Research History</h3>
+              <p className="text-muted-foreground mb-4">
+                You haven't conducted any research yet. Start by researching a
+                company.
+              </p>
+              <Button onClick={handleNewResearch}>
+                <Plus className="w-4 h-4 mr-2" />
+                Start Research
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {researchHistory.map((research) => (
+              <Card
+                key={research.id}
+                className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:border-primary/50"
+                onClick={() => handleViewStoredResearch(research)}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center space-x-2">
+                    <Building className="w-5 h-5 text-primary" />
+                    <span className="truncate">{research.company_name}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 text-sm">
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground truncate">
+                        {research.company_url}
+                      </span>
+                    </div>
+
+                    {research.prospect_urls &&
+                      research.prospect_urls.length > 0 && (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {research.prospect_urls.length} prospect
+                            {research.prospect_urls.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      )}
+
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">
+                        {new Date(research.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {research.sector && (
+                    <Badge variant="outline" className="text-xs">
+                      {research.sector}
+                    </Badge>
+                  )}
+
+                  {research.summary_note && (
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {research.summary_note}
+                    </p>
+                  )}
+
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-primary hover:text-primary"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
   // Render results view
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
@@ -563,7 +874,13 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       <div className="bg-background border-b border-border p-6">
         <div className="flex items-center justify-between">
           {/* Left: Page Title */}
-          <h1 className="text-2xl font-bold text-foreground">Research</h1>
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={handleBackToHistory}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to History
+            </Button>
+            {/* <h1 className="text-2xl font-bold text-foreground">Research</h1> */}
+          </div>
 
           {/* Middle: Tab Navigation */}
           <Tabs
@@ -608,6 +925,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
                 {prospectInCRM ? "On" : "Off"}
               </span>
             </div>
+            {/* <Button variant="outline" onClick={handleViewHistory}>
+              <Search className="w-4 h-4 mr-1" />
+              View History
+            </Button> */}
             <Button variant="outline" onClick={handleNewResearch}>
               <Plus className="w-4 h-4 mr-1" />
               New Research

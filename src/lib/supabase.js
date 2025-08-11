@@ -190,7 +190,8 @@ export const authHelpers = {
         title_id,
         fireflies_connected,
         timezone,
-        language
+        language,
+        email_client_preference
       `)
         .eq("id", userId)
         .single();
@@ -856,6 +857,40 @@ export const getFeedbackForAdmin = async (filters = {}) => {
   }
 };
 
+// Onboarding tour helpers
+export const updateOnboardingTourStatus = async (userId, hasSeenTour) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ has_seen_onboarding_tour: hasSeenTour })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating onboarding tour status:', error);
+    throw error;
+  }
+};
+
+export const getOnboardingTourStatus = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('has_seen_onboarding_tour')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    return data?.has_seen_onboarding_tour || false;
+  } catch (error) {
+    console.error('Error getting onboarding tour status:', error);
+    return false;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -1281,6 +1316,27 @@ export const dbHelpers = {
     } catch (error) {
       console.error('Error updating call insights email ID:', error)
       throw error
+    }
+  },
+
+  // Get research history for a user
+  async getResearchHistory(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('ResearchCompany')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching research history:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getResearchHistory:', error);
+      throw error;
     }
   },
 
@@ -1764,6 +1820,24 @@ export const dbHelpers = {
     } catch (err) {
       console.error('Error updating user profile:', err);
       throw err;
+    }
+  },
+
+  // Update user email client preference
+  async updateUserEmailClientPreference(userId, emailClient) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ email_client_preference: emailClient })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating email client preference:', error);
+      throw error;
     }
   },
 
@@ -3157,6 +3231,45 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleName(styleId, newName, prospectId, userId) {
+    try {
+      // Step 1: Get the current communication style entry (to get the old name)
+      const { data: styleData, error: fetchError } = await supabase
+        .from("communication_styles")
+        .select("stakeholder")
+        .eq("id", styleId)
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      const oldName = styleData?.stakeholder;
+
+      // Step 2: Update the communication_styles table with new name
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ stakeholder: newName })
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      // Step 3: Update the peoples table (name) where old name and prospect_id match
+      const { data: updatedPeople, error: peopleError } = await supabase
+        .from("peoples")
+        .update({ name: newName })
+        .eq("name", oldName)
+        .eq("prospect_id", prospectId)
+        .eq("user_id", userId);
+
+      if (peopleError) throw peopleError;
+
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style name and peoples name:", error);
+      throw error;
+    }
+  },
+
   async updateCommunicationStyleRole(styleId, newRole, prospectId, userId) {
     try {
       // Step 1: Get the current communication style entry (to get the name)
@@ -3198,6 +3311,23 @@ export const dbHelpers = {
     }
   },
 
+  async updateCommunicationStyleSalesperson(styleId, isChecked, prospectId, userId) {
+    try {
+      // Step 2: Update the communication_styles table with new name
+      const { data: updatedStyle, error: updateError } = await supabase
+        .from("communication_styles")
+        .update({ is_salesperson: isChecked })
+        .eq("id", styleId)
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      return updatedStyle;
+    } catch (error) {
+      console.error("Error updating communication style name and peoples name:", error);
+      throw error;
+    }
+  },
 
   async getActionItemsByProspectId(prospectId) {
     try {
@@ -3284,6 +3414,103 @@ export const dbHelpers = {
 
     return data;
   },
+
+  // Tour Steps Management
+  async getTourSteps() {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .select('*')
+        .eq('is_active', true)
+        .order('step_order', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching tour steps:', error);
+      throw error;
+    }
+  },
+
+  async updateTourStep(stepId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', stepId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating tour step:', error);
+      throw error;
+    }
+  },
+
+  async createTourStep(stepData) {
+    try {
+      const { data, error } = await supabase
+        .from('tour_steps')
+        .insert([{
+          step_order: stepData.step_order,
+          target: stepData.target,
+          title: stepData.title,
+          content: stepData.content,
+          placement: stepData.placement || 'right',
+          disable_beacon: stepData.disable_beacon || false,
+          is_active: stepData.is_active !== false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error creating tour step:', error);
+      throw error;
+    }
+  },
+
+  async deleteTourStep(stepId) {
+    try {
+      const { error } = await supabase
+        .from('tour_steps')
+        .update({ is_active: false })
+        .eq('id', stepId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting tour step:', error);
+      throw error;
+    }
+  },
+
+  async reorderTourSteps(stepUpdates) {
+    try {
+      const updates = stepUpdates.map(({ id, step_order }) =>
+        supabase
+          .from('tour_steps')
+          .update({ step_order })
+          .eq('id', id)
+      );
+
+      await Promise.all(updates);
+      return true;
+    } catch (error) {
+      console.error('Error reordering tour steps:', error);
+      throw error;
+    }
+  },
+
+  // Onboarding tour
+  updateOnboardingTourStatus,
+  getOnboardingTourStatus,
 
   saveFeedback,
   getUserFeedback,

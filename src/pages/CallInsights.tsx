@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,16 +44,18 @@ import {
   Save,
   X,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Search,
   Filter,
   Ear,
   Hand,
-  Brain,
-  ChevronRight,
   Loader2,
   Headphones,
   Info,
+  Brain,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -66,6 +68,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
+import useEmblaCarousel from "embla-carousel-react";
+import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
+import { useDispatch } from "react-redux";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -115,6 +120,7 @@ const CallInsights = () => {
     type: "my_insights",
     typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
   });
+
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [editingInsightId, setEditingInsightId] = useState(null);
@@ -138,11 +144,92 @@ const CallInsights = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { cummulativeSpinner } = useSelector((state) => state.prospect);
+  const { cummulativeSpinner, callInsightSelectedId } = useSelector(
+    (state) => state.prospect
+  );
   const [cummulativeSummary, setCummulativeSummary] = useState("");
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [editRoleValue, setEditRoleValue] = useState("");
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
+
+  // Salesperson checkbox state
+  const [salespersonIds, setSalespersonIds] = useState(new Set());
+  const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  // Function to refresh peoples data
+  const refreshPeoplesData = async () => {
+    if (!selectedProspect?.id || !user?.id) return;
+    try {
+      const updatedPeople = await dbHelpers.getPeopleByProspectId(
+        selectedProspect.id,
+        user.id
+      );
+
+      // Update the selected prospect with new peoples data
+      setSelectedProspect((prev) => ({
+        ...prev,
+        people: updatedPeople,
+      }));
+
+      // Also update the prospects list to keep it in sync
+      setAllInsights((prev) =>
+        prev.map((prospect) =>
+          prospect.id === selectedProspect.id
+            ? { ...prospect, people: updatedPeople }
+            : prospect
+        )
+      );
+
+      console.log("✅ Refreshed peoples data:", updatedPeople);
+    } catch (error) {
+      console.error("❌ Error refreshing peoples data:", error);
+    }
+  };
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState([]);
+
+  // Carousel state
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const CARDS_PER_VIEW = 4;
+
+  // Arrow functions
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
+
+  // Dot click
+  const scrollTo = useCallback(
+    (index) => emblaApi?.scrollTo(index),
+    [emblaApi]
+  );
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    const onInit = () => {
+      setScrollSnaps(emblaApi.scrollSnapList());
+      onSelect();
+    };
+
+    emblaApi.on("init", onInit);
+    emblaApi.on("reInit", onInit);
+    emblaApi.on("select", onSelect);
+
+    // Run once immediately
+    onInit();
+
+    return () => {
+      emblaApi.off("init", onInit);
+      emblaApi.off("reInit", onInit);
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
   function resolveInsightIcon(iconName) {
     const insightIcons = {
@@ -160,6 +247,7 @@ const CallInsights = () => {
     return insightIcons[iconName] || Lightbulb;
   }
 
+  console.log(communicationStyles, "communication styles data");
   function mapInsightTypesToObject(insightTypesArray) {
     return insightTypesArray.reduce((acc, item) => {
       acc[item.key] = {
@@ -248,12 +336,22 @@ const CallInsights = () => {
           defaultInsight = insights.find(
             (insight) => insight.id == selectedCall.id
           );
+
           // console.log(
           //   insights.find((insight) => insight.id == selectedCall.id),
           //   insights,
           //   selectedCall.id,
           //   "check default insights 237"
           // );
+        }
+        if (
+          !defaultInsight &&
+          insights?.length > 0 &&
+          insights?.filter((x) => x.id == callInsightSelectedId)?.length > 0
+        ) {
+          defaultInsight = insights?.filter(
+            (x) => x.id == callInsightSelectedId
+          )?.[0]; // most recent
         }
         // console.log(defaultInsight, "check default insights");
         if (!defaultInsight && insights?.length > 0) {
@@ -313,6 +411,7 @@ const CallInsights = () => {
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
+          dispatch(setCallInsightSelectedId(defaultInsight?.id));
         } else {
           toast.info("No call insights found yet.");
         }
@@ -368,11 +467,20 @@ const CallInsights = () => {
       user?.id
     );
     setInsights(groupedInsights); // You may need to map this to your display structure
-
+    console.log(
+      insightData.communication_style_ids,
+      "insightData.communication_style_ids"
+    );
     const styles = await fetchCommunicationStyles(
       insightData.communication_style_ids
     );
     setCommunicationStyles(styles);
+
+    // Load existing salesperson selections
+    const existingSalespersonIds = new Set(
+      styles.filter((style) => style.is_salesperson).map((style) => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
 
     const peopleList = await dbHelpers.getPeopleByProspectId(
       insightData.id,
@@ -388,6 +496,12 @@ const CallInsights = () => {
     );
 
     setCommunicationStyles(styles);
+
+    // Update salesperson selections
+    const existingSalespersonIds = new Set(
+      styles.filter((style) => style.is_salesperson).map((style) => style.id)
+    );
+    setSalespersonIds(existingSalespersonIds);
   };
 
   const refreshCummulativeSummary = async () => {
@@ -413,6 +527,7 @@ const CallInsights = () => {
     setSelectedProspect(prospect);
     setCummulativeSummary(prospect?.call_summary);
     loadProspectInsights(prospect.fullInsight);
+    dispatch(setCallInsightSelectedId(prospect?.id));
     toast.success(`Loaded insights for ${prospect.companyName}`);
   };
 
@@ -680,6 +795,53 @@ const CallInsights = () => {
       prospect?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prospect?.company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Calculate carousel values
+  const totalPages = Math.ceil(filteredProspects.length / CARDS_PER_VIEW);
+  const showCarousel = filteredProspects.length > CARDS_PER_VIEW;
+  const startIndex = currentIndex * CARDS_PER_VIEW;
+  const endIndex = Math.min(
+    startIndex + CARDS_PER_VIEW,
+    filteredProspects.length
+  );
+  const visibleProspects = showCarousel
+    ? filteredProspects.slice(startIndex, endIndex)
+    : filteredProspects;
+
+  // Carousel navigation functions
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(totalPages - 1, prev + 1));
+  };
+
+  const handleDotClick = (pageIndex) => {
+    setCurrentIndex(pageIndex);
+  };
+
+  // Reset carousel when search changes
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchTerm]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.closest(".prospect-carousel")) {
+        if (e.key === "ArrowLeft" && currentIndex > 0) {
+          handlePrevious();
+        } else if (e.key === "ArrowRight" && currentIndex < totalPages - 1) {
+          handleNext();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, totalPages]);
+
   // console.log(allInsights, "all insights data");
   const getStatusColor = (status) => {
     switch (status) {
@@ -713,12 +875,73 @@ const CallInsights = () => {
     0
   );
 
-  const handleRoleEdit = (commStyle) => {
-    setEditingRoleId(commStyle.id);
-    setEditRoleValue(commStyle.role || "");
+  // Name editing handlers
+  const handleNameEdit = (stakeholder) => {
+    // Cancel role editing if active
+    if (editingRoleId) {
+      setEditingRoleId(null);
+      setEditRoleValue("");
+    }
+
+    setEditingNameId(stakeholder.id);
+    setEditNameValue(stakeholder.stakeholder);
   };
 
-  // console.log(communicationStyles, "communication styles data");
+  const handleNameSave = async (stakeholderId) => {
+    if (!editNameValue.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    setIsUpdatingName(true);
+    try {
+      await dbHelpers.updateCommunicationStyleName(
+        stakeholderId,
+        editNameValue.trim(),
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
+            ? { ...style, stakeholder: editNameValue.trim() }
+            : style
+        )
+      );
+
+      setEditingNameId(null);
+      setEditNameValue("");
+
+      // Refresh peoples data to sync with updated name
+      await refreshPeoplesData();
+
+      toast.success("Name updated successfully");
+    } catch (error) {
+      console.error("Error updating name:", error);
+      toast.error("Failed to update name");
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleNameCancel = () => {
+    setEditingNameId(null);
+    setEditNameValue("");
+  };
+
+  const handleRoleEdit = (stakeholder) => {
+    // Cancel name editing if active
+    if (editingNameId) {
+      setEditingNameId(null);
+      setEditNameValue("");
+    }
+
+    setEditingRoleId(stakeholder.id);
+    setEditRoleValue(stakeholder.role || "");
+  };
+
   const handleRoleSave = async (commStyleId) => {
     try {
       await dbHelpers?.updateCommunicationStyleRole(
@@ -749,6 +972,62 @@ const CallInsights = () => {
     setEditRoleValue("");
   };
 
+  // Handle salesperson checkbox change
+  const handleSalespersonToggle = async (stakeholderId, isChecked) => {
+    setIsUpdatingSalesperson(true);
+
+    try {
+      // Update database
+      await dbHelpers.updateCommunicationStyleSalesperson(
+        stakeholderId,
+        isChecked,
+        selectedProspect?.id,
+        user?.id
+      );
+
+      // Update local state
+      const newSalespersonIds = new Set(salespersonIds);
+      if (isChecked) {
+        newSalespersonIds.add(stakeholderId);
+      } else {
+        newSalespersonIds.delete(stakeholderId);
+      }
+      setSalespersonIds(newSalespersonIds);
+
+      // Update communication styles to reflect the change
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
+            ? { ...style, is_salesperson: isChecked }
+            : style
+        )
+      );
+
+      toast.success(
+        isChecked ? "Marked as salesperson" : "Removed salesperson marking"
+      );
+    } catch (error) {
+      console.error("Error updating salesperson status:", error);
+      toast.error("Failed to update salesperson status");
+    } finally {
+      setIsUpdatingSalesperson(false);
+    }
+  };
+
+  // Sort communication styles: primary first, then non-salesperson, then salesperson at bottom
+  const sortedCommunicationStyles = [...communicationStyles].sort((a, b) => {
+    // Primary decision makers always first
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+
+    // Among non-primary: salesperson goes to bottom
+    if (!a.is_primary && !b.is_primary) {
+      if (a.is_salesperson && !b.is_salesperson) return 1;
+      if (!a.is_salesperson && b.is_salesperson) return -1;
+    }
+
+    return 0;
+  });
   // console.log("Total insights count:", totalInsightsCount);
 
   // console.log(insights, "get list of insights");
@@ -781,135 +1060,193 @@ const CallInsights = () => {
       {/* Cumulative Intelligence Active Indicator */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 h-1 rounded-full"></div>
 
-      {/* Prospect Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Building className="w-5 h-5" />
-            <span>Prospect Selection</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search prospects by company or name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {filteredProspects.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">No Deals Processed</h3>
+            <p className="text-muted-foreground mb-4">
+              No deals have been processed yet. Upload and process call
+              transcripts to see prospect insights here.
+            </p>
+            <Button onClick={() => navigate("/calls")} variant="outline">
+              <Phone className="w-4 h-4 mr-2" />
+              Go to Sales Calls
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Deal Selection</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search */}
 
-          {/* Prospect List */}
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory scroll-smooth">
-              {filteredProspects.map((prospect) => {
-                // console.log(prospect, "get prospect details");
-                const companyName = prospect.company?.name || "Unknown Company";
-                const prospectNames =
-                  prospect.people
-                    ?.map((p) => p.name)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const titles =
-                  prospect.people
-                    ?.map((p) => p.title)
-                    .filter(Boolean)
-                    .join(", ") || "Unknown";
-                const totalCalls = prospect?.calls;
-                const dealValue = "TBD";
-                const probability = 50;
-                const lastEngagement = new Date(
-                  prospect.created_at
-                ).toLocaleDateString();
-                const status = "new";
-
-                return (
-                  <div
-                    key={prospect.id}
-                    className={cn(
-                      "min-w-[300px] max-w-[300px] snap-start shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
-                      selectedProspect?.id === prospect.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : "border-border hover:border-primary/50"
-                    )}
-                    onClick={() =>
-                      handleProspectSelect({
-                        id: prospect.id,
-                        name,
-                        companyName,
-                        company_id: prospect?.company_id,
-                        prospectNames,
-                        titles,
-                        totalCalls,
-                        lastCallDate: prospect.created_at,
-                        lastEngagement,
-                        status,
-                        dealValue,
-                        probability,
-                        nextAction: "Initial follow-up",
-                        dataSources: {
-                          fireflies: 1,
-                          hubspot: 0,
-                          presentations: 0,
-                          emails: 0,
-                        },
-                        fullInsight: prospect,
-                        calls: prospect?.calls || 1,
-                        people: prospect.people, // ✅ add this
-                        call_summary: prospect?.call_summary,
-                        communication_style_ids:
-                          prospect?.communication_style_ids,
-                      })
-                    }
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-sm">{companyName}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {prospectNames}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", getStatusColor(status))}
-                      >
-                        {status}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Calls:</span>
-                        <span className="font-medium">{totalCalls}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Deal Value:
-                        </span>
-                        <span className="font-medium">{dealValue}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Last Enagement:
-                        </span>
-                        <span className="font-medium">{lastEngagement}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Opportunity:
-                        </span>
-                        <span className="font-medium">{prospect?.name}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search deals by company or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Prospect List */}
+            <div className="relative">
+              {/* Left Arrow */}
+
+              <button
+                onClick={scrollPrev}
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Right Arrow */}
+
+              <button
+                onClick={scrollNext}
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-10 bg-white shadow p-1 rounded-full border hover:bg-gray-100"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Carousel Viewport */}
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {filteredProspects.map((prospect) => {
+                    const companyName =
+                      prospect.company?.name || "Unknown Company";
+                    const prospectNames =
+                      prospect.people
+                        ?.map((p) => p.name)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const titles =
+                      prospect.people
+                        ?.map((p) => p.title)
+                        .filter(Boolean)
+                        .join(", ") || "Unknown";
+                    const totalCalls = prospect?.calls;
+                    const dealValue = "TBD";
+                    const probability = 50;
+                    const lastEngagement = new Date(
+                      prospect.created_at
+                    ).toLocaleDateString();
+                    const status = "new";
+
+                    return (
+                      <div
+                        key={prospect.id}
+                        className={cn(
+                          "min-w-[300px] max-w-[300px] shrink-0 border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md",
+                          selectedProspect?.id === prospect.id
+                            ? "border-primary bg-primary/5 shadow-md"
+                            : "border-border hover:border-primary/50"
+                        )}
+                        onClick={() =>
+                          handleProspectSelect({
+                            id: prospect.id,
+                            name: prospect.name,
+                            companyName,
+                            company_id: prospect?.company_id,
+                            prospectNames,
+                            titles,
+                            totalCalls,
+                            lastCallDate: prospect.created_at,
+                            lastEngagement,
+                            status,
+                            dealValue,
+                            probability,
+                            nextAction: "Initial follow-up",
+                            dataSources: {
+                              fireflies: 1,
+                              hubspot: 0,
+                              presentations: 0,
+                              emails: 0,
+                            },
+                            fullInsight: prospect,
+                            calls: prospect?.calls || 1,
+                            people: prospect.people,
+                            call_summary: prospect?.call_summary,
+                            communication_style_ids:
+                              prospect?.communication_style_ids,
+                          })
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-sm">
+                              {companyName}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {prospectNames}
+                            </p>
+                          </div>
+                          <span
+                            className={cn("text-xs", getStatusColor(status))}
+                          >
+                            {status}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Calls:
+                            </span>
+                            <span className="font-medium">{totalCalls}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Deal Value:
+                            </span>
+                            <span className="font-medium">{dealValue}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Last Engagement:
+                            </span>
+                            <span className="font-medium">
+                              {lastEngagement}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Opportunity:
+                            </span>
+                            <span className="font-medium">{prospect.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dots */}
+              <div className="flex justify-center mt-4 gap-2">
+                {scrollSnaps.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollTo(index)}
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      index === selectedIndex ? "bg-primary" : "bg-gray-300"
+                    )}
+                  ></button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {/* Prospect Selection */}
 
       {selectedProspect && (
         <>
@@ -975,7 +1312,7 @@ const CallInsights = () => {
           </Card>
 
           {/* Cummulative Intelligence Section */}
-          <Card>
+          <Card data-tour="cumulative-intelligence">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Database className="w-5 h-5" />
@@ -1070,7 +1407,7 @@ const CallInsights = () => {
             </CardContent>
           </Card>
           {/* Sales Insights Section */}
-          <Card>
+          <Card data-tour="sales-insights-section">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1135,7 +1472,7 @@ const CallInsights = () => {
                         content: e.target.value,
                       }))
                     }
-                    placeholder="Enter your insight about this prospect..."
+                    placeholder="Enter your insight about this deal..."
                     className="min-h-20"
                     autoFocus
                   />
@@ -1178,7 +1515,7 @@ const CallInsights = () => {
                   insight?.insights?.length > 0 && (
                     <div
                       key={insight.id}
-                      className="border rounded-lg p-4 space-y-3 hover:shadow-sm transition-shadow"
+                      className="border rounded-lg p-4 space-y-3"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
@@ -1384,7 +1721,7 @@ const CallInsights = () => {
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">No insights available yet</p>
                   <p className="text-sm mb-4">
-                    Add your first insight about this prospect
+                    Add your first insight about this deal
                   </p>
                   <Button
                     variant="outline"
@@ -1400,11 +1737,11 @@ const CallInsights = () => {
           </Card>
 
           {/* Communication Styles Detected with Behavioral Insights */}
-          <Card>
+          <Card data-tour="communication-style-section">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Prospect Behavioral & Communication Insights</span>
+                <span>Stakeholder Behavioral & Communication Insights</span>
                 <Badge variant="secondary">
                   {communicationStyles.length} stakeholders
                 </Badge>
@@ -1479,7 +1816,7 @@ const CallInsights = () => {
                 </div>
               ) : communicationStyles.length > 0 ? (
                 <div className="space-y-6">
-                  {communicationStyles?.map((stakeholder) => {
+                  {sortedCommunicationStyles?.map((stakeholder) => {
                     const styleConfig =
                       communicationStyleConfigs[stakeholder.style];
                     const PersonalityIcon = stakeholder.personality_type
@@ -1509,9 +1846,93 @@ const CallInsights = () => {
                         className="border rounded-lg p-4"
                       >
                         <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3">
+                            {/* Salesperson Checkbox - Only show for non-primary stakeholders */}
+                            {!stakeholder.is_primary && (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`salesperson-${stakeholder.id}`}
+                                  checked={salespersonIds.has(stakeholder.id)}
+                                  onChange={(e) =>
+                                    handleSalespersonToggle(
+                                      stakeholder.id,
+                                      e.target.checked
+                                    )
+                                  }
+                                  disabled={isUpdatingSalesperson}
+                                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                />
+                                <label
+                                  htmlFor={`salesperson-${stakeholder.id}`}
+                                  className="text-xs text-muted-foreground cursor-pointer"
+                                >
+                                  Salesperson
+                                </label>
+                              </div>
+                            )}
+
                             <h3 className="font-semibold flex items-center space-x-2">
-                              <span>{stakeholder.stakeholder}</span>
+                              {editingNameId === stakeholder.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={editNameValue}
+                                    onChange={(e) =>
+                                      setEditNameValue(e.target.value)
+                                    }
+                                    className="h-6 text-sm px-2 w-40 font-semibold"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        handleNameSave(stakeholder.id);
+                                      if (e.key === "Escape")
+                                        handleNameCancel();
+                                    }}
+                                    autoFocus
+                                    disabled={isUpdatingName}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() =>
+                                      handleNameSave(stakeholder.id)
+                                    }
+                                    disabled={isUpdatingName}
+                                  >
+                                    {isUpdatingName ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={handleNameCancel}
+                                    disabled={isUpdatingName}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2 group">
+                                  <span
+                                    className="cursor-pointer hover:text-primary"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    {stakeholder.stakeholder}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
                               {PersonalityIcon && (
                                 <PersonalityIcon className="w-4 h-4 text-primary" />
                               )}
@@ -1563,6 +1984,26 @@ const CallInsights = () => {
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
+                            {/* Primary Decision Maker Badge */}
+                            {stakeholder.is_primary && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-purple-100 text-purple-800 border-purple-200"
+                              >
+                                Primary Decision Maker
+                              </Badge>
+                            )}
+
+                            {/* Salesperson Badge */}
+                            {salespersonIds.has(stakeholder.id) && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                              >
+                                Salesperson
+                              </Badge>
+                            )}
+
                             {/* <Badge
                               variant="outline"
                               className={cn(
@@ -1758,7 +2199,7 @@ const CallInsights = () => {
                   <p className="mb-2">No communication styles detected yet</p>
                   <p className="text-sm">
                     Communication styles will be identified as you have more
-                    calls with this prospect
+                    calls with this deal
                   </p>
                 </div>
               )}

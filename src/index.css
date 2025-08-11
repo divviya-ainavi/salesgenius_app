@@ -113,33 +113,59 @@
 
 /* Custom animations for processing modal */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes orbit-1 {
-  0% { transform: rotate(0deg) translateX(30px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(30px) rotate(-360deg); }
+  0% {
+    transform: rotate(0deg) translateX(30px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(30px) rotate(-360deg);
+  }
 }
 
 @keyframes orbit-2 {
-  0% { transform: rotate(90deg) translateX(30px) rotate(-90deg); }
-  100% { transform: rotate(450deg) translateX(30px) rotate(-450deg); }
+  0% {
+    transform: rotate(90deg) translateX(30px) rotate(-90deg);
+  }
+  100% {
+    transform: rotate(450deg) translateX(30px) rotate(-450deg);
+  }
 }
 
 @keyframes orbit-3 {
-  0% { transform: rotate(180deg) translateX(30px) rotate(-180deg); }
-  100% { transform: rotate(540deg) translateX(30px) rotate(-540deg); }
+  0% {
+    transform: rotate(180deg) translateX(30px) rotate(-180deg);
+  }
+  100% {
+    transform: rotate(540deg) translateX(30px) rotate(-540deg);
+  }
 }
 
 @keyframes orbit-4 {
-  0% { transform: rotate(270deg) translateX(30px) rotate(-270deg); }
-  100% { transform: rotate(630deg) translateX(30px) rotate(-630deg); }
+  0% {
+    transform: rotate(270deg) translateX(30px) rotate(-270deg);
+  }
+  100% {
+    transform: rotate(630deg) translateX(30px) rotate(-630deg);
+  }
 }
 
 .animate-blink {
@@ -185,6 +211,67 @@
 .animate-pulse-delay-5 {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.6s;
 }
+
+/* Quill editor custom styles */
+.ql-editor {
+  min-height: 150px;
+  font-size: 14px;
+  line-height: 1.5;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.ql-toolbar {
+  border-top: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: none;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.ql-container {
+  border-bottom: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
+  border-top: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+/* Prose styles for tour content display */
+.prose {
+  color: hsl(var(--foreground));
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.prose strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.prose code {
+  background-color: hsl(var(--muted));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0.5rem 0;
+}
+
+.prose li {
+  margin: 0.25rem 0;
+}
+
 /* Text wrapping utility for consistent list item heights */
 .line-clamp-2-wrap {
   overflow-wrap: break-word;
@@ -192,6 +279,14 @@
   word-break: break-word;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Text clamping utility for research history cards */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

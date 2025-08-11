@@ -15,6 +15,7 @@ import {
   setUserRole,
   setUserRoleId,
   setIsAuthenticated,
+  setHasSeenOnboardingTour,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
@@ -205,7 +206,36 @@ const LoginPage = () => {
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
+        // Load onboarding tour status
+        let tourStatus = false;
+        try {
+          tourStatus = await dbHelpers.getOnboardingTourStatus(userId);
+          // Set tour status based on database - false means tour will run
+          dispatch(setHasSeenOnboardingTour(tourStatus || false));
+          console.log("✅ Loaded onboarding tour status:", tourStatus);
+        } catch (error) {
+          console.warn("⚠️ Failed to load onboarding tour status:", error);
+          // Default to false if we can't load the status
+          dispatch(setHasSeenOnboardingTour(false));
+        }
+
         toast.success("Login successful!");
+
+        // Start Sales Calls tour only for first-time users
+        const shouldStartTour = !(tourStatus || false); // If tourStatus is false/null, start tour
+        if (shouldStartTour) {
+          setTimeout(() => {
+            if (window.startSalesCallsTour) {
+              console.log("🎯 Starting tour for first-time user");
+              window.startSalesCallsTour();
+            }
+          }, 2000); // 2 second delay to ensure page loads and tour is ready
+        } else {
+          console.log(
+            "👤 Returning user - tour already completed, skipping auto-start"
+          );
+        }
+
         navigate("/calls");
       }
     } catch (error) {
@@ -343,7 +373,23 @@ const LoginPage = () => {
                 Don't have an account?{" "}
                 <button
                   className="text-blue-600 hover:text-blue-800 font-medium"
-                  onClick={() => toast.info("Registration coming soon!")}
+                  onClick={() => {
+                    const email = "admin@ainavi.co.uk";
+                    const subject = encodeURIComponent(
+                      "Issue with SalesGenius.ai Access"
+                    );
+                    const body = encodeURIComponent(`Hello Admin,
+
+I'm currently facing an issue while trying to access or use SalesGenius.ai.
+
+Could you please assist or look into it?
+
+Thank you,
+[Your Name]`);
+
+                    const gmailLink = `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`;
+                    window.open(gmailLink, "_blank");
+                  }}
                 >
                   Contact your administrator
                 </button>

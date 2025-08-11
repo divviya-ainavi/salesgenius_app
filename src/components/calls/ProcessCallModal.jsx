@@ -112,6 +112,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
           {/* Association Selector */}
           {!isComplete && (
             <CallAssociationSelector
+              data-tour="company-prospect-selector"
               onAssociationChange={handleAssociationChange}
               isProcessing={isProcessing}
               onAssociationReset={handleAssociationReset}
