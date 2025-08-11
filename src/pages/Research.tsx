@@ -47,7 +47,6 @@ import { config } from "@/lib/config";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/lib/supabase";
 
-import { supabase } from "@/lib/supabase";
 import { fileStorage } from "@/lib/fileStorage";
 interface ResearchFormData {
   companyName: string;
@@ -145,7 +144,6 @@ const Research = () => {
     );
   };
 
-
   // Handle form input changes
   const handleInputChange = (field: keyof ResearchFormData, value: string) => {
     setFormData((prev) => ({
@@ -175,7 +173,7 @@ const Research = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf'],
+      "application/pdf": [".pdf"],
     },
     maxFiles: 5,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -219,14 +217,14 @@ const Research = () => {
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('research-files')
+          .from("research-files")
           .upload(uniqueFileName, fileItem.file, {
-            cacheControl: '3600',
+            cacheControl: "3600",
             upsert: false,
           });
 
         if (uploadError) {
-          console.error('Storage upload error:', uploadError);
+          console.error("Storage upload error:", uploadError);
           // Update file status to error
           setUploadedFiles((prev) =>
             prev.map((f) =>
@@ -240,7 +238,7 @@ const Research = () => {
 
         // Get public URL
         const { data: urlData } = supabase.storage
-          .from('research-files')
+          .from("research-files")
           .getPublicUrl(uniqueFileName);
 
         // Update file status to uploaded
@@ -262,8 +260,8 @@ const Research = () => {
 
       return uploadedUrls;
     } catch (error) {
-      console.error('Error uploading files:', error);
-      toast.error('Failed to upload files');
+      console.error("Error uploading files:", error);
+      toast.error("Failed to upload files");
       return [];
     } finally {
       setIsUploadingFiles(false);
@@ -535,59 +533,84 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     try {
       // Helper function to format recommendations object as readable text
       const formatRecommendations = (recommendations) => {
-        if (typeof recommendations === 'string') {
+        if (typeof recommendations === "string") {
           return recommendations;
         }
-        
-        if (!recommendations || typeof recommendations !== 'object') {
-          return 'No recommendations available';
+
+        if (!recommendations || typeof recommendations !== "object") {
+          return "No recommendations available";
         }
-        
-        let formatted = '';
-        
+
+        let formatted = "";
+
         if (recommendations.primaryMeetingGoal) {
           formatted += `PRIMARY MEETING GOAL\n${recommendations.primaryMeetingGoal}\n\n`;
         }
-        
-        if (recommendations.keyTalkingPoints && Array.isArray(recommendations.keyTalkingPoints)) {
+
+        if (
+          recommendations.keyTalkingPoints &&
+          Array.isArray(recommendations.keyTalkingPoints)
+        ) {
           formatted += `KEY TALKING POINTS\n`;
           recommendations.keyTalkingPoints.forEach((point, index) => {
             formatted += `${index + 1}. ${point}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
-        if (recommendations.highImpactSalesQuestions && Array.isArray(recommendations.highImpactSalesQuestions)) {
+
+        if (
+          recommendations.highImpactSalesQuestions &&
+          Array.isArray(recommendations.highImpactSalesQuestions)
+        ) {
           formatted += `HIGH-IMPACT SALES QUESTIONS\n`;
-          recommendations.highImpactSalesQuestions.forEach((question, index) => {
-            formatted += `${index + 1}. ${question}\n`;
-          });
-          formatted += '\n';
+          recommendations.highImpactSalesQuestions.forEach(
+            (question, index) => {
+              formatted += `${index + 1}. ${question}\n`;
+            }
+          );
+          formatted += "\n";
         }
-        
-        if (recommendations.anticipatedObjections && Array.isArray(recommendations.anticipatedObjections)) {
+
+        if (
+          recommendations.anticipatedObjections &&
+          Array.isArray(recommendations.anticipatedObjections)
+        ) {
           formatted += `ANTICIPATED OBJECTIONS\n`;
           recommendations.anticipatedObjections.forEach((objection, index) => {
             formatted += `${index + 1}. ${objection}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
-        if (recommendations.meetingChecklist && Array.isArray(recommendations.meetingChecklist)) {
+
+        if (
+          recommendations.meetingChecklist &&
+          Array.isArray(recommendations.meetingChecklist)
+        ) {
           formatted += `MEETING PREPARATION CHECKLIST\n`;
           recommendations.meetingChecklist.forEach((item, index) => {
             formatted += `${index + 1}. ${item}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
+
         // Handle any other properties
-        Object.keys(recommendations).forEach(key => {
-          if (!['primaryMeetingGoal', 'keyTalkingPoints', 'highImpactSalesQuestions', 'anticipatedObjections', 'meetingChecklist'].includes(key)) {
-            formatted += `${key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}\n${recommendations[key]}\n\n`;
+        Object.keys(recommendations).forEach((key) => {
+          if (
+            ![
+              "primaryMeetingGoal",
+              "keyTalkingPoints",
+              "highImpactSalesQuestions",
+              "anticipatedObjections",
+              "meetingChecklist",
+            ].includes(key)
+          ) {
+            formatted += `${key
+              .toUpperCase()
+              .replace(/([A-Z])/g, " $1")
+              .trim()}\n${recommendations[key]}\n\n`;
           }
         });
-        
+
         return formatted.trim();
       };
 
@@ -612,11 +635,19 @@ KEY DETAILS
 
 GROWTH OPPORTUNITIES
 --------------------
-${researchResult.growthOpportunities?.map((opportunity, index) => `${index + 1}. ${opportunity}`).join('\n') || 'None listed'}
+${
+  researchResult.growthOpportunities
+    ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
+    .join("\n") || "None listed"
+}
 
 MARKET TRENDS
 -------------
-${researchResult.marketTrends?.map((trend, index) => `${index + 1}. ${trend}`).join('\n') || 'None listed'}
+${
+  researchResult.marketTrends
+    ?.map((trend, index) => `${index + 1}. ${trend}`)
+    .join("\n") || "None listed"
+}
 
 SUMMARY NOTE
 ------------
@@ -624,7 +655,11 @@ ${researchResult.summaryNote}
 
 SOURCES
 -------
-${researchResult.sources?.map((source, index) => `${index + 1}. ${source}`).join('\n') || 'None listed'}
+${
+  researchResult.sources
+    ?.map((source, index) => `${index + 1}. ${source}`)
+    .join("\n") || "None listed"
+}
 
 SALES RECOMMENDATIONS
 ---------------------
@@ -647,11 +682,11 @@ Generated by SalesGenius.ai
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   // Render form view
@@ -805,7 +840,8 @@ Generated by SalesGenius.ai
                   )}
 
                   <p className="text-xs text-muted-foreground">
-                    Optional: Upload PDF files containing prospect information for enhanced analysis
+                    Optional: Upload PDF files containing prospect information
+                    for enhanced analysis
                   </p>
                 </div>
 
@@ -820,7 +856,9 @@ Generated by SalesGenius.ai
                   {isLoading || isUploadingFiles ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      {isUploadingFiles ? "Uploading files..." : "Researching..."}
+                      {isUploadingFiles
+                        ? "Uploading files..."
+                        : "Researching..."}
                     </>
                   ) : (
                     <>
@@ -921,12 +959,14 @@ Generated by SalesGenius.ai
                       </span>
                     </div>
 
-                    {research.prospect_urls && research.prospect_urls.length > 0 && (
+                    {research.prospect_urls &&
+                      research.prospect_urls.length > 0 && (
                         <div className="flex items-center space-x-2 text-sm">
                           <FileText className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
                             {research.prospect_urls.length} file
-                            {research.prospect_urls.length > 1 ? "s" : ""} uploaded
+                            {research.prospect_urls.length > 1 ? "s" : ""}{" "}
+                            uploaded
                           </span>
                         </div>
                       )}
@@ -1228,7 +1268,10 @@ Generated by SalesGenius.ai
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No sources available for this research</p>
-                    <p>Upload PDF files and complete your first research to see results here</p>
+                    <p>
+                      Upload PDF files and complete your first research to see
+                      results here
+                    </p>
                   </div>
                 )}
               </CardContent>
