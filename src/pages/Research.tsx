@@ -367,37 +367,17 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     return {
       companyAnalysis: companyAnalysis + prospectAnalysis,
       sources,
-      recommendations,
-    };
-  };
-
-  // Handle form submission
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!isFormValid) return;
-
-  //   setIsLoading(true);
-
-  //   // Simulate API call
-  //   await new Promise(resolve => setTimeout(resolve, 2000));
-
-  //   const result = generateMockResearch(formData);
-  //   setResearchResult(result);
-  //   setCurrentView('results');
-  //   setIsLoading(false);
-
-  //   toast.success(`Research completed for ${formData.companyName}`);
-  // };
+      // Step 1: Prepare API request with actual files
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
-
-    setIsLoading(true);
-    try {
+      // Send actual files to API
+      uploadedFiles.forEach((file, index) => {
+        apiFormData.append(`prospectFile${index}`, file);
       // Upload files to storage first
       const fileUrls = await uploadFilesToStorage();
-
+      // Step 2: Call the research API
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
@@ -412,7 +392,49 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           }),
         }
       );
+      // Step 3: Upload files to storage after successful API response
+      const uploadedFileData = [];
+      for (const file of uploadedFiles) {
+        try {
+          const fileData = await fileStorage.uploadFile(file, userId);
+          
+          // Save file metadata to uploaded_files table
+          const { data: fileRecord, error: fileError } = await supabase
+            .from('uploaded_files')
+            .insert([{
+              user_id: userId,
+              filename: fileData.fileName,
+              file_type: 'application/pdf',
+              file_size: fileData.fileSize,
+              content_type: fileData.contentType,
+              file_url: fileData.publicUrl,
+              storage_path: fileData.filePath,
+              is_processed: true
+            }])
+            .select()
+            .single();
 
+          if (fileError) {
+            console.error("Error saving file metadata:", fileError);
+            throw new Error(`Failed to save file metadata for ${file.name}`);
+          }
+
+          uploadedFileData.push({
+            id: fileRecord.id,
+            file: file,
+            storagePath: fileData.filePath,
+            publicUrl: fileData.publicUrl,
+            fileName: fileData.fileName,
+            fileSize: fileData.fileSize,
+            contentType: fileData.contentType
+          });
+        } catch (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
+      }
+
+      // Step 4: Save research data to database with file information
       if (!response.ok) {
         throw new Error(`API returned status ${response.status}`);
       }
@@ -611,7 +633,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
           }
         });
 
-        return formatted.trim();
+        prospect_urls: uploadedFileData.map(f => f.publicUrl), // Store file URLs
+        uploaded_file_ids: uploadedFileData.map(f => f.id), // Store file IDs
+        uploaded_file_paths: uploadedFileData.map(f => f.storagePath), // Store storage paths
+        api_response: apiData // Store complete API response
       };
 
       // Format the research result as readable text
@@ -662,6 +687,18 @@ ${
 }
 
 SALES RECOMMENDATIONS
+        // If database save fails, clean up uploaded files
+        for (const fileData of uploadedFileData) {
+          try {
+            await fileStorage.deleteFile(fileData.storagePath);
+            await supabase
+              .from('uploaded_files')
+              .delete()
+              .eq('id', fileData.id);
+          } catch (cleanupError) {
+            console.error("Error cleaning up file:", cleanupError);
+          }
+        }
 ---------------------
 ${formatRecommendations(researchResult.recommendations)}
 
