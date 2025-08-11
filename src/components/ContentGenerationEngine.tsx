@@ -233,6 +233,17 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   // Helper function to convert HTML back to plain text for display
   const convertHtmlToPlainText = (html) => {
     if (!html) return '';
+    
+    return html
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<li>(.*?)<\/li>/g, '• $1')
+      .replace(/<\/?ul>/g, '')
+      .replace(/\n\s*\n/g, '\n\n') // Clean up extra line breaks
+      .trim();
+  };
+
   // Enhanced function to convert markdown to HTML specifically for email clients
   const convertMarkdownToEmailHtml = (text) => {
     if (!text) return '';
@@ -260,16 +271,6 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     }
     
     return html;
-  };
-    
-    return html
-      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-      .replace(/<em>(.*?)<\/em>/g, '*$1*')
-      .replace(/<br\s*\/?>/g, '\n')
-      .replace(/<li>(.*?)<\/li>/g, '• $1')
-      .replace(/<\/?ul>/g, '')
-      .replace(/\n\s*\n/g, '\n\n') // Clean up extra line breaks
-      .trim();
   };
 
   // Helper function to prepare email body for export
@@ -885,18 +886,24 @@ ${output?.blocks
               current_email_content: generatedArtefact?.body,
               email_subject: generatedArtefact?.subject,
               refinement_prompt: refinementPrompt,
-      const emailBodyHtml = prepareEmailBodyForExport(generatedContent.body);
+            }),
           }
         );
         const json = await response.json();
         // console.log(json, "check json data");
         const output = json?.[0];
         // console.log(output, "follow up email");
-        // Gmail supports HTML in the body parameter
-        emailUrl = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyHtml)}`;
+        const postData = {
+          subject: output?.refined_email_subject,
+          body: output?.refined_email_content,
+          sales_play: selectedPlay,
+          secondary_objectives: selectedObjectives,
           prospect_id: selectedProspect?.id,
-        // Outlook also supports HTML in the body parameter
-        emailUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBodyHtml)}`;
+          is_refined: true,
+          refinement_text: refinementPrompt,
+        };
+        const newTemplate = await dbHelpers.upsertEmailTemplate(
+          emailTemplateId,
           postData,
           user?.id
         );
