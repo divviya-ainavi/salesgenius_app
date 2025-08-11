@@ -253,39 +253,6 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     });
   };
 
-  // Helper function to convert HTML to Gmail-compatible format
-  const convertToGmailFormat = (htmlContent) => {
-    // Gmail doesn't handle HTML in URL parameters well
-    // Convert HTML back to a format Gmail can understand
-    return htmlContent
-      // Convert HTML tags back to Gmail-friendly formatting
-      .replace(/<b>(.*?)<\/b>/g, '$1') // Remove bold tags, Gmail will handle via rich text
-      .replace(/<i>(.*?)<\/i>/g, '$1') // Remove italic tags
-      .replace(/<strong>(.*?)<\/strong>/g, '$1')
-      .replace(/<em>(.*?)<\/em>/g, '$1')
-      .replace(/<br\s*\/?>/g, '\n') // Convert <br> back to line breaks
-      .replace(/<ul[^>]*>/g, '') // Remove ul tags
-      .replace(/<\/ul>/g, '') // Remove closing ul tags
-      .replace(/<li[^>]*>/g, '• ') // Convert li to bullet points
-      .replace(/<\/li>/g, '\n') // Convert closing li to line breaks
-      .replace(/<p[^>]*>/g, '') // Remove p tags
-      .replace(/<\/p>/g, '\n\n') // Convert closing p to double line breaks
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // Clean up multiple line breaks
-      .trim();
-  };
-
-  // Helper function to prepare content for email export
-  const prepareEmailContent = (content) => {
-    if (!content) return '';
-    
-    // First convert markdown to HTML for processing
-    const htmlContent = convertMarkdownToHtml(content);
-    
-    // Then convert to Gmail-friendly format
-    const gmailContent = convertToGmailFormat(htmlContent);
-    
-    return gmailContent;
-  };
   // Mock data for sales plays and objectives
   const salesPlays: SalesPlay[] = [
     {
@@ -1069,9 +1036,9 @@ ${updatedBlocks
     }
 
     // Convert markdown to HTML and sanitize
-      // Prepare content for email export
-      const emailBody = prepareEmailContent(generatedContent.body);
-      const emailSubject = generatedContent.subject;
+    const htmlBody = sanitizeHtml(convertMarkdownToHtml(generatedArtefact.body));
+    
+    const subject = encodeURIComponent(generatedArtefact.subject);
     const body = encodeURIComponent(htmlBody);
 
     let emailUrl;
@@ -1157,18 +1124,18 @@ ${updatedBlocks
             if (!a.is_salesperson && b.is_salesperson) return -1;
           }
 
-        // Gmail compose URL - use plain text with proper formatting
-        const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&to=&su=${encodeURIComponent(
-          emailSubject
-        )}&body=${encodeURIComponent(emailBody)}`;
+          return 0;
+        });
+      });
+
       // Also update commStylesData to keep it in sync
       setCommStylesData((prev) =>
         prev.map((style) =>
           style.id === stakeholderId
-        // Outlook compose URL
-        const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=&subject=${encodeURIComponent(
-          emailSubject
-        )}&body=${encodeURIComponent(emailBody)}`;
+            ? { ...style, is_salesperson: newValue }
+            : style
+        )
+      );
 
       toast.success(
         newValue ? "Marked as salesperson" : "Removed salesperson designation"
