@@ -317,32 +317,32 @@ const Research = () => {
       const uploadedFileData = [];
       for (const file of uploadedFiles) {
         try {
-          const fileData = await fileStorage.uploadFile(file, userId);
+          const fileData = await fileStorage.uploadFile(file, user?.id);
 
-          const { data: fileRecord, error: fileError } = await supabase
-            .from("uploaded_files")
-            .insert([
-              {
-                user_id: userId,
-                filename: fileData.fileName,
-                file_type: "application/pdf",
-                file_size: fileData.fileSize,
-                content_type: fileData.contentType,
-                file_url: fileData.publicUrl,
-                storage_path: fileData.filePath,
-                is_processed: true,
-              },
-            ])
-            .select()
-            .single();
+          // const { data: fileRecord, error: fileError } = await supabase
+          //   .from("uploaded_files")
+          //   .insert([
+          //     {
+          //       user_id: userId,
+          //       filename: fileData.fileName,
+          //       file_type: "application/pdf",
+          //       file_size: fileData.fileSize,
+          //       content_type: fileData.contentType,
+          //       file_url: fileData.publicUrl,
+          //       storage_path: fileData.filePath,
+          //       is_processed: true,
+          //     },
+          //   ])
+          //   .select()
+          //   .single();
 
-          if (fileError) {
-            console.error("Error saving file metadata:", fileError);
-            throw new Error(`Failed to save file metadata for ${file.name}`);
-          }
+          // if (fileError) {
+          //   console.error("Error saving file metadata:", fileError);
+          //   throw new Error(`Failed to save file metadata for ${file.name}`);
+          // }
 
           uploadedFileData.push({
-            id: fileRecord.id,
+            // id: fileRecord.id,
             file: file,
             storagePath: fileData.filePath,
             publicUrl: fileData.publicUrl,
