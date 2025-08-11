@@ -295,6 +295,23 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       incompatibleWith: ["door-opener", "champion-enablement"],
     },
   ];
+
+  // utils/emailFormat.ts
+  const toPlainText = (md: string) =>
+    md
+      // bold/italics/code
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/__(.*?)__/g, "$1")
+      .replace(/_(.*?)_/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      // headings -> plain
+      .replace(/^#{1,6}\s*/gm, "")
+      // markdown bullets -> unicode bullets
+      .replace(/^\s*-\s+/gm, "• ")
+      .replace(/^\s*\d+\.\s+/gm, (m) => m) // keep ordered lists as-is
+      // collapse extra blank lines
+      .replace(/\n{3,}/g, "\n\n");
+
   console.log(user, "check user data");
   // Load prospects from database
   useEffect(() => {
@@ -417,23 +434,48 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     }
   };
 
+  // const exportToEmailClient = async (client: string) => {
+  //   if (!generatedArtefact) return;
+
+  //   const subject = encodeURIComponent(
+  //     generatedArtefact?.subject || "Follow-up Email"
+  //   );
+  //   const body = encodeURIComponent(generatedArtefact.body || "");
+
+  //   if (client === "gmail") {
+  //     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
+  //     window.open(gmailUrl, "_blank");
+  //     toast.success("Opening Gmail compose window...");
+  //   } else if (client === "outlook") {
+  //     const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`;
+  //     window.open(outlookUrl, "_blank");
+  //     toast.success("Opening Outlook compose window...");
+  //   }
+  // };
+
   const exportToEmailClient = async (client: string) => {
     if (!generatedArtefact) return;
 
     const subject = encodeURIComponent(
-      generatedArtefact?.subject || "Follow-up Email"
+      generatedArtefact.subject || "Follow-up"
     );
-    const body = encodeURIComponent(generatedArtefact.body || "");
+    const bodyPlain = toPlainText(generatedArtefact.body || "");
+    const body = encodeURIComponent(bodyPlain);
 
     if (client === "gmail") {
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`;
-      window.open(gmailUrl, "_blank");
-      toast.success("Opening Gmail compose window...");
-    } else if (client === "outlook") {
-      const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`;
-      window.open(outlookUrl, "_blank");
-      toast.success("Opening Outlook compose window...");
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${body}`,
+        "_blank"
+      );
+    } else {
+      window.open(
+        `https://outlook.live.com/mail/0/deeplink/compose?subject=${subject}&body=${body}`,
+        "_blank"
+      );
     }
+    toast.success(
+      `Opening ${client === "gmail" ? "Gmail" : "Outlook"} compose window...`
+    );
   };
 
   const handleChangeEmailClient = () => {

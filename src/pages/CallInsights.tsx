@@ -156,7 +156,7 @@ const CallInsights = () => {
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const { communicationStyleTypes } = useSelector((state) => state.org);
   const dispatch = useDispatch();
-  
+
   // Salesperson checkbox state
   const [salespersonIds, setSalespersonIds] = useState(new Set());
   const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
@@ -475,12 +475,10 @@ const CallInsights = () => {
       insightData.communication_style_ids
     );
     setCommunicationStyles(styles);
-    
+
     // Load existing salesperson selections
     const existingSalespersonIds = new Set(
-      styles
-        .filter(style => style.is_salesperson)
-        .map(style => style.id)
+      styles.filter((style) => style.is_salesperson).map((style) => style.id)
     );
     setSalespersonIds(existingSalespersonIds);
 
@@ -498,12 +496,10 @@ const CallInsights = () => {
     );
 
     setCommunicationStyles(styles);
-    
+
     // Update salesperson selections
     const existingSalespersonIds = new Set(
-      styles
-        .filter(style => style.is_salesperson)
-        .map(style => style.id)
+      styles.filter((style) => style.is_salesperson).map((style) => style.id)
     );
     setSalespersonIds(existingSalespersonIds);
   };
@@ -979,7 +975,7 @@ const CallInsights = () => {
   // Handle salesperson checkbox change
   const handleSalespersonToggle = async (stakeholderId, isChecked) => {
     setIsUpdatingSalesperson(true);
-    
+
     try {
       // Update database
       await dbHelpers.updateCommunicationStyleSalesperson(
@@ -988,7 +984,7 @@ const CallInsights = () => {
         selectedProspect?.id,
         user?.id
       );
-      
+
       // Update local state
       const newSalespersonIds = new Set(salespersonIds);
       if (isChecked) {
@@ -997,20 +993,18 @@ const CallInsights = () => {
         newSalespersonIds.delete(stakeholderId);
       }
       setSalespersonIds(newSalespersonIds);
-      
+
       // Update communication styles to reflect the change
-      setCommunicationStyles(prev => 
-        prev.map(style => 
-          style.id === stakeholderId 
+      setCommunicationStyles((prev) =>
+        prev.map((style) =>
+          style.id === stakeholderId
             ? { ...style, is_salesperson: isChecked }
             : style
         )
       );
-      
+
       toast.success(
-        isChecked 
-          ? "Marked as salesperson" 
-          : "Removed salesperson marking"
+        isChecked ? "Marked as salesperson" : "Removed salesperson marking"
       );
     } catch (error) {
       console.error("Error updating salesperson status:", error);
@@ -1025,13 +1019,13 @@ const CallInsights = () => {
     // Primary decision makers always first
     if (a.is_primary && !b.is_primary) return -1;
     if (!a.is_primary && b.is_primary) return 1;
-    
+
     // Among non-primary: salesperson goes to bottom
     if (!a.is_primary && !b.is_primary) {
       if (a.is_salesperson && !b.is_salesperson) return 1;
       if (!a.is_salesperson && b.is_salesperson) return -1;
     }
-    
+
     return 0;
   });
   // console.log("Total insights count:", totalInsightsCount);
@@ -1070,9 +1064,9 @@ const CallInsights = () => {
         <Card>
           <CardContent className="text-center py-12">
             <Building className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">No Prospects Processed</h3>
+            <h3 className="text-lg font-medium mb-2">No Deals Processed</h3>
             <p className="text-muted-foreground mb-4">
-              No prospects have been processed yet. Upload and process call
+              No deals have been processed yet. Upload and process call
               transcripts to see prospect insights here.
             </p>
             <Button onClick={() => navigate("/calls")} variant="outline">
@@ -1747,7 +1741,7 @@ const CallInsights = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
-                <span>Deal Behavioral & Communication Insights</span>
+                <span>Stakeholder Behavioral & Communication Insights</span>
                 <Badge variant="secondary">
                   {communicationStyles.length} stakeholders
                 </Badge>
@@ -1860,13 +1854,16 @@ const CallInsights = () => {
                                   type="checkbox"
                                   id={`salesperson-${stakeholder.id}`}
                                   checked={salespersonIds.has(stakeholder.id)}
-                                  onChange={(e) => 
-                                    handleSalespersonToggle(stakeholder.id, e.target.checked)
+                                  onChange={(e) =>
+                                    handleSalespersonToggle(
+                                      stakeholder.id,
+                                      e.target.checked
+                                    )
                                   }
                                   disabled={isUpdatingSalesperson}
                                   className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                 />
-                                <label 
+                                <label
                                   htmlFor={`salesperson-${stakeholder.id}`}
                                   className="text-xs text-muted-foreground cursor-pointer"
                                 >
@@ -1874,7 +1871,7 @@ const CallInsights = () => {
                                 </label>
                               </div>
                             )}
-                            
+
                             <h3 className="font-semibold flex items-center space-x-2">
                               {editingNameId === stakeholder.id ? (
                                 <div className="flex items-center space-x-2">
@@ -1996,7 +1993,7 @@ const CallInsights = () => {
                                 Primary Decision Maker
                               </Badge>
                             )}
-                            
+
                             {/* Salesperson Badge */}
                             {salespersonIds.has(stakeholder.id) && (
                               <Badge
@@ -2006,7 +2003,7 @@ const CallInsights = () => {
                                 Salesperson
                               </Badge>
                             )}
-                            
+
                             {/* <Badge
                               variant="outline"
                               className={cn(

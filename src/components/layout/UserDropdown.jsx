@@ -35,6 +35,9 @@ import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
 import { supabase } from "../../lib/supabase";
 
+// Constants
+const THREE_HOURS_IN_MS = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+
 const getRoleIcon = (roleKey) => {
   switch (roleKey) {
     case "super_admin":
@@ -67,6 +70,7 @@ export const UserDropdown = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionCheckInterval, setSessionCheckInterval] = useState(null);
   const {
     userProfileInfo,
     userRole,
@@ -107,6 +111,65 @@ export const UserDropdown = () => {
     loadUserProfile();
   }, []);
 
+  // Check for 3-hour session expiry
+  useEffect(() => {
+    const checkSessionExpiry = () => {
+      const loginTimestamp = localStorage.getItem('login_timestamp');
+      
+      if (!loginTimestamp) {
+        console.log('⚠️ No login timestamp found');
+        return;
+      }
+
+      const loginTime = parseInt(loginTimestamp);
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - loginTime;
+
+      console.log('🕐 Session check:', {
+        loginTime: new Date(loginTime).toLocaleString(),
+        currentTime: new Date(currentTime).toLocaleString(),
+        elapsedHours: (elapsedTime / (1000 * 60 * 60)).toFixed(2),
+        remainingMinutes: Math.max(0, Math.ceil((THREE_HOURS_IN_MS - elapsedTime) / (1000 * 60)))
+      });
+
+      if (elapsedTime >= THREE_HOURS_IN_MS) {
+        console.log('⏰ 3-hour session limit reached - triggering automatic logout');
+        
+        // Set flag to indicate this is an automatic logout
+        sessionStorage.setItem('auto_logout_reason', '3_hour_limit');
+        
+        // Show toast message
+        toast.error('Your session has expired after 3 hours. Please log in again.');
+        
+        // Trigger logout
+        handleConfirmLogout();
+      }
+    };
+
+    // Check immediately on mount
+    checkSessionExpiry();
+
+    // Set up interval to check every minute
+    const interval = setInterval(checkSessionExpiry, 60 * 1000); // Check every minute
+    setSessionCheckInterval(interval);
+
+    // Cleanup interval on unmount
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, []);
+
+  // Cleanup interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (sessionCheckInterval) {
+        clearInterval(sessionCheckInterval);
+      }
+    };
+  }, [sessionCheckInterval]);
+
   const handleProfileClick = () => {
     // Navigate to profile page (to be implemented)
     navigate("/settings");
@@ -122,8 +185,14 @@ export const UserDropdown = () => {
 
   const handleConfirmLogout = async () => {
     try {
-      // Set flag to indicate this is a manual logout
-      sessionStorage.setItem('manual_logout', 'true');
+      // Check if this is an automatic logout
+      const autoLogoutReason = sessionStorage.getItem('auto_logout_reason');
+      const isAutoLogout = !!autoLogoutReason;
+      
+      if (!isAutoLogout) {
+        // Set flag to indicate this is a manual logout
+        sessionStorage.setItem('manual_logout', 'true');
+      }
       
       // Sign out from Supabase Auth if user is authenticated there
       const {
@@ -144,7 +213,17 @@ export const UserDropdown = () => {
         dispatch(resetOrgState());
         dispatch(resetAuthState());
 
-        toast.success("Logged out successfully");
+        // Show appropriate message based on logout type
+        if (isAutoLogout) {
+          if (autoLogoutReason === '3_hour_limit') {
+            toast.error("Session expired after 3 hours. Please log in again.");
+          } else {
+            toast.error("Session expired. Please log in again.");
+          }
+        } else {
+          toast.success("Logged out successfully");
+        }
+        
         setShowLogoutDialog(false);
 
         // Reload the page to clear any in-memory data
@@ -155,6 +234,9 @@ export const UserDropdown = () => {
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("An error occurred during logout");
+    } finally {
+      // Clean up any auto logout flags
+      sessionStorage.removeItem('auto_logout_reason');
     }
   };
 
