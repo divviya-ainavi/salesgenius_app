@@ -384,6 +384,8 @@ const Research = () => {
         summaryNote: output.summaryNote || "",
         sources: output.sources || [],
         recommendations: output.recommendations || {},
+        prospectProfiles: output?.prospectProfiles || [],
+        profiles: uploadedFileData || [],
       });
 
       await dbHelpers.saveResearchCompany({
@@ -403,6 +405,8 @@ const Research = () => {
         geographic_scope: output.geographicScope || "",
         size: output.size || "",
         sector: output.sector || "",
+        prospectProfiles: output?.prospectProfiles || [],
+        profiles: uploadedFileData || [],
       });
 
       setCurrentView("results");
