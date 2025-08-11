@@ -317,7 +317,7 @@ const Research = () => {
       const uploadedFileData = [];
       for (const file of uploadedFiles) {
         try {
-          const fileData = await fileStorage.uploadFile(file, userId);
+          const fileData = await fileStorage.uploadFile(file, user?.id);
 
           const { data: fileRecord, error: fileError } = await supabase
             .from("uploaded_files")
