@@ -1084,6 +1084,19 @@ export const Settings = () => {
     toast.success("New API key generated and copied to clipboard");
   };
 
+  const getOwnerDetails = async () => {
+    const formData = new FormData();
+    formData.append("id", organizationDetails.id);
+    const response = await fetch(
+      `${config.api.baseUrl}${config.api.endpoints.getOwnersDetails}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+    const finalResponse = await response.json();
+    return finalResponse?.length > 0 ? finalResponse : [];
+  };
   const validateHubspotToken = async () => {
     if (!hubspotToken) {
       toast.error("No HubSpot access token found");
@@ -1125,9 +1138,17 @@ export const Settings = () => {
         // Save the encrypted token to organization
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          jwtToken
+          {
+            hubspot_encrypted_token: jwtToken,
+          }
         );
-
+        const ownersData = await getOwnerDetails();
+        await authHelpers.updateOrganizationHubSpotToken(
+          organizationDetails.id,
+          {
+            hubspot_user_details: ownersData,
+          }
+        );
         // Update Redux state
         dispatch(
           setHubspotIntegration({
@@ -1159,10 +1180,9 @@ export const Settings = () => {
 
   const disconnectHubSpot = async () => {
     try {
-      await authHelpers.updateOrganizationHubSpotToken(
-        organizationDetails.id,
-        null
-      );
+      await authHelpers.updateOrganizationHubSpotToken(organizationDetails.id, {
+        hubspot_encrypted_token: null,
+      });
 
       dispatch(
         setHubspotIntegration({
