@@ -31,6 +31,7 @@ import {
   CheckCircle,
   AlertCircle,
   Trash2,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
