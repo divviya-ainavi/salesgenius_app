@@ -28,6 +28,11 @@ import {
   ArrowLeft,
   Eye,
   Calendar,
+  CheckCircle,
+  AlertCircle,
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
@@ -41,11 +46,27 @@ import {
 } from "@/components/ui/collapsible";
 import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import { useDropzone } from "react-dropzone";
+import { supabase } from "@/lib/supabase";
 
+import { fileStorage } from "@/lib/fileStorage";
 interface ResearchFormData {
   companyName: string;
   companyWebsite: string;
-  prospectLinkedIn: string[]; // make it an array
+  prospectFiles: File[]; // PDF files for prospect analysis
+}
+
+interface UploadedFile {
+  id: string;
+  file: File;
+  storagePath?: string;
+  publicUrl?: string;
+  name: string;
+  size: number;
+  uploading: boolean;
+  uploaded: boolean;
+  storageUrl?: string;
+  error?: string;
 }
 
 interface ResearchResult {
@@ -61,6 +82,12 @@ interface ResearchResult {
   summaryNote: string;
   sources: string[];
   recommendations: any;
+  prospectProfiles: Array<{
+    name: string;
+    communicationStyle: string;
+    personalityType: string;
+  }>;
+  profiles: UploadedFile[];
 }
 
 interface StoredResearch {
@@ -80,6 +107,13 @@ interface StoredResearch {
   market_trends: string[];
   sources: string[];
   recommendations: string;
+  prospect_profiles: Array<{
+    name: string;
+    communicationStyle: string;
+    personalityType: string;
+  }>;
+  uploaded_file_ids: string[];
+  uploaded_file_paths: string[];
 }
 
 const Research = () => {
@@ -93,8 +127,10 @@ const Research = () => {
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
-    prospectLinkedIn: [""], // initialize with one empty field
+    prospectFiles: [], // initialize with empty array
   });
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(
     null
@@ -113,6 +149,21 @@ const Research = () => {
     hubspotIntegration,
   } = useSelector((state) => state.auth);
 
+  const [historySearch, setHistorySearch] = useState("");
+  const filteredHistory =
+    researchHistory?.length > 0
+      ? researchHistory.filter((r) => {
+          const q = historySearch.trim().toLowerCase();
+          if (!q) return true;
+          return (
+            r.company_name?.toLowerCase().includes(q) ||
+            r.company_url?.toLowerCase().includes(q) ||
+            r.sector?.toLowerCase().includes(q) ||
+            r.summary_note?.toLowerCase().includes(q)
+          );
+        })
+      : [];
+
   // Form validation
   const isFormValid =
     formData.companyName.trim() !== "" && formData.companyWebsite.trim() !== "";
@@ -123,35 +174,6 @@ const Research = () => {
     );
   };
 
-  // Extract prospect name from LinkedIn URL
-  const extractProspectNameFromLinkedInUrl = (linkedInUrl: string): string => {
-    try {
-      // Extract the username part from LinkedIn URL
-      const urlPattern = /linkedin\.com\/in\/([^\/\?]+)/i;
-      const match = linkedInUrl.match(urlPattern);
-
-      if (match && match[1]) {
-        const username = match[1];
-        // Convert hyphenated username to proper name format
-        // e.g., "john-doe-smith" becomes "John Doe Smith"
-        const formattedName = username
-          .split("-")
-          .map(
-            (part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-          )
-          .join(" ");
-
-        return formattedName;
-      }
-
-      // Fallback if pattern doesn't match
-      return "This Prospect";
-    } catch (error) {
-      // Fallback for any parsing errors
-      return "This Prospect";
-    }
-  };
-
   // Handle form input changes
   const handleInputChange = (field: keyof ResearchFormData, value: string) => {
     setFormData((prev) => ({
@@ -160,168 +182,249 @@ const Research = () => {
     }));
   };
 
-  // Mock research data generation
-  const generateMockResearch = (data: ResearchFormData): ResearchResult => {
-    const companyAnalysis = `**Company Overview**
+  // File upload handling
+  const onDrop = (acceptedFiles: File[]) => {
+    const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      name: file.name,
+      size: file.size,
+      uploading: false,
+      uploaded: false,
+    }));
 
-${data.companyName} is a technology company that has established itself as a significant player in its market segment. Based on our analysis of their digital presence and public information, the company demonstrates strong market positioning with a focus on innovation and customer-centric solutions.¹
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    setFormData((prev) => ({
+      ...prev,
+      prospectFiles: [...prev.prospectFiles, ...acceptedFiles],
+    }));
+  };
 
-**Financial Snapshot**
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"],
+    },
+    maxFiles: 5,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
 
-The company shows indicators of healthy growth with expanding market presence and strategic investments in technology infrastructure. Recent funding rounds and partnership announcements suggest positive momentum in their business trajectory.²
+  const removeFile = (fileId: string) => {
+    setUploadedFiles((prev) => {
+      const updatedFiles = prev.filter((f) => f.id !== fileId);
+      const updatedFormFiles = updatedFiles.map((f) => f.file);
+      setFormData((prevForm) => ({
+        ...prevForm,
+        prospectFiles: updatedFormFiles,
+      }));
+      return updatedFiles;
+    });
+  };
 
-**Competitive Landscape**
+  const uploadFilesToStorage = async (): Promise<string[]> => {
+    if (uploadedFiles.length === 0) return [];
 
-${data.companyName} operates in a competitive environment where differentiation through technology and customer experience is crucial. They appear to be positioning themselves as a premium solution provider with emphasis on quality and reliability.³
+    setIsUploadingFiles(true);
+    const uploadedUrls: string[] = [];
 
-**Business Challenges**
+    try {
+      for (const fileItem of uploadedFiles) {
+        if (fileItem.uploaded) {
+          uploadedUrls.push(fileItem.storageUrl!);
+          continue;
+        }
 
-Like many companies in their sector, ${data.companyName} likely faces challenges around scaling operations, maintaining competitive advantage, and adapting to rapidly changing market conditions. Digital transformation and customer acquisition appear to be key focus areas.⁴
+        // Update file status to uploading
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileItem.id ? { ...f, uploading: true } : f
+          )
+        );
 
-**Key Leadership Profiles**
+        // Generate unique filename
+        const timestamp = Date.now();
+        const uniqueFileName = `research-files/${user?.id}/${timestamp}_${fileItem.file.name}`;
 
-The leadership team demonstrates experience in scaling technology companies with backgrounds spanning product development, sales, and strategic partnerships. Their approach suggests a data-driven culture with emphasis on measurable outcomes.⁵`;
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("research-files")
+          .upload(uniqueFileName, fileItem.file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
-    // Extract prospect name and create personalized analysis
-    const prospectName = data.prospectLinkedIn
-      ? extractProspectNameFromLinkedInUrl(data.prospectLinkedIn)
-      : "";
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          // Update file status to error
+          setUploadedFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileItem.id
+                ? { ...f, uploading: false, error: uploadError.message }
+                : f
+            )
+          );
+          continue;
+        }
 
-    const prospectAnalysis = data.prospectLinkedIn
-      ? `
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("research-files")
+          .getPublicUrl(uniqueFileName);
 
----
+        // Update file status to uploaded
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileItem.id
+              ? {
+                  ...f,
+                  uploading: false,
+                  uploaded: true,
+                  storageUrl: urlData.publicUrl,
+                }
+              : f
+          )
+        );
 
-**${prospectName} - Deep Dive Analysis**
+        uploadedUrls.push(urlData.publicUrl);
+      }
 
-Based on the LinkedIn profile analysis, ${prospectName} appears to be a decision-maker with significant influence over technology purchasing decisions. Their background suggests they value innovative solutions that can demonstrate clear ROI.⁶
-
-**Professional Background**
-
-${prospectName} has a track record of implementing strategic initiatives and driving organizational change. Their experience indicates they understand the importance of technology in achieving business objectives.⁷
-
-**Key Drivers & Motivations**
-
-This individual likely prioritizes solutions that can scale with their organization and provide measurable business impact. ${prospectName} appears to value partnerships with vendors who can provide strategic guidance beyond just product delivery.⁸
-
-**Communication Style & Personality**
-
-Based on their professional presence, ${prospectName} prefers direct, data-driven conversations with clear value propositions. They likely appreciate consultative approaches that demonstrate deep understanding of their business challenges.⁹`
-      : "";
-
-    const sources = [
-      `${data.companyWebsite} - Company website and corporate information`,
-      "Industry reports and market analysis from leading research firms",
-      "Competitive intelligence from public filings and press releases",
-      "Technology sector analysis and growth projections",
-      "Leadership team profiles from professional networks",
-      ...(data.prospectLinkedIn
-        ? [
-            `${data.prospectLinkedIn} - LinkedIn professional profile`,
-            "Professional background and career progression analysis",
-            "Industry connections and engagement patterns",
-            "Communication style analysis from public posts and interactions",
-          ]
-        : []),
-    ];
-
-    const recommendations = `**Primary Meeting Goal**
-
-Position your solution as a strategic enabler that can help ${data.companyName} achieve their growth objectives while addressing their specific operational challenges. Focus on demonstrating measurable ROI and scalability.
-
-**Key Talking Points**
-
-• Emphasize how your solution addresses the specific challenges identified in their market segment
-• Highlight case studies from similar companies that have achieved significant results
-• Discuss your company's track record of successful implementations and ongoing support
-• Present a clear value proposition that aligns with their business priorities
-
-**High-Impact Questions to Ask**
-
-• "What are your top three business priorities for the next 12 months?"
-• "How are you currently measuring success in [relevant area]?"
-• "What challenges have you faced with previous technology implementations?"
-• "What would need to happen for this to be considered a successful partnership?"
-
-**Anticipated Objections**
-
-• **Budget concerns**: Be prepared to discuss flexible pricing models and ROI timelines
-• **Implementation complexity**: Highlight your proven implementation methodology and support resources
-• **Integration challenges**: Demonstrate your platform's compatibility and integration capabilities
-• **Vendor reliability**: Provide references and case studies that showcase long-term partnerships
-
-**Meeting Preparation Checklist**
-
-• Prepare 2-3 relevant case studies with quantifiable results
-• Research their recent company announcements or press releases
-• Identify potential integration points with their existing technology stack
-• Prepare questions that demonstrate understanding of their industry challenges`;
-
-    return {
-      companyAnalysis: companyAnalysis + prospectAnalysis,
-      sources,
-      recommendations,
-    };
+      return uploadedUrls;
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast.error("Failed to upload files");
+      return [];
+    } finally {
+      setIsUploadingFiles(false);
+    }
   };
 
   // Handle form submission
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!isFormValid) return;
-
-  //   setIsLoading(true);
-
-  //   // Simulate API call
-  //   await new Promise(resolve => setTimeout(resolve, 2000));
-
-  //   const result = generateMockResearch(formData);
-  //   setResearchResult(result);
-  //   setCurrentView('results');
-  //   setIsLoading(false);
-
-  //   toast.success(`Research completed for ${formData.companyName}`);
-  // };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
 
     setIsLoading(true);
     try {
+      // Create FormData for API request with proper file handling
+      const apiFormData = new FormData();
+      apiFormData.append("companyName", formData.companyName);
+      apiFormData.append("companyUrl", formData.companyWebsite);
+
+      // Add files to FormData with consistent naming
+      uploadedFiles.forEach((file, index) => {
+        apiFormData.append("profiles", file.file); // Use 'profiles' as the field name
+      });
+
+      // Add metadata
+      // apiFormData.append("fileCount", uploadedFiles.length.toString());
+      // apiFormData.append("userId", user?.id || "");
+
+      // Log FormData contents for debugging
+      console.log("📤 API FormData contents:");
+      for (let [key, value] of apiFormData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}:`, {
+            name: value.name,
+            size: value.size,
+            type: value.type,
+          });
+        } else {
+          console.log(`  ${key}:`, value);
+        }
+      }
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.companyResearch}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          // body: JSON.stringify({
-          //   companyName: formData.companyName,
-          //   companyUrl: formData.companyWebsite,
-          //   prospectUrl: formData.prospectLinkedIn,
-          // }),
-          body: JSON.stringify({
-            companyName: formData.companyName,
-            companyUrl: formData.companyWebsite,
-            prospectUrl: formData.prospectLinkedIn.filter(
-              (url) => url.trim() !== ""
-            ),
-          }),
+          body: apiFormData,
+          // headers: {
+          //   // Don't set Content-Type - let browser set it with boundary for FormData
+          //   Authorization: `Bearer ${api.auth.getToken() || ""}`,
+          // },
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
+      const uploadedFileData = [];
+      const uploadedFileUrls = [];
+      for (const file of uploadedFiles) {
+        try {
+          const fileData = await fileStorage.uploadFile(file, user?.id);
+
+          // const { data: fileRecord, error: fileError } = await supabase
+          //   .from("uploaded_files")
+          //   .insert([
+          //     {
+          //       user_id: userId,
+          //       filename: fileData.fileName,
+          //       file_type: "application/pdf",
+          //       file_size: fileData.fileSize,
+          //       content_type: fileData.contentType,
+          //       file_url: fileData.publicUrl,
+          //       storage_path: fileData.filePath,
+          //       is_processed: true,
+          //     },
+          //   ])
+          //   .select()
+          //   .single();
+
+          // if (fileError) {
+          //   console.error("Error saving file metadata:", fileError);
+          //   throw new Error(`Failed to save file metadata for ${file.name}`);
+          // }
+
+          uploadedFileData.push({
+            // id: fileRecord.id,
+            file: file,
+            storagePath: fileData.filePath,
+            publicUrl: fileData.publicUrl,
+            fileName: fileData.fileName,
+            fileSize: fileData.fileSize,
+            contentType: fileData.contentType,
+          });
+        } catch (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          throw new Error(
+            `Failed to upload ${file.name}: ${uploadError.message}`
+          );
+        }
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const apiResponseData = await response.json();
+      const data = apiResponseData;
       const result = data[0]?.output;
 
-      // if (!result || !result.companyAnalysis) {
-      //   throw new Error("Invalid response format");
-      // }
-
       const output = result.output || result;
+
+      for (const fileItem of uploadedFiles) {
+        try {
+          // Upload to Supabase Storage
+          const fileData = await fileStorage.uploadFile(
+            fileItem.file,
+            user?.id
+          );
+
+          uploadedFileData.push({
+            file: fileItem.file,
+            storagePath: fileData.filePath,
+            publicUrl: fileData.publicUrl,
+            fileName: fileData.fileName,
+            fileSize: fileData.fileSize,
+            contentType: fileData.contentType,
+          });
+        } catch (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          throw new Error(
+            `Failed to upload ${fileItem.file.name}: ${uploadError.message}`
+          );
+        }
+      }
 
       setResearchResult({
         companyName: output.companyName || formData.companyName,
@@ -336,15 +439,15 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         summaryNote: output.summaryNote || "",
         sources: output.sources || [],
         recommendations: output.recommendations || {},
+        prospectProfiles: output?.prospectProfiles || [],
+        profiles: uploadedFileData || [],
       });
 
       await dbHelpers.saveResearchCompany({
         user_id: user?.id,
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
-        prospect_urls: formData.prospectLinkedIn.filter(
-          (url) => url.trim() !== ""
-        ),
+        prospect_urls: uploadedFileUrls || [],
         company_analysis: output.companyOverview,
         prospect_analysis: "",
         sources: output.sources || [],
@@ -357,8 +460,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
         geographic_scope: output.geographicScope || "",
         size: output.size || "",
         sector: output.sector || "",
+        prospectProfiles: output?.prospectProfiles || [],
+        profiles: uploadedFileData,
       });
-
+      await refreshHistory();
       setCurrentView("results");
       toast.success(`Research completed for ${formData.companyName}`);
     } catch (error) {
@@ -377,8 +482,9 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     setFormData({
       companyName: "",
       companyWebsite: "",
-      prospectLinkedIn: [""],
+      prospectFiles: [],
     });
+    setUploadedFiles([]);
     setResearchResult(null);
     setActiveTab("analysis");
     setProspectInCRM(false);
@@ -399,8 +505,24 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     }
   };
 
+  // Handle view history
+  const refreshHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const history = await dbHelpers.getResearchHistory(user?.id);
+      setResearchHistory(history);
+      // setCurrentView("history");
+    } catch (error) {
+      console.error("Failed to load research history:", error);
+      toast.error("Failed to load research history");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Handle view stored research
   const handleViewStoredResearch = (storedResearch: StoredResearch) => {
+    console.log(storedResearch, "check stored research");
     // Convert stored research back to ResearchResult format
     const result: ResearchResult = {
       companyName: storedResearch.company_name,
@@ -417,6 +539,10 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
       recommendations: storedResearch.recommendations
         ? JSON.parse(storedResearch.recommendations)
         : {},
+      prospectProfiles: storedResearch?.prospectProfiles
+        ? storedResearch.prospectProfiles.map((profile) => JSON.parse(profile))
+        : [],
+      profiles: [], // Will be loaded separately if needed
     };
 
     setResearchResult(result);
@@ -428,6 +554,51 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
   const handleBackToHistory = () => {
     setCurrentView("history");
   };
+
+  const handleCopyResults = () => {
+    if (!researchResult) return;
+
+    // Include prospect profiles in the copy data
+    const prospectProfilesText =
+      researchResult.prospectProfiles &&
+      researchResult.prospectProfiles.length > 0
+        ? `\n\n## Prospect Profiles\n\n${researchResult.prospectProfiles
+            .map(
+              (profile, index) =>
+                `### ${profile.name}\n\n**Communication Style:**\n${profile.communicationStyle}\n\n**Personality Type:**\n${profile.personalityType}`
+            )
+            .join("\n\n")}`
+        : "";
+
+    const copyText = `# Company Research: ${researchResult.companyName}
+
+## Company Analysis
+${researchResult.companyOverview || "No analysis available"}
+
+## Prospect Analysis
+${researchResult.summaryNote || "No prospect analysis available"}
+${prospectProfilesText}
+
+## Recommendations
+${
+  JSON.stringify(researchResult.recommendations) ||
+  "No recommendations available"
+}
+
+## Sources
+${
+  researchResult.sources
+    ? researchResult.sources.map((source) => `- ${source}`).join("\n")
+    : "No sources available"
+}
+
+---
+Generated by SalesGenius.ai on ${new Date().toLocaleDateString()}`;
+
+    navigator.clipboard.writeText(copyText);
+    toast.success("Research results copied to clipboard");
+  };
+
   // Handle copy to clipboard
   const handleCopy = async () => {
     if (!researchResult) return;
@@ -435,60 +606,85 @@ Position your solution as a strategic enabler that can help ${data.companyName} 
     try {
       // Helper function to format recommendations object as readable text
       const formatRecommendations = (recommendations) => {
-        if (typeof recommendations === 'string') {
+        if (typeof recommendations === "string") {
           return recommendations;
         }
-        
-        if (!recommendations || typeof recommendations !== 'object') {
-          return 'No recommendations available';
+
+        if (!recommendations || typeof recommendations !== "object") {
+          return "No recommendations available";
         }
-        
-        let formatted = '';
-        
+
+        let formatted = "";
+
         if (recommendations.primaryMeetingGoal) {
           formatted += `PRIMARY MEETING GOAL\n${recommendations.primaryMeetingGoal}\n\n`;
         }
-        
-        if (recommendations.keyTalkingPoints && Array.isArray(recommendations.keyTalkingPoints)) {
+
+        if (
+          recommendations.keyTalkingPoints &&
+          Array.isArray(recommendations.keyTalkingPoints)
+        ) {
           formatted += `KEY TALKING POINTS\n`;
           recommendations.keyTalkingPoints.forEach((point, index) => {
             formatted += `${index + 1}. ${point}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
-        if (recommendations.highImpactSalesQuestions && Array.isArray(recommendations.highImpactSalesQuestions)) {
+
+        if (
+          recommendations.highImpactSalesQuestions &&
+          Array.isArray(recommendations.highImpactSalesQuestions)
+        ) {
           formatted += `HIGH-IMPACT SALES QUESTIONS\n`;
-          recommendations.highImpactSalesQuestions.forEach((question, index) => {
-            formatted += `${index + 1}. ${question}\n`;
-          });
-          formatted += '\n';
+          recommendations.highImpactSalesQuestions.forEach(
+            (question, index) => {
+              formatted += `${index + 1}. ${question}\n`;
+            }
+          );
+          formatted += "\n";
         }
-        
-        if (recommendations.anticipatedObjections && Array.isArray(recommendations.anticipatedObjections)) {
+
+        if (
+          recommendations.anticipatedObjections &&
+          Array.isArray(recommendations.anticipatedObjections)
+        ) {
           formatted += `ANTICIPATED OBJECTIONS\n`;
           recommendations.anticipatedObjections.forEach((objection, index) => {
             formatted += `${index + 1}. ${objection}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
-        if (recommendations.meetingChecklist && Array.isArray(recommendations.meetingChecklist)) {
+
+        if (
+          recommendations.meetingChecklist &&
+          Array.isArray(recommendations.meetingChecklist)
+        ) {
           formatted += `MEETING PREPARATION CHECKLIST\n`;
           recommendations.meetingChecklist.forEach((item, index) => {
             formatted += `${index + 1}. ${item}\n`;
           });
-          formatted += '\n';
+          formatted += "\n";
         }
-        
+
         // Handle any other properties
-        Object.keys(recommendations).forEach(key => {
-          if (!['primaryMeetingGoal', 'keyTalkingPoints', 'highImpactSalesQuestions', 'anticipatedObjections', 'meetingChecklist'].includes(key)) {
-            formatted += `${key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}\n${recommendations[key]}\n\n`;
+        Object.keys(recommendations).forEach((key) => {
+          if (
+            ![
+              "primaryMeetingGoal",
+              "keyTalkingPoints",
+              "highImpactSalesQuestions",
+              "anticipatedObjections",
+              "meetingChecklist",
+            ].includes(key)
+          ) {
+            formatted += `${key
+              .toUpperCase()
+              .replace(/([A-Z])/g, " $1")
+              .trim()}\n${recommendations[key]}\n\n`;
           }
         });
-        
-        return formatted.trim();
+
+        return formatted;
       };
 
       // Format the research result as readable text
@@ -512,19 +708,44 @@ KEY DETAILS
 
 GROWTH OPPORTUNITIES
 --------------------
-${researchResult.growthOpportunities?.map((opportunity, index) => `${index + 1}. ${opportunity}`).join('\n') || 'None listed'}
+${
+  researchResult.growthOpportunities
+    ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
+    .join("\n") || "None listed"
+}
 
 MARKET TRENDS
 -------------
-${researchResult.marketTrends?.map((trend, index) => `${index + 1}. ${trend}`).join('\n') || 'None listed'}
+${
+  researchResult.marketTrends
+    ?.map((trend, index) => `${index + 1}. ${trend}`)
+    .join("\n") || "None listed"
+}
 
 SUMMARY NOTE
 ------------
 ${researchResult.summaryNote}
 
+PROFILES
+----------
+${
+  researchResult.prospectProfiles && researchResult.prospectProfiles.length > 0
+    ? `Prospect Profiles\n${researchResult.prospectProfiles
+        .map(
+          (profile, index) =>
+            `${profile.name}\nCommunication Style:\n${profile.communicationStyle}\nPersonality Type:\n${profile.personalityType}`
+        )
+        .join("\n\n")}`
+    : ""
+}
+
 SOURCES
 -------
-${researchResult.sources?.map((source, index) => `${index + 1}. ${source}`).join('\n') || 'None listed'}
+${
+  researchResult.sources
+    ?.map((source, index) => `${index + 1}. ${source}`)
+    .join("\n") || "None listed"
+}
 
 SALES RECOMMENDATIONS
 ---------------------
@@ -546,29 +767,12 @@ Generated by SalesGenius.ai
     setProspectInCRM(true);
   };
 
-  const handleProspectLinkedInChange = (index: number, value: string) => {
-    const updatedProspects = [...formData.prospectLinkedIn];
-    updatedProspects[index] = value;
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: updatedProspects,
-    }));
-  };
-
-  const addProspectField = () => {
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: [...prev.prospectLinkedIn, ""],
-    }));
-  };
-
-  const removeProspectField = (index: number) => {
-    const updated = [...formData.prospectLinkedIn];
-    updated.splice(index, 1);
-    setFormData((prev) => ({
-      ...prev,
-      prospectLinkedIn: updated,
-    }));
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   // Render form view
@@ -640,12 +844,10 @@ Generated by SalesGenius.ai
                 </div>
 
                 {/* Prospect LinkedIn */}
-                {/* <div className="space-y-2">
-                  <label
-                    htmlFor="prospectLinkedIn"
-                    className="text-sm font-medium"
-                  >
-                    Prospect LinkedIn URL
+                {/* Prospect Files Upload */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Prospect Files (PDF)
                   </label>
                   <Input
                     id="prospectLinkedIn"
@@ -671,7 +873,6 @@ Generated by SalesGenius.ai
                   {formData.prospectLinkedIn.map((url, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
-                        // disabled
                         type="url"
                         disabled
                         placeholder="https://www.linkedin.com/in/username"
@@ -694,17 +895,17 @@ Generated by SalesGenius.ai
                   ))}
 
                   <Button
-                    // disabled
+                    disabled
                     type="button"
                     variant="outline"
                     onClick={addProspectField}
-                    disabled
                   >
                     + Add Another Prospect
                   </Button>
 
                   <p className="text-xs text-muted-foreground">
-                    Optional: Add for personalized prospect analysis
+                    Optional: Upload PDF files containing prospect information
+                    for enhanced analysis
                   </p>
                 </div>
 
@@ -712,14 +913,16 @@ Generated by SalesGenius.ai
                 <Button
                   data-tour="research-button"
                   type="submit"
-                  disabled={!isFormValid || isLoading}
+                  disabled={!isFormValid || isLoading || isUploadingFiles}
                   className="w-full"
                   size="lg"
                 >
-                  {isLoading ? (
+                  {isLoading || isUploadingFiles ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Researching...
+                      {isUploadingFiles
+                        ? "Uploading files..."
+                        : "Researching..."}
                     </>
                   ) : (
                     <>
@@ -741,6 +944,7 @@ Generated by SalesGenius.ai
     return (
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Page Header */}
+
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-4">
@@ -757,6 +961,22 @@ Generated by SalesGenius.ai
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-72">
+                <Input
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Search by company, URL, sector…"
+                  className="pl-9"
+                />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              </div>
+
+              <Button onClick={handleNewResearch}>
+                <Plus className="w-4 h-4 mr-1" />
+                New Research
+              </Button>
+            </div>
             <Button
               variant="outline"
               onClick={handleViewHistory}
@@ -769,10 +989,6 @@ Generated by SalesGenius.ai
               )}
               Refresh
             </Button>
-            <Button onClick={handleNewResearch}>
-              <Plus className="w-4 h-4 mr-1" />
-              New Research
-            </Button>
           </div>
         </div>
 
@@ -782,33 +998,74 @@ Generated by SalesGenius.ai
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">Loading research history...</p>
           </div>
-        ) : researchHistory.length === 0 ? (
+        ) : filteredHistory?.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <Search className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No Research History</h3>
-              <p className="text-muted-foreground mb-4">
-                You haven't conducted any research yet. Start by researching a
-                company.
-              </p>
-              <Button onClick={handleNewResearch}>
-                <Plus className="w-4 h-4 mr-2" />
-                Start Research
-              </Button>
+              {historySearch ? (
+                <>
+                  <h3 className="text-lg font-medium mb-2">
+                    No matching results
+                  </h3>
+                  <p className="text-muted-foreground mb-2">
+                    Try a different search or clear the search box.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setHistorySearch("")}
+                  >
+                    Clear Search
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-medium mb-2">
+                    No Research History
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    You haven't conducted any research yet. Start by researching
+                    a company.
+                  </p>
+                  <Button onClick={handleNewResearch}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Start Research
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {researchHistory.map((research) => (
+            {filteredHistory?.map((research) => (
               <Card
                 key={research.id}
                 className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:border-primary/50"
                 onClick={() => handleViewStoredResearch(research)}
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center space-x-2">
+                  {/* <CardTitle className="text-lg flex items-center space-x-2">
                     <Building className="w-5 h-5 text-primary" />
                     <span className="truncate">{research.company_name}</span>
+                  </CardTitle> */}
+                  <CardTitle
+                    asChild
+                    className="text-lg flex items-center justify-between cursor-pointer hover:text-primary transition-colors"
+                  >
+                    <button
+                      // onClick={() => {
+                      //   // Navigate or perform action here
+                      // }}
+                      className="w-full flex items-center justify-between"
+                    >
+                      <span className="flex items-center space-x-2">
+                        <Building className="w-5 h-5 text-primary" />
+                        <span className="truncate">
+                          {research.company_name}
+                        </span>
+                      </span>
+
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary" />
+                    </button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -820,13 +1077,16 @@ Generated by SalesGenius.ai
                       </span>
                     </div>
 
-                    {research.prospect_urls &&
-                      research.prospect_urls.length > 0 && (
+                    {research?.prospect_profiles &&
+                      research.prospect_profiles.length > 0 && (
                         <div className="flex items-center space-x-2 text-sm">
                           <User className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
-                            {research.prospect_urls.length} prospect
-                            {research.prospect_urls.length > 1 ? "s" : ""}
+                            {research.prospect_profiles.length} prospect profile
+                            {research.prospect_profiles.length > 1
+                              ? "s"
+                              : ""}{" "}
+                            analyzed
                           </span>
                         </div>
                       )}
@@ -836,6 +1096,34 @@ Generated by SalesGenius.ai
                       <span className="text-muted-foreground">
                         {new Date(research.created_at).toLocaleDateString()}
                       </span>
+
+                      {/* Show prospect profiles preview in history cards */}
+                      {research.prospect_profiles &&
+                        research.prospect_profiles.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <h5 className="text-xs font-medium text-muted-foreground mb-1">
+                              Prospect Profiles:
+                            </h5>
+                            <div className="space-y-1">
+                              {research.prospect_profiles
+                                .slice(0, 2)
+                                .map((profile, index) => (
+                                  <p
+                                    key={index}
+                                    className="text-xs text-muted-foreground truncate"
+                                  >
+                                    • {profile.name}
+                                  </p>
+                                ))}
+                              {research.prospect_profiles.length > 2 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{research.prospect_profiles.length - 2}{" "}
+                                  more...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -850,17 +1138,6 @@ Generated by SalesGenius.ai
                       {research.summary_note}
                     </p>
                   )}
-
-                  <div className="pt-2 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-primary hover:text-primary"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -888,29 +1165,45 @@ Generated by SalesGenius.ai
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="flex-1 max-w-md mx-8"
+            // className="flex-1 mx-8" // ⬅ removed max-w-md so the list can grow
           >
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList
+              className="
+              inline-flex items-center
+              rounded-md bg-muted p-1 text-muted-foreground
+              whitespace-nowrap overflow-x-auto
+              gap-2 sm:gap-0
+              no-scrollbar
+            "
+            >
               <TabsTrigger
                 value="analysis"
-                className="flex items-center space-x-1"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
               >
                 <FileText className="w-4 h-4" />
                 <span>Company Analysis</span>
               </TabsTrigger>
+
               <TabsTrigger
-                value="source"
-                className="flex items-center space-x-1"
+                value="prospects"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
               >
-                <ExternalLink className="w-4 h-4" />
-                <span>Source</span>
+                <User className="w-4 h-4" />
+                <span>Stakeholders</span>
               </TabsTrigger>
               <TabsTrigger
                 value="recommendation"
-                className="flex items-center space-x-1"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
               >
                 <Target className="w-4 h-4" />
                 <span>Recommendations</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="source"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Source</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1109,6 +1402,63 @@ Generated by SalesGenius.ai
             </div>
           )}
 
+          {activeTab === "prospects" && (
+            <div className="space-y-6">
+              {researchResult?.prospectProfiles &&
+              researchResult.prospectProfiles.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {researchResult.prospectProfiles.map((profile, index) => (
+                    <Card
+                      key={index}
+                      className="hover:shadow-md transition-shadow"
+                    >
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg flex items-center space-x-2">
+                          <User className="w-5 h-5 text-primary" />
+                          <span className="truncate">{profile.name}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-sm mb-2 flex items-center">
+                            <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
+                            Communication Style
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {profile.communicationStyle}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-sm mb-2 flex items-center">
+                            <Lightbulb className="w-4 h-4 mr-2 text-green-600" />
+                            Personality Type
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {profile.personalityType}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <User className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">
+                      No Stakeholder Profiles
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Upload PDF files containing prospect information to
+                      generate detailed profiles and communication insights.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
           {activeTab === "source" && (
             <Card>
               <CardHeader>
@@ -1128,6 +1478,10 @@ Generated by SalesGenius.ai
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No sources available for this research</p>
+                    <p>
+                      Upload PDF files and complete your first research to see
+                      results here
+                    </p>
                   </div>
                 )}
               </CardContent>

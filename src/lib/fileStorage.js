@@ -9,10 +9,10 @@ export const fileStorage = {
       const timestamp = Date.now()
       const fileExtension = file.name.split('.').pop()
       const uniqueFileName = `${userId}/${timestamp}_${file.name}`
-      
+
       // Upload file to Supabase Storage using transcript-files bucket
       const { data, error } = await supabase.storage
-        .from('transcript-files')
+        .from('research-profile')
         .upload(uniqueFileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -61,14 +61,14 @@ export const fileStorage = {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const contentType = response.headers.get('content-type')
-      
+
       // For text files, return text content
       if (contentType && (contentType.includes('text/') || contentType.includes('application/json'))) {
         return await response.text()
       }
-      
+
       // For other files (like PDFs), return null - they'll be processed differently
       return null
     } catch (error) {
