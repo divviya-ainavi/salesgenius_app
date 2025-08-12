@@ -1057,7 +1057,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessMaterial = async (materialId) => {
+  const handleDeleteBusinessMaterial = async (materialId: string) => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
@@ -1084,6 +1084,19 @@ export const Settings = () => {
     toast.success("New API key generated and copied to clipboard");
   };
 
+  const getOwnerDetails = async () => {
+    const formData = new FormData();
+    formData.append("id", organizationDetails.id);
+    const response = await fetch(
+      `${config.api.baseUrl}${config.api.endpoints.getOwnersDetails}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+    const finalResponse = await response.json();
+    return finalResponse?.length > 0 ? finalResponse : [];
+  };
   const validateHubspotToken = async () => {
     if (!hubspotToken) {
       toast.error("No HubSpot access token found");
@@ -1125,12 +1138,17 @@ export const Settings = () => {
         // Save the encrypted token to organization
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          jwtToken,
           {
-            hubspot_user_details: Array.isArray(ownersData) && ownersData.length > 0 ? ownersData[0] : ownersData,
+            hubspot_encrypted_token: jwtToken,
           }
         );
-
+        const ownersData = await getOwnerDetails();
+        await authHelpers.updateOrganizationHubSpotToken(
+          organizationDetails.id,
+          {
+            hubspot_user_details: ownersData,
+          }
+        );
         // Update Redux state
         dispatch(
           setHubspotIntegration({
@@ -1142,33 +1160,6 @@ export const Settings = () => {
             },
           })
         );
-
-        // Get HubSpot owners details after successful connection
-        try {
-          console.log('🔄 Fetching HubSpot owners details...');
-          const ownersResponse = await api.get(config.api.endpoints.getOwnersDetails);
-
-          if (ownersResponse.data) {
-            console.log('✅ HubSpot owners details fetched:', ownersResponse.data);
-            
-            // Store owners data in organizations table
-            const { error: updateError } = await supabase
-              .from('organizations')
-              .update({ hubspot_owners: ownersResponse.data })
-              .eq('id', organizationDetails?.id);
-
-            if (updateError) {
-              console.error('❌ Error storing HubSpot owners:', updateError);
-              toast.error('Failed to store HubSpot owners data');
-            } else {
-              console.log('✅ HubSpot owners data stored successfully');
-              toast.success('HubSpot owners data retrieved and stored');
-            }
-          }
-        } catch (ownersError) {
-          console.error('❌ Error fetching HubSpot owners:', ownersError);
-          toast.error('Failed to fetch HubSpot owners data');
-        }
 
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
@@ -1189,10 +1180,9 @@ export const Settings = () => {
 
   const disconnectHubSpot = async () => {
     try {
-      await authHelpers.updateOrganizationHubSpotToken(
-        organizationDetails.id,
-        null
-      );
+      await authHelpers.updateOrganizationHubSpotToken(organizationDetails.id, {
+        hubspot_encrypted_token: null,
+      });
 
       dispatch(
         setHubspotIntegration({
