@@ -41,11 +41,27 @@ const ForgotPassword = () => {
       console.log("🔄 Starting password reset for email:", email);
       
       // Use Supabase Auth password reset
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/reset-password`
+      // Determine the correct redirect URL based on environment
+      const getRedirectUrl = () => {
+        // Check if we're in production by looking at the hostname
+        const isProduction = !window.location.hostname.includes('localhost') && 
+                           !window.location.hostname.includes('127.0.0.1') &&
+                           !window.location.hostname.includes('.local');
+        
+        if (isProduction) {
+          // Use the current production domain
+          return `${window.location.protocol}//${window.location.host}/auth/reset-password`;
+        } else {
+          // Use localhost for development
+          return `${window.location.origin}/auth/reset-password`;
         }
+      };
+
+      const redirectUrl = getRedirectUrl();
+      console.log("🔗 Using redirect URL for password reset:", redirectUrl);
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
       });
 
       if (resetError) {
