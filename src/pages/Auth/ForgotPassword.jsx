@@ -41,11 +41,27 @@ const ForgotPassword = () => {
       console.log("🔄 Starting password reset for email:", email);
       
       // Use Supabase Auth password reset
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/reset-password`
+      // Determine the correct redirect URL based on environment
+      const getRedirectUrl = () => {
+        // Check if we're in development (localhost)
+        const isDevelopment = window.location.hostname.includes('localhost') || 
+                             window.location.hostname.includes('127.0.0.1') ||
+                             window.location.hostname.includes('.local');
+        
+        if (isDevelopment) {
+          // Use localhost for development
+          return `${window.location.origin}/auth/reset-password`;
+        } else {
+          // Always use production domain for live environment
+          return 'https://salesgenius.ainavi.co.uk/auth/reset-password';
         }
+      };
+
+      const redirectUrl = getRedirectUrl();
+      console.log("🔗 Using redirect URL for password reset:", redirectUrl);
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
       });
 
       if (resetError) {

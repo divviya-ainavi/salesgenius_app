@@ -705,14 +705,11 @@ export const authHelpers = {
   },
 
   // Update organization HubSpot token
-  async updateOrganizationHubSpotToken(organizationId, encryptedToken) {
+  async updateOrganizationHubSpotToken(organizationId, updateddata) {
     try {
       const { data, error } = await supabase
         .from('organizations')
-        .update({
-          hubspot_encrypted_token: encryptedToken,
-          // updated_at: new Date().toISOString(),
-        })
+        .update(updateddata)
         .eq('id', organizationId)
         .select()
         .single();
