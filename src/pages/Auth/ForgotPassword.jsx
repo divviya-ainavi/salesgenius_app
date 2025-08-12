@@ -43,17 +43,17 @@ const ForgotPassword = () => {
       // Use Supabase Auth password reset
       // Determine the correct redirect URL based on environment
       const getRedirectUrl = () => {
-        // Check if we're in development (localhost)
-        const isDevelopment = window.location.hostname.includes('localhost') || 
-                             window.location.hostname.includes('127.0.0.1') ||
-                             window.location.hostname.includes('.local');
+        // Check if we're in production by looking at the hostname
+        const isProduction = !window.location.hostname.includes('localhost') && 
+                           !window.location.hostname.includes('127.0.0.1') &&
+                           !window.location.hostname.includes('.local');
         
-        if (isDevelopment) {
+        if (isProduction) {
+          // Use the current production domain
+          return `${window.location.protocol}//${window.location.host}/auth/reset-password`;
+        } else {
           // Use localhost for development
           return `${window.location.origin}/auth/reset-password`;
-        } else {
-          // Always use production domain for live environment
-          return 'https://salesgenius.ainavi.co.uk/auth/reset-password';
         }
       };
 
