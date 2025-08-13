@@ -1135,13 +1135,42 @@ export const Settings = () => {
       const result = await response.json();
 
       if (result.success || result.valid) {
-        // Save the encrypted token to organization
-        await authHelpers.updateOrganizationHubSpotToken(
-          organizationDetails.id,
-          {
-            hubspot_encrypted_token: jwtToken,
+        
+        // Get owner details and save to separate table
+        const ownersData = await getOwnerDetails();
+        if (ownersData.length > 0) {
+          // Extract the actual owners array from the response
+          const actualOwners = ownersData[0]?.Owners || [];
+          
+          if (actualOwners.length > 0) {
+            console.log('👥 Processing HubSpot owners:', actualOwners.length, 'owners');
+            
+            // Save/update HubSpot users in separate table
+            const saveResult = await authHelpers.saveOrUpdateHubSpotUsers(
+              organizationDetails.id,
+              actualOwners
+            );
+            
+            console.log('💾 HubSpot users save result:', saveResult.summary);
+            
+            // Show summary toast
+            const { successful, failed, matched_profiles } = saveResult.summary;
+            if (successful > 0) {
+              toast.success(
+                `HubSpot users synced: ${successful} saved, ${matched_profiles} matched with existing profiles`
+              );
+            }
+            if (failed > 0) {
+              toast.warning(`${failed} HubSpot users failed to sync`);
+            }
+          } else {
+            console.warn('⚠️ No owners found in HubSpot response');
+            toast.warning('No HubSpot owners found to sync');
           }
-        );
+        } else {
+          console.warn('⚠️ Empty owners data received');
+          toast.warning('No HubSpot owner data received');
+        }
         const ownersData = await getOwnerDetails();
 
         // const ownersData = await getOwnerDetails();

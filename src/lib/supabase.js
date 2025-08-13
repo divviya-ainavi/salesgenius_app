@@ -3515,6 +3515,215 @@ export const dbHelpers = {
     }
   },
 
+  // Save or update HubSpot users data (upsert operation)
+  async saveOrUpdateHubSpotUsers(organizationId, ownersData) {
+    try {
+      console.log('💾 Saving/updating HubSpot users for organization:', organizationId);
+      console.log('👥 Processing owners data:', ownersData);
+
+      if (!Array.isArray(ownersData) || ownersData.length === 0) {
+        console.warn('⚠️ No valid owners data provided');
+        return [];
+      }
+
+      const results = [];
+
+      for (const owner of ownersData) {
+        try {
+          // Find matching profile by email
+          const { data: matchingProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .eq('email', owner.email)
+            .eq('organization_id', organizationId);
+
+          if (profileError) {
+            console.error('❌ Error finding profile for email:', owner.email, profileError);
+            continue;
+          }
+
+          const matchingProfile = matchingProfiles?.[0];
+          console.log('🔍 Profile match for', owner.email, ':', matchingProfile ? 'Found' : 'Not found');
+
+          // Prepare HubSpot user data
+          const hubspotUserData = {
+            organization_id: organizationId,
+            hubspot_user_id: owner.id.toString(),
+            email: owner.email,
+            first_name: owner.firstName || null,
+            last_name: owner.lastName || null,
+            hubspot_type: owner.type || 'PERSON',
+            hubspot_created_at: owner.createdAt ? new Date(owner.createdAt).toISOString() : null,
+            hubspot_updated_at: owner.updatedAt ? new Date(owner.updatedAt).toISOString() : null,
+            is_archived: owner.archived || false,
+            user_id: matchingProfile?.id || null,
+          };
+
+          // Use upsert (insert or update) based on organization_id and hubspot_user_id
+          const { data: upsertedUser, error: upsertError } = await supabase
+            .from('hubspot_users')
+            .upsert(hubspotUserData, {
+              onConflict: 'organization_id,hubspot_user_id',
+              ignoreDuplicates: false
+            })
+            .select()
+            .single();
+
+          if (upsertError) {
+            console.error('❌ Error upserting HubSpot user:', owner.email, upsertError);
+            results.push({
+              email: owner.email,
+              success: false,
+              error: upsertError.message,
+            });
+          } else {
+            console.log('✅ Successfully upserted HubSpot user:', owner.email);
+            results.push({
+              email: owner.email,
+              success: true,
+              data: upsertedUser,
+              matched_profile: !!matchingProfile,
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error processing owner:', owner.email, error);
+          results.push({
+            email: owner.email,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      const matchedCount = results.filter(r => r.success && r.matched_profile).length;
+
+      console.log('📊 HubSpot users save/update summary:', {
+        total: results.length,
+        successful: successCount,
+        failed: failureCount,
+        matched_profiles: matchedCount,
+      });
+
+      return {
+        results,
+        summary: {
+          total: results.length,
+          successful: successCount,
+          failed: failureCount,
+          matched_profiles: matchedCount,
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error in saveOrUpdateHubSpotUsers:', error);
+      throw error;
+    }
+  },
+
+  // Save HubSpot users data
+  async saveHubSpotUsers(organizationId, ownersData) {
+    try {
+      console.log('💾 Saving HubSpot users for organization:', organizationId);
+      console.log('👥 Processing owners data:', ownersData);
+
+      if (!Array.isArray(ownersData) || ownersData.length === 0) {
+        console.warn('⚠️ No valid owners data provided');
+        return [];
+      }
+
+      const results = [];
+
+      for (const owner of ownersData) {
+        try {
+          // Find matching profile by email
+          const { data: matchingProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .eq('email', owner.email)
+            .eq('organization_id', organizationId);
+
+          if (profileError) {
+            console.error('❌ Error finding profile for email:', owner.email, profileError);
+            continue;
+          }
+
+          const matchingProfile = matchingProfiles?.[0];
+          console.log('🔍 Profile match for', owner.email, ':', matchingProfile ? 'Found' : 'Not found');
+
+          // Prepare HubSpot user data
+          const hubspotUserData = {
+            organization_id: organizationId,
+            hubspot_user_id: owner.id.toString(),
+            email: owner.email,
+            first_name: owner.firstName || null,
+            last_name: owner.lastName || null,
+            hubspot_type: owner.type || 'PERSON',
+            hubspot_created_at: owner.createdAt ? new Date(owner.createdAt).toISOString() : null,
+            hubspot_updated_at: owner.updatedAt ? new Date(owner.updatedAt).toISOString() : null,
+            is_archived: owner.archived || false,
+            user_id: matchingProfile?.id || null,
+          };
+
+          // Insert HubSpot user data
+          const { data: insertedUser, error: insertError } = await supabase
+            .from('hubspot_users')
+            .insert(hubspotUserData)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('❌ Error inserting HubSpot user:', owner.email, insertError);
+            results.push({
+              email: owner.email,
+              success: false,
+              error: insertError.message,
+            });
+          } else {
+            console.log('✅ Successfully saved HubSpot user:', owner.email);
+            results.push({
+              email: owner.email,
+              success: true,
+              data: insertedUser,
+              matched_profile: !!matchingProfile,
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error processing owner:', owner.email, error);
+          results.push({
+            email: owner.email,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      const matchedCount = results.filter(r => r.success && r.matched_profile).length;
+
+      console.log('📊 HubSpot users save summary:', {
+        total: results.length,
+        successful: successCount,
+        failed: failureCount,
+        matched_profiles: matchedCount,
+      });
+
+      return {
+        results,
+        summary: {
+          total: results.length,
+          successful: successCount,
+          failed: failureCount,
+          matched_profiles: matchedCount,
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error in saveHubSpotUsers:', error);
+      throw error;
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
