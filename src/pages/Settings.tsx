@@ -1143,18 +1143,10 @@ export const Settings = () => {
           }
         );
         const ownersData = await getOwnerDetails();
-        
-        // Extract the actual owners array from the response
-        const ownersArray = Array.isArray(ownersData) && ownersData.length > 0 
-          ? ownersData[0].Owners || [] 
-          : [];
-        
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
           {
-            hubspot_user_details: ownersArray,
-          }
-        );
+            hubspot_user_details: ownersData,
           }
         );
         // Update Redux state
