@@ -1143,12 +1143,14 @@ export const Settings = () => {
           }
         );
         const ownersData = await getOwnerDetails();
-        await authHelpers.updateOrganizationHubSpotToken(
-          organizationDetails.id,
-          {
-            hubspot_user_details: ownersData,
-          }
-        );
+
+        // const ownersData = await getOwnerDetails();
+        // await authHelpers.updateOrganizationHubSpotToken(
+        //   organizationDetails.id,
+        //   {
+        //     hubspot_user_details: ownersData,
+        //   }
+        // );
         // Update Redux state
         dispatch(
           setHubspotIntegration({

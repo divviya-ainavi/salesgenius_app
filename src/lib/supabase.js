@@ -3505,6 +3505,16 @@ export const dbHelpers = {
     }
   },
 
+  async updateHubspotUserid(valuesSql) {
+    try {
+      const updates = await supabase.rpc('update_profiles_hubspot_ids', { values_clause: valuesSql });
+      return updates;
+    } catch (error) {
+      console.error('Error reordering tour steps:', error);
+      throw error;
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
