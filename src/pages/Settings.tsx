@@ -1171,7 +1171,7 @@ export const Settings = () => {
           console.warn('⚠️ Empty owners data received');
           toast.warning('No HubSpot owner data received');
         }
-        const ownersData = await getOwnerDetails();
+       
 
         // const ownersData = await getOwnerDetails();
         // await authHelpers.updateOrganizationHubSpotToken(
