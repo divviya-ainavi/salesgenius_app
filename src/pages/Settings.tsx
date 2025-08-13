@@ -1057,7 +1057,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessMaterial = async (materialId: string) => {
+  const handleDeleteBusinessMaterial = async (materialId) => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
@@ -1155,8 +1155,7 @@ export const Settings = () => {
             hubspot_user_details: ownersArray,
           }
         );
-          }
-        );
+
         // Update Redux state
         dispatch(
           setHubspotIntegration({
