@@ -388,18 +388,18 @@ export const CallAssociationSelector = ({
                               <div className="text-sm text-gray-500">
                                 {company.domain}
                               </div>
-                              <div className="flex items-center space-x-1 ml-2">
-                                {company.is_hubspot && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                  >
-                                    <ExternalLink className="w-3 h-3 mr-1" />
-                                    HubSpot
-                                  </Badge>
-                                )}
-                              </div>
                             )}
+                            <div className="flex items-center space-x-1 ml-2">
+                              {company.is_hubspot && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                >
+                                  <ExternalLink className="w-3 h-3 mr-1" />
+                                  HubSpot
+                                </Badge>
+                              )}
+                            </div>
                             {company.industry && (
                               <div className="text-xs text-gray-400">
                                 {company.industry}
@@ -423,16 +423,16 @@ export const CallAssociationSelector = ({
                   <span className="font-medium text-foreground truncate max-w-[250px]">
                     {selectedCompany.name}
                   </span>
+                  {selectedCompany.is_hubspot && (
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      HubSpot
+                    </Badge>
+                  )}
                 </div>
-                    {selectedCompany.is_hubspot && (
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        HubSpot
-                      </Badge>
-                    )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -537,34 +537,34 @@ export const CallAssociationSelector = ({
                                   <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[250px]">
                                     {prospect.name}
                                   </span>
-                                  {selectedProspect?.id === prospect.id ? (
-                                    <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
-                                      <div className="flex items-center space-x-1 ml-2">
-                                        {prospect.is_hubspot && (
-                                          <Badge 
-                                            variant="outline" 
-                                            className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                          >
-                                            <ExternalLink className="w-3 h-3 mr-1" />
-                                            HubSpot
-                                          </Badge>
-                                        )}
-                                        {selectedProspect?.id === prospect.id && (
-                                    {/* Show additional HubSpot deal info */}
+                                  <div className="flex items-center space-x-1 ml-2">
                                     {prospect.is_hubspot && (
-                                      <div className="text-xs text-gray-500 mt-1 space-y-1">
-                                        {prospect.amount && (
-                                          <div>Amount: ${Number(prospect.amount).toLocaleString()}</div>
-                                        )}
-                                        {prospect.deal_stage && (
-                                          <div>Stage: {prospect.deal_stage}</div>
-                                        )}
-                                        {prospect.close_date && (
-                                          <div>Close: {new Date(prospect.close_date).toLocaleDateString()}</div>
-                                        )}
-                                      </div>
+                                      <Badge 
+                                        variant="outline" 
+                                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                      >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        HubSpot
+                                      </Badge>
                                     )}
-                                          <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                    {selectedProspect?.id === prospect.id && (
+                                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  {/* Show additional HubSpot deal info */}
+                                  {prospect.is_hubspot && (
+                                    <div className="text-xs text-gray-500 mt-1 space-y-1">
+                                      {prospect.amount && (
+                                        <div>Amount: ${Number(prospect.amount).toLocaleString()}</div>
+                                      )}
+                                      {prospect.deal_stage && (
+                                        <div>Stage: {prospect.deal_stage}</div>
+                                      )}
+                                      {prospect.close_date && (
+                                        <div>Close: {new Date(prospect.close_date).toLocaleDateString()}</div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
