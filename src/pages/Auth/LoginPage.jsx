@@ -22,7 +22,7 @@ import {
   setOrganizationDetails,
   setTitleName,
 } from "../../store/slices/authSlice";
-import { dbHelpers, checkHubSpotIntegration } from "../../lib/supabase";
+import { dbHelpers } from "../../lib/supabase";
 import { setAllTitles } from "../../store/slices/orgSlice";
 
 const LoginPage = () => {
@@ -224,7 +224,7 @@ const LoginPage = () => {
         if (profile.organization_id) {
           try {
             console.log("🔍 Checking HubSpot integration for organization:", profile.organization_id);
-            const hubspotStatus = await checkHubSpotIntegration(profile.organization_id);
+            const hubspotStatus = await dbHelpers.checkHubSpotIntegration(profile.organization_id);
             
             console.log("📊 HubSpot integration status:", hubspotStatus);
             
