@@ -889,12 +889,12 @@ export const getOnboardingTourStatus = async (userId) => {
 };
 
 // HubSpot Company Sync Functions
-export const syncHubSpotCompanies = async (organizationId) => {
+export const syncHubSpotCompanies = async (organizationId, integrationStatus, userId) => {
   try {
     console.log('🔄 Starting HubSpot company sync for organization:', organizationId);
 
     // Check if organization has HubSpot integration
-    const integrationStatus = await checkHubSpotIntegration(organizationId);
+    // const integrationStatus = await checkHubSpotIntegration(organizationId);
     if (!integrationStatus.connected) {
       throw new Error('HubSpot integration not found for this organization');
     }
@@ -935,7 +935,7 @@ export const syncHubSpotCompanies = async (organizationId) => {
 
     // Extract companies from the nested response structure
     const hubspotCompanies = apiData?.[0]?.Companies || apiData?.Companies || [];
-    
+
     if (!hubspotCompanies || hubspotCompanies.length === 0) {
       console.log('📭 No companies found in HubSpot response');
       return {
@@ -958,16 +958,16 @@ export const syncHubSpotCompanies = async (organizationId) => {
       try {
         const companyData = {
           name: hubspotCompany.properties.name || 'Unnamed Company',
-          domain: hubspotCompany.properties.domain || null,
-          industry: hubspotCompany.properties.industry || null,
-          city: hubspotCompany.properties.city || null,
+          // domain: hubspotCompany.properties.domain || null,
+          // industry: hubspotCompany.properties.industry || null,
+          // city: hubspotCompany.properties.city || null,
           hubspot_company_id: hubspotCompany.id,
           is_hubspot: true,
           hubspot_created_at: hubspotCompany.createdAt,
           hubspot_updated_at: hubspotCompany.updatedAt,
-          hubspot_owner_id: hubspotCompany.properties.hubspot_owner_id,
+          // hubspot_owner_id: hubspotCompany.properties.hubspot_owner_id,
           organization_id: organizationId,
-          user_id: null, // HubSpot companies don't have a specific user owner
+          user_id: userId, // HubSpot companies don't have a specific user owner
         };
 
         // Check if company already exists
@@ -4048,9 +4048,9 @@ export const dbHelpers = {
   getUserFeedback,
   getAllUserFeedback,
   getFeedbackForAdmin,
-  
+
   // HubSpot Integration
-  checkHubSpotIntegration,
+  // checkHubSpotIntegration,
   syncHubSpotCompanies,
   getCompaniesByUserId,
 }
