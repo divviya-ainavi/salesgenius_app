@@ -16,12 +16,13 @@ import {
   setUserRoleId,
   setIsAuthenticated,
   setHasSeenOnboardingTour,
+  setHubspotIntegration,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
   setTitleName,
 } from "../../store/slices/authSlice";
-import { dbHelpers } from "../../lib/supabase";
+import { dbHelpers, checkHubSpotIntegration } from "../../lib/supabase";
 import { setAllTitles } from "../../store/slices/orgSlice";
 
 const LoginPage = () => {
@@ -219,6 +220,61 @@ const LoginPage = () => {
           dispatch(setHasSeenOnboardingTour(false));
         }
 
+        // Check HubSpot integration status for the organization
+        if (profile.organization_id) {
+          try {
+            console.log("🔍 Checking HubSpot integration for organization:", profile.organization_id);
+            const hubspotStatus = await checkHubSpotIntegration(profile.organization_id);
+            
+            console.log("📊 HubSpot integration status:", hubspotStatus);
+            
+            // Update Redux store with HubSpot integration status
+            dispatch(setHubspotIntegration({
+              connected: hubspotStatus.connected,
+              lastSync: hubspotStatus.lastSync,
+              accountInfo: hubspotStatus.hubspotUserDetails,
+              hasToken: hubspotStatus.hasToken,
+              hasUsers: hubspotStatus.hasUsers,
+              userCount: hubspotStatus.userCount,
+              error: hubspotStatus.error,
+            }));
+
+            // Show appropriate message to user
+            if (hubspotStatus.connected) {
+              console.log("✅ HubSpot integration is active");
+              // Optionally show a subtle success message
+              // toast.success("HubSpot integration is active");
+            } else {
+              console.log("⚠️ HubSpot integration not found or incomplete");
+              // Optionally show a subtle info message
+              // toast.info("HubSpot integration not configured");
+            }
+          } catch (error) {
+            console.error("❌ Error checking HubSpot integration:", error);
+            // Set default state on error
+            dispatch(setHubspotIntegration({
+              connected: false,
+              lastSync: null,
+              accountInfo: null,
+              hasToken: false,
+              hasUsers: false,
+              userCount: 0,
+              error: error.message,
+            }));
+          }
+        } else {
+          console.log("⚠️ No organization ID found for user");
+          // Set default state when no organization
+          dispatch(setHubspotIntegration({
+            connected: false,
+            lastSync: null,
+            accountInfo: null,
+            hasToken: false,
+            hasUsers: false,
+            userCount: 0,
+            error: 'No organization associated with user',
+          }));
+        }
         toast.success("Login successful!");
 
         // Start Sales Calls tour only for first-time users
