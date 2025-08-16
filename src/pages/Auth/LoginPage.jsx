@@ -24,6 +24,7 @@ import {
 } from "../../store/slices/authSlice";
 import { dbHelpers } from "../../lib/supabase";
 import { setAllTitles } from "../../store/slices/orgSlice";
+import { checkIntegrationStatus } from "../../services/hubspotService";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
@@ -224,7 +225,7 @@ const LoginPage = () => {
         if (profile.organization_id) {
           try {
             console.log("🔍 Checking HubSpot integration for organization:", profile.organization_id);
-            const hubspotStatus = await dbHelpers.checkHubSpotIntegration(profile.organization_id);
+            const hubspotStatus = await checkIntegrationStatus(profile.organization_id);
             
             console.log("📊 HubSpot integration status:", hubspotStatus);
             
