@@ -10,19 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Building,
-  DollarSign,
-  Search,
-  Plus,
-  Edit,
-  Check,
-  ChevronRight,
-  ChevronDown,
-  Loader2,
-  Sync,
-  AlertCircle,
-} from "lucide-react";
+import { Building, DollarSign, Search, Plus, Edit, Check, ChevronRight, ChevronDown, Loader2, FolderSync as Sync, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
