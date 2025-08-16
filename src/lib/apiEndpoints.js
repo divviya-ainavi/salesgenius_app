@@ -100,8 +100,6 @@ const API_ENDPOINTS = {
       PUSH_NOTES: '/crm/hubspot/push-notes',
       SYNC_CONTACTS: '/crm/hubspot/sync-contacts',
       GET_DEALS: '/crm/hubspot/deals',
-      GET_COMPANIES: '/hub-all-companies',
-      GET_DEALS_BY_COMPANY: '/hub-get-deals',
     },
     SALESFORCE: {
       CONNECT: '/crm/salesforce/connect',
