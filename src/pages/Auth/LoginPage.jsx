@@ -244,14 +244,19 @@ const LoginPage = () => {
                 userId,
                 profile.organization_id
               );
-              
+              console.log(
+                hubspotUserDetails,
+                userId,
+                profile,
+                "HubSpot user details"
+              );
               if (hubspotUserDetails) {
                 console.log("✅ Found HubSpot user details:", {
                   hubspot_user_id: hubspotUserDetails.hubspot_user_id,
                   email: hubspotUserDetails.email,
-                  name: `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`
+                  name: `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`,
                 });
-                
+
                 // Store HubSpot user details in Redux
                 dispatch(setHubspotUserDetails(hubspotUserDetails));
               } else {
@@ -272,7 +277,7 @@ const LoginPage = () => {
                         ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
                         : null,
                       userEmail: hubspotUserDetails?.email || null,
-                      userName: hubspotUserDetails 
+                      userName: hubspotUserDetails
                         ? `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`.trim()
                         : null,
                     }

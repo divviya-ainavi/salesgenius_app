@@ -269,23 +269,24 @@ export const CallAssociationSelector = ({
                   {companySearchError}
                 </p>
               )}
-              {hubspotIntegration?.connected && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                  onClick={handleSyncFromHubSpot}
-                  disabled={isSyncing}
-                >
-                  {isSyncing ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Building className="w-4 h-4 mr-2" />
-                  )}
-                  {isSyncing
-                    ? "Syncing from HubSpot..."
-                    : "Sync Companies from HubSpot"}
-                </Button>
-              )}
+              {hubspotIntegration?.connected &&
+                hubspotIntegration?.hubspot_user_id && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
+                    onClick={handleSyncFromHubSpot}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Building className="w-4 h-4 mr-2" />
+                    )}
+                    {isSyncing
+                      ? "Syncing from HubSpot..."
+                      : "Sync Companies from HubSpot"}
+                  </Button>
+                )}
               {
                 <div
                   className={
@@ -405,23 +406,24 @@ export const CallAssociationSelector = ({
               <div className="space-y-3 mt-3">
                 {/* Create New Deal Button - Moved above the list */}
                 {/* HubSpot Sync Button */}
-                {hubspotIntegration?.connected && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                    onClick={handleSyncFromHubSpot}
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Building className="w-4 h-4 mr-2" />
-                    )}
-                    {isSyncing
-                      ? "Syncing from HubSpot..."
-                      : "Sync Companies from HubSpot"}
-                  </Button>
-                )}
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspot_user_id && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
+                      onClick={handleSyncFromHubSpot}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Building className="w-4 h-4 mr-2" />
+                      )}
+                      {isSyncing
+                        ? "Syncing from HubSpot..."
+                        : "Sync Companies from HubSpot"}
+                    </Button>
+                  )}
 
                 <Button
                   variant="ghost"
