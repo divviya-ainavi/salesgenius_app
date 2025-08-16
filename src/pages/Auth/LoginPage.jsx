@@ -17,6 +17,7 @@ import {
   setIsAuthenticated,
   setHasSeenOnboardingTour,
   setHubspotIntegration,
+  setHubspotUserDetails,
 } from "@/store/slices/authSlice"; // adjust import path as needed
 import {
   setOrganizationDetails,
@@ -235,9 +236,33 @@ const LoginPage = () => {
                 profile.organization_id
               );
 
+            // If HubSpot is connected, get user's HubSpot details
+            let hubspotUserDetails = null;
+            if (hubspotStatus.connected) {
+              console.log("🔍 Getting HubSpot user details for user:", userId);
+              hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+                userId,
+                profile.organization_id
+              );
+              
+              if (hubspotUserDetails) {
+                console.log("✅ Found HubSpot user details:", {
+                  hubspot_user_id: hubspotUserDetails.hubspot_user_id,
+                  email: hubspotUserDetails.email,
+                  name: `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`
+                });
+                
+                // Store HubSpot user details in Redux
+                dispatch(setHubspotUserDetails(hubspotUserDetails));
+              } else {
+                console.log("📭 No HubSpot user details found for user");
+              }
+            }
             dispatch(
               setHubspotIntegration({
                 connected: hubspotStatus.connected,
+                hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+                hubspotUserDetails: hubspotUserDetails,
                 lastSync: hubspotStatus.connected
                   ? new Date().toISOString()
                   : null,
@@ -245,6 +270,10 @@ const LoginPage = () => {
                   ? {
                       maskedToken: hubspotStatus.encryptedToken
                         ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+                        : null,
+                      userEmail: hubspotUserDetails?.email || null,
+                      userName: hubspotUserDetails 
+                        ? `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`.trim()
                         : null,
                     }
                   : null,
@@ -282,6 +311,8 @@ const LoginPage = () => {
           dispatch(
             setHubspotIntegration({
               connected: false,
+              hubspotUserId: null,
+              hubspotUserDetails: null,
               lastSync: null,
               accountInfo: null,
               hasToken: false,
