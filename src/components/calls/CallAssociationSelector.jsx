@@ -62,6 +62,8 @@ export const CallAssociationSelector = ({
   // Modal states
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
   const [showCreateProspectModal, setShowCreateProspectModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
     userRole,
@@ -71,6 +73,48 @@ export const CallAssociationSelector = ({
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+
+  // Check HubSpot integration status on component mount
+  useEffect(() => {
+    checkHubSpotIntegration();
+  }, [user?.organization_id]);
+
+  const checkHubSpotIntegration = async () => {
+    if (!user?.organization_id) return;
+    
+    try {
+      const status = await dbHelpers.checkHubSpotIntegration(user.organization_id);
+      setHubspotIntegrationStatus(status);
+    } catch (error) {
+      console.error('Error checking HubSpot integration:', error);
+      setHubspotIntegrationStatus({ connected: false });
+    }
+  };
+
+  const handleSyncFromHubSpot = async () => {
+    if (!user?.organization_id) {
+      toast.error('Organization information not available');
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const result = await dbHelpers.syncHubSpotCompanies(user.organization_id);
+      
+      toast.success(
+        `Sync completed: ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
+      );
+      
+      // Refresh companies list
+      setCompanySearch(' '); // Trigger search refresh
+      setTimeout(() => setCompanySearch(''), 100);
+    } catch (error) {
+      console.error('Error syncing HubSpot companies:', error);
+      toast.error('Failed to sync companies from HubSpot: ' + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Initialize from props if provided
   useEffect(() => {
@@ -263,10 +307,28 @@ export const CallAssociationSelector = ({
                           <div className="text-left">
                             <div className="font-medium line-clamp-2-wrap">
                               {company.name}
+                              {company.is_hubspot && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                >
+                                  HubSpot
+                                </Badge>
+                              )}
                             </div>
                             {company.domain && (
                               <div className="text-sm text-gray-500">
                                 {company.domain}
+                              </div>
+                            )}
+                            {company.industry && (
+                              <div className="text-sm text-gray-500">
+                                {company.industry}
+                              </div>
+                            )}
+                            {company.city && (
+                              <div className="text-sm text-gray-500">
+                                📍 {company.city}
                               </div>
                             )}
                           </div>
@@ -287,6 +349,14 @@ export const CallAssociationSelector = ({
                   <span className="font-medium text-foreground truncate max-w-[250px]">
                     {selectedCompany.name}
                   </span>
+                  {selectedCompany.is_hubspot && (
+                    <Badge 
+                      variant="outline" 
+                      className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                    >
+                      HubSpot
+                    </Badge>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -323,6 +393,23 @@ export const CallAssociationSelector = ({
               )}
               <div className="space-y-3 mt-3">
                 {/* Create New Deal Button - Moved above the list */}
+                {/* HubSpot Sync Button */}
+                {hubspotIntegrationStatus?.connected && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
+                    onClick={handleSyncFromHubSpot}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Building className="w-4 h-4 mr-2" />
+                    )}
+                    {isSyncing ? 'Syncing from HubSpot...' : 'Sync Companies from HubSpot'}
+                  </Button>
+                )}
+
                 <Button
                   variant="ghost"
                   className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border border-gray-200 rounded-md mb-2"

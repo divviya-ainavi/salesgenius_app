@@ -888,6 +888,207 @@ export const getOnboardingTourStatus = async (userId) => {
   }
 };
 
+// HubSpot Company Sync Functions
+export const syncHubSpotCompanies = async (organizationId) => {
+  try {
+    console.log('🔄 Starting HubSpot company sync for organization:', organizationId);
+
+    // Check if organization has HubSpot integration
+    const integrationStatus = await checkHubSpotIntegration(organizationId);
+    if (!integrationStatus.connected) {
+      throw new Error('HubSpot integration not found for this organization');
+    }
+
+    // Get any HubSpot user for the organization to make API calls
+    const { data: hubspotUsers, error: usersError } = await supabase
+      .from('hubspot_users')
+      .select('hubspot_user_id')
+      .eq('organization_id', organizationId)
+      .eq('is_archived', false)
+      .limit(1);
+
+    if (usersError || !hubspotUsers || hubspotUsers.length === 0) {
+      throw new Error('No active HubSpot users found for this organization');
+    }
+
+    const hubspotUserId = hubspotUsers[0].hubspot_user_id;
+    console.log('📞 Using HubSpot user ID for API call:', hubspotUserId);
+
+    // Call HubSpot API to get companies
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}hub-all-companies`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: organizationId,
+        ownerid: hubspotUserId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+    }
+
+    const apiData = await response.json();
+    console.log('📊 HubSpot API response:', apiData);
+
+    // Extract companies from the nested response structure
+    const hubspotCompanies = apiData?.[0]?.Companies || apiData?.Companies || [];
+    
+    if (!hubspotCompanies || hubspotCompanies.length === 0) {
+      console.log('📭 No companies found in HubSpot response');
+      return {
+        total: 0,
+        inserted: 0,
+        updated: 0,
+        failed: 0,
+        companies: [],
+      };
+    }
+
+    console.log('🏢 Processing', hubspotCompanies.length, 'companies from HubSpot');
+
+    let inserted = 0;
+    let updated = 0;
+    let failed = 0;
+    const processedCompanies = [];
+
+    for (const hubspotCompany of hubspotCompanies) {
+      try {
+        const companyData = {
+          name: hubspotCompany.properties.name || 'Unnamed Company',
+          domain: hubspotCompany.properties.domain || null,
+          industry: hubspotCompany.properties.industry || null,
+          city: hubspotCompany.properties.city || null,
+          hubspot_company_id: hubspotCompany.id,
+          is_hubspot: true,
+          hubspot_created_at: hubspotCompany.createdAt,
+          hubspot_updated_at: hubspotCompany.updatedAt,
+          hubspot_owner_id: hubspotCompany.properties.hubspot_owner_id,
+          organization_id: organizationId,
+          user_id: null, // HubSpot companies don't have a specific user owner
+        };
+
+        // Check if company already exists
+        const { data: existingCompany, error: checkError } = await supabase
+          .from('company')
+          .select('id, hubspot_updated_at')
+          .eq('organization_id', organizationId)
+          .eq('hubspot_company_id', hubspotCompany.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Error checking existing company:', checkError);
+          failed++;
+          continue;
+        }
+
+        if (existingCompany) {
+          // Company exists - check if we need to update
+          const existingUpdatedAt = new Date(existingCompany.hubspot_updated_at);
+          const hubspotUpdatedAt = new Date(hubspotCompany.updatedAt);
+
+          if (hubspotUpdatedAt > existingUpdatedAt) {
+            // Update existing company
+            const { error: updateError } = await supabase
+              .from('company')
+              .update(companyData)
+              .eq('id', existingCompany.id);
+
+            if (updateError) {
+              console.error('Error updating company:', updateError);
+              failed++;
+            } else {
+              updated++;
+              processedCompanies.push({ ...companyData, id: existingCompany.id });
+            }
+          } else {
+            // No update needed - data is current
+            processedCompanies.push({ ...companyData, id: existingCompany.id });
+          }
+        } else {
+          // Insert new company
+          const { data: newCompany, error: insertError } = await supabase
+            .from('company')
+            .insert([companyData])
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error inserting company:', insertError);
+            failed++;
+          } else {
+            inserted++;
+            processedCompanies.push(newCompany);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing company:', hubspotCompany.id, error);
+        failed++;
+      }
+    }
+
+    const result = {
+      total: hubspotCompanies.length,
+      inserted,
+      updated,
+      failed,
+      companies: processedCompanies,
+    };
+
+    console.log('✅ HubSpot company sync completed:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error syncing HubSpot companies:', error);
+    throw error;
+  }
+};
+
+// Get companies for user with HubSpot integration check
+export const getCompaniesByUserId = async (userId, searchTerm = '') => {
+  try {
+    if (!userId) {
+      console.warn('⚠️ getCompaniesByUserId called with null/undefined userId');
+      return [];
+    }
+
+    // Get user's organization
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile?.organization_id) {
+      console.error('Error getting user organization:', profileError);
+      return [];
+    }
+
+    let query = supabase
+      .from('company')
+      .select('*')
+      .eq('organization_id', profile.organization_id)
+      .order('name', { ascending: true });
+
+    if (searchTerm && searchTerm.trim()) {
+      query = query.ilike('name', searchTerm);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching companies:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getCompaniesByUserId:', error);
+    throw error;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -3847,6 +4048,11 @@ export const dbHelpers = {
   getUserFeedback,
   getAllUserFeedback,
   getFeedbackForAdmin,
+  
+  // HubSpot Integration
+  checkHubSpotIntegration,
+  syncHubSpotCompanies,
+  getCompaniesByUserId,
 }
 
 // User helpers for backward compatibility
