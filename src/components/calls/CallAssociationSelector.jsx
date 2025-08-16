@@ -20,6 +20,8 @@ import {
   ChevronRight,
   ChevronDown,
   Loader2,
+  Sync,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -28,6 +30,8 @@ import { CreateCompanyModal } from "./CreateCompanyModal";
 import { CreateProspectModal } from "./CreateProspectModal";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
+import hubspotService from "@/services/hubspotService";
+import { toast } from "sonner";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
@@ -58,6 +62,9 @@ export const CallAssociationSelector = ({
   const [loadingProspects, setLoadingProspects] = useState(false);
   const [companySearchError, setCompanySearchError] = useState(null);
   const [prospectSearchError, setProspectSearchError] = useState(null);
+  const [isSyncingCompanies, setIsSyncingCompanies] = useState(false);
+  const [isSyncingProspects, setIsSyncingProspects] = useState(false);
+  const [hubspotConnectionStatus, setHubspotConnectionStatus] = useState(null);
 
   // Modal states
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
@@ -72,6 +79,22 @@ export const CallAssociationSelector = ({
     hubspotIntegration,
   } = useSelector((state) => state.auth);
 
+  // Check HubSpot connection status on mount
+  useEffect(() => {
+    checkHubSpotConnection();
+  }, [organizationDetails?.id]);
+
+  const checkHubSpotConnection = async () => {
+    if (!organizationDetails?.id) return;
+    
+    try {
+      const status = await hubspotService.checkIntegrationStatus(organizationDetails.id);
+      setHubspotConnectionStatus(status);
+    } catch (error) {
+      console.error("Error checking HubSpot connection:", error);
+      setHubspotConnectionStatus({ connected: false, error: error.message });
+    }
+  };
   // Initialize from props if provided
   useEffect(() => {
     if (selectedAssociation) {
@@ -100,26 +123,11 @@ export const CallAssociationSelector = ({
 
       setLoadingCompanies(true);
       try {
-        let query = await dbHelpers.getCompaniesByUserId(
-          user?.id,
-          `%${companySearch.trim()}%`
-        );
-        // let query =
-        // supabase
-        //   .from("company")
-        //   .select("*")
-        //   .order("name", { ascending: true });
-
-        // if (companySearch.trim()) {
-        //   query = query.ilike("name", `%${companySearch.trim()}%`);
-        // }
-
-        const data = await dbHelpers.getCompaniesByUserId(
+        // Use enhanced query that includes HubSpot status
+        const data = await dbHelpers.getCompaniesWithHubSpotStatus(
           user?.id,
           companySearch.trim() ? `%${companySearch.trim()}%` : ""
         );
-        // console.log(data, "company data");
-        // if (error) throw error;
         setCompanies(data || []);
       } catch (error) {
         console.error("Error searching companies:", error);
@@ -153,19 +161,11 @@ export const CallAssociationSelector = ({
 
       setLoadingProspects(true);
       try {
-        let query = supabase
-          .from("prospect")
-          .select("*")
-          .eq("company_id", selectedCompany.id)
-          .order("name", { ascending: true });
-
-        if (prospectSearch.trim()) {
-          query = query.ilike("name", `%${prospectSearch.trim()}%`);
-        }
-
-        const { data, error } = await query.limit(10);
-
-        if (error) throw error;
+        // Use enhanced query that includes HubSpot status
+        const data = await dbHelpers.getProspectsWithHubSpotStatus(
+          selectedCompany.id,
+          prospectSearch.trim() ? `%${prospectSearch.trim()}%` : ""
+        );
         setProspects(data || []);
       } catch (error) {
         console.error("Error searching prospects:", error);
@@ -179,6 +179,88 @@ export const CallAssociationSelector = ({
     return () => clearTimeout(debounceTimer);
   }, [prospectSearch, currentState, selectedCompany, user?.id]);
 
+  const handleSyncCompanies = async () => {
+    if (!hubspotConnectionStatus?.connected) {
+      toast.error("HubSpot is not connected. Please connect HubSpot first.");
+      return;
+    }
+
+    setIsSyncingCompanies(true);
+    try {
+      // Get any HubSpot user for the organization to make API calls
+      const hubspotUser = await dbHelpers.getAnyHubSpotUserForOrg(organizationDetails.id);
+      
+      if (!hubspotUser) {
+        throw new Error('No HubSpot users found for this organization');
+      }
+
+      const result = await hubspotService.syncCompanies(
+        organizationDetails.id,
+        hubspotUser.hubspot_user_id
+      );
+
+      toast.success(
+        `Successfully synced ${result.inserted} new companies and updated ${result.updated} existing companies from HubSpot`
+      );
+
+      // Refresh the companies list
+      const refreshedData = await dbHelpers.getCompaniesWithHubSpotStatus(
+        user?.id,
+        companySearch.trim() ? `%${companySearch.trim()}%` : ""
+      );
+      setCompanies(refreshedData || []);
+    } catch (error) {
+      console.error("Error syncing companies from HubSpot:", error);
+      toast.error(`Failed to sync companies: ${error.message}`);
+    } finally {
+      setIsSyncingCompanies(false);
+    }
+  };
+
+  const handleSyncProspects = async () => {
+    if (!hubspotConnectionStatus?.connected) {
+      toast.error("HubSpot is not connected. Please connect HubSpot first.");
+      return;
+    }
+
+    if (!selectedCompany?.hubspot_company_id) {
+      toast.error("This company is not from HubSpot. Only HubSpot companies can sync deals.");
+      return;
+    }
+
+    setIsSyncingProspects(true);
+    try {
+      // Get any HubSpot user for the organization to make API calls
+      const hubspotUser = await dbHelpers.getAnyHubSpotUserForOrg(organizationDetails.id);
+      
+      if (!hubspotUser) {
+        throw new Error('No HubSpot users found for this organization');
+      }
+
+      const result = await hubspotService.syncDeals(
+        selectedCompany.hubspot_company_id,
+        selectedCompany.id,
+        organizationDetails.id,
+        hubspotUser.hubspot_user_id
+      );
+
+      toast.success(
+        `Successfully synced ${result.inserted} new deals and updated ${result.updated} existing deals from HubSpot`
+      );
+
+      // Refresh the prospects list
+      const refreshedData = await dbHelpers.getProspectsWithHubSpotStatus(
+        selectedCompany.id,
+        prospectSearch.trim() ? `%${prospectSearch.trim()}%` : ""
+      );
+      setProspects(refreshedData || []);
+    } catch (error) {
+      console.error("Error syncing prospects from HubSpot:", error);
+      toast.error(`Failed to sync deals: ${error.message}`);
+    } finally {
+      setIsSyncingProspects(false);
+    }
+  };
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     setCompanySearch("");
@@ -226,6 +308,43 @@ export const CallAssociationSelector = ({
               <label className="text-sm font-medium text-gray-700">
                 Select Company
               </label>
+              
+              {/* HubSpot Sync Option */}
+              {hubspotConnectionStatus?.connected && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        Sync companies from HubSpot
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncCompanies}
+                      disabled={isSyncingCompanies}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    >
+                      {isSyncingCompanies ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <Sync className="w-4 h-4 mr-1" />
+                          Sync from HubSpot
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Import companies from your HubSpot account
+                  </p>
+                </div>
+              )}
+
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -280,6 +399,16 @@ export const CallAssociationSelector = ({
                               <div className="text-sm text-gray-500">
                                 {company.domain}
                               </div>
+                              {company.is_hubspot && (
+                                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                                  HubSpot
+                                </Badge>
+                              )}
+                            )}
+                            {company.industry && (
+                              <div className="text-xs text-gray-400">
+                                {company.industry}
+                              </div>
                             )}
                           </div>
                         </Button>
@@ -299,6 +428,11 @@ export const CallAssociationSelector = ({
                   <span className="font-medium text-foreground truncate max-w-[250px]">
                     {selectedCompany.name}
                   </span>
+                  {selectedCompany.is_hubspot && (
+                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                      HubSpot
+                    </Badge>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -310,6 +444,41 @@ export const CallAssociationSelector = ({
                 </Button>
               </div>
 
+              {/* HubSpot Deals Sync Option */}
+              {hubspotConnectionStatus?.connected && selectedCompany?.is_hubspot && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        Sync deals from HubSpot
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncProspects}
+                      disabled={isSyncingProspects}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    >
+                      {isSyncingProspects ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <Sync className="w-4 h-4 mr-1" />
+                          Sync Deals
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Import deals for {selectedCompany.name} from HubSpot
+                  </p>
+                </div>
+              )}
               <label className="text-sm font-medium text-gray-700">
                 Select Deal
               </label>
@@ -371,16 +540,34 @@ export const CallAssociationSelector = ({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="flex items-center justify-between w-full py-1">
-                                  <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[250px]">
-                                    {prospect.name}
-                                  </span>
+                                  <div className="flex items-center space-x-2 flex-1">
+                                    <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                                      {prospect.name}
+                                    </span>
+                                    {prospect.is_hubspot && (
+                                      <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                                        HubSpot
+                                      </Badge>
+                                    )}
+                                  </div>
                                   {selectedProspect?.id === prospect.id ? (
                                     <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
                                   ) : null}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{prospect.name}</p>
+                                <div className="space-y-1">
+                                  <p className="font-medium">{prospect.name}</p>
+                                  {prospect.amount && (
+                                    <p className="text-sm">Amount: ${prospect.amount?.toLocaleString()}</p>
+                                  )}
+                                  {prospect.deal_stage && (
+                                    <p className="text-sm">Stage: {prospect.deal_stage}</p>
+                                  )}
+                                  {prospect.close_date && (
+                                    <p className="text-sm">Close Date: {new Date(prospect.close_date).toLocaleDateString()}</p>
+                                  )}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -420,6 +607,11 @@ export const CallAssociationSelector = ({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      {selectedCompany?.is_hubspot && (
+                        <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200 ml-2">
+                          HubSpot
+                        </Badge>
+                      )}
                     </span>
                   </div>
 
@@ -435,10 +627,23 @@ export const CallAssociationSelector = ({
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>{selectedProspect?.name}</p>
+                            <div className="space-y-1">
+                              <p className="font-medium">{selectedProspect?.name}</p>
+                              {selectedProspect?.amount && (
+                                <p className="text-sm">Amount: ${selectedProspect.amount?.toLocaleString()}</p>
+                              )}
+                              {selectedProspect?.deal_stage && (
+                                <p className="text-sm">Stage: {selectedProspect.deal_stage}</p>
+                              )}
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      {selectedProspect?.is_hubspot && (
+                        <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200 ml-2">
+                          HubSpot
+                        </Badge>
+                      )}
                     </span>
                   </div>
                 </div>
