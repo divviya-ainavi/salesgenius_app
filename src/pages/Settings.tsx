@@ -359,6 +359,8 @@ export const Settings = () => {
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
   const dispatch = useDispatch();
 
+  console.log("LoginPage rendered", hubspotIntegration);
+
   // console.log(
   //   userProfileInfo,
   //   userRole,

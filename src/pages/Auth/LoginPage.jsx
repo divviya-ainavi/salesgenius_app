@@ -38,7 +38,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const { userRole } = useSelector((state) => state.auth);
+  const { userRole, hubspotIntegration } = useSelector((state) => state.auth);
 
   // Compute form validity
   const isFormValid =
@@ -88,6 +88,8 @@ const LoginPage = () => {
     }
     return true;
   };
+
+  // console.log("LoginPage rendered", hubspotIntegration);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -224,21 +226,30 @@ const LoginPage = () => {
         // Check HubSpot integration status for the organization
         if (profile.organization_id) {
           try {
-            console.log("🔍 Checking HubSpot integration for organization:", profile.organization_id);
-            const hubspotStatus = await checkIntegrationStatus(profile.organization_id);
-            
-            console.log("📊 HubSpot integration status:", hubspotStatus);
-            
-            // Update Redux store with HubSpot integration status
-            dispatch(setHubspotIntegration({
-              connected: hubspotStatus.connected,
-              lastSync: hubspotStatus.lastSync,
-              accountInfo: hubspotStatus.hubspotUserDetails,
-              hasToken: hubspotStatus.hasToken,
-              hasUsers: hubspotStatus.hasUsers,
-              userCount: hubspotStatus.userCount,
-              error: hubspotStatus.error,
-            }));
+            console.log(
+              "🔍 Checking HubSpot integration for organization:",
+              profile.organization_id
+            );
+            const hubspotStatus =
+              await authHelpers.getOrganizationHubSpotStatus(
+                profile.organization_id
+              );
+
+            dispatch(
+              setHubspotIntegration({
+                connected: hubspotStatus.connected,
+                lastSync: hubspotStatus.connected
+                  ? new Date().toISOString()
+                  : null,
+                accountInfo: hubspotStatus.connected
+                  ? {
+                      maskedToken: hubspotStatus.encryptedToken
+                        ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+                        : null,
+                    }
+                  : null,
+              })
+            );
 
             // Show appropriate message to user
             if (hubspotStatus.connected) {
@@ -253,28 +264,32 @@ const LoginPage = () => {
           } catch (error) {
             console.error("❌ Error checking HubSpot integration:", error);
             // Set default state on error
-            dispatch(setHubspotIntegration({
+            dispatch(
+              setHubspotIntegration({
+                connected: false,
+                lastSync: null,
+                accountInfo: null,
+                hasToken: false,
+                hasUsers: false,
+                userCount: 0,
+                error: error.message,
+              })
+            );
+          }
+        } else {
+          console.log("⚠️ No organization ID found for user");
+          // Set default state when no organization
+          dispatch(
+            setHubspotIntegration({
               connected: false,
               lastSync: null,
               accountInfo: null,
               hasToken: false,
               hasUsers: false,
               userCount: 0,
-              error: error.message,
-            }));
-          }
-        } else {
-          console.log("⚠️ No organization ID found for user");
-          // Set default state when no organization
-          dispatch(setHubspotIntegration({
-            connected: false,
-            lastSync: null,
-            accountInfo: null,
-            hasToken: false,
-            hasUsers: false,
-            userCount: 0,
-            error: 'No organization associated with user',
-          }));
+              error: "No organization associated with user",
+            })
+          );
         }
         toast.success("Login successful!");
 
