@@ -129,34 +129,29 @@ export const SalesCalls = () => {
 
   // Load initial data
   useEffect(() => {
-    // Only load data if user is available
-    if (user?.id) {
-      loadUploadedFiles();
-      if (
-        activeTab === "fireflies" &&
-        user?.fireflies_connected &&
-        !ishavefirefliesData
-      ) {
-        loadFirefliesData();
-      } else if (activeTab === "past") {
-        loadPastCalls();
-      }
+    loadUploadedFiles();
+    if (
+      activeTab === "fireflies" &&
+      user?.fireflies_connected &&
+      !ishavefirefliesData
+    ) {
+      loadFirefliesData();
+    } else if (activeTab === "past") {
+      loadPastCalls();
     }
-  }, [activeTab, user?.id]);
+  }, [activeTab]);
 
   const loadUploadedFiles = async () => {
     setRecentUploadRefresh(true);
     try {
+      // Only load unprocessed files for the staging queue
+      const files = await dbHelpers.getUploadedFiles(userId);
      // Check if user ID is available before making the query
      if (!user?.id) {
        console.warn("No user ID available, skipping file load");
        setUploadedFiles([]);
-       setRecentUploadRefresh(false);
        return;
      }
-
-      // Only load unprocessed files for the staging queue
-      const files = await dbHelpers.getUploadedFiles(user.id);
 
       const unprocessedFiles = files.filter((file) => !file.is_processed);
 
@@ -179,12 +174,6 @@ export const SalesCalls = () => {
   const loadFirefliesData = async () => {
     setIsLoadingFireflies(true);
     const formData = new FormData();
-
-    if (!user?.id) {
-      console.warn("No user ID available, skipping Fireflies load");
-      setIsLoadingFireflies(false);
-      return;
-    }
 
     formData.append("id", user?.id);
 
@@ -310,13 +299,6 @@ export const SalesCalls = () => {
   const loadPastCalls = async () => {
     setIsLoadingPastCalls(true);
     try {
-      if (!user?.id) {
-        console.warn("No user ID available, skipping past calls load");
-        setPastCalls([]);
-        setIsLoadingPastCalls(false);
-        return;
-      }
-
       // Only load processed files for past calls
       const insights = await dbHelpers.getInsightsByUserId(user?.id);
       // console.log(insights, "check insights 154");

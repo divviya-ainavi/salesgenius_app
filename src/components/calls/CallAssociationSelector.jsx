@@ -94,12 +94,6 @@ export const CallAssociationSelector = ({
 
   // Search companies
   useEffect(() => {
-    if (!user?.id) {
-      console.warn("No user ID available for company search");
-      setCompanies([]);
-      return;
-    }
-
     if (companySearch.trim().length > 0 && companySearch.trim().length < 2) {
       setCompanySearchError("Please enter at least 2 characters.");
       setCompanies([]);
@@ -131,12 +125,6 @@ export const CallAssociationSelector = ({
 
   // Search prospects
   useEffect(() => {
-    if (!user?.id) {
-      console.warn("No user ID available for prospect search");
-      setProspects([]);
-      return;
-    }
-
     if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
       setProspectSearchError("Please enter at least 2 characters.");
       setProspects([]);
@@ -165,7 +153,7 @@ export const CallAssociationSelector = ({
 
     const debounceTimer = setTimeout(searchProspects, 300);
     return () => clearTimeout(debounceTimer);
-  }, [prospectSearch, currentState, selectedCompany, user?.id]);
+  }, [prospectSearch, currentState, selectedCompany]);
 
   const handleSyncCompanies = async () => {
     if (!hubspotConnectionStatus?.connected) {
