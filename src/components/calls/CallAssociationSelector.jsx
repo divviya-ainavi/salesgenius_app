@@ -28,6 +28,8 @@ import { CreateCompanyModal } from "./CreateCompanyModal";
 import { CreateProspectModal } from "./CreateProspectModal";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
+import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
