@@ -3722,6 +3722,46 @@ export const dbHelpers = {
     }
   },
 
+  // Get HubSpot user ID for a specific user
+  async getHubSpotUserIdForUser(userId, organizationId) {
+    try {
+      console.log('🔍 Getting HubSpot user ID for user:', { userId, organizationId });
+
+      if (!userId || !organizationId) {
+        console.warn('⚠️ Missing required parameters for HubSpot user lookup');
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('hubspot_users')
+        .select('hubspot_user_id, email, first_name, last_name')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .eq('is_archived', false)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - user not found in HubSpot
+          console.log('📭 No HubSpot user found for user:', userId);
+          return null;
+        }
+        throw error;
+      }
+
+      console.log('✅ Found HubSpot user:', {
+        hubspot_user_id: data.hubspot_user_id,
+        email: data.email,
+        name: `${data.first_name || ''} ${data.last_name || ''}`.trim()
+      });
+
+      return data.hubspot_user_id;
+    } catch (error) {
+      console.error('❌ Error getting HubSpot user ID:', error);
+      return null;
+    }
+  },
+
   // Save or update HubSpot users data (upsert operation)
   async saveOrUpdateHubSpotUsers(organizationId, ownersData) {
     try {
