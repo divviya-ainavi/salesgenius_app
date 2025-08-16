@@ -112,6 +112,9 @@ export const MainLayout = () => {
 
       {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
+
+      {/* HubSpot Welcome Modal - Shows if integration not configured */}
+      <HubSpotWelcomeModal />
     </div>
   );
 };
