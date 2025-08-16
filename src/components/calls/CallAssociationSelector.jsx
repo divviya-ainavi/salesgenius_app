@@ -20,9 +20,6 @@ import {
   ChevronRight,
   ChevronDown,
   Loader2,
-  RefreshCw,
-  ExternalLink,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -31,8 +28,6 @@ import { CreateCompanyModal } from "./CreateCompanyModal";
 import { CreateProspectModal } from "./CreateProspectModal";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
-import hubspotService from "@/services/hubspotService";
-import { toast } from "sonner";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
@@ -63,14 +58,10 @@ export const CallAssociationSelector = ({
   const [loadingProspects, setLoadingProspects] = useState(false);
   const [companySearchError, setCompanySearchError] = useState(null);
   const [prospectSearchError, setProspectSearchError] = useState(null);
-  const [isSyncingCompanies, setIsSyncingCompanies] = useState(false);
-  const [isSyncingProspects, setIsSyncingProspects] = useState(false);
 
   // Modal states
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
   const [showCreateProspectModal, setShowCreateProspectModal] = useState(false);
-  
-  // Get HubSpot integration status from Redux
   const {
     userProfileInfo,
     userRole,
@@ -103,11 +94,26 @@ export const CallAssociationSelector = ({
 
       setLoadingCompanies(true);
       try {
-        // Use enhanced function that includes HubSpot status
-        const data = await dbHelpers.getCompaniesByUserIdWithHubSpot(
+        let query = await dbHelpers.getCompaniesByUserId(
+          user?.id,
+          `%${companySearch.trim()}%`
+        );
+        // let query =
+        // supabase
+        //   .from("company")
+        //   .select("*")
+        //   .order("name", { ascending: true });
+
+        // if (companySearch.trim()) {
+        //   query = query.ilike("name", `%${companySearch.trim()}%`);
+        // }
+
+        const data = await dbHelpers.getCompaniesByUserId(
           user?.id,
           companySearch.trim() ? `%${companySearch.trim()}%` : ""
         );
+        // console.log(data, "company data");
+        // if (error) throw error;
         setCompanies(data || []);
       } catch (error) {
         console.error("Error searching companies:", error);
@@ -135,11 +141,19 @@ export const CallAssociationSelector = ({
 
       setLoadingProspects(true);
       try {
-        // Use enhanced function that includes HubSpot status
-        const data = await dbHelpers.getProspectsByCompanyIdWithHubSpot(
-          selectedCompany.id,
-          prospectSearch.trim() ? `%${prospectSearch.trim()}%` : ""
-        );
+        let query = supabase
+          .from("prospect")
+          .select("*")
+          .eq("company_id", selectedCompany.id)
+          .order("name", { ascending: true });
+
+        if (prospectSearch.trim()) {
+          query = query.ilike("name", `%${prospectSearch.trim()}%`);
+        }
+
+        const { data, error } = await query.limit(10);
+
+        if (error) throw error;
         setProspects(data || []);
       } catch (error) {
         console.error("Error searching prospects:", error);
@@ -153,108 +167,6 @@ export const CallAssociationSelector = ({
     return () => clearTimeout(debounceTimer);
   }, [prospectSearch, currentState, selectedCompany]);
 
-  // Sync companies from HubSpot
-  const handleSyncCompanies = async () => {
-    if (!hubspotIntegration?.connected) {
-      toast.error("HubSpot is not connected. Please connect HubSpot first.");
-      return;
-    }
-
-    if (!organizationDetails?.id) {
-      toast.error("Organization information not available.");
-      return;
-    }
-
-    setIsSyncingCompanies(true);
-    try {
-      console.log("🔄 Starting HubSpot companies sync...");
-      
-      // Get HubSpot user details
-      const hubspotUser = await dbHelpers.getHubSpotUserDetails();
-      if (!hubspotUser) {
-        throw new Error("HubSpot user details not found");
-      }
-
-      // Sync companies from HubSpot
-      const result = await hubspotService.syncCompanies(
-        organizationDetails.id,
-        hubspotUser.hubspot_user_id
-      );
-
-      // Show success message with details
-      toast.success(
-        `HubSpot sync completed! ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
-      );
-
-      // Refresh the companies list
-      const refreshedData = await dbHelpers.getCompaniesByUserIdWithHubSpot(
-        user?.id,
-        companySearch.trim() ? `%${companySearch.trim()}%` : ""
-      );
-      setCompanies(refreshedData || []);
-
-    } catch (error) {
-      console.error("Error syncing companies from HubSpot:", error);
-      toast.error(`Failed to sync companies: ${error.message}`);
-    } finally {
-      setIsSyncingCompanies(false);
-    }
-  };
-
-  // Sync prospects/deals from HubSpot for selected company
-  const handleSyncProspects = async () => {
-    if (!hubspotIntegration?.connected) {
-      toast.error("HubSpot is not connected. Please connect HubSpot first.");
-      return;
-    }
-
-    if (!selectedCompany?.hubspot_company_id) {
-      toast.error("This company is not from HubSpot. Cannot sync deals.");
-      return;
-    }
-
-    if (!organizationDetails?.id) {
-      toast.error("Organization information not available.");
-      return;
-    }
-
-    setIsSyncingProspects(true);
-    try {
-      console.log("🔄 Starting HubSpot deals sync for company:", selectedCompany.name);
-      
-      // Get HubSpot user details
-      const hubspotUser = await dbHelpers.getHubSpotUserDetails();
-      if (!hubspotUser) {
-        throw new Error("HubSpot user details not found");
-      }
-
-      // Sync deals from HubSpot
-      const result = await hubspotService.syncDeals(
-        selectedCompany.hubspot_company_id,
-        selectedCompany.id,
-        organizationDetails.id,
-        hubspotUser.hubspot_user_id
-      );
-
-      // Show success message with details
-      toast.success(
-        `HubSpot deals sync completed! ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
-      );
-
-      // Refresh the prospects list
-      const refreshedData = await dbHelpers.getProspectsByCompanyIdWithHubSpot(
-        selectedCompany.id,
-        prospectSearch.trim() ? `%${prospectSearch.trim()}%` : ""
-      );
-      setProspects(refreshedData || []);
-
-    } catch (error) {
-      console.error("Error syncing deals from HubSpot:", error);
-      toast.error(`Failed to sync deals: ${error.message}`);
-    } finally {
-      setIsSyncingProspects(false);
-    }
-  };
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     setCompanySearch("");
@@ -302,38 +214,6 @@ export const CallAssociationSelector = ({
               <label className="text-sm font-medium text-gray-700">
                 Select Company
               </label>
-              
-              {/* HubSpot Sync Button - Only show if HubSpot is connected */}
-              {hubspotIntegration?.connected && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <ExternalLink className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
-                      Sync companies from HubSpot
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncCompanies}
-                    disabled={isSyncingCompanies}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                  >
-                    {isSyncingCompanies ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Sync from HubSpot
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -389,22 +269,6 @@ export const CallAssociationSelector = ({
                                 {company.domain}
                               </div>
                             )}
-                            <div className="flex items-center space-x-1 ml-2">
-                              {company.is_hubspot && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                >
-                                  <ExternalLink className="w-3 h-3 mr-1" />
-                                  HubSpot
-                                </Badge>
-                              )}
-                            </div>
-                            {company.industry && (
-                              <div className="text-xs text-gray-400">
-                                {company.industry}
-                              </div>
-                            )}
                           </div>
                         </Button>
                       ))}
@@ -423,15 +287,6 @@ export const CallAssociationSelector = ({
                   <span className="font-medium text-foreground truncate max-w-[250px]">
                     {selectedCompany.name}
                   </span>
-                  {selectedCompany.is_hubspot && (
-                    <Badge 
-                      variant="outline" 
-                      className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      HubSpot
-                    </Badge>
-                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -443,36 +298,6 @@ export const CallAssociationSelector = ({
                 </Button>
               </div>
 
-              {/* HubSpot Deals Sync Button - Only show if company is from HubSpot */}
-              {hubspotIntegration?.connected && selectedCompany?.is_hubspot && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <ExternalLink className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
-                      Sync deals from HubSpot for {selectedCompany.name}
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncProspects}
-                    disabled={isSyncingProspects}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                  >
-                    {isSyncingProspects ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Sync Deals
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
               <label className="text-sm font-medium text-gray-700">
                 Select Deal
               </label>
@@ -537,43 +362,13 @@ export const CallAssociationSelector = ({
                                   <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[250px]">
                                     {prospect.name}
                                   </span>
-                                  <div className="flex items-center space-x-1 ml-2">
-                                    {prospect.is_hubspot && (
-                                      <Badge 
-                                        variant="outline" 
-                                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                      >
-                                        <ExternalLink className="w-3 h-3 mr-1" />
-                                        HubSpot
-                                      </Badge>
-                                    )}
-                                    {selectedProspect?.id === prospect.id && (
-                                      <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  {/* Show additional HubSpot deal info */}
-                                  {prospect.is_hubspot && (
-                                    <div className="text-xs text-gray-500 mt-1 space-y-1">
-                                      {prospect.amount && (
-                                        <div>Amount: ${Number(prospect.amount).toLocaleString()}</div>
-                                      )}
-                                      {prospect.deal_stage && (
-                                        <div>Stage: {prospect.deal_stage}</div>
-                                      )}
-                                      {prospect.close_date && (
-                                        <div>Close: {new Date(prospect.close_date).toLocaleDateString()}</div>
-                                      )}
-                                    </div>
-                                  )}
+                                  {selectedProspect?.id === prospect.id ? (
+                                    <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
+                                  ) : null}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>{prospect.name}</p>
-                                {prospect.is_hubspot && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Synced from HubSpot
-                                  </p>
-                                )}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -604,19 +399,9 @@ export const CallAssociationSelector = ({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center space-x-2">
-                              <span className="truncate overflow-hidden whitespace-nowrap max-w-[150px]">
-                                {selectedCompany?.name}
-                              </span>
-                              {selectedCompany?.is_hubspot && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                >
-                                  HubSpot
-                                </Badge>
-                              )}
-                            </div>
+                            <span className="truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                              {selectedCompany?.name}
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{selectedCompany?.name}</p>
@@ -633,25 +418,12 @@ export const CallAssociationSelector = ({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center space-x-2">
-                              <span className="truncate overflow-hidden whitespace-nowrap max-w-[150px]">
-                                {selectedProspect?.name}
-                              </span>
-                              {selectedProspect?.is_hubspot && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                >
-                                  HubSpot
-                                </Badge>
-                              )}
-                            </div>
+                            <span className="truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                              {selectedProspect?.name}
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{selectedProspect?.name}</p>
-                            {selectedProspect?.is_hubspot && selectedProspect?.amount && (
-                              <p className="text-xs">Amount: ${Number(selectedProspect.amount).toLocaleString()}</p>
-                            )}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

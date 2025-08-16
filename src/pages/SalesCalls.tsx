@@ -47,7 +47,7 @@ import {
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { dbHelpers } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import firefliesService from "@/services/firefliesService";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { ProcessCallModal } from "@/components/calls/ProcessCallModal";
@@ -111,7 +111,7 @@ export const SalesCalls = () => {
   const [firefliesSummary, setFirefliesSummary] = useState(null);
   const dispatch = useDispatch();
 
-  const userId = user?.id;
+  const userId = CURRENT_USER.id;
   const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
     useAnalytics();
   const {
