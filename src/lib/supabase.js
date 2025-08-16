@@ -3730,6 +3730,115 @@ export const dbHelpers = {
     }
   },
 
+  updateOnboardingTourStatus: async (userId, hasSeenTour) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ has_seen_onboarding_tour: hasSeenTour })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating onboarding tour status:', error);
+      throw error;
+    }
+  },
+
+  // Check HubSpot integration status for an organization
+  checkHubSpotIntegration: async (organizationId) => {
+    try {
+      if (!organizationId) {
+        return {
+          connected: false,
+          error: 'No organization ID provided',
+          hasToken: false,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      // Check if organization has HubSpot access token
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('hubspot_access_token, hubspot_user_details')
+        .eq('id', organizationId)
+        .single();
+
+      if (orgError) {
+        console.error('Error checking organization HubSpot data:', orgError);
+        return {
+          connected: false,
+          error: orgError.message,
+          hasToken: false,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      const hasToken = !!(orgData?.hubspot_access_token);
+
+      // Check for HubSpot users in the organization
+      const { data: hubspotUsers, error: usersError } = await supabase
+        .from('hubspot_users')
+        .select('id, email, hubspot_user_id')
+        .eq('organization_id', organizationId)
+        .eq('is_archived', false);
+
+      if (usersError) {
+        console.error('Error checking HubSpot users:', usersError);
+        return {
+          connected: hasToken,
+          error: usersError.message,
+          hasToken,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      const hasUsers = hubspotUsers && hubspotUsers.length > 0;
+      const userCount = hubspotUsers?.length || 0;
+
+      return {
+        connected: hasToken && hasUsers,
+        hasToken,
+        hasUsers,
+        userCount,
+        lastSync: orgData?.updated_at,
+        accountInfo: orgData?.hubspot_user_details,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error checking HubSpot integration:', error);
+      return {
+        connected: false,
+        error: error.message,
+        hasToken: false,
+        hasUsers: false,
+        userCount: 0
+      };
+    }
+  },
+
+  // Save feedback to database
+  saveFeedback: async (feedbackData) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .insert([feedbackData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      throw error;
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
