@@ -942,6 +942,12 @@ export const dbHelpers = {
 
 
   async getUploadedFiles(userId, limit = 20) {
+    // Check if userId is null or undefined
+    if (!userId || userId === 'null' || userId === null) {
+      console.warn('getUploadedFiles called with null/undefined userId, returning empty array');
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('uploaded_files')
