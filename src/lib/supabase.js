@@ -3735,6 +3735,182 @@ export const dbHelpers = {
     }
   },
 
+  // Get HubSpot deals for a company
+  async getHubSpotDealsForCompany(companyId, organizationId, hubspotUserId) {
+    try {
+      console.log('🔍 Getting HubSpot deals for company:', { companyId, organizationId, hubspotUserId });
+
+      // First get the company to check if it's from HubSpot
+      const { data: company, error: companyError } = await supabase
+        .from('company')
+        .select('hubspot_company_id, is_hubspot, name')
+        .eq('id', companyId)
+        .single();
+
+      if (companyError || !company) {
+        throw new Error('Company not found');
+      }
+
+      if (!company.is_hubspot || !company.hubspot_company_id) {
+        console.log('📭 Company is not from HubSpot, skipping HubSpot deals fetch');
+        return null;
+      }
+
+      console.log('🔄 Fetching deals from HubSpot API for company:', company.hubspot_company_id);
+
+      // Call HubSpot API to get deals
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.hubspotDeals}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyid: company.hubspot_company_id,
+          id: organizationId,
+          ownerid: hubspotUserId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiData = await response.json();
+      console.log('📊 HubSpot deals API response:', apiData);
+
+      // Extract deals from API response
+      const deals = apiData?.[0]?.Deals || apiData?.Deals || [];
+      console.log('📋 Extracted deals from API:', deals.length, 'deals');
+
+      return deals;
+    } catch (error) {
+      console.error('❌ Error getting HubSpot deals:', error);
+      throw error;
+    }
+  },
+
+  // Sync HubSpot deals to database
+  async syncHubSpotDeals(companyId, organizationId, hubspotUserId, userId) {
+    try {
+      console.log('🔄 Starting HubSpot deals sync for company:', companyId);
+
+      // Get deals from HubSpot
+      const hubspotDeals = await this.getHubSpotDealsForCompany(companyId, organizationId, hubspotUserId);
+
+      if (!hubspotDeals || hubspotDeals.length === 0) {
+        console.log('📭 No deals found in HubSpot for this company');
+        return {
+          total: 0,
+          inserted: 0,
+          updated: 0,
+          failed: 0,
+          deals: [],
+        };
+      }
+
+      console.log('📊 Processing', hubspotDeals.length, 'deals from HubSpot');
+
+      let inserted = 0;
+      let updated = 0;
+      let failed = 0;
+      const processedDeals = [];
+
+      for (const deal of hubspotDeals) {
+        try {
+          // Extract deal data from HubSpot response
+          const dealData = {
+            name: deal.dealname || deal.name || 'Untitled Deal',
+            company_id: companyId,
+            user_id: userId,
+            hubspot_deal_id: deal.hs_object_id || deal.id,
+            is_hubspot: true,
+            amount: deal.amount ? parseFloat(deal.amount) : null,
+            deal_stage: deal.dealstage || null,
+            close_date: deal.closedate ? new Date(deal.closedate).toISOString() : null,
+            hubspot_created_at: deal.createdate ? new Date(deal.createdate).toISOString() : null,
+            hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
+            hubspot_owner_id: deal.hubspot_owner_id || null,
+          };
+
+          // Check if deal already exists
+          const { data: existingDeal, error: checkError } = await supabase
+            .from('prospect')
+            .select('id, hubspot_updated_at')
+            .eq('company_id', companyId)
+            .eq('hubspot_deal_id', dealData.hubspot_deal_id)
+            .single();
+
+          if (checkError && checkError.code !== 'PGRST116') {
+            console.error('❌ Error checking existing deal:', checkError);
+            failed++;
+            continue;
+          }
+
+          if (existingDeal) {
+            // Deal exists, check if we need to update
+            const existingUpdatedAt = new Date(existingDeal.hubspot_updated_at || 0);
+            const hubspotUpdatedAt = new Date(dealData.hubspot_updated_at || 0);
+
+            if (hubspotUpdatedAt > existingUpdatedAt) {
+              // Update existing deal
+              const { data: updatedDeal, error: updateError } = await supabase
+                .from('prospect')
+                .update(dealData)
+                .eq('id', existingDeal.id)
+                .select()
+                .single();
+
+              if (updateError) {
+                console.error('❌ Error updating deal:', updateError);
+                failed++;
+              } else {
+                console.log('✅ Updated deal:', updatedDeal.name);
+                updated++;
+                processedDeals.push(updatedDeal);
+              }
+            } else {
+              console.log('⏭️ Deal is up to date, skipping:', dealData.name);
+              processedDeals.push(existingDeal);
+            }
+          } else {
+            // Insert new deal
+            const { data: newDeal, error: insertError } = await supabase
+              .from('prospect')
+              .insert([dealData])
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('❌ Error inserting deal:', insertError);
+              failed++;
+            } else {
+              console.log('✅ Inserted new deal:', newDeal.name);
+              inserted++;
+              processedDeals.push(newDeal);
+            }
+          }
+        } catch (dealError) {
+          console.error('❌ Error processing deal:', dealError);
+          failed++;
+        }
+      }
+
+      const result = {
+        total: hubspotDeals.length,
+        inserted,
+        updated,
+        failed,
+        deals: processedDeals,
+      };
+
+      console.log('✅ HubSpot deals sync completed:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error syncing HubSpot deals:', error);
+      throw error;
+    }
+  },
+
   // Get complete HubSpot user details for a specific user
   getHubSpotUserDetails: async (userId, organizationId) => {
     try {

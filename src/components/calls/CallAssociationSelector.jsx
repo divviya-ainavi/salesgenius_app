@@ -489,16 +489,41 @@ export const CallAssociationSelector = ({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="flex items-center justify-between w-full py-1">
-                                  <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[250px]">
-                                    {prospect.name}
-                                  </span>
+                                  <div className="text-left flex-1">
+                                    <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[250px] flex items-center">
+                                      {prospect.name}
+                                      {prospect.is_hubspot && (
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                        >
+                                          HubSpot
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {prospect.deal_stage && (
+                                      <div className="text-xs text-gray-500">
+                                        Stage: {prospect.deal_stage}
+                                      </div>
+                                    )}
+                                    {prospect.amount && (
+                                      <div className="text-xs text-gray-500">
+                                        Value: ${prospect.amount.toLocaleString()}
+                                      </div>
+                                    )}
+                                  </div>
                                   {selectedProspect?.id === prospect.id ? (
                                     <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
                                   ) : null}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{prospect.name}</p>
+                                <div>
+                                  <p className="font-medium">{prospect.name}</p>
+                                  {prospect.deal_stage && <p className="text-xs">Stage: {prospect.deal_stage}</p>}
+                                  {prospect.amount && <p className="text-xs">Value: ${prospect.amount.toLocaleString()}</p>}
+                                  {prospect.close_date && <p className="text-xs">Close: {new Date(prospect.close_date).toLocaleDateString()}</p>}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
