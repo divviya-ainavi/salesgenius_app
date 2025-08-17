@@ -1062,6 +1062,84 @@ export const getCompaniesByUserId = async (userId, searchTerm = '') => {
   }
 };
 
+// Create company in HubSpot and store in database
+export const createHubSpotCompany = async (companyData, organizationId, userId, hubspotUserId) => {
+  try {
+    console.log('🏢 Creating company in HubSpot:', {
+      companyName: companyData.name,
+      organizationId,
+      userId,
+      hubspotUserId
+    });
+
+    // Call HubSpot API to create company
+    const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.hubspotCompanyCreation}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: organizationId,
+        ownerid: hubspotUserId,
+        companyname: companyData.name,
+        domain: companyData.domain || '',
+        industry: companyData.industry || '',
+        city: companyData.city || ''
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const hubspotResponse = await response.json();
+    console.log('✅ HubSpot company created:', hubspotResponse);
+
+    // Extract company data from HubSpot response
+    const hubspotCompanyData = hubspotResponse[0] || hubspotResponse;
+    
+    if (!hubspotCompanyData.id) {
+      throw new Error('No company ID returned from HubSpot');
+    }
+
+    // Store in our database with HubSpot data
+    const { data: dbCompany, error: dbError } = await supabase
+      .from('company')
+      .insert([{
+        name: companyData.name,
+        domain: companyData.domain || null,
+        industry: companyData.industry || null,
+        city: companyData.city || null,
+        user_id: userId,
+        organization_id: organizationId,
+        hubspot_company_id: hubspotCompanyData.id.toString(),
+        is_hubspot: true,
+        hubspot_created_at: new Date().toISOString(),
+        hubspot_updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('❌ Error storing HubSpot company in database:', dbError);
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    console.log('✅ HubSpot company stored in database:', dbCompany);
+
+    return {
+      success: true,
+      company: dbCompany,
+      hubspot_data: hubspotCompanyData
+    };
+
+  } catch (error) {
+    console.error('❌ Error creating HubSpot company:', error);
+    throw error;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
