@@ -133,6 +133,64 @@ export const CallAssociationSelector = ({
       setIsSyncing(false);
     }
   };
+  console.log(selectedCompany, "Selected Company in CallAssociationSelector");
+  const handleSyncFromHubSpotDeals = async () => {
+    if (!user?.organization_id) {
+      toast.error("Organization information not available");
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      // Call HubSpot API to get companies
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.hubspotDeals
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+            companyid: selectedCompany?.hubspot_company_id || "",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HubSpot API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const apiData = await response.json();
+      console.log("📊 HubSpot API response:", apiData);
+
+      const result = await dbHelpers.syncHubSpotDeals(
+        selectedCompany?.id,
+        user.organization_id,
+        hubspotIntegration?.hubspotUserId,
+        user?.id,
+        apiData
+      );
+
+      toast.success(
+        `Sync completed: ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
+      );
+
+      // Refresh companies list
+      setProspectSearch(" "); // Trigger search refresh
+      setTimeout(() => setProspectSearch(""), 100);
+    } catch (error) {
+      console.error("Error syncing HubSpot companies:", error);
+      toast.error("Failed to sync companies from HubSpot: " + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Initialize from props if provided
   useEffect(() => {
@@ -439,7 +497,7 @@ export const CallAssociationSelector = ({
                     <Button
                       variant="outline"
                       className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                      onClick={handleSyncFromHubSpot}
+                      onClick={handleSyncFromHubSpotDeals}
                       disabled={isSyncing}
                     >
                       {isSyncing ? (
@@ -449,7 +507,7 @@ export const CallAssociationSelector = ({
                       )}
                       {isSyncing
                         ? "Syncing from HubSpot..."
-                        : "Sync Companies from HubSpot"}
+                        : "Sync Deals from HubSpot"}
                     </Button>
                   )}
 
@@ -501,16 +559,17 @@ export const CallAssociationSelector = ({
                                         </Badge>
                                       )}
                                     </div>
-                                    {prospect.deal_stage && (
+                                    {/* {prospect.deal_stage && (
                                       <div className="text-xs text-gray-500">
                                         Stage: {prospect.deal_stage}
                                       </div>
                                     )}
                                     {prospect.amount && (
                                       <div className="text-xs text-gray-500">
-                                        Value: ${prospect.amount.toLocaleString()}
+                                        Value: $
+                                        {prospect.amount.toLocaleString()}
                                       </div>
-                                    )}
+                                    )} */}
                                   </div>
                                   {selectedProspect?.id === prospect.id ? (
                                     <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
@@ -520,9 +579,24 @@ export const CallAssociationSelector = ({
                               <TooltipContent>
                                 <div>
                                   <p className="font-medium">{prospect.name}</p>
-                                  {prospect.deal_stage && <p className="text-xs">Stage: {prospect.deal_stage}</p>}
-                                  {prospect.amount && <p className="text-xs">Value: ${prospect.amount.toLocaleString()}</p>}
-                                  {prospect.close_date && <p className="text-xs">Close: {new Date(prospect.close_date).toLocaleDateString()}</p>}
+                                  {prospect.deal_stage && (
+                                    <p className="text-xs">
+                                      Stage: {prospect.deal_stage}
+                                    </p>
+                                  )}
+                                  {prospect.amount && (
+                                    <p className="text-xs">
+                                      Value: ${prospect.amount.toLocaleString()}
+                                    </p>
+                                  )}
+                                  {prospect.close_date && (
+                                    <p className="text-xs">
+                                      Close:{" "}
+                                      {new Date(
+                                        prospect.close_date
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  )}
                                 </div>
                               </TooltipContent>
                             </Tooltip>

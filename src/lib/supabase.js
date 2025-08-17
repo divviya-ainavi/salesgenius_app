@@ -3790,12 +3790,12 @@ export const dbHelpers = {
   },
 
   // Sync HubSpot deals to database
-  async syncHubSpotDeals(companyId, organizationId, hubspotUserId, userId) {
+  async syncHubSpotDeals(companyId, organizationId, hubspotUserId, userId, dealsData) {
     try {
       console.log('🔄 Starting HubSpot deals sync for company:', companyId);
 
       // Get deals from HubSpot
-      const hubspotDeals = await this.getHubSpotDealsForCompany(companyId, organizationId, hubspotUserId);
+      const hubspotDeals = await dealsData?.[0]?.Deals || [];
 
       if (!hubspotDeals || hubspotDeals.length === 0) {
         console.log('📭 No deals found in HubSpot for this company');
@@ -3816,22 +3816,23 @@ export const dbHelpers = {
       const processedDeals = [];
 
       for (const deal of hubspotDeals) {
+        console.log('Processing deal:', deal)
         try {
           // Extract deal data from HubSpot response
           const dealData = {
-            name: deal.dealname || deal.name || 'Untitled Deal',
+            name: deal?.properties.dealname || deal?.properties.name || 'Untitled Deal',
             company_id: companyId,
             user_id: userId,
-            hubspot_deal_id: deal.hs_object_id || deal.id,
+            hubspot_deal_id: deal.id,
             is_hubspot: true,
-            amount: deal.amount ? parseFloat(deal.amount) : null,
-            deal_stage: deal.dealstage || null,
-            close_date: deal.closedate ? new Date(deal.closedate).toISOString() : null,
+            amount: deal?.properties.amount ? parseFloat(deal.amount) : null,
+            deal_stage: deal?.properties.dealstage || null,
+            close_date: deal?.properties.closedate ? new Date(deal?.properties.closedate).toISOString() : null,
             hubspot_created_at: deal.createdate ? new Date(deal.createdate).toISOString() : null,
             hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
             hubspot_owner_id: deal.hubspot_owner_id || null,
           };
-
+          console.log(dealData, "deal data 1")
           // Check if deal already exists
           const { data: existingDeal, error: checkError } = await supabase
             .from('prospect')
