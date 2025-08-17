@@ -50,7 +50,12 @@ export const config = {
       vectorFileUpload: 'upload-rag',
       passwordReset: 'forgot-password-dev',//dev
       passwordResetProd: 'forgot-password', //prod
-      getOwnersDetails: 'hub-all-owners'
+      getOwnersDetails: 'hub-all-owners',
+      hubspotCompanies: 'hub-all-companies',
+      hubspotDeals: 'hub-get-deals',
+      hubspotDealNotes: 'hub-get-deals-notes',
+      hubspotCompanyCreation: 'Hub-create-company',
+      hubspotDealCreation: 'Hub-create-deal'
     }
   }
 };

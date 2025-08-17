@@ -889,49 +889,22 @@ export const getOnboardingTourStatus = async (userId) => {
 };
 
 // HubSpot Company Sync Functions
-export const syncHubSpotCompanies = async (organizationId, integrationStatus, userId) => {
+export const syncHubSpotCompanies = async (organizationId, integrationStatus, userId, apiData) => {
   try {
     console.log('🔄 Starting HubSpot company sync for organization:', organizationId);
 
-    // Check if organization has HubSpot integration
-    // const integrationStatus = await checkHubSpotIntegration(organizationId);
-    if (!integrationStatus.connected) {
-      throw new Error('HubSpot integration not found for this organization');
-    }
+    // if (!integrationStatus.connected) {
+    //   throw new Error('HubSpot integration not found for this organization');
+    // }
 
-    // Get any HubSpot user for the organization to make API calls
-    const { data: hubspotUsers, error: usersError } = await supabase
-      .from('hubspot_users')
-      .select('hubspot_user_id')
-      .eq('organization_id', organizationId)
-      .eq('is_archived', false)
-      .limit(1);
 
-    if (usersError || !hubspotUsers || hubspotUsers.length === 0) {
-      throw new Error('No active HubSpot users found for this organization');
-    }
+    // if (integrationStatus?.) {
+    //   throw new Error('No active HubSpot users found for this organization');
+    // }
 
-    const hubspotUserId = hubspotUsers[0].hubspot_user_id;
-    console.log('📞 Using HubSpot user ID for API call:', hubspotUserId);
+    // const hubspotUserId = hubspotUsers[0].hubspot_user_id;
+    // console.log('📞 Using HubSpot user ID for API call:', hubspotUserId);
 
-    // Call HubSpot API to get companies
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}hub-all-companies`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: organizationId,
-        ownerid: hubspotUserId,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
-    }
-
-    const apiData = await response.json();
-    console.log('📊 HubSpot API response:', apiData);
 
     // Extract companies from the nested response structure
     const hubspotCompanies = apiData?.[0]?.Companies || apiData?.Companies || [];
@@ -3795,7 +3768,7 @@ export const dbHelpers = {
         last_name: data.last_name,
         hubspot_type: data.hubspot_type
       });
-      
+
       return data;
     } catch (error) {
       console.error('❌ Error getting HubSpot user details:', error);

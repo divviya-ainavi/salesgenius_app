@@ -29,6 +29,7 @@ import { CreateProspectModal } from "./CreateProspectModal";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+import { config } from "../../lib/config";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
@@ -85,10 +86,37 @@ export const CallAssociationSelector = ({
 
     setIsSyncing(true);
     try {
+      // Call HubSpot API to get companies
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.hubspotCompanies
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HubSpot API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const apiData = await response.json();
+      console.log("📊 HubSpot API response:", apiData);
+
       const result = await dbHelpers.syncHubSpotCompanies(
         user.organization_id,
         hubspotIntegration,
-        user?.id
+        user?.id,
+        apiData
       );
 
       toast.success(
@@ -114,7 +142,7 @@ export const CallAssociationSelector = ({
       setCurrentState(SELECTOR_STATES.COMPLETE);
     }
   }, [selectedAssociation]);
-
+  console.log(hubspotIntegration, "HubSpot Integration Status");
   // Search companies
   useEffect(() => {
     if (companySearch.trim().length > 0 && companySearch.trim().length < 2) {
@@ -270,7 +298,7 @@ export const CallAssociationSelector = ({
                 </p>
               )}
               {hubspotIntegration?.connected &&
-                hubspotIntegration?.hubspot_user_id && (
+                hubspotIntegration?.hubspotUserId && (
                   <Button
                     variant="outline"
                     className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
@@ -407,7 +435,7 @@ export const CallAssociationSelector = ({
                 {/* Create New Deal Button - Moved above the list */}
                 {/* HubSpot Sync Button */}
                 {hubspotIntegration?.connected &&
-                  hubspotIntegration?.hubspot_user_id && (
+                  hubspotIntegration?.hubspotUserId && (
                     <Button
                       variant="outline"
                       className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"

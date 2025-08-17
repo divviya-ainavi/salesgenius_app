@@ -55,10 +55,15 @@ export const MainLayout = () => {
               {userRole?.label || "Super Admin"}
             </Badge>
           </div>
-
+          {console.log(
+            hubspotIntegration.connected,
+            hubspotIntegration?.hubspotUserId,
+            hubspotIntegration,
+            "HubSpot connection status"
+          )}
           {/* HubSpot Connection Status */}
           {hubspotIntegration.connected &&
-            hubspotIntegration?.hubspot_user_id && (
+            hubspotIntegration?.hubspotUserId && (
               <Badge
                 variant="default"
                 className="bg-green-100 text-green-800 border-green-200"
