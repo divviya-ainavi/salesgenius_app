@@ -3912,55 +3912,6 @@ export const dbHelpers = {
     }
   },
 
-  // Create deal in HubSpot and sync to database
-  async createHubSpotDeal(dealData, companyId, organizationId, hubspotUserId) {
-    try {
-      console.log('🔄 Creating deal in HubSpot:', {
-        dealName: dealData.name,
-        companyId,
-        organizationId,
-        hubspotUserId
-      });
-
-      // Call HubSpot API to create deal
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.hubspotDealCreation}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: organizationId,
-          ownerid: hubspotUserId,
-          companyid: companyId, // HubSpot company ID
-          dealname: dealData.name,
-          amount: dealData.amount || null,
-          closedate: dealData.closeDate || null,
-          dealstage: dealData.stage || null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
-      }
-
-      const apiData = await response.json();
-      console.log('✅ HubSpot deal created successfully:', apiData);
-
-      // Extract deal data from API response
-      let hubspotDealData = null;
-      if (apiData && apiData.length > 0 && apiData[0].success) {
-        hubspotDealData = apiData[0];
-      } else {
-        throw new Error('Invalid HubSpot API response format or creation failed');
-      }
-
-      return hubspotDealData;
-    } catch (error) {
-      console.error('❌ Error creating deal in HubSpot:', error);
-      throw error;
-    }
-  },
-
   // Get complete HubSpot user details for a specific user
   getHubSpotUserDetails: async (userId, organizationId) => {
     try {
