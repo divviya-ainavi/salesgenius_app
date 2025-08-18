@@ -687,6 +687,7 @@ export const CallAssociationSelector = ({
         onClose={() => setShowCreateProspectModal(false)}
         onProspectCreated={handleProspectCreated}
         companyId={selectedCompany?.id}
+        selectedCompany={selectedCompany}
       />
     </>
   );
