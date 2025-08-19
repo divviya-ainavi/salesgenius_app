@@ -466,6 +466,7 @@ export const CallAssociationSelector = ({
       company: selectedCompany,
       prospect: selectedProspect,
       researchCompany: selectedResearchCompany,
+      dealNotes: dealNotes,
     });
   };
 
@@ -476,6 +477,7 @@ export const CallAssociationSelector = ({
       company: selectedCompany,
       prospect: selectedProspect,
       researchCompany: null,
+      dealNotes: dealNotes,
     });
   };
 

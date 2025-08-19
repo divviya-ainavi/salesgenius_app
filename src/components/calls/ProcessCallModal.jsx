@@ -48,7 +48,9 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
         file,
         selectedAssociation.company.id,
         selectedAssociation.prospect.id,
-        selectedAssociation?.prospect
+        selectedAssociation?.prospect,
+        selectedAssociation?.researchCompany,
+        selectedAssociation?.dealNotes
       );
 
       setIsComplete(true);
