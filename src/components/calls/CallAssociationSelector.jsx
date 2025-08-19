@@ -37,6 +37,7 @@ import { useDispatch } from "react-redux";
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
   SELECT_PROSPECT: "select_prospect",
+  SELECT_RESEARCH: "select_research",
   COMPLETE: "complete",
 };
 
@@ -77,7 +78,6 @@ export const CallAssociationSelector = ({
   const [researchCompanies, setResearchCompanies] = useState([]);
   const [selectedResearchCompany, setSelectedResearchCompany] = useState(null);
   const [isLoadingResearch, setIsLoadingResearch] = useState(false);
-  const [showResearchOptions, setShowResearchOptions] = useState(false);
 
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
@@ -333,22 +333,14 @@ export const CallAssociationSelector = ({
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
-    setCurrentState(SELECTOR_STATES.COMPLETE);
-
-    // Check for research company data after prospect selection
-    checkForResearchCompany(selectedCompany);
+    
+    // Check for research company data and decide next state
+    checkForResearchCompanyAndProceed(selectedCompany);
 
     // Fetch HubSpot deal notes if this is a HubSpot deal
     if (prospect.is_hubspot && prospect.hubspot_deal_id) {
       fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
     }
-
-    // Notify parent component
-    onAssociationChange({
-      company: selectedCompany,
-      prospect: prospect,
-      researchCompany: selectedResearchCompany,
-    });
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
@@ -387,8 +379,8 @@ export const CallAssociationSelector = ({
     }
   };
 
-  // Function to check for research company data
-  const checkForResearchCompany = async (company) => {
+  // Function to check for research company data and proceed to next state
+  const checkForResearchCompanyAndProceed = async (company) => {
     if (!company?.name || !user?.id) return;
 
     setIsLoadingResearch(true);
@@ -396,14 +388,13 @@ export const CallAssociationSelector = ({
       // Normalize company name for matching
       const normalizedCompanyName = company.name
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, ''); // Remove spaces, special chars, keep only alphanumeric
+        .replace(/[^a-z0-9]/g, '');
 
-      console.log('🔍 Checking for research data for company:', {
+      console.log('🔍 Checking for research data:', {
         originalName: company.name,
         normalizedName: normalizedCompanyName
       });
 
-      // Query ResearchCompany table for matching company names
       const { data: researchData, error } = await supabase
         .from('ResearchCompany')
         .select('*')
@@ -412,10 +403,10 @@ export const CallAssociationSelector = ({
 
       if (error) {
         console.error('Error fetching research companies:', error);
+        setCurrentState(SELECTOR_STATES.COMPLETE);
         return;
       }
 
-      // Filter research companies by normalized name matching
       const matchingResearch = researchData?.filter(research => {
         const normalizedResearchName = research.company_name
           .toLowerCase()
@@ -423,20 +414,27 @@ export const CallAssociationSelector = ({
         return normalizedResearchName === normalizedCompanyName;
       }) || [];
 
-      console.log('📊 Found matching research companies:', matchingResearch.length);
+      console.log('📊 Found research matches:', matchingResearch.length);
 
       if (matchingResearch.length > 0) {
         setResearchCompanies(matchingResearch);
-        setSelectedResearchCompany(matchingResearch[0]); // Auto-select the most recent
-        setShowResearchOptions(true);
-        toast.success(`Found ${matchingResearch.length} research profile(s) for ${company.name}`);
+        setSelectedResearchCompany(matchingResearch[0]);
+        setCurrentState(SELECTOR_STATES.SELECT_RESEARCH);
+        toast.success(`Found ${matchingResearch.length} research profile(s)`);
       } else {
         setResearchCompanies([]);
         setSelectedResearchCompany(null);
-        setShowResearchOptions(false);
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        // Notify parent component without research data
+        onAssociationChange({
+          company: selectedCompany,
+          prospect: selectedProspect,
+          researchCompany: null,
+        });
       }
     } catch (error) {
       console.error('Error checking research companies:', error);
+      setCurrentState(SELECTOR_STATES.COMPLETE);
     } finally {
       setIsLoadingResearch(false);
     }
@@ -445,20 +443,20 @@ export const CallAssociationSelector = ({
   // Function to handle research company selection
   const handleResearchCompanySelect = (researchCompany) => {
     setSelectedResearchCompany(researchCompany);
-    
-    // Update parent component with research data
+  };
+
+  const handleUseResearch = () => {
+    setCurrentState(SELECTOR_STATES.COMPLETE);
     onAssociationChange({
       company: selectedCompany,
       prospect: selectedProspect,
-      researchCompany: researchCompany,
+      researchCompany: selectedResearchCompany,
     });
   };
 
-  // Function to skip research data
   const handleSkipResearch = () => {
     setSelectedResearchCompany(null);
-    
-    // Update parent component without research data
+    setCurrentState(SELECTOR_STATES.COMPLETE);
     onAssociationChange({
       company: selectedCompany,
       prospect: selectedProspect,
@@ -469,11 +467,10 @@ export const CallAssociationSelector = ({
   const handleReset = () => {
     setSelectedCompany(null);
     setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
     setCompanySearch("");
     setProspectSearch("");
-    setResearchCompanies([]);
-    setSelectedResearchCompany(null);
-    setShowResearchOptions(false);
     setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
     onAssociationReset();
   };
@@ -797,6 +794,101 @@ export const CallAssociationSelector = ({
             </div>
           )}
 
+          {/* State 3: Select Research Company */}
+          {currentState === SELECTOR_STATES.SELECT_RESEARCH && (
+            <div className="space-y-3">
+              {/* Previous Selections Display */}
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Building className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm">
+                    <span className="font-medium">Company:</span> {selectedCompany?.name}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm">
+                    <span className="font-medium">Deal:</span> {selectedProspect?.name}
+                  </span>
+                </div>
+              </div>
+
+              <label className="text-sm font-medium text-gray-700">
+                Research Data Found
+              </label>
+              
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Search className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-blue-800">
+                    Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''} for "{selectedCompany?.name}"
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700 mb-3">
+                  Using research data will enhance AI processing with company-specific insights.
+                </p>
+
+                {/* Research Company List */}
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {researchCompanies.map((research) => (
+                    <div
+                      key={research.id}
+                      className={cn(
+                        "p-3 border rounded-md cursor-pointer transition-all",
+                        selectedResearchCompany?.id === research.id
+                          ? "border-blue-400 bg-blue-100 shadow-sm"
+                          : "border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+                      )}
+                      onClick={() => handleResearchCompanySelect(research)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-medium text-sm text-blue-900 truncate">
+                              {research.company_name}
+                            </h4>
+                            {selectedResearchCompany?.id === research.id && (
+                              <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-blue-700">
+                            Created: {new Date(research.created_at).toLocaleDateString()}
+                          </p>
+                          {research.summary_note && (
+                            <p className="text-xs text-blue-600 mt-1 truncate">
+                              {research.summary_note.substring(0, 100)}...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-2 mt-4">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    onClick={handleUseResearch}
+                    disabled={!selectedResearchCompany}
+                  >
+                    <Check className="w-4 h-4 mr-1" />
+                    Use Selected Research
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSkipResearch}
+                    className="flex-1"
+                  >
+                    Skip Research
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {currentState === SELECTOR_STATES.COMPLETE && (
             <div className="space-y-3">
               {/* Deal Notes Fetching Progress */}
@@ -863,6 +955,34 @@ export const CallAssociationSelector = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Research Data Display (if selected) */}
+                {selectedResearchCompany && (
+                  <div className="flex items-center space-x-2">
+                    <Search className="w-4 h-4 text-green-600" />
+                    <span className="text-sm flex items-center">
+                      <span className="font-medium mr-1">Research:</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                              {selectedResearchCompany.company_name} (Research Profile)
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div>
+                              <p className="font-medium">{selectedResearchCompany.company_name}</p>
+                              <p className="text-xs">Created: {new Date(selectedResearchCompany.created_at).toLocaleDateString()}</p>
+                              {selectedResearchCompany.summary_note && (
+                                <p className="text-xs mt-1">{selectedResearchCompany.summary_note.substring(0, 150)}...</p>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
+                  </div>
+                )}
 
                 <Button
                   variant="outline"
