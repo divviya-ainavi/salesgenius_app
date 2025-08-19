@@ -1939,10 +1939,7 @@ export const dbHelpers = {
           timezone: updates.timezone,
           language: updates.language
         })
-        .upsert(dealsToInsert, { 
-          onConflict: 'company_id,hubspot_deal_id',
-          ignoreDuplicates: false 
-        })
+        .eq('id', userId)
         .select();
 
       if (error) throw error;
