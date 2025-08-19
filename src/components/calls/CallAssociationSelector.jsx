@@ -333,21 +333,26 @@ export const CallAssociationSelector = ({
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
     try {
-      console.log('🔄 Fetching HubSpot deal notes for deal:', hubspotDealId);
-      
-      const result = await dbHelpers.getHubSpotDealNotes(dealId, user?.organization_id);
-      
+      console.log("🔄 Fetching HubSpot deal notes for deal:", hubspotDealId);
+
+      const result = await dbHelpers.getHubSpotDealNotes(
+        dealId,
+        user?.organization_id,
+        hubspotDealId,
+        user
+      );
+      console.log(result, "HubSpot Deal Notes Result");
       if (result.fromCache) {
-        console.log('📋 Deal notes loaded from cache');
+        console.log("📋 Deal notes loaded from cache");
       } else {
-        console.log('📝 Deal notes synced from HubSpot:', result.message);
+        console.log("📝 Deal notes synced from HubSpot:", result.message);
         if (result.notes.length > 0) {
           toast.success(`Synced ${result.notes.length} notes from HubSpot`);
         }
       }
     } catch (error) {
-      console.error('❌ Error fetching HubSpot deal notes:', error);
-      toast.error('Failed to fetch deal notes from HubSpot');
+      console.error("❌ Error fetching HubSpot deal notes:", error);
+      toast.error("Failed to fetch deal notes from HubSpot");
     }
   };
 
@@ -380,8 +385,8 @@ export const CallAssociationSelector = ({
               <label className="text-sm font-medium text-gray-700">
                 Select Company
               </label>
-              <div className="flex space-x-2">
-                <div className="relative flex-1">
+              <div className="flex space-x-2 items-center">
+                {/* Search Input with Icon */}
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
@@ -396,6 +401,8 @@ export const CallAssociationSelector = ({
                     <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
                   )}
                 </div>
+
+                {/* Sync Button */}
                 {hubspotIntegration?.connected &&
                   hubspotIntegration?.hubspotUserId && (
                     <TooltipProvider>
@@ -421,32 +428,6 @@ export const CallAssociationSelector = ({
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                {hubspotIntegration?.connected &&
-                  hubspotIntegration?.hubspotUserId && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSyncFromHubSpot}
-                            disabled={isSyncing}
-                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
-                          >
-                            {isSyncing ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Sync companies from HubSpot</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
               </div>
 
               {/* Company Results */}
@@ -573,7 +554,9 @@ export const CallAssociationSelector = ({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleSyncFromHubSpotDeals(selectedCompany)}
+                            onClick={() =>
+                              handleSyncFromHubSpotDeals(selectedCompany)
+                            }
                             disabled={isSyncing}
                             className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
                           >
@@ -733,7 +716,7 @@ export const CallAssociationSelector = ({
                   <div className="flex items-center space-x-2">
                     <DollarSign className="w-4 h-4 text-green-600" />
                     <span className="text-sm flex items-center">
-                      <span className="font-medium mr-1">Prospect:</span>
+                      <span className="font-medium mr-1">Deal:</span>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>

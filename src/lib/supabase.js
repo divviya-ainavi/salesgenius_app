@@ -4122,17 +4122,16 @@ export const dbHelpers = {
   },
 
   // Get HubSpot deal notes for a specific deal
-  async getHubSpotDealNotes(dealId, organizationId) {
+  async getHubSpotDealNotes(dealId, organizationId, hubspotDealId, user) {
     try {
       console.log('🔍 Getting HubSpot deal notes for deal:', { dealId, organizationId });
 
       // Check if we already have notes for this deal
       const { data: existingNotes, error: checkError } = await supabase
         .from('call_notes')
-        .select('id, hubspot_updated_at')
+        .select('*')
         .eq('deal_id', dealId)
-        .order('hubspot_updated_at', { ascending: false })
-        .limit(1);
+        .order('hubspot_updated_at', { ascending: false });
 
       if (checkError) {
         console.error('❌ Error checking existing notes:', checkError);
@@ -4140,13 +4139,13 @@ export const dbHelpers = {
       }
 
       if (existingNotes && existingNotes.length > 0) {
-        
+
         // Merge all existing notes into a single paragraph
         const mergedNotes = existingNotes
           .map(note => note.notes)
           .filter(note => note && note.trim())
-          .join('\n\n');
-        
+          .join(' ');
+
         console.log('📋 Deal notes already exist in database, skipping API call');
         return {
           success: true,
@@ -4166,7 +4165,7 @@ export const dbHelpers = {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          dealid: dealId,
+          dealid: hubspotDealId,
           id: organizationId,
         }),
       });
@@ -4180,7 +4179,7 @@ export const dbHelpers = {
 
       // Extract notes from API response
       const dealNotes = apiData?.[0]?.Deals_Notes || [];
-
+      console.log("check deals notes", dealNotes)
       if (!dealNotes || dealNotes.length === 0) {
         console.log('📭 No notes found for this deal');
         return {
@@ -4199,13 +4198,14 @@ export const dbHelpers = {
       const savedNotes = [];
       const noteTexts = [];
       for (const note of dealNotes) {
+        console.log('4202 deal notes', note)
         try {
           // Extract text content from HTML
           const htmlContent = note.properties.hs_note_body || '';
           const textContent = this.extractTextFromHtml(htmlContent);
-          
-          if (cleanText) {
-            noteTexts.push(cleanText);
+
+          if (textContent) {
+            noteTexts.push(textContent);
           }
 
           const noteData = {
@@ -4213,10 +4213,8 @@ export const dbHelpers = {
             hubspot_created_at: note.createdAt ? new Date(note.createdAt).toISOString() : null,
             hubspot_updated_at: note.updatedAt ? new Date(note.updatedAt).toISOString() : null,
             notes: textContent,
-            user_id: CURRENT_USER.id,
-            deal_id: dealId,
-            call_id: `hubspot_note_${note.id}`,
-            status: 'completed'
+            user_id: user?.id,
+            deal_id: dealId
           };
 
           const { data: savedNote, error: saveError } = await supabase
@@ -4260,7 +4258,7 @@ export const dbHelpers = {
       // Create a temporary DOM element to parse HTML
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = htmlString;
-      
+
       // Get text content and clean it up
       const textContent = tempDiv.textContent || tempDiv.innerText || '';
       return textContent.trim();
