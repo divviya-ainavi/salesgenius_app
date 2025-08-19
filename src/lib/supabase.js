@@ -3823,6 +3823,9 @@ export const dbHelpers = {
             
             processedDeals.push(upsertedDeal);
           }
+        }
+      }
+    }
     try {
       console.log('🔍 Getting HubSpot user details for user:', { userId, organizationId });
 
