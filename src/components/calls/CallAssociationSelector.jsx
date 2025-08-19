@@ -319,11 +319,36 @@ export const CallAssociationSelector = ({
     setProspectSearch("");
     setCurrentState(SELECTOR_STATES.COMPLETE);
 
+    // Fetch HubSpot deal notes if this is a HubSpot deal
+    if (prospect.is_hubspot && prospect.hubspot_deal_id) {
+      fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
+    }
+
     // Notify parent component
     onAssociationChange({
       company: selectedCompany,
       prospect: prospect,
     });
+  };
+
+  const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
+    try {
+      console.log('🔄 Fetching HubSpot deal notes for deal:', hubspotDealId);
+      
+      const result = await dbHelpers.getHubSpotDealNotes(dealId, user?.organization_id);
+      
+      if (result.fromCache) {
+        console.log('📋 Deal notes loaded from cache');
+      } else {
+        console.log('📝 Deal notes synced from HubSpot:', result.message);
+        if (result.notes.length > 0) {
+          toast.success(`Synced ${result.notes.length} notes from HubSpot`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching HubSpot deal notes:', error);
+      toast.error('Failed to fetch deal notes from HubSpot');
+    }
   };
 
   const handleReset = () => {

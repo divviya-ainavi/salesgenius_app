@@ -4121,6 +4121,137 @@ export const dbHelpers = {
     }
   },
 
+  // Get HubSpot deal notes for a specific deal
+  async getHubSpotDealNotes(dealId, organizationId) {
+    try {
+      console.log('🔍 Getting HubSpot deal notes for deal:', { dealId, organizationId });
+
+      // Check if we already have notes for this deal
+      const { data: existingNotes, error: checkError } = await supabase
+        .from('call_notes')
+        .select('id, hubspot_updated_at')
+        .eq('deal_id', dealId)
+        .order('hubspot_updated_at', { ascending: false })
+        .limit(1);
+
+      if (checkError) {
+        console.error('❌ Error checking existing notes:', checkError);
+        // Continue with API call even if check fails
+      }
+
+      if (existingNotes && existingNotes.length > 0) {
+        console.log('📋 Deal notes already exist in database, skipping API call');
+        return {
+          success: true,
+          message: 'Notes already exist in database',
+          notes: existingNotes,
+          fromCache: true
+        };
+      }
+
+      console.log('🔄 Fetching deal notes from HubSpot API...');
+
+      // Call HubSpot API to get deal notes
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.hubspotDealNotes}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealid: dealId,
+          id: organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiData = await response.json();
+      console.log('📊 HubSpot deal notes API response:', apiData);
+
+      // Extract notes from API response
+      const dealNotes = apiData?.[0]?.Deals_Notes || [];
+
+      if (!dealNotes || dealNotes.length === 0) {
+        console.log('📭 No notes found for this deal');
+        return {
+          success: true,
+          message: 'No notes found for this deal',
+          notes: [],
+          fromCache: false
+        };
+      }
+
+      console.log('📝 Processing', dealNotes.length, 'notes from HubSpot');
+
+      // Save notes to database
+      const savedNotes = [];
+      for (const note of dealNotes) {
+        try {
+          // Extract text content from HTML
+          const htmlContent = note.properties.hs_note_body || '';
+          const textContent = this.extractTextFromHtml(htmlContent);
+
+          const noteData = {
+            hubspot_notes_id: note.id,
+            hubspot_created_at: note.createdAt ? new Date(note.createdAt).toISOString() : null,
+            hubspot_updated_at: note.updatedAt ? new Date(note.updatedAt).toISOString() : null,
+            notes: textContent,
+            user_id: CURRENT_USER.id,
+            deal_id: dealId,
+            call_id: `hubspot_note_${note.id}`,
+            status: 'completed'
+          };
+
+          const { data: savedNote, error: saveError } = await supabase
+            .from('call_notes')
+            .insert([noteData])
+            .select()
+            .single();
+
+          if (saveError) {
+            console.error('❌ Error saving note:', saveError);
+          } else {
+            console.log('✅ Saved note:', savedNote.id);
+            savedNotes.push(savedNote);
+          }
+        } catch (noteError) {
+          console.error('❌ Error processing note:', noteError);
+        }
+      }
+
+      console.log('✅ HubSpot deal notes sync completed:', savedNotes.length, 'notes saved');
+
+      return {
+        success: true,
+        message: `Successfully synced ${savedNotes.length} notes`,
+        notes: savedNotes,
+        fromCache: false
+      };
+    } catch (error) {
+      console.error('❌ Error getting HubSpot deal notes:', error);
+      throw error;
+    }
+  },
+
+  // Helper function to extract text content from HTML
+  extractTextFromHtml(htmlString) {
+    try {
+      // Create a temporary DOM element to parse HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlString;
+      
+      // Get text content and clean it up
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      return textContent.trim();
+    } catch (error) {
+      console.error('Error extracting text from HTML:', error);
+      // Fallback: return original string with basic HTML tag removal
+      return htmlString.replace(/<[^>]*>/g, '').trim();
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
