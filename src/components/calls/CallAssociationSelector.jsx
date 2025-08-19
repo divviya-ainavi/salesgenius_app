@@ -330,6 +330,7 @@ export const CallAssociationSelector = ({
     onAssociationChange({
       company: selectedCompany,
       prospect: prospect,
+      isFetchingDealNotes: isFetchingDealNotes,
     });
   };
 
