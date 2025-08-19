@@ -309,10 +309,6 @@ export const CallAssociationSelector = ({
     }
   };
 
-  const proceedToProspectSelection = (company) => {
-    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
-  };
-
   // Search prospects
   useEffect(() => {
     if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
@@ -321,7 +317,6 @@ export const CallAssociationSelector = ({
       return;
     }
     setProspectSearchError(null);
-
     const searchProspects = async () => {
       if (currentState !== SELECTOR_STATES.SELECT_PROSPECT || !selectedCompany) return;
 
@@ -361,6 +356,24 @@ export const CallAssociationSelector = ({
     checkForResearchCompany(company);
     
     console.log(company, "Selected Company in CallAssociationSelector");
+  };
+
+  const proceedToProspectSelection = (company) => {
+    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
+    handleSyncFromHubSpotDeals(company);
+  };
+
+  const handleUseResearchCompany = () => {
+    console.log('✅ Using selected research company:', selectedResearchCompany?.company_name);
+    setShowResearchSelection(false);
+    proceedToProspectSelection(selectedCompany);
+  };
+
+  const handleSkipResearchCompany = () => {
+    console.log('⏭️ Skipping research company selection');
+    setSelectedResearchCompany(null);
+    setShowResearchSelection(false);
+    proceedToProspectSelection(selectedCompany);
   };
 
   const handleProspectSelect = (prospect) => {
