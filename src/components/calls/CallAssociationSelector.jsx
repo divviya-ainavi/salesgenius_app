@@ -332,14 +332,18 @@ export const CallAssociationSelector = ({
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
+    setCurrentState(SELECTOR_STATES.COMPLETE);
 
     // Fetch HubSpot deal notes if this is a HubSpot deal
     if (prospect.is_hubspot && prospect.hubspot_deal_id) {
       fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
     }
 
-    // Check for research company data after prospect selection
-    checkForResearchCompany(selectedCompany, prospect);
+    // Notify parent component
+    onAssociationChange({
+      company: selectedCompany,
+      prospect: prospect,
+    });
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
