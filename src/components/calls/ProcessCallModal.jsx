@@ -143,15 +143,10 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
           <Button
             onClick={handleConfirm}
             disabled={
-              !selectedAssociation?.prospect || isProcessing || isComplete || selectedAssociation?.isFetchingDealNotes
+              !selectedAssociation?.prospect || isProcessing || isComplete
             }
           >
-            {selectedAssociation?.isFetchingDealNotes ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Fetching Deal Notes...
-              </>
-            ) : isProcessing ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Processing...
