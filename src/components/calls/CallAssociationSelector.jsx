@@ -334,45 +334,84 @@ export const CallAssociationSelector = ({
     setSelectedProspect(prospect);
     setProspectSearch("");
 
-    // Check for research company data for this user
-    checkForResearchCompanyData();
-
     // Fetch HubSpot deal notes if this is a HubSpot deal
     if (prospect.is_hubspot && prospect.hubspot_deal_id) {
+      console.log("🔄 Prospect selected - fetching HubSpot deal notes for:", {
+        prospectName: prospect.name,
+        hubspotDealId: prospect.hubspot_deal_id,
+        isHubspot: prospect.is_hubspot
+      });
       fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
+    } else {
+      console.log("📭 No HubSpot deal notes to fetch - not a HubSpot deal or missing deal ID:", {
+        isHubspot: prospect.is_hubspot,
+        hubspotDealId: prospect.hubspot_deal_id
+      });
+      setDealNotes(""); // Clear any existing deal notes
     }
+
+    // Check for research company data for this user (after deal notes fetch)
+    checkForResearchCompanyData();
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
+    console.log("🚀 Starting fetchHubSpotDealNotes with:", {
+      hubspotDealId,
+      dealId,
+      organizationId: user?.organization_id,
+      hubspotUserId: hubspotIntegration?.hubspotUserId
+    });
+
     setIsFetchingDealNotes(true);
     onFetchingStateChange?.(true);
+    
     try {
-      console.log("🔄 Fetching HubSpot deal notes for deal:", hubspotDealId);
+      // Validate required data
+      if (!user?.organization_id) {
+        throw new Error("Organization ID not available");
+      }
+      if (!hubspotIntegration?.hubspotUserId) {
+        throw new Error("HubSpot user ID not available");
+      }
 
       const result = await dbHelpers.getHubSpotDealNotes(
         dealId,
         user?.organization_id,
         hubspotDealId,
-        user
+        user,
+        hubspotIntegration?.hubspotUserId
       );
-      console.log(result, "HubSpot Deal Notes Result");
+      
+      console.log("✅ HubSpot Deal Notes Result:", {
+        fromCache: result.fromCache,
+        notesCount: result.notes?.length || 0,
+        mergedNotesLength: result.mergedNotes?.length || 0,
+        message: result.message
+      });
+      
       if (result.fromCache) {
         console.log("📋 Deal notes loaded from cache");
         toast.success("Deal notes fetched successfully");
       } else {
-        console.log("📝 Deal notes synced from HubSpot:", result.message);
+        console.log("📝 Deal notes synced from HubSpot");
         if (result.notes.length > 0) {
           toast.success(
             `Fetched ${result.notes.length} deal notes from HubSpot`
           );
+        } else {
+          console.log("📭 No deal notes found in HubSpot");
+          toast.info("No deal notes found for this deal");
         }
       }
 
       // Set the merged notes in state
       setDealNotes(result.mergedNotes || "");
+      console.log("💾 Deal notes set in state:", result.mergedNotes?.length || 0, "characters");
+      
     } catch (error) {
       console.error("❌ Error fetching HubSpot deal notes:", error);
-      toast.error("Failed to fetch deal notes from HubSpot");
+      toast.error("Failed to fetch deal notes: " + error.message);
+      setDealNotes(""); // Clear deal notes on error
     } finally {
       setIsFetchingDealNotes(false);
       onFetchingStateChange?.(false);
