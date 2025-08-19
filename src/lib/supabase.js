@@ -3788,37 +3788,61 @@ export const dbHelpers = {
             hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
           };
           console.log(dealData, "deal data 1")
-          // Use upsert to handle duplicates properly
-          const { data: upsertedDeal, error: upsertError } = await supabase
+          // Check if deal already exists
+          const { data: existingDeal, error: checkError } = await supabase
             .from('prospect')
-            .upsert(dealData, {
-              onConflict: 'company_id,hubspot_deal_id',
-              ignoreDuplicates: false
-            })
-            .select()
+            .update(dealData)
+            .eq('hubspot_deal_id', dealData.hubspot_deal_id)
             .single();
 
-          if (upsertError) {
-            console.error('❌ Error upserting deal:', upsertError);
+          if (checkError && checkError.code !== 'PGRST116') {
+            console.error('❌ Error checking existing deal:', checkError);
             failed++;
+            continue;
+          }
+
+          if (existingDeal) {
+            // Deal exists, check if we need to update
+            const existingUpdatedAt = new Date(existingDeal.hubspot_updated_at || 0);
+            const hubspotUpdatedAt = new Date(dealData.hubspot_updated_at || 0);
+
+            if (hubspotUpdatedAt > existingUpdatedAt) {
+              // Update existing deal
+              const { data: updatedDeal, error: updateError } = await supabase
+                .from('prospect')
+                .update(dealData)
+                .eq('id', existingDeal.id)
+                .select()
+                .single();
+
+              if (updateError) {
+                console.error('❌ Error updating deal:', updateError);
+                failed++;
+              } else {
+                console.log('✅ Updated deal:', updatedDeal.name);
+                updated++;
+                processedDeals.push(updatedDeal);
+              }
+            } else {
+              console.log('⏭️ Deal is up to date, skipping:', dealData.name);
+              processedDeals.push(existingDeal);
+            }
           } else {
-            // Check if this was an insert or update by checking if the deal existed before
-            const { data: existingCheck } = await supabase
+            // Insert new deal
+            const { data: newDeal, error: insertError } = await supabase
               .from('prospect')
-              .select('created_at')
-              .eq('id', upsertedDeal.id)
+              .insert([dealData])
+              .select()
               .single();
 
-            const wasInserted = new Date(upsertedDeal.created_at).getTime() === new Date(existingCheck?.created_at || upsertedDeal.created_at).getTime();
-            
-            if (wasInserted) {
-              console.log('✅ Inserted new deal:', upsertedDeal.name);
-              inserted++;
+            if (insertError) {
+              console.error('❌ Error inserting deal:', insertError);
+              failed++;
             } else {
-              console.log('✅ Updated existing deal:', upsertedDeal.name);
-              updated++;
+              console.log('✅ Inserted new deal:', newDeal.name);
+              inserted++;
+              processedDeals.push(newDeal);
             }
-            processedDeals.push(upsertedDeal);
           }
         } catch (dealError) {
           console.error('❌ Error processing deal:', dealError);
