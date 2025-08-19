@@ -69,6 +69,7 @@ export const CallAssociationSelector = ({
   const [showCreateProspectModal, setShowCreateProspectModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const dispatch = useDispatch();
+  const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
@@ -332,6 +333,7 @@ export const CallAssociationSelector = ({
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
+    setIsFetchingDealNotes(true);
     try {
       console.log("🔄 Fetching HubSpot deal notes for deal:", hubspotDealId);
 
@@ -344,15 +346,21 @@ export const CallAssociationSelector = ({
       console.log(result, "HubSpot Deal Notes Result");
       if (result.fromCache) {
         console.log("📋 Deal notes loaded from cache");
+        toast.success("Deal notes loaded from database");
       } else {
         console.log("📝 Deal notes synced from HubSpot:", result.message);
         if (result.notes.length > 0) {
-          toast.success(`Synced ${result.notes.length} notes from HubSpot`);
+          toast.success(`Fetched ${result.notes.length} deal notes from HubSpot`);
         }
       }
+      
+      // Set the merged notes in state
+      setDealNotes(result.mergedNotes || '');
     } catch (error) {
       console.error("❌ Error fetching HubSpot deal notes:", error);
       toast.error("Failed to fetch deal notes from HubSpot");
+    } finally {
+      setIsFetchingDealNotes(false);
     }
   };
 
@@ -685,6 +693,23 @@ export const CallAssociationSelector = ({
 
           {currentState === SELECTOR_STATES.COMPLETE && (
             <div className="space-y-3">
+              {/* Deal Notes Fetching Progress */}
+              {isFetchingDealNotes && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        Fetching deal notes from HubSpot...
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        Getting cumulative sales insights to enhance processing
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-green-800">
