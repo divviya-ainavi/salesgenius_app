@@ -72,13 +72,6 @@ export const CallAssociationSelector = ({
   const dispatch = useDispatch();
   const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
   const [dealNotes, setDealNotes] = useState("");
-  
-  // Research company states
-  const [researchCompanies, setResearchCompanies] = useState([]);
-  const [selectedResearchCompany, setSelectedResearchCompany] = useState(null);
-  const [isLoadingResearch, setIsLoadingResearch] = useState(false);
-  const [showResearchOptions, setShowResearchOptions] = useState(false);
-
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
@@ -335,9 +328,6 @@ export const CallAssociationSelector = ({
     setProspectSearch("");
     setCurrentState(SELECTOR_STATES.COMPLETE);
 
-    // Check for research company data after prospect selection
-    checkForResearchCompany(selectedCompany);
-
     // Fetch HubSpot deal notes if this is a HubSpot deal
     if (prospect.is_hubspot && prospect.hubspot_deal_id) {
       fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
@@ -347,7 +337,6 @@ export const CallAssociationSelector = ({
     onAssociationChange({
       company: selectedCompany,
       prospect: prospect,
-      researchCompany: selectedResearchCompany,
     });
   };
 
@@ -387,93 +376,11 @@ export const CallAssociationSelector = ({
     }
   };
 
-  // Function to check for research company data
-  const checkForResearchCompany = async (company) => {
-    if (!company?.name || !user?.id) return;
-
-    setIsLoadingResearch(true);
-    try {
-      // Normalize company name for matching
-      const normalizedCompanyName = company.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, ''); // Remove spaces, special chars, keep only alphanumeric
-
-      console.log('🔍 Checking for research data for company:', {
-        originalName: company.name,
-        normalizedName: normalizedCompanyName
-      });
-
-      // Query ResearchCompany table for matching company names
-      const { data: researchData, error } = await supabase
-        .from('ResearchCompany')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching research companies:', error);
-        return;
-      }
-
-      // Filter research companies by normalized name matching
-      const matchingResearch = researchData?.filter(research => {
-        const normalizedResearchName = research.company_name
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, '');
-        return normalizedResearchName === normalizedCompanyName;
-      }) || [];
-
-      console.log('📊 Found matching research companies:', matchingResearch.length);
-
-      if (matchingResearch.length > 0) {
-        setResearchCompanies(matchingResearch);
-        setSelectedResearchCompany(matchingResearch[0]); // Auto-select the most recent
-        setShowResearchOptions(true);
-        toast.success(`Found ${matchingResearch.length} research profile(s) for ${company.name}`);
-      } else {
-        setResearchCompanies([]);
-        setSelectedResearchCompany(null);
-        setShowResearchOptions(false);
-      }
-    } catch (error) {
-      console.error('Error checking research companies:', error);
-    } finally {
-      setIsLoadingResearch(false);
-    }
-  };
-
-  // Function to handle research company selection
-  const handleResearchCompanySelect = (researchCompany) => {
-    setSelectedResearchCompany(researchCompany);
-    
-    // Update parent component with research data
-    onAssociationChange({
-      company: selectedCompany,
-      prospect: selectedProspect,
-      researchCompany: researchCompany,
-    });
-  };
-
-  // Function to skip research data
-  const handleSkipResearch = () => {
-    setSelectedResearchCompany(null);
-    
-    // Update parent component without research data
-    onAssociationChange({
-      company: selectedCompany,
-      prospect: selectedProspect,
-      researchCompany: null,
-    });
-  };
-
   const handleReset = () => {
     setSelectedCompany(null);
     setSelectedProspect(null);
     setCompanySearch("");
     setProspectSearch("");
-    setResearchCompanies([]);
-    setSelectedResearchCompany(null);
-    setShowResearchOptions(false);
     setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
     onAssociationReset();
   };
@@ -874,97 +781,6 @@ export const CallAssociationSelector = ({
                   Change Selection
                 </Button>
               </div>
-
-              {/* Research Company Selection - Shows after company and prospect are selected */}
-              {showResearchOptions && (
-                <div className="mt-4 space-y-3">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-blue-800">
-                          Research Data Found
-                        </span>
-                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                          {researchCompanies.length} match{researchCompanies.length !== 1 ? 'es' : ''}
-                        </Badge>
-                      </div>
-                      {isLoadingResearch && (
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                      )}
-                    </div>
-
-                    <p className="text-sm text-blue-700 mb-3">
-                      We found existing research data for "{selectedCompany?.name}". 
-                      Using this data will enhance AI processing with company-specific insights.
-                    </p>
-
-                    {/* Research Company Options */}
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {researchCompanies.map((research) => (
-                        <div
-                          key={research.id}
-                          className={cn(
-                            "p-3 border rounded-md cursor-pointer transition-all",
-                            selectedResearchCompany?.id === research.id
-                              ? "border-blue-400 bg-blue-100 shadow-sm"
-                              : "border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50"
-                          )}
-                          onClick={() => handleResearchCompanySelect(research)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <h4 className="font-medium text-sm text-blue-900 truncate">
-                                  {research.company_name}
-                                </h4>
-                                {selectedResearchCompany?.id === research.id && (
-                                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-xs text-blue-700">
-                                Created: {new Date(research.created_at).toLocaleDateString()}
-                              </p>
-                              {research.summary_note && (
-                                <p className="text-xs text-blue-600 mt-1 truncate">
-                                  {research.summary_note.substring(0, 80)}...
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 mt-3">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          // Keep the selected research and notify parent
-                          onAssociationChange({
-                            company: selectedCompany,
-                            prospect: selectedProspect,
-                            researchCompany: selectedResearchCompany,
-                          });
-                        }}
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Use Selected Research
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSkipResearch}
-                        className="flex-1"
-                      >
-                        Skip Research
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
