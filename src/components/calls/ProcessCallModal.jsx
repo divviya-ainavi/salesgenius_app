@@ -22,6 +22,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
   const [selectedAssociation, setSelectedAssociation] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
 
   const handleAssociationChange = (association) => {
     setSelectedAssociation(association);
@@ -116,6 +117,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
               onAssociationChange={handleAssociationChange}
               isProcessing={isProcessing}
               onAssociationReset={handleAssociationReset}
+              onFetchingStateChange={setIsFetchingDealNotes}
             />
           )}
 
