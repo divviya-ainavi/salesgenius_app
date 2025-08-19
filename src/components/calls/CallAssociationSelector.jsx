@@ -329,7 +329,7 @@ export const CallAssociationSelector = ({
     }
     console.log(company, "Selected Company in CallAssociationSelector");
   };
-
+  console.log(selectedProspect, "Selected Prospect in CallAssociationSelector");
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
@@ -339,14 +339,17 @@ export const CallAssociationSelector = ({
       console.log("🔄 Prospect selected - fetching HubSpot deal notes for:", {
         prospectName: prospect.name,
         hubspotDealId: prospect.hubspot_deal_id,
-        isHubspot: prospect.is_hubspot
+        isHubspot: prospect.is_hubspot,
       });
       fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
     } else {
-      console.log("📭 No HubSpot deal notes to fetch - not a HubSpot deal or missing deal ID:", {
-        isHubspot: prospect.is_hubspot,
-        hubspotDealId: prospect.hubspot_deal_id
-      });
+      console.log(
+        "📭 No HubSpot deal notes to fetch - not a HubSpot deal or missing deal ID:",
+        {
+          isHubspot: prospect.is_hubspot,
+          hubspotDealId: prospect.hubspot_deal_id,
+        }
+      );
       setDealNotes(""); // Clear any existing deal notes
     }
 
@@ -359,12 +362,12 @@ export const CallAssociationSelector = ({
       hubspotDealId,
       dealId,
       organizationId: user?.organization_id,
-      hubspotUserId: hubspotIntegration?.hubspotUserId
+      hubspotUserId: hubspotIntegration?.hubspotUserId,
     });
 
     setIsFetchingDealNotes(true);
     onFetchingStateChange?.(true);
-    
+
     try {
       // Validate required data
       if (!user?.organization_id) {
@@ -381,14 +384,14 @@ export const CallAssociationSelector = ({
         user,
         hubspotIntegration?.hubspotUserId
       );
-      
+
       console.log("✅ HubSpot Deal Notes Result:", {
         fromCache: result.fromCache,
         notesCount: result.notes?.length || 0,
         mergedNotesLength: result.mergedNotes?.length || 0,
-        message: result.message
+        message: result.message,
       });
-      
+
       if (result.fromCache) {
         console.log("📋 Deal notes loaded from cache");
         toast.success("Deal notes fetched successfully");
@@ -406,8 +409,11 @@ export const CallAssociationSelector = ({
 
       // Set the merged notes in state
       setDealNotes(result.mergedNotes || "");
-      console.log("💾 Deal notes set in state:", result.mergedNotes?.length || 0, "characters");
-      
+      console.log(
+        "💾 Deal notes set in state:",
+        result.mergedNotes?.length || 0,
+        "characters"
+      );
     } catch (error) {
       console.error("❌ Error fetching HubSpot deal notes:", error);
       toast.error("Failed to fetch deal notes: " + error.message);
@@ -470,7 +476,7 @@ export const CallAssociationSelector = ({
         return normalizedResearchName === normalizedCompanyName;
       });
 
-      setSelectedResearchCompany(matchingResearch || researchData[0]);
+      setSelectedResearchCompany(matchingResearch || null);
       setCurrentState(SELECTOR_STATES.SELECT_RESEARCH);
 
       if (matchingResearch) {
