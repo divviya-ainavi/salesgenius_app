@@ -45,6 +45,7 @@ export const CallAssociationSelector = ({
   onAssociationReset,
   selectedAssociation = null,
   isProcessing,
+  onFetchingStateChange,
 }) => {
   const [currentState, setCurrentState] = useState(
     SELECTOR_STATES.SELECT_COMPANY
