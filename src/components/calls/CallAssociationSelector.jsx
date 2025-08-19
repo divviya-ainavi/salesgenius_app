@@ -378,9 +378,103 @@ export const CallAssociationSelector = ({
     }
   };
 
+  // Check for research company data
+  const checkForResearchCompany = async (company, prospect) => {
+    setIsLoadingResearch(true);
+    try {
+      console.log("🔍 Checking for research data for company:", company.name);
+      
+      // Normalize company name for matching
+      const normalizedCompanyName = company.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+      
+      console.log("🔍 Normalized company name:", normalizedCompanyName);
+      
+      // Query ResearchCompany table for matching company names
+      const { data: researchData, error } = await supabase
+        .from('ResearchCompany')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error querying research companies:", error);
+        // Continue without research data
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        notifyParentOfSelection(company, prospect, null);
+        return;
+      }
+      
+      // Filter research data by normalized company name
+      const matchingResearch = (researchData || []).filter(research => {
+        const normalizedResearchName = research.company_name
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        return normalizedResearchName === normalizedCompanyName;
+      });
+      
+      console.log("🔍 Found matching research companies:", matchingResearch.length);
+      
+      if (matchingResearch.length > 0) {
+        // Research data found - show selection step
+        setResearchCompanies(matchingResearch);
+        setSelectedResearchCompany(matchingResearch[0]); // Auto-select the most recent
+        setShowResearchSelection(true);
+        setCurrentState(SELECTOR_STATES.SELECT_PROSPECT); // Keep in prospect state but show research
+        
+        toast.success(`Found ${matchingResearch.length} research profile(s) for "${company.name}"`);
+      } else {
+        // No research data found - proceed normally
+        console.log("📭 No research data found for company:", company.name);
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        notifyParentOfSelection(company, prospect, null);
+      }
+    } catch (error) {
+      console.error("Error checking for research company:", error);
+      // Continue without research data on error
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      notifyParentOfSelection(company, prospect, null);
+    } finally {
+      setIsLoadingResearch(false);
+    }
+  };
+
+  // Handle research company selection
+  const handleResearchCompanySelect = (research) => {
+    setSelectedResearchCompany(research);
+  };
+
+  // Handle using selected research company
+  const handleUseResearchCompany = () => {
+    setShowResearchSelection(false);
+    setCurrentState(SELECTOR_STATES.COMPLETE);
+    notifyParentOfSelection(selectedCompany, selectedProspect, selectedResearchCompany);
+    toast.success(`Using research data for "${selectedResearchCompany.company_name}"`);
+  };
+
+  // Handle skipping research company
+  const handleSkipResearchCompany = () => {
+    setShowResearchSelection(false);
+    setCurrentState(SELECTOR_STATES.COMPLETE);
+    notifyParentOfSelection(selectedCompany, selectedProspect, null);
+  };
+
+  // Notify parent component of selection
+  const notifyParentOfSelection = (company, prospect, researchCompany) => {
+    onAssociationChange({
+      company: company,
+      prospect: prospect,
+      researchCompany: researchCompany,
+    });
+  };
+
   const handleReset = () => {
     setSelectedCompany(null);
     setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
+    setShowResearchSelection(false);
     setCompanySearch("");
     setProspectSearch("");
     setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
