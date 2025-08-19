@@ -49,8 +49,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
         selectedAssociation.company.id,
         selectedAssociation.prospect.id,
         selectedAssociation?.prospect,
-        selectedAssociation?.researchCompany,
-        selectedAssociation?.dealNotes
+        selectedAssociation
       );
 
       setIsComplete(true);
@@ -97,7 +96,14 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
                       <p className="font-medium truncate max-w-[300px]">
                         {file?.filename || file?.title}
                       </p>
-                      <p className="text-xs text-muted-foreground" aria-label={`File size ${file?.size} bytes, uploaded on ${new Date(file?.upload_date || file?.date).toLocaleString()}`}>
+                      <p
+                        className="text-xs text-muted-foreground"
+                        aria-label={`File size ${
+                          file?.size
+                        } bytes, uploaded on ${new Date(
+                          file?.upload_date || file?.date
+                        ).toLocaleString()}`}
+                      >
                         {file?.size} •{" "}
                         {new Date(
                           file?.upload_date || file?.date
@@ -147,7 +153,10 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
           <Button
             onClick={handleConfirm}
             disabled={
-              !selectedAssociation?.prospect || isProcessing || isComplete || isFetchingDealNotes
+              !selectedAssociation?.prospect ||
+              isProcessing ||
+              isComplete ||
+              isFetchingDealNotes
             }
           >
             {isFetchingDealNotes ? (
