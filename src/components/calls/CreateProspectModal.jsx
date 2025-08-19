@@ -76,7 +76,9 @@ export const CreateProspectModal = ({
 
       // Check if user has HubSpot integration and user ID
       const hasHubSpotIntegration =
-        hubspotIntegration?.connected && hubspotIntegration?.hubspotUserId;
+        hubspotIntegration?.connected &&
+        hubspotIntegration?.hubspotUserId &&
+        selectedCompany?.hubspot_company_id;
 
       if (hasHubSpotIntegration) {
         try {
