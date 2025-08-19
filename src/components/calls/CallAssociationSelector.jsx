@@ -354,19 +354,40 @@ export const CallAssociationSelector = ({
               <label className="text-sm font-medium text-gray-700">
                 Select Company
               </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  data-tour="company-selector"
-                  placeholder="Search for a company..."
-                  value={companySearch}
-                  onChange={(e) => setCompanySearch(e.target.value)}
-                  className="pl-10"
-                  aria-invalid={companySearchError ? "true" : "false"}
-                />
-                {loadingCompanies && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-                )}
+              <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    data-tour="company-selector"
+                    placeholder="Search for a company..."
+                    value={companySearch}
+                    onChange={(e) => setCompanySearch(e.target.value)}
+                    className="pl-10"
+                    aria-invalid={companySearchError ? "true" : "false"}
+                  />
+                  {loadingCompanies && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspotUserId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncFromHubSpot}
+                      disabled={isSyncing}
+                      className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Building className="w-4 h-4 mr-1" />
+                          Sync
+                        </>
+                      )}
+                    </Button>
+                  )}
               </div>
 
               {/* Company Results */}
@@ -375,24 +396,6 @@ export const CallAssociationSelector = ({
                   {companySearchError}
                 </p>
               )}
-              {hubspotIntegration?.connected &&
-                hubspotIntegration?.hubspotUserId && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                    onClick={handleSyncFromHubSpot}
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Building className="w-4 h-4 mr-2" />
-                    )}
-                    {isSyncing
-                      ? "Syncing from HubSpot..."
-                      : "Sync Companies from HubSpot"}
-                  </Button>
-                )}
               {
                 <div
                   className={
@@ -488,19 +491,40 @@ export const CallAssociationSelector = ({
                 Select Deal
               </label>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  data-tour="prospect-selector"
-                  placeholder="Search for a deal..."
-                  value={prospectSearch}
-                  onChange={(e) => setProspectSearch(e.target.value)}
-                  className="pl-10"
-                  aria-invalid={prospectSearchError ? "true" : "false"}
-                />
-                {loadingProspects && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-                )}
+              <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    data-tour="prospect-selector"
+                    placeholder="Search for a deal..."
+                    value={prospectSearch}
+                    onChange={(e) => setProspectSearch(e.target.value)}
+                    className="pl-10"
+                    aria-invalid={prospectSearchError ? "true" : "false"}
+                  />
+                  {loadingProspects && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspotUserId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSyncFromHubSpotDeals(selectedCompany)}
+                      disabled={isSyncing}
+                      className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <DollarSign className="w-4 h-4 mr-1" />
+                          Sync
+                        </>
+                      )}
+                    </Button>
+                  )}
               </div>
 
               {/* Prospect Results - Separate container */}
@@ -511,27 +535,6 @@ export const CallAssociationSelector = ({
               )}
               <div className="space-y-3 mt-3">
                 {/* Create New Deal Button - Moved above the list */}
-                {/* HubSpot Sync Button */}
-                {hubspotIntegration?.connected &&
-                  hubspotIntegration?.hubspotUserId && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                      onClick={() =>
-                        handleSyncFromHubSpotDeals(selectedCompany)
-                      }
-                      disabled={isSyncing}
-                    >
-                      {isSyncing ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Building className="w-4 h-4 mr-2" />
-                      )}
-                      {isSyncing
-                        ? "Syncing from HubSpot..."
-                        : "Sync Deals from HubSpot"}
-                    </Button>
-                  )}
 
                 <Button
                   variant="ghost"
