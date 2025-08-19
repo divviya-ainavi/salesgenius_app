@@ -813,78 +813,75 @@ export const CallAssociationSelector = ({
                 </div>
               </div>
 
-              <label className="text-sm font-medium text-gray-700">
+              <div className="text-sm font-medium text-gray-700">
                 Research Data Found
-              </label>
-              
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Search className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium text-blue-800">
-                    Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''} for "{selectedCompany?.name}"
-                  </span>
-                </div>
-                <p className="text-sm text-blue-700 mb-3">
-                  Using research data will enhance AI processing with company-specific insights.
-                </p>
+              </div>
 
-                {/* Research Company List */}
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {researchCompanies.map((research) => (
-                    <div
-                      key={research.id}
-                      className={cn(
-                        "p-3 border rounded-md cursor-pointer transition-all",
-                        selectedResearchCompany?.id === research.id
-                          ? "border-blue-400 bg-blue-100 shadow-sm"
-                          : "border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50"
-                      )}
-                      onClick={() => handleResearchCompanySelect(research)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium text-sm text-blue-900 truncate">
-                              {research.company_name}
-                            </h4>
-                            {selectedResearchCompany?.id === research.id && (
-                              <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-xs text-blue-700">
-                            Created: {new Date(research.created_at).toLocaleDateString()}
-                          </p>
-                          {research.summary_note && (
-                            <p className="text-xs text-blue-600 mt-1 truncate">
-                              {research.summary_note.substring(0, 100)}...
-                            </p>
+              {/* Research Found Message */}
+              <div className="flex items-center space-x-2 text-blue-600 mb-3">
+                <Search className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''} for "{selectedCompany?.name}"
+                </span>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Using research data will enhance AI processing with company-specific insights.
+              </p>
+
+              {/* Research Company Selection */}
+              <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                {researchCompanies.map((research) => (
+                  <Button
+                    key={research.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0",
+                      selectedResearchCompany?.id === research.id
+                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
+                        : ""
+                    )}
+                    onClick={() => handleResearchCompanySelect(research)}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {research.company_name}
+                          {selectedResearchCompany?.id === research.id && (
+                            <Check className="w-4 h-4 ml-2 inline text-blue-600" />
                           )}
                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          Created: {new Date(research.created_at).toLocaleDateString()}
+                        </div>
+                        {research.summary_note && (
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {research.summary_note.substring(0, 80)}...
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </Button>
+                ))}
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex space-x-2 mt-4">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    onClick={handleUseResearch}
-                    disabled={!selectedResearchCompany}
-                  >
-                    <Check className="w-4 h-4 mr-1" />
-                    Use Selected Research
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSkipResearch}
-                    className="flex-1"
-                  >
-                    Skip Research
-                  </Button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  className="flex-1"
+                  onClick={handleUseResearch}
+                  disabled={!selectedResearchCompany}
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Use Selected Research
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSkipResearch}
+                  className="flex-1"
+                >
+                  Skip Research
+                </Button>
               </div>
             </div>
           )}
@@ -954,6 +951,34 @@ export const CallAssociationSelector = ({
                       </TooltipProvider>
                     </span>
                   </div>
+
+                  {/* Research Data Display (if selected) */}
+                  {selectedResearchCompany && (
+                    <div className="flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-green-600" />
+                      <span className="text-sm flex items-center">
+                        <span className="font-medium mr-1">Research:</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                                {selectedResearchCompany.company_name} (Research Profile)
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div>
+                                <p className="font-medium">{selectedResearchCompany.company_name}</p>
+                                <p className="text-xs">Created: {new Date(selectedResearchCompany.created_at).toLocaleDateString()}</p>
+                                {selectedResearchCompany.summary_note && (
+                                  <p className="text-xs mt-1">{selectedResearchCompany.summary_note.substring(0, 150)}...</p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Research Data Display (if selected) */}
@@ -994,97 +1019,75 @@ export const CallAssociationSelector = ({
                   Change Selection
                 </Button>
               </div>
+              </div>
 
-              {/* Research Company Selection - Shows after company and prospect are selected */}
-              {showResearchOptions && (
-                <div className="mt-4 space-y-3">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-blue-800">
-                          Research Data Found
-                        </span>
-                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                          {researchCompanies.length} match{researchCompanies.length !== 1 ? 'es' : ''}
-                        </Badge>
-                      </div>
-                      {isLoadingResearch && (
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                      )}
-                    </div>
+              {/* Research Found Message */}
+              <div className="flex items-center space-x-2 text-blue-600 mb-3">
+                <Search className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''} for "{selectedCompany?.name}"
+                </span>
+              </div>
 
-                    <p className="text-sm text-blue-700 mb-3">
-                      We found existing research data for "{selectedCompany?.name}". 
-                      Using this data will enhance AI processing with company-specific insights.
-                    </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Using research data will enhance AI processing with company-specific insights.
+              </p>
 
-                    {/* Research Company Options */}
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {researchCompanies.map((research) => (
-                        <div
-                          key={research.id}
-                          className={cn(
-                            "p-3 border rounded-md cursor-pointer transition-all",
-                            selectedResearchCompany?.id === research.id
-                              ? "border-blue-400 bg-blue-100 shadow-sm"
-                              : "border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+              {/* Research Company Selection - Matching modal style */}
+              <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                {researchCompanies.map((research) => (
+                  <div
+                    key={research.id}
+                    className={cn(
+                      "p-4 border-b border-gray-100 last:border-b-0 cursor-pointer transition-all",
+                      selectedResearchCompany?.id === research.id
+                        ? "bg-blue-50 border-l-4 border-blue-500"
+                        : "hover:bg-gray-50"
+                    )}
+                    onClick={() => handleResearchCompanySelect(research)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium text-sm truncate">
+                            {research.company_name}
+                          </h4>
+                          {selectedResearchCompany?.id === research.id && (
+                            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
                           )}
-                          onClick={() => handleResearchCompanySelect(research)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <h4 className="font-medium text-sm text-blue-900 truncate">
-                                  {research.company_name}
-                                </h4>
-                                {selectedResearchCompany?.id === research.id && (
-                                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-xs text-blue-700">
-                                Created: {new Date(research.created_at).toLocaleDateString()}
-                              </p>
-                              {research.summary_note && (
-                                <p className="text-xs text-blue-600 mt-1 truncate">
-                                  {research.summary_note.substring(0, 80)}...
-                                </p>
-                              )}
-                            </div>
-                          </div>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 mt-3">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          // Keep the selected research and notify parent
-                          onAssociationChange({
-                            company: selectedCompany,
-                            prospect: selectedProspect,
-                            researchCompany: selectedResearchCompany,
-                          });
-                        }}
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Use Selected Research
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSkipResearch}
-                        className="flex-1"
-                      >
-                        Skip Research
-                      </Button>
+                        <div className="text-xs text-muted-foreground">
+                          Created: {new Date(research.created_at).toLocaleDateString()}
+                        </div>
+                        {research.summary_note && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {research.summary_note.substring(0, 120)}...
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  className="flex-1"
+                  onClick={handleUseResearch}
+                  disabled={!selectedResearchCompany}
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Use Selected Research
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSkipResearch}
+                  className="flex-1"
+                >
+                  Skip Research
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
