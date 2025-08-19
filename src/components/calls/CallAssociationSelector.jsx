@@ -37,6 +37,7 @@ import { useDispatch } from "react-redux";
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
   SELECT_PROSPECT: "select_prospect",
+  SELECT_RESEARCH: "select_research",
   COMPLETE: "complete",
 };
 
@@ -333,22 +334,9 @@ export const CallAssociationSelector = ({
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
-    setCurrentState(SELECTOR_STATES.COMPLETE);
-
-    // Check for research company data after prospect selection
-    checkForResearchCompany(selectedCompany);
-
-    // Fetch HubSpot deal notes if this is a HubSpot deal
-    if (prospect.is_hubspot && prospect.hubspot_deal_id) {
-      fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
-    }
-
-    // Notify parent component
-    onAssociationChange({
-      company: selectedCompany,
-      prospect: prospect,
-      researchCompany: selectedResearchCompany,
-    });
+    
+    // Check for research company data and move to research selection
+    checkForResearchCompany(selectedCompany, prospect);
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
@@ -388,7 +376,7 @@ export const CallAssociationSelector = ({
   };
 
   // Function to check for research company data
-  const checkForResearchCompany = async (company) => {
+  const checkForResearchCompany = async (company, prospect) => {
     if (!company?.name || !user?.id) return;
 
     setIsLoadingResearch(true);
@@ -412,6 +400,9 @@ export const CallAssociationSelector = ({
 
       if (error) {
         console.error('Error fetching research companies:', error);
+        // If no research data or error, skip to complete
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        handleFinalSelection(company, prospect, null);
         return;
       }
 
@@ -428,15 +419,20 @@ export const CallAssociationSelector = ({
       if (matchingResearch.length > 0) {
         setResearchCompanies(matchingResearch);
         setSelectedResearchCompany(matchingResearch[0]); // Auto-select the most recent
-        setShowResearchOptions(true);
+        setCurrentState(SELECTOR_STATES.SELECT_RESEARCH);
         toast.success(`Found ${matchingResearch.length} research profile(s) for ${company.name}`);
       } else {
         setResearchCompanies([]);
         setSelectedResearchCompany(null);
-        setShowResearchOptions(false);
+        // No research data found, skip to complete
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        handleFinalSelection(company, prospect, null);
       }
     } catch (error) {
       console.error('Error checking research companies:', error);
+      // On error, skip to complete
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      handleFinalSelection(company, prospect, null);
     } finally {
       setIsLoadingResearch(false);
     }
@@ -445,35 +441,43 @@ export const CallAssociationSelector = ({
   // Function to handle research company selection
   const handleResearchCompanySelect = (researchCompany) => {
     setSelectedResearchCompany(researchCompany);
-    
-    // Update parent component with research data
-    onAssociationChange({
-      company: selectedCompany,
-      prospect: selectedProspect,
-      researchCompany: researchCompany,
-    });
   };
 
   // Function to skip research data
   const handleSkipResearch = () => {
     setSelectedResearchCompany(null);
-    
-    // Update parent component without research data
+    setCurrentState(SELECTOR_STATES.COMPLETE);
+    handleFinalSelection(selectedCompany, selectedProspect, null);
+  };
+
+  // Function to proceed with selected research
+  const handleUseSelectedResearch = () => {
+    setCurrentState(SELECTOR_STATES.COMPLETE);
+    handleFinalSelection(selectedCompany, selectedProspect, selectedResearchCompany);
+  };
+
+  // Function to handle final selection and notify parent
+  const handleFinalSelection = async (company, prospect, researchCompany) => {
+    // Fetch HubSpot deal notes if this is a HubSpot deal
+    if (prospect.is_hubspot && prospect.hubspot_deal_id) {
+      await fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
+    }
+
+    // Notify parent component with all data
     onAssociationChange({
-      company: selectedCompany,
-      prospect: selectedProspect,
-      researchCompany: null,
+      company: company,
+      prospect: prospect,
+      researchCompany: researchCompany,
     });
   };
 
   const handleReset = () => {
     setSelectedCompany(null);
     setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
     setCompanySearch("");
     setProspectSearch("");
-    setResearchCompanies([]);
-    setSelectedResearchCompany(null);
-    setShowResearchOptions(false);
     setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
     onAssociationReset();
   };
@@ -797,6 +801,138 @@ export const CallAssociationSelector = ({
             </div>
           )}
 
+          {/* State 3: Select Research Company */}
+          {currentState === SELECTOR_STATES.SELECT_RESEARCH && (
+            <div className="space-y-4">
+              {/* Selected Company and Prospect Display */}
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Building className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    <span className="font-medium">Company:</span> {selectedCompany?.name}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    <span className="font-medium">Deal:</span> {selectedProspect?.name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Show research company info if selected */}
+              {selectedResearchCompany && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Search className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">
+                      Using Research Data
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-700">
+                    <p><span className="font-medium">Research Profile:</span> {selectedResearchCompany.company_name}</p>
+                    <p><span className="font-medium">Created:</span> {new Date(selectedResearchCompany.created_at).toLocaleDateString()}</p>
+                    {selectedResearchCompany.summary_note && (
+                      <p className="mt-1"><span className="font-medium">Summary:</span> {selectedResearchCompany.summary_note.substring(0, 150)}...</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <label className="text-sm font-medium text-gray-700">
+                Research Data Found
+              </label>
+
+              {isLoadingResearch ? (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    <span className="text-sm text-blue-800">
+                      Checking for research data...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Search className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-blue-800">
+                        Research profiles found for "{selectedCompany?.name}"
+                      </span>
+                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                        {researchCompanies.length} match{researchCompanies.length !== 1 ? 'es' : ''}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm text-blue-700 mb-3">
+                      Select a research profile to enhance AI processing with company-specific insights.
+                    </p>
+
+                    {/* Research Company Options */}
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {researchCompanies.map((research) => (
+                        <div
+                          key={research.id}
+                          className={cn(
+                            "p-3 border rounded-md cursor-pointer transition-all",
+                            selectedResearchCompany?.id === research.id
+                              ? "border-blue-400 bg-blue-100 shadow-sm"
+                              : "border-blue-200 bg-white hover:border-blue-300 hover:bg-blue-50"
+                          )}
+                          onClick={() => handleResearchCompanySelect(research)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h4 className="font-medium text-sm text-blue-900 truncate">
+                                  {research.company_name}
+                                </h4>
+                                {selectedResearchCompany?.id === research.id && (
+                                  <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-xs text-blue-700">
+                                Created: {new Date(research.created_at).toLocaleDateString()}
+                              </p>
+                              {research.summary_note && (
+                                <p className="text-xs text-blue-600 mt-1 truncate">
+                                  {research.summary_note.substring(0, 100)}...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2 mt-4">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={handleUseSelectedResearch}
+                        disabled={!selectedResearchCompany}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Use Selected Research
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSkipResearch}
+                        className="flex-1"
+                      >
+                        Skip Research
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* State 4: Complete */}
           {currentState === SELECTOR_STATES.COMPLETE && (
             <div className="space-y-3">
               {/* Deal Notes Fetching Progress */}
