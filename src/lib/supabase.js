@@ -4140,11 +4140,19 @@ export const dbHelpers = {
       }
 
       if (existingNotes && existingNotes.length > 0) {
+        
+        // Merge all existing notes into a single paragraph
+        const mergedNotes = existingNotes
+          .map(note => note.notes)
+          .filter(note => note && note.trim())
+          .join('\n\n');
+        
         console.log('📋 Deal notes already exist in database, skipping API call');
         return {
           success: true,
           message: 'Notes already exist in database',
           notes: existingNotes,
+          mergedNotes: mergedNotes,
           fromCache: true
         };
       }
@@ -4179,6 +4187,8 @@ export const dbHelpers = {
           success: true,
           message: 'No notes found for this deal',
           notes: [],
+          notes: [],
+          mergedNotes: '',
           fromCache: false
         };
       }
@@ -4187,11 +4197,16 @@ export const dbHelpers = {
 
       // Save notes to database
       const savedNotes = [];
+      const noteTexts = [];
       for (const note of dealNotes) {
         try {
           // Extract text content from HTML
           const htmlContent = note.properties.hs_note_body || '';
           const textContent = this.extractTextFromHtml(htmlContent);
+          
+          if (cleanText) {
+            noteTexts.push(cleanText);
+          }
 
           const noteData = {
             hubspot_notes_id: note.id,
@@ -4221,12 +4236,16 @@ export const dbHelpers = {
         }
       }
 
+      // Merge all notes into a single paragraph
+      const mergedNotes = noteTexts.join('\n\n');
+
       console.log('✅ HubSpot deal notes sync completed:', savedNotes.length, 'notes saved');
 
       return {
         success: true,
         message: `Successfully synced ${savedNotes.length} notes`,
         notes: savedNotes,
+        mergedNotes: mergedNotes,
         fromCache: false
       };
     } catch (error) {
