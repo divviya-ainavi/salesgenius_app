@@ -3788,7 +3788,7 @@ export const dbHelpers = {
             hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
           };
           console.log(dealData, "deal data 1")
-          // Use upsert to handle duplicates properly
+          // Use upsert to handle both insert and update cases
           const { data: upsertedDeal, error: upsertError } = await supabase
             .from('prospect')
             .upsert(dealData, {
@@ -3809,41 +3809,20 @@ export const dbHelpers = {
               .eq('id', upsertedDeal.id)
               .single();
 
-            const wasInserted = new Date(upsertedDeal.created_at).getTime() === new Date(existingCheck?.created_at || upsertedDeal.created_at).getTime();
-            
-            if (wasInserted) {
+            // If created_at is very recent (within last few seconds), it's likely a new insert
+            const isNewInsert = existingCheck && 
+              (new Date() - new Date(existingCheck.created_at)) < 5000;
+
+            if (isNewInsert) {
               console.log('✅ Inserted new deal:', upsertedDeal.name);
               inserted++;
             } else {
               console.log('✅ Updated existing deal:', upsertedDeal.name);
               updated++;
             }
+            
             processedDeals.push(upsertedDeal);
           }
-        } catch (dealError) {
-          console.error('❌ Error processing deal:', dealError);
-          failed++;
-        }
-      }
-
-      const result = {
-        total: hubspotDeals.length,
-        inserted,
-        updated,
-        failed,
-        deals: processedDeals,
-      };
-
-      console.log('✅ HubSpot deals sync completed:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ Error syncing HubSpot deals:', error);
-      throw error;
-    }
-  },
-
-  // Get complete HubSpot user details for a specific user
-  getHubSpotUserDetails: async (userId, organizationId) => {
     try {
       console.log('🔍 Getting HubSpot user details for user:', { userId, organizationId });
 
