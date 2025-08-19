@@ -73,7 +73,7 @@ export const CallAssociationSelector = ({
   const dispatch = useDispatch();
   const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
   const [dealNotes, setDealNotes] = useState("");
-  
+
   // Research company states
   const [researchCompanies, setResearchCompanies] = useState([]);
   const [selectedResearchCompany, setSelectedResearchCompany] = useState(null);
@@ -333,7 +333,7 @@ export const CallAssociationSelector = ({
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
-    
+
     // Check for research company data for this user
     checkForResearchCompanyData();
 
@@ -385,26 +385,26 @@ export const CallAssociationSelector = ({
 
     setIsLoadingResearch(true);
     try {
-      console.log('🔍 Checking for research data for user:', user.id);
-      
+      console.log("🔍 Checking for research data for user:", user.id);
+
       // Get all research companies for this user
       const { data: researchData, error } = await supabase
-        .from('ResearchCompany')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("ResearchCompany")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching research companies:', error);
+        console.error("Error fetching research companies:", error);
         setCurrentState(SELECTOR_STATES.COMPLETE);
         return;
       }
 
-      console.log('📊 Found research companies:', researchData?.length || 0);
+      console.log("📊 Found research companies:", researchData?.length || 0);
 
       // If no research data exists, skip research screen
       if (!researchData || researchData.length === 0) {
-        console.log('📭 No research data found, skipping research screen');
+        console.log("📭 No research data found, skipping research screen");
         setResearchCompanies([]);
         setSelectedResearchCompany(null);
         setCurrentState(SELECTOR_STATES.COMPLETE);
@@ -418,29 +418,32 @@ export const CallAssociationSelector = ({
 
       // If research data exists, show research selection screen
       setResearchCompanies(researchData);
-      
+
       // Try to find a matching research company by name, otherwise use the first one
       const normalizedCompanyName = selectedCompany.name
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
-        
-      const matchingResearch = researchData.find(research => {
+        .replace(/[^a-z0-9]/g, "");
+
+      const matchingResearch = researchData.find((research) => {
         const normalizedResearchName = research.company_name
           .toLowerCase()
-          .replace(/[^a-z0-9]/g, '');
+          .replace(/[^a-z0-9]/g, "");
         return normalizedResearchName === normalizedCompanyName;
       });
-      
+
       setSelectedResearchCompany(matchingResearch || researchData[0]);
       setCurrentState(SELECTOR_STATES.SELECT_RESEARCH);
-      
+
       if (matchingResearch) {
-        console.log('✅ Found matching research company:', matchingResearch.company_name);
+        console.log(
+          "✅ Found matching research company:",
+          matchingResearch.company_name
+        );
       } else {
-        console.log('📋 No exact match, defaulting to most recent research');
+        console.log("📋 No exact match, defaulting to most recent research");
       }
     } catch (error) {
-      console.error('Error checking research companies:', error);
+      console.error("Error checking research companies:", error);
       setCurrentState(SELECTOR_STATES.COMPLETE);
       onAssociationChange({
         company: selectedCompany,
@@ -817,128 +820,82 @@ export const CallAssociationSelector = ({
           {currentState === SELECTOR_STATES.SELECT_RESEARCH && (
             <div className="space-y-4">
               {/* Previous Selections Display */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="space-y-2">
+                <div className="items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Building className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
+                    <span className="text-sm">
+                      <span className="font-medium">Company:</span>{" "}
                       {selectedCompany?.name}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleEditCompanyFromResearch}
-                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 pt-5">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
+                    <span className="text-sm">
+                      <span className="font-medium">Deal:</span>{" "}
                       {selectedProspect?.name}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleEditProspectFromResearch}
-                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Research Data Found
-                </label>
+              {/* <label className="text-sm font-medium text-gray-700">
+                Research Data Found
+              </label> */}
 
-                {/* Research Found Message */}
-                <div className="flex items-center space-x-2 text-blue-600">
-                  <Search className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <p className="text-sm text-muted-foreground">
-                  Using research data will enhance AI processing with company-specific insights.
-                </p>
+              {/* Research Found Message */}
+              <div className="flex items-center space-x-2 text-blue-600 mb-3">
+                <Search className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Found {researchCompanies.length} research profile
+                  {researchCompanies.length !== 1 ? "s" : ""}
+                </span>
               </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Using research data will enhance AI processing with
+                company-specific insights.
+              </p>
 
               {/* Research Company Selection */}
-              <div className="space-y-2">
-                {/* Sort research companies to show selected one first */}
-                {[...researchCompanies]
-                  .sort((a, b) => {
-                    // Selected research first
-                    if (selectedResearchCompany?.id === a.id) return -1;
-                    if (selectedResearchCompany?.id === b.id) return 1;
-                    // Then sort by creation date (newest first)
-                    return new Date(b.created_at) - new Date(a.created_at);
-                  })
-                  .map((research) => (
+              <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                {researchCompanies.map((research) => (
                   <Button
                     key={research.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start p-4 hover:bg-gray-50 border border-gray-200 rounded-lg transition-all duration-200",
+                      "w-full justify-start p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0",
                       selectedResearchCompany?.id === research.id
-                        ? "bg-blue-50 text-blue-700 border-blue-300 shadow-sm ring-1 ring-blue-200"
-                        : "hover:border-gray-300 hover:shadow-sm"
+                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
+                        : ""
                     )}
                     onClick={() => handleResearchCompanySelect(research)}
                   >
-                    <div className="flex items-start justify-between w-full">
+                    <div className="flex items-center justify-between w-full">
                       <div className="text-left flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <div className="font-semibold text-base truncate">
-                            {research.company_name}
-                          </div>
+                        <div className="font-medium truncate flex items-center">
+                          {research.company_name}
                           {selectedResearchCompany?.id === research.id && (
-                            <Badge variant="default" className="bg-blue-600 text-white text-xs">
-                              <Check className="w-3 h-3 mr-1" />
-                              Selected
-                            </Badge>
+                            <Check className="w-4 h-4 ml-2 text-blue-600" />
                           )}
                         </div>
-                        
-                        <div className="text-xs text-muted-foreground mb-2">
-                          <span className="font-medium">Created:</span> {new Date(research.created_at).toLocaleDateString()}
+                        <div className="text-xs text-muted-foreground">
+                          Created:{" "}
+                          {new Date(research.created_at).toLocaleDateString()}
                         </div>
-                        
-                        {research.summary_note && (
-                          <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                            {research.summary_note}
+                        {/* {research.summary_note && (
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {research.summary_note.substring(0, 80)}...
                           </div>
-                        )}
-                        
-                        {/* Additional research details */}
-                        <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                          {research.sector && (
-                            <span className="flex items-center">
-                              <span className="font-medium">Sector:</span> {research.sector}
-                            </span>
-                          )}
-                          {research.size && (
-                            <span className="flex items-center">
-                              <span className="font-medium">Size:</span> {research.size}
-                            </span>
-                          )}
-                        </div>
+                        )} */}
                       </div>
                     </div>
                   </Button>
-                  ))}
+                ))}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-2 mt-4">
                 <Button
                   className="flex-1"
                   onClick={handleUseResearch}
