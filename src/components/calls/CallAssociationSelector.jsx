@@ -316,10 +316,8 @@ export const CallAssociationSelector = ({
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     setCompanySearch("");
-    
-    // Check for matching research companies
-    checkResearchCompanies(company);
-    
+    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
+    handleSyncFromHubSpotDeals(company);
     console.log(company, "Selected Company in CallAssociationSelector");
   };
 
@@ -337,6 +335,7 @@ export const CallAssociationSelector = ({
     onAssociationChange({
       company: selectedCompany,
       prospect: prospect,
+      researchCompany: selectedResearchCompany,
     });
   };
 
