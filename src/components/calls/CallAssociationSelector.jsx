@@ -280,7 +280,8 @@ export const CallAssociationSelector = ({
       const { data: researchData, error } = await supabase
         .from('research_companies')
         .select('*')
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Error checking research companies:', error);
@@ -317,6 +318,7 @@ export const CallAssociationSelector = ({
       return;
     }
     setProspectSearchError(null);
+
     const searchProspects = async () => {
       if (currentState !== SELECTOR_STATES.SELECT_PROSPECT || !selectedCompany) return;
 
@@ -565,6 +567,114 @@ export const CallAssociationSelector = ({
                   </>
                 </div>
               }
+            </div>
+          )}
+
+          {/* Research Company Selection */}
+          {showResearchSelection && (
+            <div className="space-y-3">
+              {/* Selected Company Display */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Building className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground truncate max-w-[250px]">
+                    {selectedCompany.name}
+                  </span>
+                  {selectedCompany.is_hubspot && (
+                    <Badge
+                      variant="outline"
+                      className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                    >
+                      HubSpot
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReset}
+                  className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                >
+                  <Edit className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <label className="text-sm font-medium text-gray-700">
+                Research Data Found
+              </label>
+
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Search className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    Found {researchCompanies.length} research profile(s) for "{selectedCompany.name}"
+                  </span>
+                </div>
+                <p className="text-xs text-blue-600">
+                  Using research data will enhance AI processing with company insights
+                </p>
+              </div>
+
+              {/* Research Company Options */}
+              <div className="border border-gray-200 rounded-md max-h-40 overflow-y-auto">
+                {loadingResearchCompanies ? (
+                  <div className="p-3 space-y-3">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : (
+                  researchCompanies.map((research) => (
+                    <Button
+                      key={research.id}
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start p-3 hover:bg-gray-50 transition-colors h-auto",
+                        selectedResearchCompany?.id === research.id
+                          ? "bg-blue-100 text-blue-700 border-l-4 border-blue-500"
+                          : ""
+                      )}
+                      onClick={() => setSelectedResearchCompany(research)}
+                    >
+                      <div className="text-left w-full">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium truncate max-w-[250px]">
+                            {research.company_name}
+                          </div>
+                          {selectedResearchCompany?.id === research.id && (
+                            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Created: {new Date(research.created_at).toLocaleDateString()}
+                        </div>
+                        {research.summary_note && (
+                          <div className="text-xs text-gray-500 mt-1 truncate">
+                            {research.summary_note.substring(0, 60)}...
+                          </div>
+                        )}
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2">
+                <Button
+                  onClick={handleUseResearchCompany}
+                  disabled={!selectedResearchCompany}
+                  className="flex-1"
+                >
+                  Use Selected Research
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSkipResearchCompany}
+                  className="flex-1"
+                >
+                  Skip Research
+                </Button>
+              </div>
             </div>
           )}
 
