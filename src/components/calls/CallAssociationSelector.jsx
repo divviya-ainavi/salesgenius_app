@@ -817,12 +817,12 @@ export const CallAssociationSelector = ({
           {currentState === SELECTOR_STATES.SELECT_RESEARCH && (
             <div className="space-y-4">
               {/* Previous Selections Display */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Building className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="font-medium">Company:</span> {selectedCompany?.name}
+                    <span className="text-sm font-medium">
+                      {selectedCompany?.name}
                     </span>
                   </div>
                   <Button
@@ -838,8 +838,8 @@ export const CallAssociationSelector = ({
                 <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="font-medium">Deal:</span> {selectedProspect?.name}
+                    <span className="text-sm font-medium">
+                      {selectedProspect?.name}
                     </span>
                   </div>
                   <Button
@@ -853,60 +853,92 @@ export const CallAssociationSelector = ({
                 </div>
               </div>
 
-              <label className="text-sm font-medium text-gray-700">
-                Research Data Found
-              </label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Research Data Found
+                </label>
 
-              {/* Research Found Message */}
-              <div className="flex items-center space-x-2 text-blue-600 mb-3">
-                <Search className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''}
-                </span>
+                {/* Research Found Message */}
+                <div className="flex items-center space-x-2 text-blue-600">
+                  <Search className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                    Found {researchCompanies.length} research profile{researchCompanies.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Using research data will enhance AI processing with company-specific insights.
+                </p>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-4">
-                Using research data will enhance AI processing with company-specific insights.
-              </p>
-
               {/* Research Company Selection */}
-              <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
-                {researchCompanies.map((research) => (
+              <div className="space-y-2">
+                {/* Sort research companies to show selected one first */}
+                {[...researchCompanies]
+                  .sort((a, b) => {
+                    // Selected research first
+                    if (selectedResearchCompany?.id === a.id) return -1;
+                    if (selectedResearchCompany?.id === b.id) return 1;
+                    // Then sort by creation date (newest first)
+                    return new Date(b.created_at) - new Date(a.created_at);
+                  })
+                  .map((research) => (
                   <Button
                     key={research.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0",
+                      "w-full justify-start p-4 hover:bg-gray-50 border border-gray-200 rounded-lg transition-all duration-200",
                       selectedResearchCompany?.id === research.id
-                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
-                        : ""
+                        ? "bg-blue-50 text-blue-700 border-blue-300 shadow-sm ring-1 ring-blue-200"
+                        : "hover:border-gray-300 hover:shadow-sm"
                     )}
                     onClick={() => handleResearchCompanySelect(research)}
                   >
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-start justify-between w-full">
                       <div className="text-left flex-1 min-w-0">
-                        <div className="font-medium truncate flex items-center">
-                          {research.company_name}
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="font-semibold text-base truncate">
+                            {research.company_name}
+                          </div>
                           {selectedResearchCompany?.id === research.id && (
-                            <Check className="w-4 h-4 ml-2 text-blue-600" />
+                            <Badge variant="default" className="bg-blue-600 text-white text-xs">
+                              <Check className="w-3 h-3 mr-1" />
+                              Selected
+                            </Badge>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Created: {new Date(research.created_at).toLocaleDateString()}
+                        
+                        <div className="text-xs text-muted-foreground mb-2">
+                          <span className="font-medium">Created:</span> {new Date(research.created_at).toLocaleDateString()}
                         </div>
+                        
                         {research.summary_note && (
-                          <div className="text-xs text-muted-foreground mt-1 truncate">
-                            {research.summary_note.substring(0, 80)}...
+                          <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                            {research.summary_note}
                           </div>
                         )}
+                        
+                        {/* Additional research details */}
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                          {research.sector && (
+                            <span className="flex items-center">
+                              <span className="font-medium">Sector:</span> {research.sector}
+                            </span>
+                          )}
+                          {research.size && (
+                            <span className="flex items-center">
+                              <span className="font-medium">Size:</span> {research.size}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Button>
-                ))}
+                  ))}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-2 mt-4">
+              <div className="flex space-x-3 mt-6">
                 <Button
                   className="flex-1"
                   onClick={handleUseResearch}
