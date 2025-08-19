@@ -572,7 +572,29 @@ export const CallAssociationSelector = ({
                 </p>
               )}
               <div className="space-y-3 mt-3">
-                {/* Create New Deal Button */}
+                {/* Create New Deal Button - Moved above the list */}
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border border-gray-200 rounded-md mb-2"
+                  onClick={() => setShowCreateProspectModal(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Deal...
+                </Button>
+
+                {/* Deals List */}
+                <div className="border border-gray-200 rounded-md min-h-40 max-h-40 overflow-y-auto">
+                  {loadingProspects ? (
+                    <div className="p-3 space-y-3">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : (
+                    <>
+                      {prospects.map((prospect) => (
                         <Button
                           key={prospect.id}
                           variant="ghost"
