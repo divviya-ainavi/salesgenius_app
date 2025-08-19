@@ -272,19 +272,58 @@ export const CallAssociationSelector = ({
       handleSyncFromHubSpot();
     }
   }, []);
+
+  const checkForResearchCompany = async (company) => {
+    try {
       console.log('🔍 Checking for research company data for:', company.name);
       
       const { data: researchData, error } = await supabase
+        .from('research_companies')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('❌ Error checking research companies:', error);
+        proceedToProspectSelection(company);
+        return;
+      }
+
+      // Filter research companies that match the selected company name
+      const matchingResearch = (researchData || []).filter(research => 
+        research.company_name && 
+        research.company_name.toLowerCase().includes(company.name.toLowerCase())
+      );
+
+      if (matchingResearch.length > 0) {
+        console.log('📊 Found matching research companies:', matchingResearch.length, matchingResearch);
+        setResearchCompanies(matchingResearch);
+        setShowResearchSelection(true);
+        toast.success(`Found ${matchingResearch.length} research profile(s) for "${company.name}"`);
+      } else {
+        console.log('📭 No matching research companies found');
+        proceedToProspectSelection(company);
+      }
+    } catch (error) {
+      console.error('❌ Error checking research companies:', error);
+      proceedToProspectSelection(company);
+    }
+  };
+
+  const proceedToProspectSelection = (company) => {
+    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
+  };
+
   // Search prospects
   useEffect(() => {
-        .eq('user_id', user?.id)
+    if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
       setProspectSearchError("Please enter at least 2 characters.");
       setProspects([]);
       return;
-        console.error('❌ Error checking research companies:', error);
+    }
     setProspectSearchError(null);
-        proceedToProspectSelection(company);
-        return;
+
+    const searchProspects = async () => {
+      if (currentState !== SELECTOR_STATES.SELECT_PROSPECT || !selectedCompany) return;
 
       setLoadingProspects(true);
       try {
@@ -322,24 +361,6 @@ export const CallAssociationSelector = ({
     checkForResearchCompany(company);
     
     console.log(company, "Selected Company in CallAssociationSelector");
-  };
-
-  const proceedToProspectSelection = (company) => {
-    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
-    handleSyncFromHubSpotDeals(company);
-  };
-
-  const handleUseResearchCompany = () => {
-    console.log('✅ Using selected research company:', selectedResearchCompany?.company_name);
-    setShowResearchSelection(false);
-    proceedToProspectSelection(selectedCompany);
-  };
-
-  const handleSkipResearchCompany = () => {
-    console.log('⏭️ Skipping research company selection');
-    setSelectedResearchCompany(null);
-    setShowResearchSelection(false);
-    proceedToProspectSelection(selectedCompany);
   };
 
   const handleProspectSelect = (prospect) => {
@@ -381,18 +402,10 @@ export const CallAssociationSelector = ({
         if (result.notes.length > 0) {
           toast.success(`Fetched ${result.notes.length} deal notes from HubSpot`);
         }
-      // Filter research companies that match the selected company name
-      const matchingResearch = (researchData || []).filter(research => 
-        research.company_name && 
-        research.company_name.toLowerCase().includes(company.name.toLowerCase())
-        toast.success(`Found ${matchingResearch.length} research profile(s) for "${company.name}"`);
-      
-        console.log('📭 No matching research companies found');
-      console.log('📊 Found matching research companies:', matchingResearch.length, matchingResearch);
-        proceedToProspectSelection(company);
-      console.error('❌ Error checking research companies:', error);
+      }
     } catch (error) {
-      proceedToProspectSelection(company);
+      console.error("Error fetching HubSpot deal notes:", error);
+      toast.error("Failed to fetch deal notes from HubSpot");
     } finally {
       setIsFetchingDealNotes(false);
       onFetchingStateChange?.(false);
@@ -539,114 +552,6 @@ export const CallAssociationSelector = ({
                   </>
                 </div>
               }
-            </div>
-          )}
-
-          {/* Research Company Selection */}
-          {showResearchSelection && (
-            <div className="space-y-3">
-              {/* Selected Company Display */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Building className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground truncate max-w-[250px]">
-                    {selectedCompany.name}
-                  </span>
-                  {selectedCompany.is_hubspot && (
-                    <Badge
-                      variant="outline"
-                      className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
-                    >
-                      HubSpot
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
-                >
-                  <Edit className="w-5 h-5" />
-                </Button>
-              </div>
-
-              <label className="text-sm font-medium text-gray-700">
-                Research Data Found
-              </label>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    Found {researchCompanies.length} research profile(s) for "{selectedCompany.name}"
-                  </span>
-                </div>
-                <p className="text-xs text-blue-600">
-                  Using research data will enhance AI processing with company insights
-                </p>
-              </div>
-
-              {/* Research Company Options */}
-              <div className="border border-gray-200 rounded-md max-h-40 overflow-y-auto">
-                {loadingResearchCompanies ? (
-                  <div className="p-3 space-y-3">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : (
-                  researchCompanies.map((research) => (
-                    <Button
-                      key={research.id}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start p-3 hover:bg-gray-50 transition-colors h-auto",
-                        selectedResearchCompany?.id === research.id
-                          ? "bg-blue-100 text-blue-700 border-l-4 border-blue-500"
-                          : ""
-                      )}
-                      onClick={() => setSelectedResearchCompany(research)}
-                    >
-                      <div className="text-left w-full">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium truncate max-w-[250px]">
-                            {research.company_name}
-                          </div>
-                          {selectedResearchCompany?.id === research.id && (
-                            <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Created: {new Date(research.created_at).toLocaleDateString()}
-                        </div>
-                        {research.summary_note && (
-                          <div className="text-xs text-gray-500 mt-1 truncate">
-                            {research.summary_note.substring(0, 60)}...
-                          </div>
-                        )}
-                      </div>
-                    </Button>
-                  ))
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                <Button
-                  onClick={handleUseResearchCompany}
-                  disabled={!selectedResearchCompany}
-                  className="flex-1"
-                >
-                  Use Selected Research
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleSkipResearchCompany}
-                  className="flex-1"
-                >
-                  Skip Research
-                </Button>
-              </div>
             </div>
           )}
 
