@@ -70,6 +70,7 @@ export const CallAssociationSelector = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const dispatch = useDispatch();
   const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
+  const [dealNotes, setDealNotes] = useState('');
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
