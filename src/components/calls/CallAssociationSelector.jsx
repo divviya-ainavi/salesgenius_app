@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronDown,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -371,22 +372,28 @@ export const CallAssociationSelector = ({
                 </div>
                 {hubspotIntegration?.connected &&
                   hubspotIntegration?.hubspotUserId && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSyncFromHubSpot}
-                      disabled={isSyncing}
-                      className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
-                    >
-                      {isSyncing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Building className="w-4 h-4 mr-1" />
-                          Sync
-                        </>
-                      )}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncFromHubSpot}
+                            disabled={isSyncing}
+                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                          >
+                            {isSyncing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sync companies from HubSpot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
               </div>
 
@@ -508,22 +515,28 @@ export const CallAssociationSelector = ({
                 </div>
                 {hubspotIntegration?.connected &&
                   hubspotIntegration?.hubspotUserId && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSyncFromHubSpotDeals(selectedCompany)}
-                      disabled={isSyncing}
-                      className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
-                    >
-                      {isSyncing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <DollarSign className="w-4 h-4 mr-1" />
-                          Sync
-                        </>
-                      )}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSyncFromHubSpotDeals(selectedCompany)}
+                            disabled={isSyncing}
+                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                          >
+                            {isSyncing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sync deals from HubSpot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
               </div>
 
