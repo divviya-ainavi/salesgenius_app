@@ -447,15 +447,17 @@ export const CallAssociationSelector = ({
 
   // Handle using selected research company
   const handleUseResearchCompany = () => {
+    setShowResearchSelection(false);
+    setCurrentState(SELECTOR_STATES.COMPLETE);
     notifyParentOfSelection(selectedCompany, selectedProspect, selectedResearchCompany);
     toast.success(`Using research data for "${selectedResearchCompany.company_name}"`);
   };
 
   // Handle skipping research company
   const handleSkipResearchCompany = () => {
-    setResearchCompanies([]); // Clear research companies to hide the section
+    setShowResearchSelection(false);
+    setCurrentState(SELECTOR_STATES.COMPLETE);
     notifyParentOfSelection(selectedCompany, selectedProspect, null);
-    toast.info("Proceeding without research data");
   };
 
   // Notify parent component of selection
