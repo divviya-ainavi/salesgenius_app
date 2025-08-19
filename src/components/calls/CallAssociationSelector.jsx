@@ -382,6 +382,7 @@ export const CallAssociationSelector = ({
               </label>
               <div className="flex space-x-2">
                 <div className="relative flex-1">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     data-tour="company-selector"
@@ -420,6 +421,32 @@ export const CallAssociationSelector = ({
                       </Tooltip>
                     </TooltipProvider>
                   )}
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspotUserId && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncFromHubSpot}
+                            disabled={isSyncing}
+                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                          >
+                            {isSyncing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sync companies from HubSpot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </div>
 
               {/* Company Results */}
