@@ -336,6 +336,7 @@ export const CallAssociationSelector = ({
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
     setIsFetchingDealNotes(true);
+    onFetchingStateChange?.(true);
     try {
       console.log("🔄 Fetching HubSpot deal notes for deal:", hubspotDealId);
 
@@ -363,6 +364,7 @@ export const CallAssociationSelector = ({
       toast.error("Failed to fetch deal notes from HubSpot");
     } finally {
       setIsFetchingDealNotes(false);
+      onFetchingStateChange?.(false);
     }
   };
 
