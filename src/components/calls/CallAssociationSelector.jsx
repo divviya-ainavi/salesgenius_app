@@ -891,6 +891,14 @@ export const CallAssociationSelector = ({
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditCompanyFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -908,6 +916,14 @@ export const CallAssociationSelector = ({
                       </Badge>
                     )}
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditProspectFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
