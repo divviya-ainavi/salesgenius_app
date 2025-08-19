@@ -30,6 +30,8 @@ import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
 import { config } from "../../lib/config";
+import { setCallCompanyAPI } from "../../store/slices/authSlice";
+import { useDispatch } from "react-redux";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
@@ -65,6 +67,7 @@ export const CallAssociationSelector = ({
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
   const [showCreateProspectModal, setShowCreateProspectModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const dispatch = useDispatch();
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
@@ -74,13 +77,21 @@ export const CallAssociationSelector = ({
     organizationDetails,
     user,
     hubspotIntegration,
+    callCompanyAPI,
   } = useSelector((state) => state.auth);
-
+  console.log(hubspotIntegration, "HubSpot Integration Status");
   // Check HubSpot integration status on component mount
-
   const handleSyncFromHubSpot = async () => {
+    const hasHubSpotIntegration =
+      hubspotIntegration?.connected && hubspotIntegration?.hubspotUserId;
+    dispatch(setCallCompanyAPI(false));
     if (!user?.organization_id) {
       toast.error("Organization information not available");
+      return;
+    }
+
+    if (!hubspotIntegration?.hubspotUserId) {
+      toast.error("Hubspot information is not available for for your account");
       return;
     }
 
@@ -125,6 +136,7 @@ export const CallAssociationSelector = ({
 
       // Refresh companies list
       setCompanySearch(" "); // Trigger search refresh
+
       setTimeout(() => setCompanySearch(""), 100);
     } catch (error) {
       console.error("Error syncing HubSpot companies:", error);
@@ -134,7 +146,7 @@ export const CallAssociationSelector = ({
     }
   };
   console.log(selectedCompany, "Selected Company in CallAssociationSelector");
-  const handleSyncFromHubSpotDeals = async () => {
+  const handleSyncFromHubSpotDeals = async (companyDetails) => {
     if (!user?.organization_id) {
       toast.error("Organization information not available");
       return;
@@ -155,7 +167,7 @@ export const CallAssociationSelector = ({
           body: JSON.stringify({
             id: user?.organization_id,
             ownerid: hubspotIntegration?.hubspotUserId,
-            companyid: selectedCompany?.hubspot_company_id || "",
+            companyid: companyDetails?.hubspot_company_id || "",
           }),
         }
       );
@@ -170,7 +182,7 @@ export const CallAssociationSelector = ({
       console.log("📊 HubSpot API response:", apiData);
 
       const result = await dbHelpers.syncHubSpotDeals(
-        selectedCompany?.id,
+        companyDetails?.id,
         user.organization_id,
         hubspotIntegration?.hubspotUserId,
         user?.id,
@@ -247,6 +259,12 @@ export const CallAssociationSelector = ({
     return () => clearTimeout(debounceTimer);
   }, [companySearch, currentState]);
 
+  useEffect(() => {
+    if (callCompanyAPI && hubspotIntegration?.connected) {
+      handleSyncFromHubSpot();
+    }
+  }, []);
+
   // Search prospects
   useEffect(() => {
     if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
@@ -291,6 +309,8 @@ export const CallAssociationSelector = ({
     setSelectedCompany(company);
     setCompanySearch("");
     setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
+    handleSyncFromHubSpotDeals(company);
+    console.log(company, "Selected Company in CallAssociationSelector");
   };
 
   const handleProspectSelect = (prospect) => {
@@ -497,7 +517,9 @@ export const CallAssociationSelector = ({
                     <Button
                       variant="outline"
                       className="w-full justify-start p-3 text-orange-600 hover:bg-orange-50 font-medium border border-orange-200 rounded-md mb-2"
-                      onClick={handleSyncFromHubSpotDeals}
+                      onClick={() =>
+                        handleSyncFromHubSpotDeals(selectedCompany)
+                      }
                       disabled={isSyncing}
                     >
                       {isSyncing ? (

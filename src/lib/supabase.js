@@ -1018,50 +1018,6 @@ export const syncHubSpotCompanies = async (organizationId, integrationStatus, us
   }
 };
 
-// Get companies for user with HubSpot integration check
-export const getCompaniesByUserId = async (userId, searchTerm = '') => {
-  try {
-    if (!userId) {
-      console.warn('⚠️ getCompaniesByUserId called with null/undefined userId');
-      return [];
-    }
-
-    // Get user's organization
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile?.organization_id) {
-      console.error('Error getting user organization:', profileError);
-      return [];
-    }
-
-    let query = supabase
-      .from('company')
-      .select('*')
-      .eq('organization_id', profile.organization_id)
-      .order('name', { ascending: true });
-
-    if (searchTerm && searchTerm.trim()) {
-      query = query.ilike('name', searchTerm);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching companies:', error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error in getCompaniesByUserId:', error);
-    throw error;
-  }
-};
-
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -3830,14 +3786,12 @@ export const dbHelpers = {
             close_date: deal?.properties.closedate ? new Date(deal?.properties.closedate).toISOString() : null,
             hubspot_created_at: deal.createdate ? new Date(deal.createdate).toISOString() : null,
             hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
-            hubspot_owner_id: deal.hubspot_owner_id || null,
           };
           console.log(dealData, "deal data 1")
           // Check if deal already exists
           const { data: existingDeal, error: checkError } = await supabase
             .from('prospect')
-            .select('id, hubspot_updated_at')
-            .eq('company_id', companyId)
+            .update(dealData)
             .eq('hubspot_deal_id', dealData.hubspot_deal_id)
             .single();
 
@@ -4282,8 +4236,7 @@ export const dbHelpers = {
 
   // HubSpot Integration
   // checkHubSpotIntegration,
-  syncHubSpotCompanies,
-  getCompaniesByUserId,
+  syncHubSpotCompanies
 }
 
 // User helpers for backward compatibility
