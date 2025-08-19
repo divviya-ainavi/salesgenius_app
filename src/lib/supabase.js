@@ -3641,110 +3641,6 @@ export const dbHelpers = {
     }
   },
 
-  async updateHubspotUserid(valuesSql) {
-    try {
-      const updates = await supabase.rpc('update_profiles_hubspot_ids', { values_clause: valuesSql });
-      return updates;
-    } catch (error) {
-      console.error('Error reordering tour steps:', error);
-      throw error;
-    }
-  },
-
-  // Get HubSpot user ID for a specific user
-  async getHubSpotUserIdForUser(userId, organizationId) {
-    try {
-      console.log('🔍 Getting HubSpot user ID for user:', { userId, organizationId });
-
-      if (!userId || !organizationId) {
-        console.warn('⚠️ Missing required parameters for HubSpot user lookup');
-        return null;
-      }
-
-      const { data, error } = await supabase
-        .from('hubspot_users')
-        .select('hubspot_user_id, email, first_name, last_name')
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-        .eq('is_archived', false)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No rows returned - user not found in HubSpot
-          console.log('📭 No HubSpot user found for user:', userId);
-          return null;
-        }
-        throw error;
-      }
-
-      console.log('✅ Found HubSpot user:', {
-        hubspot_user_id: data.hubspot_user_id,
-        email: data.email,
-        name: `${data.first_name || ''} ${data.last_name || ''}`.trim()
-      });
-
-      return data.hubspot_user_id;
-    } catch (error) {
-      console.error('❌ Error getting HubSpot user ID:', error);
-      return null;
-    }
-  },
-
-  // Get HubSpot deals for a company
-  async getHubSpotDealsForCompany(companyId, organizationId, hubspotUserId) {
-    try {
-      console.log('🔍 Getting HubSpot deals for company:', { companyId, organizationId, hubspotUserId });
-
-      // First get the company to check if it's from HubSpot
-      const { data: company, error: companyError } = await supabase
-        .from('company')
-        .select('hubspot_company_id, is_hubspot, name')
-        .eq('id', companyId)
-        .single();
-
-      if (companyError || !company) {
-        throw new Error('Company not found');
-      }
-
-      if (!company.is_hubspot || !company.hubspot_company_id) {
-        console.log('📭 Company is not from HubSpot, skipping HubSpot deals fetch');
-        return null;
-      }
-
-      console.log('🔄 Fetching deals from HubSpot API for company:', company.hubspot_company_id);
-
-      // Call HubSpot API to get deals
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.hubspotDeals}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          companyid: company.hubspot_company_id,
-          id: organizationId,
-          ownerid: hubspotUserId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
-      }
-
-      const apiData = await response.json();
-      console.log('📊 HubSpot deals API response:', apiData);
-
-      // Extract deals from API response
-      const deals = apiData?.[0]?.Deals || apiData?.Deals || [];
-      console.log('📋 Extracted deals from API:', deals.length, 'deals');
-
-      return deals;
-    } catch (error) {
-      console.error('❌ Error getting HubSpot deals:', error);
-      throw error;
-    }
-  },
-
   // Sync HubSpot deals to database
   async syncHubSpotDeals(companyId, organizationId, hubspotUserId, userId, dealsData) {
     try {
@@ -3784,17 +3680,17 @@ export const dbHelpers = {
             amount: deal?.properties.amount ? parseFloat(deal.amount) : null,
             deal_stage: deal?.properties.dealstage || null,
             close_date: deal?.properties.closedate ? new Date(deal?.properties.closedate).toISOString() : null,
-            hubspot_created_at: deal.createdate ? new Date(deal.createdate).toISOString() : null,
-            hubspot_updated_at: deal.hs_lastmodifieddate ? new Date(deal.hs_lastmodifieddate).toISOString() : null,
+            hubspot_created_at: deal.createdAt ? new Date(deal.createdAt).toISOString() : null,
+            hubspot_updated_at: deal.updatedAt ? new Date(deal.updatedAt).toISOString() : null,
           };
           console.log(dealData, "deal data 1")
           // Check if deal already exists
           const { data: existingDeal, error: checkError } = await supabase
             .from('prospect')
-            .update(dealData)
+            .select('*')
             .eq('hubspot_deal_id', dealData.hubspot_deal_id)
             .single();
-
+          console.log(existingDeal, "existing deal 1")
           if (checkError && checkError.code !== 'PGRST116') {
             console.error('❌ Error checking existing deal:', checkError);
             failed++;
@@ -3805,7 +3701,7 @@ export const dbHelpers = {
             // Deal exists, check if we need to update
             const existingUpdatedAt = new Date(existingDeal.hubspot_updated_at || 0);
             const hubspotUpdatedAt = new Date(dealData.hubspot_updated_at || 0);
-
+            console.log("inside of existing deal", hubspotUpdatedAt > existingUpdatedAt, hubspotUpdatedAt, existingUpdatedAt)
             if (hubspotUpdatedAt > existingUpdatedAt) {
               // Update existing deal
               const { data: updatedDeal, error: updateError } = await supabase
