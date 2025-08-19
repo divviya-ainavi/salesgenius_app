@@ -868,21 +868,54 @@ export const CallAssociationSelector = ({
             <div className="space-y-4">
               {/* Previous Selections Display */}
               <div className="space-y-2">
-                <div className="items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Building className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="font-medium">Company:</span>{" "}
+                    <span className="text-sm font-medium">
                       {selectedCompany?.name}
                     </span>
+                    {selectedCompany?.is_hubspot && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                      >
+                        HubSpot
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-3 pt-5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditCompanyFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="font-medium">Deal:</span>{" "}
+                    <span className="text-sm font-medium">
                       {selectedProspect?.name}
                     </span>
+                    {selectedProspect?.is_hubspot && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                      >
+                        HubSpot
+                      </Badge>
+                    )}
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditProspectFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
