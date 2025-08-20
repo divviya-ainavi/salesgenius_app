@@ -478,32 +478,34 @@ const CallInsights = () => {
       // Group insights by type for display
       const groupedSpecificInsights = specificInsights.reduce((acc, insight) => {
         const typeKey = insight.type || 'unknown';
-        const existingGroup = acc.find(group => group.type === typeKey);
+      const groupedInsights = mappedInsights.reduce((acc, insight) => {
+        const typeKey = insight.type || 'unknown';
+        const typeId = insight.insight_type_details?.id || insight.type_id;
         
-        if (existingGroup) {
-          existingGroup.insights.push(insight);
-        } else {
-          acc.push({
+        if (!acc[typeKey]) {
+          acc[typeKey] = {
             type: typeKey,
-            type_id: insight.type_id || insight.insight_type_id,
-            average_score: insight.relevance_score || 0,
-            insights: [insight]
-          });
+            type_id: typeId,
+            insights: [],
+            total_score: 0,
+            count: 0
+          };
         }
         
+        acc[typeKey].insights.push(insight);
+        acc[typeKey].total_score += insight.relevance_score || 0;
+        acc[typeKey].count += 1;
+        
         return acc;
-      }, []);
+      }, {});
       
-      console.log("✅ Grouped specific insights:", groupedSpecificInsights);
-      setInsights(groupedSpecificInsights);
-    } else {
-      console.log("📋 Prospect has no sales_insight_ids, using existing flow");
-      
-      // Use existing flow - get all insights by prospect ID
-      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-        insightData.id,
-        user?.id
-      );
+      // Convert to array format and calculate averages
+      const groupedInsightsArray = Object.values(groupedInsights).map(group => ({
+        type: group.type,
+        type_id: group.type_id,
+        average_score: group.count > 0 ? Math.round(group.total_score / group.count) : 0,
+        insights: group.insights
+      }));
       setInsights(groupedInsights);
     }
     
