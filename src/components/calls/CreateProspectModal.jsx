@@ -138,13 +138,13 @@ export const CreateProspectModal = ({
       console.log(hubspotDealData, "HubSpot Deal Data");
       // Add HubSpot-specific fields if HubSpot creation was successful
       if (hubspotDealData) {
-        dealData.hubspot_deal_id = hubspotDealData.id;
+        dealData.hubspot_deal_id = hubspotDealData?.deal.id;
         dealData.is_hubspot = true;
-        dealData.hubspot_created_at = hubspotDealData?.createdAt
-          ? new Date(hubspotDealData?.createdAt).toISOString()
+        dealData.hubspot_created_at = hubspotDealData?.deal?.createdAt
+          ? new Date(hubspotDealData?.deal?.createdAt).toISOString()
           : new Date().toISOString();
-        dealData.hubspot_updated_at = hubspotDealData?.updatedAt
-          ? new Date(hubspotDealData?.updatedAt).toISOString()
+        dealData.hubspot_updated_at = hubspotDealData?.deal?.updatedAt
+          ? new Date(hubspotDealData?.deal?.updatedAt).toISOString()
           : new Date().toISOString();
         dealData.deal_value = 0;
 
