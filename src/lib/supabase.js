@@ -3180,6 +3180,149 @@ export const dbHelpers = {
     return sortedResults;
   },
 
+  // Get sales insights by IDs
+  async getSalesInsightsByIds(insightIds) {
+    try {
+      console.log("🔍 Fetching sales insights by IDs:", insightIds);
+      
+      const { data, error } = await supabase
+        .from('sales_insights')
+        .select('*')
+        .in('id', insightIds);
+
+      if (error) {
+        console.error("❌ Error fetching sales insights by IDs:", error);
+        throw error;
+      }
+
+      console.log("✅ Retrieved sales insights:", data?.length || 0);
+      return data || [];
+    } catch (error) {
+      console.error("❌ Error in getSalesInsightsByIds:", error);
+      throw error;
+    }
+  },
+
+  // Store cumulative insights response and update prospect
+  async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId) {
+    try {
+      console.log("💾 Starting to store cumulative insights and update prospect...", {
+        prospectId,
+        userId,
+        responseKeys: Object.keys(apiResponse)
+      });
+
+      // Start a transaction-like operation
+      const insertedInsightIds = [];
+
+      // Process and store each insight from the API response
+      if (apiResponse.insights && Array.isArray(apiResponse.insights)) {
+        console.log("📊 Processing", apiResponse.insights.length, "insights from API response");
+
+        for (const insight of apiResponse.insights) {
+          try {
+            // Get the type_id for this insight type
+            const { data: insightType, error: typeError } = await supabase
+              .from('sales_insight_types')
+              .select('id')
+              .eq('key', insight.type)
+              .single();
+
+            if (typeError) {
+              console.warn("⚠️ Could not find insight type for:", insight.type, "- skipping");
+              continue;
+            }
+
+            // Insert the insight
+            const { data: insertedInsight, error: insertError } = await supabase
+              .from('sales_insights')
+              .insert([{
+                type_id: insightType.id,
+                content: insight.content,
+                relevance_score: insight.relevance_score || 50,
+                speaker: insight.speaker || null,
+                source: insight.source || 'api',
+                user_id: userId,
+                is_selected: true,
+                is_active: true
+              }])
+              .select('id')
+              .single();
+
+            if (insertError) {
+              console.error("❌ Error inserting insight:", insertError);
+              continue;
+            }
+
+            insertedInsightIds.push(insertedInsight.id);
+            console.log("✅ Inserted insight with ID:", insertedInsight.id);
+          } catch (insightError) {
+            console.error("❌ Error processing individual insight:", insightError);
+            continue;
+          }
+        }
+      }
+
+      console.log("📝 Total insights inserted:", insertedInsightIds.length);
+
+      // Update the prospect with the new insight IDs
+      if (insertedInsightIds.length > 0) {
+        // Get current sales_insight_ids from prospect
+        const { data: currentProspect, error: fetchError } = await supabase
+          .from('prospect')
+          .select('sales_insight_ids')
+          .eq('id', prospectId)
+          .single();
+
+        if (fetchError) {
+          console.error("❌ Error fetching current prospect:", fetchError);
+          throw fetchError;
+        }
+
+        // Merge existing IDs with new ones (avoid duplicates)
+        const existingIds = currentProspect.sales_insight_ids || [];
+        const mergedIds = [...new Set([...existingIds, ...insertedInsightIds])];
+
+        console.log("🔄 Updating prospect with merged insight IDs:", {
+          existingCount: existingIds.length,
+          newCount: insertedInsightIds.length,
+          mergedCount: mergedIds.length
+        });
+
+        // Update the prospect
+        const { data: updatedProspect, error: updateError } = await supabase
+          .from('prospect')
+          .update({ sales_insight_ids: mergedIds })
+          .eq('id', prospectId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error("❌ Error updating prospect with insight IDs:", updateError);
+          throw updateError;
+        }
+
+        console.log("✅ Successfully updated prospect with insight IDs");
+
+        return {
+          success: true,
+          insertedInsights: insertedInsightIds.length,
+          totalInsights: mergedIds.length,
+          updatedProspect: updatedProspect
+        };
+      } else {
+        console.log("⚠️ No insights were inserted, skipping prospect update");
+        return {
+          success: false,
+          message: "No insights were processed from the API response"
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error in storeCumulativeInsightsAndUpdateProspect:", error);
+      throw error;
+    }
+  },
+
   async updateSalesInsightContent(id, newContent, userId) {
     try {
       const { data, error } = await supabase
