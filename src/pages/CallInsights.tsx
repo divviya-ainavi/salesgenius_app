@@ -462,11 +462,51 @@ const CallInsights = () => {
   //   }
   // };
   const loadProspectInsights = async (insightData) => {
-    const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-      insightData.id,
-      user?.id
-    );
-    setInsights(groupedInsights); // You may need to map this to your display structure
+    // Check if prospect has sales_insight_ids
+    if (insightData.sales_insight_ids && insightData.sales_insight_ids.length > 0) {
+      console.log("🔍 Prospect has sales_insight_ids, fetching specific insights:", insightData.sales_insight_ids);
+      
+      // Get insight types for mapping
+      const insightTypesArray = await dbHelpers.getSalesInsightTypes();
+      
+      // Get specific sales insights by IDs and map with types
+      const specificInsights = await dbHelpers.getSalesInsightsByIds(
+        insightData.sales_insight_ids,
+        insightTypesArray
+      );
+      
+      // Group insights by type for display
+      const groupedSpecificInsights = specificInsights.reduce((acc, insight) => {
+        const typeKey = insight.type || 'unknown';
+        const existingGroup = acc.find(group => group.type === typeKey);
+        
+        if (existingGroup) {
+          existingGroup.insights.push(insight);
+        } else {
+          acc.push({
+            type: typeKey,
+            type_id: insight.type_id || insight.insight_type_id,
+            average_score: insight.relevance_score || 0,
+            insights: [insight]
+          });
+        }
+        
+        return acc;
+      }, []);
+      
+      console.log("✅ Grouped specific insights:", groupedSpecificInsights);
+      setInsights(groupedSpecificInsights);
+    } else {
+      console.log("📋 Prospect has no sales_insight_ids, using existing flow");
+      
+      // Use existing flow - get all insights by prospect ID
+      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+        insightData.id,
+        user?.id
+      );
+      setInsights(groupedInsights);
+    }
+    
     console.log(
       insightData.communication_style_ids,
       "insightData.communication_style_ids"
