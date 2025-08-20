@@ -3181,7 +3181,7 @@ export const dbHelpers = {
   },
 
   // Get sales insights by IDs
-  async getSalesInsightsByIds(insightIds) {
+  async getSalesInsightsByIds(insightIds, insightTypes) {
     try {
       console.log("🔍 Fetching sales insights by IDs:", insightIds);
 

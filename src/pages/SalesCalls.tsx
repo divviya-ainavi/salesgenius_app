@@ -109,6 +109,7 @@ export const SalesCalls = () => {
   const [recentUploadRefresh, setRecentUploadRefresh] = useState(false);
   const [source, setSource] = useState("upload");
   const [firefliesSummary, setFirefliesSummary] = useState(null);
+  const [insightTypes, setInsightTypes] = useState([]);
   const dispatch = useDispatch();
 
   const userId = CURRENT_USER.id;
@@ -141,6 +142,15 @@ export const SalesCalls = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const loadInsightTypes = async () => {
+      const types = await dbHelpers.getSalesInsightTypes();
+      // const mapped = mapInsightTypesToObject(types);
+      setInsightTypes(types);
+    };
+    loadInsightTypes();
+  }, []);
+  console.log(insightTypes, "check insight types in SalesCalls");
   const loadUploadedFiles = async () => {
     setRecentUploadRefresh(true);
     try {
@@ -479,7 +489,8 @@ export const SalesCalls = () => {
         prospectDetails.sales_insight_ids.length > 0
       ) {
         previousSalesInsights = await dbHelpers.getSalesInsightsByIds(
-          prospectDetails.sales_insight_ids
+          prospectDetails.sales_insight_ids,
+          insightTypes
         );
       }
       const getResearchData = await formatResearchData(selectedCompanyResearch);
