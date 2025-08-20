@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import firefliesService from "@/services/firefliesService";
 import { usePageTimer } from "../hooks/userPageTimer";
+import { config } from "@/lib/config";
 import { ProcessCallModal } from "@/components/calls/ProcessCallModal";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useDispatch, useSelector } from "react-redux";
@@ -110,6 +111,99 @@ export const SalesCalls = () => {
   const [source, setSource] = useState("upload");
   const [firefliesSummary, setFirefliesSummary] = useState(null);
   const dispatch = useDispatch();
+
+  // Function to generate cumulative sales insights
+  const generateCummulativesalesinsights = async (
+    selectedCompanyResearch,
+    dealNotes,
+    prospectDetails
+  ) => {
+    try {
+      console.log("🔄 Starting cumulative sales insights generation...", {
+        hasResearch: !!selectedCompanyResearch,
+        hasDealNotes: !!dealNotes,
+        prospectDetails: prospectDetails?.id,
+        salesInsightIds: prospectDetails?.sales_insight_ids
+      });
+
+      // Get previous sales insights using the IDs from prospect
+      let previousSalesInsights = [];
+      if (prospectDetails?.sales_insight_ids && prospectDetails.sales_insight_ids.length > 0) {
+        console.log("📊 Fetching previous sales insights with IDs:", prospectDetails.sales_insight_ids);
+        previousSalesInsights = await dbHelpers.getSalesInsightsByIds(prospectDetails.sales_insight_ids);
+        console.log("✅ Retrieved previous sales insights:", previousSalesInsights.length);
+      }
+
+      // Get current sales insights (mock data for now - replace with actual current insights)
+      const currentSalesInsights = [
+        {
+          type: "buying_signal",
+          content: "Confirmed budget approval for Q4 rollout of AI CRM assistant.",
+          relevance_score: 90,
+          speaker: "Sarah Lee",
+          source: "transcript"
+        },
+        {
+          type: "risk_or_objection", 
+          content: "Concerns about integration with legacy Salesforce workflows.",
+          relevance_score: 80,
+          speaker: "Mark Chen",
+          source: "transcript"
+        }
+      ];
+
+      // Prepare API payload
+      const payload = {
+        previous_sales_insights: previousSalesInsights.map(insight => ({
+          type: insight.type || insight.insight_type,
+          content: insight.content,
+          relevance_score: insight.relevance_score || 50,
+          speaker: insight.speaker || "Unknown",
+          source: insight.source || "transcript"
+        })),
+        current_sales_insights: currentSalesInsights,
+        hubspot_data_content: dealNotes || "null",
+        company_research_content: selectedCompanyResearch ? JSON.stringify(selectedCompanyResearch) : "null"
+      };
+
+      console.log("📤 Sending cumulative insights API request with payload:", payload);
+
+      // Call the cumulative insights API
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.cummulativeSalesData}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiResponse = await response.json();
+      console.log("✅ Cumulative insights API response:", apiResponse);
+
+      // Store the response in sales_insights table and update prospect
+      const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
+        apiResponse,
+        prospectDetails.id,
+        user?.id
+      );
+
+      console.log("💾 Stored insights and updated prospect:", result);
+      toast.success("Cumulative sales insights generated and stored successfully");
+
+      return result;
+    } catch (error) {
+      console.error("❌ Error generating cumulative sales insights:", error);
+      toast.error("Failed to generate cumulative insights: " + error.message);
+      throw error;
+    }
+  };
 
   const userId = CURRENT_USER.id;
   const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
