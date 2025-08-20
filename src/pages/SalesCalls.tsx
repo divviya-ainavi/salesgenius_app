@@ -64,7 +64,6 @@ import {
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { setCummulativeSpin } from "../store/slices/prospectSlice";
-import { config } from "../lib/config";
 import {
   setFirefliesData,
   setIshavefirefliesData,
