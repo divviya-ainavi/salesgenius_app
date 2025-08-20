@@ -471,30 +471,15 @@ export const SalesCalls = () => {
     currentSalesInsights
   ) => {
     try {
-      console.log("🔄 Starting cumulative sales insights generation...", {
-        hasResearch: !!selectedCompanyResearch,
-        hasDealNotes: !!dealNotes,
-        prospectDetails: prospectDetails?.id,
-        salesInsightIds: prospectDetails?.sales_insight_ids,
-      });
-
       // Get previous sales insights using the IDs from prospect
       let previousSalesInsights = [];
+      console.log(prospectDetails, "476");
       if (
         prospectDetails?.sales_insight_ids &&
         prospectDetails.sales_insight_ids.length > 0
       ) {
-        console.log(
-          "📊 Fetching previous sales insights with IDs:",
-          prospectDetails.sales_insight_ids
-        );
         previousSalesInsights = await dbHelpers.getSalesInsightsByIds(
           prospectDetails.sales_insight_ids
-        );
-        console.log(previousSalesInsights, "prevoiusSalesInsights");
-        console.log(
-          "✅ Retrieved previous sales insights:",
-          previousSalesInsights.length
         );
       }
       const getResearchData = await formatResearchData(selectedCompanyResearch);
@@ -523,7 +508,7 @@ export const SalesCalls = () => {
       // Call the cumulative insights API
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.cummulativeSalesData
+          config.api.endpoints.cummulativeSalesInsights
         }`,
         {
           method: "POST",
@@ -539,11 +524,14 @@ export const SalesCalls = () => {
       }
 
       const apiResponse = await response.json();
-      console.log("✅ Cumulative insights API response:", apiResponse);
+      console.log(
+        "✅ Cumulative insights API response:",
+        apiResponse?.[0]?.output
+      );
 
       // Store the response in sales_insights table and update prospect
       const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
-        apiResponse,
+        apiResponse?.[0]?.output,
         prospectDetails.id,
         user?.id
       );

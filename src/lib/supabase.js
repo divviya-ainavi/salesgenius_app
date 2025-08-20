@@ -3184,7 +3184,7 @@ export const dbHelpers = {
   async getSalesInsightsByIds(insightIds) {
     try {
       console.log("🔍 Fetching sales insights by IDs:", insightIds);
-      
+
       const { data, error } = await supabase
         .from('sales_insights')
         .select('*')
@@ -3206,20 +3206,20 @@ export const dbHelpers = {
   // Store cumulative insights response and update prospect
   async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId) {
     try {
-      console.log("💾 Starting to store cumulative insights and update prospect...", {
-        prospectId,
-        userId,
-        responseKeys: Object.keys(apiResponse)
-      });
+      // console.log("💾 Starting to store cumulative insights and update prospect...", {
+      //   prospectId,
+      //   userId,
+      //   responseKeys: Object.keys(apiResponse)
+      // });
 
       // Start a transaction-like operation
       const insertedInsightIds = [];
 
       // Process and store each insight from the API response
-      if (apiResponse.insights && Array.isArray(apiResponse.insights)) {
-        console.log("📊 Processing", apiResponse.insights.length, "insights from API response");
+      if (apiResponse && Array.isArray(apiResponse)) {
+        // console.log("📊 Processing", apiResponse.insights.length, "insights from API response");
 
-        for (const insight of apiResponse.insights) {
+        for (const insight of apiResponse) {
           try {
             // Get the type_id for this insight type
             const { data: insightType, error: typeError } = await supabase
@@ -3267,32 +3267,11 @@ export const dbHelpers = {
 
       // Update the prospect with the new insight IDs
       if (insertedInsightIds.length > 0) {
-        // Get current sales_insight_ids from prospect
-        const { data: currentProspect, error: fetchError } = await supabase
-          .from('prospect')
-          .select('sales_insight_ids')
-          .eq('id', prospectId)
-          .single();
-
-        if (fetchError) {
-          console.error("❌ Error fetching current prospect:", fetchError);
-          throw fetchError;
-        }
-
-        // Merge existing IDs with new ones (avoid duplicates)
-        const existingIds = currentProspect.sales_insight_ids || [];
-        const mergedIds = [...new Set([...existingIds, ...insertedInsightIds])];
-
-        console.log("🔄 Updating prospect with merged insight IDs:", {
-          existingCount: existingIds.length,
-          newCount: insertedInsightIds.length,
-          mergedCount: mergedIds.length
-        });
 
         // Update the prospect
         const { data: updatedProspect, error: updateError } = await supabase
           .from('prospect')
-          .update({ sales_insight_ids: mergedIds })
+          .update({ sales_insight_ids: insertedInsightIds })
           .eq('id', prospectId)
           .select()
           .single();
@@ -3306,9 +3285,7 @@ export const dbHelpers = {
 
         return {
           success: true,
-          insertedInsights: insertedInsightIds.length,
-          totalInsights: mergedIds.length,
-          updatedProspect: updatedProspect
+          insertedInsights: insertedInsightIds.length
         };
       } else {
         console.log("⚠️ No insights were inserted, skipping prospect update");
