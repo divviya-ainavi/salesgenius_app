@@ -291,6 +291,7 @@ const CallInsights = () => {
     loadInsightTypes();
   }, []);
   // console.log(insightTypes, "insight types");
+
   useEffect(() => {
     const fetchCount = async () => {
       if (!user?.id) return;
@@ -507,6 +508,7 @@ const CallInsights = () => {
         insights: group.insights
       }));
       setInsights(groupedInsights);
+    }
     }
     
     console.log(
