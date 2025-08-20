@@ -111,99 +111,6 @@ export const SalesCalls = () => {
   const [firefliesSummary, setFirefliesSummary] = useState(null);
   const dispatch = useDispatch();
 
-  // Function to generate cumulative sales insights
-  const generateCummulativesalesinsights = async (
-    selectedCompanyResearch,
-    dealNotes,
-    prospectDetails
-  ) => {
-    try {
-      console.log("🔄 Starting cumulative sales insights generation...", {
-        hasResearch: !!selectedCompanyResearch,
-        hasDealNotes: !!dealNotes,
-        prospectDetails: prospectDetails?.id,
-        salesInsightIds: prospectDetails?.sales_insight_ids
-      });
-
-      // Get previous sales insights using the IDs from prospect
-      let previousSalesInsights = [];
-      if (prospectDetails?.sales_insight_ids && prospectDetails.sales_insight_ids.length > 0) {
-        console.log("📊 Fetching previous sales insights with IDs:", prospectDetails.sales_insight_ids);
-        previousSalesInsights = await dbHelpers.getSalesInsightsByIds(prospectDetails.sales_insight_ids);
-        console.log("✅ Retrieved previous sales insights:", previousSalesInsights.length);
-      }
-
-      // Get current sales insights (mock data for now - replace with actual current insights)
-      const currentSalesInsights = [
-        {
-          type: "buying_signal",
-          content: "Confirmed budget approval for Q4 rollout of AI CRM assistant.",
-          relevance_score: 90,
-          speaker: "Sarah Lee",
-          source: "transcript"
-        },
-        {
-          type: "risk_or_objection", 
-          content: "Concerns about integration with legacy Salesforce workflows.",
-          relevance_score: 80,
-          speaker: "Mark Chen",
-          source: "transcript"
-        }
-      ];
-
-      // Prepare API payload
-      const payload = {
-        previous_sales_insights: previousSalesInsights.map(insight => ({
-          type: insight.type || insight.insight_type,
-          content: insight.content,
-          relevance_score: insight.relevance_score || 50,
-          speaker: insight.speaker || "Unknown",
-          source: insight.source || "transcript"
-        })),
-        current_sales_insights: currentSalesInsights,
-        hubspot_data_content: dealNotes || "null",
-        company_research_content: selectedCompanyResearch ? JSON.stringify(selectedCompanyResearch) : "null"
-      };
-
-      console.log("📤 Sending cumulative insights API request with payload:", payload);
-
-      // Call the cumulative insights API
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.cummulativeSalesData}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      const apiResponse = await response.json();
-      console.log("✅ Cumulative insights API response:", apiResponse);
-
-      // Store the response in sales_insights table and update prospect
-      const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
-        apiResponse,
-        prospectDetails.id,
-        user?.id
-      );
-
-      console.log("💾 Stored insights and updated prospect:", result);
-      toast.success("Cumulative sales insights generated and stored successfully");
-
-      return result;
-    } catch (error) {
-      console.error("❌ Error generating cumulative sales insights:", error);
-      toast.error("Failed to generate cumulative insights: " + error.message);
-      throw error;
-    }
-  };
-
   const userId = CURRENT_USER.id;
   const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
     useAnalytics();
@@ -239,12 +146,12 @@ export const SalesCalls = () => {
     try {
       // Only load unprocessed files for the staging queue
       const files = await dbHelpers.getUploadedFiles(userId);
-     // Check if user ID is available before making the query
-     if (!user?.id) {
-       console.warn("No user ID available, skipping file load");
-       setUploadedFiles([]);
-       return;
-     }
+      // Check if user ID is available before making the query
+      if (!user?.id) {
+        console.warn("No user ID available, skipping file load");
+        setUploadedFiles([]);
+        return;
+      }
 
       const unprocessedFiles = files.filter((file) => !file.is_processed);
 
@@ -517,21 +424,161 @@ export const SalesCalls = () => {
     }
   };
 
-  // console.log(processingFileId, "processing file id");
-  // console.log(processingFileId, "processing file id");
+  const formatResearchData = async (selectedCompanyResearch) => {
+    if (!selectedCompanyResearch) return null;
+    console.log(
+      selectedCompanyResearch,
+      "check selectedCompanyResearch in formatResearchData"
+    );
+    try {
+      // Format the research result as readable text
+      const formattedText = `
+  Company: ${selectedCompanyResearch.company_name || ""}
+  COMPANY OVERVIEW
+  ${selectedCompanyResearch.company_analysis || ""}
+  KEY DETAILS
+  • Sector: ${selectedCompanyResearch.sector}
+  • Company Size: ${selectedCompanyResearch.size}
+  • Geographic Scope: ${selectedCompanyResearch.geographicScope}
+  • Nature of Business: ${selectedCompanyResearch.natureOfBusiness}
+  • Key Positioning: ${selectedCompanyResearch.keyPositioning}
+  GROWTH OPPORTUNITIES
+  ${
+    selectedCompanyResearch?.growth_opportunities
+      ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
+      .join("\n") || "None listed"
+  }
+  MARKET TRENDS
+  ${
+    selectedCompanyResearch.market_trends
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  SUMMARY NOTE
+  ${selectedCompanyResearch?.summary_note || ""}
+          `.trim();
+      return formattedText;
+    } catch (error) {
+      toast.error("Failed to pass research data");
+    }
+  };
+
+  // Function to generate cumulative sales insights
+  const generateCummulativesalesinsights = async (
+    selectedCompanyResearch,
+    dealNotes,
+    prospectDetails,
+    currentSalesInsights
+  ) => {
+    try {
+      console.log("🔄 Starting cumulative sales insights generation...", {
+        hasResearch: !!selectedCompanyResearch,
+        hasDealNotes: !!dealNotes,
+        prospectDetails: prospectDetails?.id,
+        salesInsightIds: prospectDetails?.sales_insight_ids,
+      });
+
+      // Get previous sales insights using the IDs from prospect
+      let previousSalesInsights = [];
+      if (
+        prospectDetails?.sales_insight_ids &&
+        prospectDetails.sales_insight_ids.length > 0
+      ) {
+        console.log(
+          "📊 Fetching previous sales insights with IDs:",
+          prospectDetails.sales_insight_ids
+        );
+        previousSalesInsights = await dbHelpers.getSalesInsightsByIds(
+          prospectDetails.sales_insight_ids
+        );
+        console.log(previousSalesInsights, "prevoiusSalesInsights");
+        console.log(
+          "✅ Retrieved previous sales insights:",
+          previousSalesInsights.length
+        );
+      }
+      const getResearchData = await formatResearchData(selectedCompanyResearch);
+      // Prepare API payload
+      const payload = {
+        previous_sales_insights:
+          previousSalesInsights?.length > 0
+            ? previousSalesInsights.map((insight) => ({
+                type: insight.type || insight.insight_type || "",
+                content: insight.content,
+                relevance_score: insight.relevance_score || 50,
+                speaker: insight.speaker || "Unknown",
+                source: insight.source || "transcript",
+              }))
+            : [],
+        current_sales_insights: currentSalesInsights,
+        hubspot_data_content: dealNotes || null,
+        company_research_content: getResearchData || null,
+      };
+
+      console.log(
+        "📤 Sending cumulative insights API request with payload:",
+        payload
+      );
+
+      // Call the cumulative insights API
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.cummulativeSalesData
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiResponse = await response.json();
+      console.log("✅ Cumulative insights API response:", apiResponse);
+
+      // Store the response in sales_insights table and update prospect
+      const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
+        apiResponse,
+        prospectDetails.id,
+        user?.id
+      );
+
+      console.log("💾 Stored insights and updated prospect:", result);
+      toast.success(
+        "Cumulative sales insights generated and stored successfully"
+      );
+
+      return result;
+    } catch (error) {
+      console.error("❌ Error generating cumulative sales insights:", error);
+      toast.error("Failed to generate cumulative insights: " + error.message);
+      throw error;
+    }
+  };
+
   const handleConfirmAssociation = async (
     file,
     companyId,
     prospectId,
-    prospectDetails
+    prospectDetails,
+    chosendata
   ) => {
-    // console.log(
-    //   file,
-    //   companyId,
-    //   prospectId,
-    //   prospectDetails,
-    //   "check file and company and prospect"
-    // );
+    console.log(
+      file,
+      companyId,
+      prospectId,
+      prospectDetails,
+      chosendata,
+      "get data to process file"
+    );
+
+    // if (true) return "";
+
     if (!file) {
       toast.error("Please select a file to process");
       return;
@@ -651,6 +698,12 @@ export const SalesCalls = () => {
         );
         // console.log(result, "check result");
         if (result?.status === "success") {
+          await generateCummulativesalesinsights(
+            chosendata?.researchCompany,
+            chosendata?.dealNotes,
+            prospectDetails,
+            processedData?.sales_insights || []
+          );
           const savedInsight = result.callInsight;
           // console.log(result, "check result after processing");
           // console.log(savedInsight, "check saved insight");
