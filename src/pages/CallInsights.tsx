@@ -478,6 +478,8 @@ const CallInsights = () => {
       // Group insights by type for display
       const groupedSpecificInsights = specificInsights.reduce((acc, insight) => {
         const typeKey = insight.type || 'unknown';
+      const groupedInsights = mappedInsights.reduce((acc, insight) => {
+        const typeKey = insight.type || 'unknown';
         const typeId = insight.insight_type_details?.id || insight.type_id;
         
         if (!acc[typeKey]) {
@@ -498,13 +500,13 @@ const CallInsights = () => {
       }, {});
       
       // Convert to array format and calculate averages
-      const groupedInsightsArray = Object.values(groupedSpecificInsights).map(group => ({
+      const groupedInsightsArray = Object.values(groupedInsights).map(group => ({
         type: group.type,
         type_id: group.type_id,
         average_score: group.count > 0 ? Math.round(group.total_score / group.count) : 0,
         insights: group.insights
       }));
-      setInsights(groupedInsightsArray);
+      setInsights(groupedInsights);
     }
     
     console.log(
