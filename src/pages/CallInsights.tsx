@@ -855,31 +855,39 @@ const CallInsights = () => {
       console.log(companyData, "check company data");
       // Merge all sales insights data with speaker and relevance score
       const mergedInsights = insights
-        .map(
-          (insight) => insight.insights?.map((item) => item.content).join("\n")
+        .map((insight) =>
+          insight.insights?.map((item) => item.content).join("\n")
         )
         .join("\n\n");
 
       // Merge all insights data from all categories
       let mergedInsightsText = ":brain: [SalesGenius AI Insight]\n\n";
-      
+
       // Process each insight type category
-      insights.forEach(category => {
+      insights.forEach((category) => {
         if (category.insights && category.insights.length > 0) {
           // Add category header
-          mergedInsightsText += `=== ${category.type.toUpperCase().replace(/_/g, ' ')} ===\n`;
+          mergedInsightsText += `=== ${category.type
+            .toUpperCase()
+            .replace(/_/g, " ")} ===\n`;
           mergedInsightsText += `Average Score: ${category.average_score}\n\n`;
-          
+
           // Add each insight in the category
-          category.insights.forEach(insight => {
+          category.insights.forEach((insight) => {
             if (insight.is_selected) {
               mergedInsightsText += `• ${insight.content}\n`;
-              mergedInsightsText += `  Speaker: ${insight.speaker || 'Unknown'}\n`;
-              mergedInsightsText += `  Relevance Score: ${insight.relevance_score || 0}\n`;
-              mergedInsightsText += `  Source: ${insight.source || 'current'}\n\n`;
+              mergedInsightsText += `  Speaker: ${
+                insight.speaker || "Unknown"
+              }\n`;
+              mergedInsightsText += `  Relevance Score: ${
+                insight.relevance_score || 0
+              }\n`;
+              mergedInsightsText += `  Source: ${
+                insight.source || "current"
+              }\n\n`;
             }
           });
-          
+
           mergedInsightsText += "\n";
         }
       });
@@ -897,7 +905,7 @@ const CallInsights = () => {
             companyIds: [companyData?.hubspot_company_id],
           },
           metadata: {
-            body: mergedInsightsText.trim()
+            body: mergedInsightsText.trim(),
           },
         },
         id: crypto.randomUUID(),
@@ -1565,7 +1573,8 @@ const CallInsights = () => {
                   {console.log(hubspotIntegration, "hubspot integration")}
                   {hubspotIntegration?.connected &&
                     hubspotIntegration?.hubspotUserId &&
-                    hubspotIntegration?.hubspotUserId != undefined && (
+                    hubspotIntegration?.hubspotUserId != undefined &&
+                    selectedProspect?.is_hubspot && (
                       <Button
                         variant="outline"
                         onClick={handlePushToHubSpot}
