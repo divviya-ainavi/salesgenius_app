@@ -2707,7 +2707,7 @@ export const dbHelpers = {
       .from("prospect")
       .select("*, company(id, name)") // ✅ Include company.id and company.name
       .eq("user_id", userId)
-     .not("communication_style_ids", "is", null)
+      .not("communication_style_ids", "is", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -3929,7 +3929,7 @@ export const dbHelpers = {
             user_id: userId,
             hubspot_deal_id: deal.id,
             is_hubspot: true,
-            amount: deal?.properties.amount ? parseFloat(deal.amount) : null,
+            deal_value: deal?.properties.amount || null,
             deal_stage: deal?.properties.dealstage || null,
             close_date: deal?.properties.closedate ? new Date(deal?.properties.closedate).toISOString() : null,
             hubspot_created_at: deal.createdAt ? new Date(deal.createdAt).toISOString() : null,

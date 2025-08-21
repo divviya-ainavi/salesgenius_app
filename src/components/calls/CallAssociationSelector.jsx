@@ -844,7 +844,7 @@ export const CallAssociationSelector = ({
                                       Stage: {prospect.deal_stage}
                                     </p>
                                   )}
-                                  {prospect.amount && (
+                                  {prospect.deal_value && (
                                     <p className="text-xs">
                                       Value: ${prospect.amount.toLocaleString()}
                                     </p>

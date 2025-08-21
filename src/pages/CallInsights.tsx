@@ -367,7 +367,7 @@ const CallInsights = () => {
             defaultInsight.id,
             user?.id
           );
-          // console.log(defaultInsight, "check default insight");
+          console.log(defaultInsight, "check default insight");
           const prospect = {
             id: defaultInsight.id,
             name: defaultInsight?.name,
@@ -388,7 +388,7 @@ const CallInsights = () => {
             lastCallDate: defaultInsight.created_at,
             lastEngagement: "Just now",
             status: "new",
-            dealValue: "TBD",
+            dealValue: defaultInsight?.deal_value || "TBD",
             probability: 50,
             nextAction: "Initial follow-up",
             dataSources: {
@@ -403,6 +403,7 @@ const CallInsights = () => {
             communication_style_ids: defaultInsight?.communication_style_ids,
             is_hubspot: defaultInsight?.is_hubspot || false,
             hubspot_deal_id: defaultInsight?.hubspot_deal_id || null,
+            deal_stage: defaultInsight?.deal_stage || null,
           };
 
           // console.log(
@@ -853,27 +854,29 @@ const CallInsights = () => {
     try {
       const companyData = await dbHelpers.getHubspotCompanyId(selectedProspect);
       console.log(companyData, "check company data");
-      
+
       // Create formatted HTML content for HubSpot
       const formatInsightsForHubSpot = (insights) => {
         const allInsights = [];
-        
+
         // Process each insight category
-        insights.forEach(category => {
+        insights.forEach((category) => {
           if (category.insights && category.insights.length > 0) {
-            const selectedInsights = category.insights.filter(insight => insight.is_selected);
+            const selectedInsights = category.insights.filter(
+              (insight) => insight.is_selected
+            );
             if (selectedInsights.length > 0) {
               allInsights.push({
                 type: category.type,
                 averageScore: category.average_score,
-                insights: selectedInsights
+                insights: selectedInsights,
               });
             }
           }
         });
 
         if (allInsights.length === 0) {
-          return '<p>No insights available to push.</p>';
+          return "<p>No insights available to push.</p>";
         }
 
         // Create clean, professional HTML content
@@ -885,26 +888,44 @@ const CallInsights = () => {
             </div>
         `;
 
-        allInsights.forEach(category => {
-          const categoryTitle = category.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          
+        allInsights.forEach((category) => {
+          const categoryTitle = category.type
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+
           htmlContent += `
             <div style="margin-bottom: 20px;">
               <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 8px;">
                 ${categoryTitle}
-                <span style="font-weight: normal; font-size: 14px; color: #6c757d; margin-left: 8px;">(Avg Score: ${category.averageScore.toFixed(1)})</span>
+                <span style="font-weight: normal; font-size: 14px; color: #6c757d; margin-left: 8px;">(Avg Score: ${category.averageScore.toFixed(
+                  1
+                )})</span>
               </h3>
               <div style="background: #ffffff; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px;">
           `;
 
           category.insights.forEach((insight, index) => {
             htmlContent += `
-              <div style="margin-bottom: ${index < category.insights.length - 1 ? '16px' : '0'}; ${index < category.insights.length - 1 ? 'border-bottom: 1px solid #f1f3f4; padding-bottom: 16px;' : ''}">
-                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 500; color: #212529;">${insight.content}</p>
+              <div style="margin-bottom: ${
+                index < category.insights.length - 1 ? "16px" : "0"
+              }; ${
+              index < category.insights.length - 1
+                ? "border-bottom: 1px solid #f1f3f4; padding-bottom: 16px;"
+                : ""
+            }">
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 500; color: #212529;">${
+                  insight.content
+                }</p>
                 <div style="font-size: 13px; color: #6c757d;">
-                  <span style="margin-right: 16px;"><strong>Speaker:</strong> ${insight.speaker || 'Unknown'}</span>
-                  <span style="margin-right: 16px;"><strong>Score:</strong> ${insight.relevance_score || 'N/A'}</span>
-                  <span><strong>Source:</strong> ${insight.source || 'N/A'}</span>
+                  <span style="margin-right: 16px;"><strong>Speaker:</strong> ${
+                    insight.speaker || "Unknown"
+                  }</span>
+                  <span style="margin-right: 16px;"><strong>Score:</strong> ${
+                    insight.relevance_score || "N/A"
+                  }</span>
+                  <span><strong>Source:</strong> ${
+                    insight.source || "N/A"
+                  }</span>
                 </div>
               </div>
             `;
@@ -917,7 +938,10 @@ const CallInsights = () => {
         });
 
         // Add simple summary
-        const totalInsights = allInsights.reduce((sum, category) => sum + category.insights.length, 0);
+        const totalInsights = allInsights.reduce(
+          (sum, category) => sum + category.insights.length,
+          0
+        );
         htmlContent += `
           <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 4px; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #6c757d; font-weight: 500;">
@@ -984,25 +1008,25 @@ const CallInsights = () => {
   // Helper function to get category colors
   const getCategoryColor = (type) => {
     const colorMap = {
-      'buying_signal': '#28a745',      // Green
-      'pain_point': '#dc3545',        // Red
-      'risk_or_objection': '#fd7e14', // Orange
-      'competitor_mention': '#6f42c1', // Purple
-      'decision_maker_identified': '#007bff', // Blue
-      'budget_insight': '#20c997',    // Teal
-      'timeline_insight': '#ffc107',  // Yellow
-      'champion_identified': '#e83e8c', // Pink
-      'my_insights': '#6c757d'        // Gray
+      buying_signal: "#28a745", // Green
+      pain_point: "#dc3545", // Red
+      risk_or_objection: "#fd7e14", // Orange
+      competitor_mention: "#6f42c1", // Purple
+      decision_maker_identified: "#007bff", // Blue
+      budget_insight: "#20c997", // Teal
+      timeline_insight: "#ffc107", // Yellow
+      champion_identified: "#e83e8c", // Pink
+      my_insights: "#6c757d", // Gray
     };
-    return colorMap[type] || '#6c757d';
+    return colorMap[type] || "#6c757d";
   };
 
   // Helper function to get score colors
   const getScoreColor = (score) => {
-    if (score >= 80) return '#28a745'; // Green for high scores
-    if (score >= 60) return '#ffc107'; // Yellow for medium scores
-    if (score >= 40) return '#fd7e14'; // Orange for low scores
-    return '#dc3545'; // Red for very low scores
+    if (score >= 80) return "#28a745"; // Green for high scores
+    if (score >= 60) return "#ffc107"; // Yellow for medium scores
+    if (score >= 40) return "#fd7e14"; // Orange for low scores
+    return "#dc3545"; // Red for very low scores
   };
 
   // console.log(allInsights, "check all insights");
@@ -1377,7 +1401,7 @@ const CallInsights = () => {
                             lastCallDate: prospect.created_at,
                             lastEngagement,
                             status,
-                            dealValue,
+                            dealValue: prospect?.deal_value || "TBD",
                             probability,
                             nextAction: "Initial follow-up",
                             dataSources: {
@@ -1394,6 +1418,7 @@ const CallInsights = () => {
                               prospect?.communication_style_ids,
                             is_hubspot: prospect?.is_hubspot || false,
                             hubspot_deal_id: prospect?.hubspot_deal_id || null,
+                            deal_stage: prospect?.deal_stage || null,
                           })
                         }
                       >
@@ -1424,7 +1449,9 @@ const CallInsights = () => {
                             <span className="text-muted-foreground">
                               Deal Value:
                             </span>
-                            <span className="font-medium">{dealValue}</span>
+                            <span className="font-medium">
+                              {prospect?.deal_value || "TBD"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">

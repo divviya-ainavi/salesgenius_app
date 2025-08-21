@@ -336,8 +336,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
             contact:
               (insight.prospect_details || []).map((p) => p.name).join(", ") ||
               "Unknown",
-            dealValue: "", // Default value
-            crmStage: "Proposal Sent", // Default value
+            dealValue: insight?.deal_value || "TBD", // Default value
+            crmStage: insight?.deal_stage || "Proposal Sent", // Default value
             nextAction: "Follow-up",
             communication_style_ids: insight.communication_style_ids || [],
             sales_play: insight?.sales_play,
@@ -347,6 +347,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               insight?.recommended_objectives_reason || "",
             recommended_sales_play_reason:
               insight?.recommended_sales_play_reason || "",
+            is_hubspot: insight?.is_hubspot || false,
           }));
 
         setProspects(enrichedProspects);
@@ -1231,7 +1232,7 @@ ${updatedBlocks
             </Card>
 
             {/* Deal Information */}
-            {false && (
+            {selectedProspect?.is_hubspot && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Deal Information</CardTitle>
