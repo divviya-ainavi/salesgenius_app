@@ -1640,7 +1640,7 @@ const CallInsights = () => {
                                         <strong>Source:</strong>{" "}
                                         {x?.source
                                           ? x?.source.charAt(0).toUpperCase() +
-                                            x?.source.style.slice(1)
+                                            x?.source.slice(1)
                                           : ""}
                                       </span>
                                     </div>
@@ -1711,6 +1711,16 @@ const CallInsights = () => {
                                       <span className="font-medium">
                                         Relevance Score:
                                       </span>
+                                      <span>{x.relevance_score || "N/A"}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Source:
+                                      </span>
+                                      <span>{x.source || "Current"}</span>
+                                    </div>
+                                  </div>
+
                                   {/* Tooltip using Radix UI */}
                                   <TooltipProvider>
                                     <Tooltip>
