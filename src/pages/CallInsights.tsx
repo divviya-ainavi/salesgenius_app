@@ -67,6 +67,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@radix-ui/react-tooltip";
 import useEmblaCarousel from "embla-carousel-react";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
@@ -1710,23 +1711,41 @@ const CallInsights = () => {
                                       <span className="font-medium">
                                         Relevance Score:
                                       </span>
-                                      <span>{x.relevance_score || "N/A"}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="font-medium">
-                                        Source:
-                                      </span>
-                                      <span>
-                                        {x?.source
-                                          ? x?.source?.charAt(0).toUpperCase() +
-                                            x?.source?.slice(1)
-                                          : ""}
-                                      </span>
-                                    </div>
-
-                                    {/* Arrow pointer */}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r rotate-45"></div>
-                                  </div>
+                                  {/* Tooltip using Radix UI */}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="absolute inset-0 cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        align="center"
+                                        className="z-[9999] bg-white border border-gray-200 rounded-md shadow-lg p-3 text-xs max-w-xs"
+                                        sideOffset={5}
+                                      >
+                                        <div className="space-y-1">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Speaker:
+                                            </span>
+                                            <span className="text-gray-600">{x.speaker || "Unknown"}</span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Relevance Score:
+                                            </span>
+                                            <span className="text-gray-600">{x.relevance_score || "N/A"}</span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Source:
+                                            </span>
+                                            <span className="text-gray-600">{x.source || "Current"}</span>
+                                          </div>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
 
                                   {/* Edit and Delete buttons */}
                                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
