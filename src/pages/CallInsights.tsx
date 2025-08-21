@@ -1451,13 +1451,28 @@ const CallInsights = () => {
                     {totalInsightsCount} insights
                   </Badge>
                 </div>
-                <Button
-                  onClick={() => setIsAddingInsight(true)}
-                  disabled={isAddingInsight}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Insight
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // TODO: Implement push cumulative sales insights to HubSpot
+                      toast.info("Push to HubSpot functionality coming soon");
+                    }}
+                    disabled={totalInsightsCount === 0 || !hubspotIntegration?.connected}
+                    size="sm"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Push to HubSpot
+                  </Button>
+                  <Button
+                    onClick={() => setIsAddingInsight(true)}
+                    disabled={isAddingInsight}
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Insight
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
