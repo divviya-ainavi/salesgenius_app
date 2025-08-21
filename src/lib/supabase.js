@@ -3053,6 +3053,112 @@ export const dbHelpers = {
   //   return result.sort((a, b) => b.average_score - a.average_score);
   // },
 
+  async getSalesInsightsByIdNewFlow(allInsightIds, prospectId, userId) {
+    // console.log("called get sales insights");
+    const { data: insightTypes, error: typeError } = await supabase
+      .from("sales_insight_types")
+      .select("id, key");
+
+    const typeMap = Object.fromEntries(insightTypes.map((t) => [t.id, t.key]));
+
+    // Step 3: Get full insights if any
+    let salesInsights = [];
+    if (allInsightIds.length > 0) {
+      const { data: insightsData, error: insightsDetailError } = await supabase
+        .from("sales_insights")
+        .select("*, type_id")
+        .in("id", allInsightIds)
+        .eq("is_active", true)
+        .eq("user_id", userId);
+
+      if (insightsDetailError) {
+        console.error("Error fetching sales insights", insightsDetailError);
+        return null;
+      }
+      salesInsights = insightsData;
+    }
+    console.log(salesInsights, "sales insights data 1950")
+    // Step 4: Group all types, even if no insights present
+    const grouped = {};
+    for (const type of insightTypes) {
+      grouped[type.key] = []; // initialize all
+    }
+
+    for (const insight of salesInsights) {
+      const typeKey = typeMap[insight.type_id] || "my_insights";
+      grouped[typeKey].push(insight);
+    }
+
+    // Step 5: Prepare full results (with average score)
+    const computed = Object.entries(grouped).map(([type, insights]) => {
+      const average =
+        insights.reduce((sum, i) => sum + (i.relevance_score || 0), 0) /
+        (insights.length || 1); // avoid NaN
+
+      const typeId = insightTypes.find((t) => t.key === type)?.id || null;
+
+      return {
+        type,
+        type_id: typeId,
+        average_score: Number(average.toFixed(2)),
+        insights,
+      };
+    });
+    console.log(computed, "computed data 1960")
+    // Step 6: Get prospect priority list
+    const { data: prospectData, error: prospectError } = await supabase
+      .from("prospect")
+      .select("sales_insight_priority_list")
+      .eq("id", prospectId)
+      .single();
+
+    if (prospectError) {
+      console.error("Error fetching prospect priority list:", prospectError);
+      return null;
+    }
+
+    let sortedResults = [];
+    // console.log(prospectData, Array.isArray(prospectData?.sales_insight_priority_list), "check prospect data 1956")
+    if (
+      Array.isArray(prospectData?.sales_insight_priority_list) &&
+      prospectData.sales_insight_priority_list.length > 0
+    ) {
+      console.log("1961")
+      const parsedPriorityList = prospectData.sales_insight_priority_list.map((item) =>
+        typeof item === "string" ? JSON.parse(item) : item
+      );
+      const priorityMap = Object.fromEntries(
+        parsedPriorityList.map((item) => [item.type_id, item.priority])
+      );
+      console.log(priorityMap, "check priority map 1965")
+      sortedResults = [...computed].sort((a, b) => {
+        const aPriority = priorityMap[a.type_id] || Infinity;
+        const bPriority = priorityMap[b.type_id] || Infinity;
+        return aPriority - bPriority;
+      });
+      console.log(sortedResults, "sorted results 1969")
+    } else {
+      sortedResults = [...computed].sort((a, b) => b.average_score - a.average_score);
+
+      const priorityList = sortedResults.map((item, index) => ({
+        type_id: item.type_id,
+        priority: index + 1,
+        average_score: item.average_score,
+      }));
+
+      const { error: updateError } = await supabase
+        .from("prospect")
+        .update({ sales_insight_priority_list: priorityList })
+        .eq("id", prospectId);
+
+      if (updateError) {
+        console.error("Error updating sales_insight_priority_list:", updateError);
+      }
+    }
+
+    return sortedResults;
+  },
+
   async getSalesInsightsByProspectId(prospectId, userId) {
     // console.log("called get sales insights");
 
@@ -3196,7 +3302,21 @@ export const dbHelpers = {
       }
 
       console.log("✅ Retrieved sales insights:", data?.length || 0);
-      return data || [];
+
+      // Map insights with their corresponding types
+      const mappedInsights = (data || []).map(insight => {
+        // Find the matching insight type based on type_id
+        const matchingType = insightTypes?.find(type => type.id === insight.insight_type_id);
+
+        return {
+          ...insight,
+          // insight_type_details: matchingType || null,
+          type: matchingType?.key || insight.insight_type || "" // Use type key or fallback
+        };
+      });
+
+      console.log("🔗 Mapped insights with types:", mappedInsights.length);
+      return mappedInsights;
     } catch (error) {
       console.error("❌ Error in getSalesInsightsByIds:", error);
       throw error;
