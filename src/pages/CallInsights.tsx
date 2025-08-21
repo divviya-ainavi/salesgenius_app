@@ -1458,6 +1458,17 @@ const CallInsights = () => {
                   <Plus className="w-4 h-4 mr-1" />
                   Add Insight
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // TODO: Implement push to HubSpot functionality
+                    toast.info("Push to HubSpot functionality coming soon");
+                  }}
+                  disabled={totalInsightsCount === 0}
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Push to HubSpot
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
