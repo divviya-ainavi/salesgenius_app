@@ -857,11 +857,29 @@ const CallInsights = () => {
       const mergedInsights = salesInsights
         .map(
           (insight) =>
-            `${insight.content} (Speaker: ${
-              insight.speaker || "Unknown"
-            }, Relevance Score: ${insight.relevance_score || "N/A"})`
-        )
-        .join("\n\n");
+      // Merge all insights data from all categories
+      let mergedInsightsText = ":brain: [SalesGenius AI Insight]\n\n";
+      
+      // Process each insight type category
+      salesInsights.forEach(category => {
+        if (category.insights && category.insights.length > 0) {
+          // Add category header
+          mergedInsightsText += `=== ${category.type.toUpperCase().replace(/_/g, ' ')} ===\n`;
+          mergedInsightsText += `Average Score: ${category.average_score}\n\n`;
+          
+          // Add each insight in the category
+          category.insights.forEach(insight => {
+            if (insight.is_selected) {
+              mergedInsightsText += `• ${insight.content}\n`;
+              mergedInsightsText += `  Speaker: ${insight.speaker || 'Unknown'}\n`;
+              mergedInsightsText += `  Relevance Score: ${insight.relevance_score || 0}\n`;
+              mergedInsightsText += `  Source: ${insight.source || 'current'}\n\n`;
+            }
+          });
+          
+          mergedInsightsText += "\n";
+        }
+      });
       console.log(mergedInsights, "check merged insights");
       const payload = {
         Hubspotdata: {
@@ -876,7 +894,7 @@ const CallInsights = () => {
             companyIds: [companyData?.hubspot_company_id],
           },
           metadata: {
-            body: `:brain: [SalesGenius AI Insight] ${mergedInsights}`,
+            body: mergedInsightsText.trim()
           },
         },
         id: crypto.randomUUID(),
