@@ -1458,17 +1458,6 @@ const CallInsights = () => {
                   <Plus className="w-4 h-4 mr-1" />
                   Add Insight
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // TODO: Implement push to HubSpot functionality
-                    toast.info("Push to HubSpot functionality coming soon");
-                  }}
-                  disabled={totalInsightsCount === 0}
-                >
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Push to HubSpot
-                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1711,7 +1700,7 @@ const CallInsights = () => {
                                   </p>
 
                                   {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border rounded shadow-lg p-2 text-xs text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-[9999] pointer-events-none">
+                                  {/* <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border rounded shadow-lg p-2 text-xs text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-[9999] pointer-events-none">
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">
                                         Speaker:
@@ -1730,7 +1719,7 @@ const CallInsights = () => {
                                       </span>
                                       <span>{x.source || "Current"}</span>
                                     </div>
-                                  </div>
+                                  </div> */}
 
                                   {/* Tooltip using Radix UI */}
                                   <TooltipProvider>
@@ -1749,19 +1738,25 @@ const CallInsights = () => {
                                             <span className="font-medium text-gray-700">
                                               Speaker:
                                             </span>
-                                            <span className="text-gray-600">{x.speaker || "Unknown"}</span>
+                                            <span className="text-gray-600">
+                                              {x.speaker || "Unknown"}
+                                            </span>
                                           </div>
                                           <div className="flex items-center space-x-2">
                                             <span className="font-medium text-gray-700">
                                               Relevance Score:
                                             </span>
-                                            <span className="text-gray-600">{x.relevance_score || "N/A"}</span>
+                                            <span className="text-gray-600">
+                                              {x.relevance_score || "N/A"}
+                                            </span>
                                           </div>
                                           <div className="flex items-center space-x-2">
                                             <span className="font-medium text-gray-700">
                                               Source:
                                             </span>
-                                            <span className="text-gray-600">{x.source || "Current"}</span>
+                                            <span className="text-gray-600">
+                                              {x.source || "Current"}
+                                            </span>
                                           </div>
                                         </div>
                                       </TooltipContent>
