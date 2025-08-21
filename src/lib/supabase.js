@@ -2713,6 +2713,17 @@ export const dbHelpers = {
     return data;
   },
 
+  async getHubspotCompanyId(selectedProspect) {
+    const { data, error } = await supabase
+      .from("company")
+      .select("hubspot_company_id")
+      .eq("id", selectedProspect.company_id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
 
   async getCommunicationStylesData(communication_style_ids, userId) {
     const { data, error } = await supabase
