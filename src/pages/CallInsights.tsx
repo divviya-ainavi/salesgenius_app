@@ -836,6 +836,11 @@ const CallInsights = () => {
       return;
     }
 
+    if (!selectedProspect?.company_id) {
+      toast.error("No company associated with this deal");
+      return;
+    }
+
     if (!selectedProspect?.company?.hubspot_company_id) {
       toast.error("Company is not synced with HubSpot");
       return;
@@ -849,6 +854,22 @@ const CallInsights = () => {
     setIsPushingToHubSpot(true);
 
     try {
+      // Fetch hubspot_company_id from company table based on company_id
+      const { data: companyData, error: companyError } = await supabase
+        .from('company')
+        .select('hubspot_company_id')
+        .eq('id', selectedProspect.company_id)
+        .single();
+
+      if (companyError) {
+        throw new Error(`Failed to fetch company data: ${companyError.message}`);
+      }
+
+      if (!companyData?.hubspot_company_id) {
+        toast.error("This company is not synced with HubSpot");
+        return;
+      }
+
       // Merge all sales insights data with speaker and relevance score
       const mergedInsights = salesInsights.map(insight => 
         `${insight.content} (Speaker: ${insight.speaker || 'Unknown'}, Relevance Score: ${insight.relevance_score || 'N/A'})`
@@ -864,7 +885,7 @@ const CallInsights = () => {
           },
           "associations": {
             "dealIds": [selectedProspect.hubspot_deal_id],
-            "companyIds": [selectedProspect.company.hubspot_company_id]
+            companyIds: [companyData.hubspot_company_id]
           },
           "metadata": {
             "body": `:brain: [SalesGenius AI Insight] ${mergedInsights}`
@@ -872,7 +893,7 @@ const CallInsights = () => {
         },
         "id": crypto.randomUUID(),
         "dealid": selectedProspect.hubspot_deal_id,
-        "companyid": selectedProspect.company.hubspot_company_id,
+        companyid: companyData.hubspot_company_id,
         "ownerId": hubspotIntegration.hubspotUserId
       };
 
@@ -893,6 +914,7 @@ const CallInsights = () => {
       
     } catch (error) {
       console.error("Error pushing to HubSpot:", error);
+        hubspot_company_id: companyData.hubspot_company_id,
       toast.error("Failed to push data to HubSpot: " + error.message);
     } finally {
       setIsPushingToHubSpot(false);
