@@ -854,92 +854,84 @@ const CallInsights = () => {
       const companyData = await dbHelpers.getHubspotCompanyId(selectedProspect);
       console.log(companyData, "check company data");
       
-      // Merge all insights data for HubSpot
-      const mergedInsights = insights
-        .filter(category => category.insights && category.insights.length > 0)
-        .map(category => {
-          const selectedInsights = category.insights.filter(insight => insight.is_selected);
-          if (selectedInsights.length === 0) return null;
-
-          return {
-            type: category.type,
-            average_score: category.average_score,
-            insights: selectedInsights
-          };
-        })
-        .filter(Boolean);
-
-      if (mergedInsights.length === 0) {
-        toast.error("No insights selected to push to HubSpot");
-        return;
-      }
-
-      // Format insights for HubSpot body with HTML
-      let formattedBody = `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 18px; display: flex; align-items: center;">
-              🧠 SalesGenius AI Insights
-            </h2>
-            <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">
-              Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-            </p>
-          </div>
-      `;
-
-      mergedInsights.forEach(category => {
-        const categoryName = category.type.toUpperCase().replace(/_/g, ' ');
-        const categoryColor = getCategoryColor(category.type);
+      // Create formatted HTML content for HubSpot
+      const formatInsightsForHubSpot = (insights) => {
+        const allInsights = [];
         
-        formattedBody += `
-          <div style="margin-bottom: 25px; border-left: 4px solid ${categoryColor}; padding-left: 15px;">
-            <h3 style="color: ${categoryColor}; font-size: 16px; font-weight: bold; margin: 0 0 10px 0; text-transform: uppercase;">
-              ${categoryName}
-            </h3>
-            <div style="background: #f8f9fa; padding: 8px 12px; border-radius: 4px; margin-bottom: 15px;">
-              <strong style="color: #495057;">Average Score: ${category.average_score}</strong>
+        // Process each insight category
+        insights.forEach(category => {
+          if (category.insights && category.insights.length > 0) {
+            const selectedInsights = category.insights.filter(insight => insight.is_selected);
+            if (selectedInsights.length > 0) {
+              allInsights.push({
+                type: category.type,
+                averageScore: category.average_score,
+                insights: selectedInsights
+              });
+            }
+          }
+        });
+
+        if (allInsights.length === 0) {
+          return '<p>No insights available to push.</p>';
+        }
+
+        // Create clean, professional HTML content
+        let htmlContent = `
+          <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px;">
+            <div style="background: #f8f9fa; border-left: 4px solid #007bff; padding: 16px; margin-bottom: 20px;">
+              <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #007bff;">SalesGenius AI Insights</h2>
+              <p style="margin: 0; font-size: 14px; color: #6c757d;">Generated on ${new Date().toLocaleDateString()}</p>
             </div>
         `;
 
-        category.insights.forEach(insight => {
-          const scoreColor = getScoreColor(insight.relevance_score);
+        allInsights.forEach(category => {
+          const categoryTitle = category.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           
-          formattedBody += `
-            <div style="background: white; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="font-weight: 500; color: #212529; margin-bottom: 8px; line-height: 1.4;">
-                ${insight.content}
+          htmlContent += `
+            <div style="margin-bottom: 20px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 8px;">
+                ${categoryTitle}
+                <span style="font-weight: normal; font-size: 14px; color: #6c757d; margin-left: 8px;">(Avg Score: ${category.averageScore.toFixed(1)})</span>
+              </h3>
+              <div style="background: #ffffff; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px;">
+          `;
+
+          category.insights.forEach((insight, index) => {
+            htmlContent += `
+              <div style="margin-bottom: ${index < category.insights.length - 1 ? '16px' : '0'}; ${index < category.insights.length - 1 ? 'border-bottom: 1px solid #f1f3f4; padding-bottom: 16px;' : ''}">
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 500; color: #212529;">${insight.content}</p>
+                <div style="font-size: 13px; color: #6c757d;">
+                  <span style="margin-right: 16px;"><strong>Speaker:</strong> ${insight.speaker || 'Unknown'}</span>
+                  <span style="margin-right: 16px;"><strong>Score:</strong> ${insight.relevance_score || 'N/A'}</span>
+                  <span><strong>Source:</strong> ${insight.source || 'N/A'}</span>
+                </div>
               </div>
-              <div style="display: flex; gap: 15px; font-size: 12px; color: #6c757d;">
-                <span style="display: flex; align-items: center;">
-                  <strong style="color: #495057;">👤 Speaker:</strong> 
-                  <span style="margin-left: 5px; color: #007bff; font-weight: 500;">${insight.speaker || 'Unknown'}</span>
-                </span>
-                <span style="display: flex; align-items: center;">
-                  <strong style="color: #495057;">📊 Score:</strong> 
-                  <span style="margin-left: 5px; color: ${scoreColor}; font-weight: 600;">${insight.relevance_score || 'N/A'}</span>
-                </span>
-                <span style="display: flex; align-items: center;">
-                  <strong style="color: #495057;">📍 Source:</strong> 
-                  <span style="margin-left: 5px;">${insight.source || 'N/A'}</span>
-                </span>
+            `;
+          });
+
+          htmlContent += `
               </div>
             </div>
           `;
         });
-        
-        formattedBody += `</div>`;
-      });
 
-      // Close the main container
-      formattedBody += `
-          <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6;">
-            <p style="margin: 0; font-size: 12px; color: #6c757d; text-align: center;">
-              📈 This insight summary contains ${mergedInsights.reduce((total, cat) => total + cat.insights.length, 0)} key insights 
-              across ${mergedInsights.length} categories to help drive your sales strategy forward.
+        // Add simple summary
+        const totalInsights = allInsights.reduce((sum, category) => sum + category.insights.length, 0);
+        htmlContent += `
+          <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 4px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; color: #6c757d; font-weight: 500;">
+              Total: ${totalInsights} insights across ${allInsights.length} categories
             </p>
           </div>
-        </div>
-      `;
+          </div>
+        `;
+
+        return htmlContent;
+      };
+
+      // Format insights for HubSpot body with HTML
+      const formattedBody = formatInsightsForHubSpot(insights);
 
       // Prepare API payload
       const payload = {
