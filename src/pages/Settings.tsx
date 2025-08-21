@@ -586,6 +586,8 @@ export const Settings = () => {
     }
   };
 
+  console.log(hubspotIntegration, "check hubspot user details");
+
   // Load HubSpot integration status
   useEffect(() => {
     const loadHubSpotStatus = async () => {
@@ -594,10 +596,29 @@ export const Settings = () => {
           const hubspotStatus = await authHelpers.getOrganizationHubSpotStatus(
             organizationDetails.id
           );
+          const hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+            user?.id,
+            organizationDetails?.id
+          );
 
           dispatch(
+            // setHubspotIntegration({
+            //   connected: hubspotStatus.connected,
+            //   lastSync: hubspotStatus.connected
+            //     ? new Date().toISOString()
+            //     : null,
+            //   accountInfo: hubspotStatus.connected
+            //     ? {
+            //         maskedToken: hubspotStatus.encryptedToken
+            //           ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+            //           : null,
+            //       }
+            //     : null,
+            // })
             setHubspotIntegration({
               connected: hubspotStatus.connected,
+              hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+              hubspotUserDetails: hubspotUserDetails,
               lastSync: hubspotStatus.connected
                 ? new Date().toISOString()
                 : null,
@@ -605,6 +626,10 @@ export const Settings = () => {
                 ? {
                     maskedToken: hubspotStatus.encryptedToken
                       ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+                      : null,
+                    userEmail: hubspotUserDetails?.email || null,
+                    userName: hubspotUserDetails
+                      ? `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`.trim()
                       : null,
                   }
                 : null,
@@ -1189,9 +1214,17 @@ export const Settings = () => {
         //   }
         // );
         // Update Redux state
+
+        const hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+          user?.id,
+          organizationDetails?.id
+        );
+
         dispatch(
           setHubspotIntegration({
             connected: true,
+            hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+            hubspotUserDetails: hubspotUserDetails,
             lastSync: new Date().toISOString(),
             accountInfo: {
               maskedToken: "xxxxx" + hubspotToken.slice(-4),
@@ -1199,6 +1232,16 @@ export const Settings = () => {
             },
           })
         );
+        // dispatch(
+        //   setHubspotIntegration({
+        //     connected: true,
+        //     lastSync: new Date().toISOString(),
+        //     accountInfo: {
+        //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
+        //       ...result.account_info,
+        //     },
+        //   })
+        // );
 
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
@@ -2219,6 +2262,7 @@ export const Settings = () => {
                     )}
                   </CardTitle> */}
                 </CardHeader>
+                {console.log(hubspotIntegration, "check hubspot integration")}
                 <CardContent className="space-y-4">
                   {hubspotIntegration.connected ? (
                     <div className="space-y-4">

@@ -313,7 +313,13 @@ export const CallAssociationSelector = ({
     const debounceTimer = setTimeout(searchProspects, 300);
     return () => clearTimeout(debounceTimer);
   }, [prospectSearch, currentState, selectedCompany]);
-
+  console.log(
+    hubspotIntegration?.connected &&
+      hubspotIntegration?.hubspotUserId &&
+      hubspotIntegration?.hubspotUserId != undefined &&
+      selectedCompany?.hubspot_company_id,
+    "HubSpot Deal Sync Check"
+  );
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     setCompanySearch("");
