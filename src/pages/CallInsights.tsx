@@ -1699,7 +1699,7 @@ const CallInsights = () => {
                                   </p>
 
                                   {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border rounded shadow-lg p-2 text-xs text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-[9999] pointer-events-none">
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">
                                         Speaker:
@@ -1725,7 +1725,7 @@ const CallInsights = () => {
                                     </div>
 
                                     {/* Arrow pointer */}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r rotate-45"></div>
                                   </div>
 
                                   {/* Edit and Delete buttons */}
