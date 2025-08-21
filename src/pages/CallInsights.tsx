@@ -161,6 +161,8 @@ const CallInsights = () => {
   // Salesperson checkbox state
   const [salespersonIds, setSalespersonIds] = useState(new Set());
   const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  const [isPushingToHubSpot, setIsPushingToHubSpot] = useState(false);
+  
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
     if (!selectedProspect?.id || !user?.id) return;
@@ -823,6 +825,80 @@ const CallInsights = () => {
     }
   };
 
+  const handlePushToHubSpot = async () => {
+    if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
+      toast.error("HubSpot integration not available");
+      return;
+    }
+
+    if (!selectedProspect?.hubspot_deal_id) {
+      toast.error("This deal is not synced with HubSpot");
+      return;
+    }
+
+    if (!selectedProspect?.company?.hubspot_company_id) {
+      toast.error("Company is not synced with HubSpot");
+      return;
+    }
+
+    if (totalInsightsCount === 0) {
+      toast.error("No insights available to push");
+      return;
+    }
+
+    setIsPushingToHubSpot(true);
+
+    try {
+      // Merge all sales insights data with speaker and relevance score
+      const mergedInsights = salesInsights.map(insight => 
+        `${insight.content} (Speaker: ${insight.speaker || 'Unknown'}, Relevance Score: ${insight.relevance_score || 'N/A'})`
+      ).join('\n\n');
+
+      const payload = {
+        "Hubspotdata": {
+          "engagement": {
+            "active": true,
+            "ownerId": hubspotIntegration.hubspotUserId,
+            "timestamp": Date.now(),
+            "type": "NOTE"
+          },
+          "associations": {
+            "dealIds": [selectedProspect.hubspot_deal_id],
+            "companyIds": [selectedProspect.company.hubspot_company_id]
+          },
+          "metadata": {
+            "body": `:brain: [SalesGenius AI Insight] ${mergedInsights}`
+          }
+        },
+        "id": crypto.randomUUID(),
+        "dealid": selectedProspect.hubspot_deal_id,
+        "companyid": selectedProspect.company.hubspot_company_id,
+        "ownerId": hubspotIntegration.hubspotUserId
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}SI-push-HS`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      toast.success("Data successfully pushed to HubSpot!");
+      
+    } catch (error) {
+      console.error("Error pushing to HubSpot:", error);
+      toast.error("Failed to push data to HubSpot: " + error.message);
+    } finally {
+      setIsPushingToHubSpot(false);
+    }
+  };
+
   // console.log(allInsights, "check all insights");
   const filteredProspects = allInsights?.filter(
     (prospect) =>
@@ -1458,20 +1534,25 @@ const CallInsights = () => {
                     hubspotIntegration?.hubspotUserId != undefined && (
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          // TODO: Implement push cumulative sales insights to HubSpot
-                          toast.info(
-                            "Push to HubSpot functionality coming soon"
-                          );
-                        }}
+                        onClick={handlePushToHubSpot}
                         disabled={
                           totalInsightsCount === 0 ||
-                          !hubspotIntegration?.connected
+                          !hubspotIntegration?.connected ||
+                          isPushingToHubSpot
                         }
                         size="sm"
                       >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Push to HubSpot
+                        {isPushingToHubSpot ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            Pushing...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Push to HubSpot
+                          </>
+                        )}
                       </Button>
                     )}
 
