@@ -854,14 +854,17 @@ const CallInsights = () => {
       const companyData = await dbHelpers.getHubspotCompanyId(selectedProspect);
       console.log(companyData, "check company data");
       // Merge all sales insights data with speaker and relevance score
-      const mergedInsights = salesInsights
+      const mergedInsights = insights
         .map(
-          (insight) =>
+          (insight) => insight.insights?.map((item) => item.content).join("\n")
+        )
+        .join("\n\n");
+
       // Merge all insights data from all categories
       let mergedInsightsText = ":brain: [SalesGenius AI Insight]\n\n";
       
       // Process each insight type category
-      salesInsights.forEach(category => {
+      insights.forEach(category => {
         if (category.insights && category.insights.length > 0) {
           // Add category header
           mergedInsightsText += `=== ${category.type.toUpperCase().replace(/_/g, ' ')} ===\n`;
