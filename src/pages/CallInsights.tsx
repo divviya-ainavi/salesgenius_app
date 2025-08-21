@@ -853,45 +853,95 @@ const CallInsights = () => {
     try {
       const companyData = await dbHelpers.getHubspotCompanyId(selectedProspect);
       console.log(companyData, "check company data");
-      // Merge all sales insights data with speaker and relevance score
+      
+      // Merge all insights data for HubSpot
       const mergedInsights = insights
-        .map((insight) =>
-          insight.insights?.map((item) => item.content).join("\n")
-        )
-        .join("\n\n");
+        .filter(category => category.insights && category.insights.length > 0)
+        .map(category => {
+          const selectedInsights = category.insights.filter(insight => insight.is_selected);
+          if (selectedInsights.length === 0) return null;
 
-      // Merge all insights data from all categories
-      let mergedInsightsText = ":brain: [SalesGenius AI Insight]\n\n";
+          return {
+            type: category.type,
+            average_score: category.average_score,
+            insights: selectedInsights
+          };
+        })
+        .filter(Boolean);
 
-      // Process each insight type category
-      insights.forEach((category) => {
-        if (category.insights && category.insights.length > 0) {
-          // Add category header
-          mergedInsightsText += `=== ${category.type
-            .toUpperCase()
-            .replace(/_/g, " ")} ===\n`;
-          mergedInsightsText += `Average Score: ${category.average_score}\n\n`;
+      if (mergedInsights.length === 0) {
+        toast.error("No insights selected to push to HubSpot");
+        return;
+      }
 
-          // Add each insight in the category
-          category.insights.forEach((insight) => {
-            if (insight.is_selected) {
-              mergedInsightsText += `• ${insight.content}\n`;
-              mergedInsightsText += `  Speaker: ${
-                insight.speaker || "Unknown"
-              }\n`;
-              mergedInsightsText += `  Relevance Score: ${
-                insight.relevance_score || 0
-              }\n`;
-              mergedInsightsText += `  Source: ${
-                insight.source || "current"
-              }\n\n`;
-            }
-          });
+      // Format insights for HubSpot body with HTML
+      let formattedBody = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 18px; display: flex; align-items: center;">
+              🧠 SalesGenius AI Insights
+            </h2>
+            <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">
+              Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+            </p>
+          </div>
+      `;
 
-          mergedInsightsText += "\n";
-        }
+      mergedInsights.forEach(category => {
+        const categoryName = category.type.toUpperCase().replace(/_/g, ' ');
+        const categoryColor = getCategoryColor(category.type);
+        
+        formattedBody += `
+          <div style="margin-bottom: 25px; border-left: 4px solid ${categoryColor}; padding-left: 15px;">
+            <h3 style="color: ${categoryColor}; font-size: 16px; font-weight: bold; margin: 0 0 10px 0; text-transform: uppercase;">
+              ${categoryName}
+            </h3>
+            <div style="background: #f8f9fa; padding: 8px 12px; border-radius: 4px; margin-bottom: 15px;">
+              <strong style="color: #495057;">Average Score: ${category.average_score}</strong>
+            </div>
+        `;
+
+        category.insights.forEach(insight => {
+          const scoreColor = getScoreColor(insight.relevance_score);
+          
+          formattedBody += `
+            <div style="background: white; border: 1px solid #e9ecef; border-radius: 6px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <div style="font-weight: 500; color: #212529; margin-bottom: 8px; line-height: 1.4;">
+                ${insight.content}
+              </div>
+              <div style="display: flex; gap: 15px; font-size: 12px; color: #6c757d;">
+                <span style="display: flex; align-items: center;">
+                  <strong style="color: #495057;">👤 Speaker:</strong> 
+                  <span style="margin-left: 5px; color: #007bff; font-weight: 500;">${insight.speaker || 'Unknown'}</span>
+                </span>
+                <span style="display: flex; align-items: center;">
+                  <strong style="color: #495057;">📊 Score:</strong> 
+                  <span style="margin-left: 5px; color: ${scoreColor}; font-weight: 600;">${insight.relevance_score || 'N/A'}</span>
+                </span>
+                <span style="display: flex; align-items: center;">
+                  <strong style="color: #495057;">📍 Source:</strong> 
+                  <span style="margin-left: 5px;">${insight.source || 'N/A'}</span>
+                </span>
+              </div>
+            </div>
+          `;
+        });
+        
+        formattedBody += `</div>`;
       });
-      console.log(mergedInsights, "check merged insights");
+
+      // Close the main container
+      formattedBody += `
+          <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6;">
+            <p style="margin: 0; font-size: 12px; color: #6c757d; text-align: center;">
+              📈 This insight summary contains ${mergedInsights.reduce((total, cat) => total + cat.insights.length, 0)} key insights 
+              across ${mergedInsights.length} categories to help drive your sales strategy forward.
+            </p>
+          </div>
+        </div>
+      `;
+
+      // Prepare API payload
       const payload = {
         Hubspotdata: {
           engagement: {
@@ -905,7 +955,7 @@ const CallInsights = () => {
             companyIds: [companyData?.hubspot_company_id],
           },
           metadata: {
-            body: mergedInsightsText.trim(),
+            body: formattedBody.trim(),
           },
         },
         id: user?.organization_id,
@@ -933,10 +983,34 @@ const CallInsights = () => {
       toast.success("Data successfully pushed to HubSpot!");
     } catch (error) {
       console.error("Error pushing to HubSpot:", error);
-      toast.error("Failed to push data to HubSpot: " + error.message);
+      toast.error("Failed to push insights to HubSpot: " + error.message);
     } finally {
       setIsPushingToHubSpot(false);
     }
+  };
+
+  // Helper function to get category colors
+  const getCategoryColor = (type) => {
+    const colorMap = {
+      'buying_signal': '#28a745',      // Green
+      'pain_point': '#dc3545',        // Red
+      'risk_or_objection': '#fd7e14', // Orange
+      'competitor_mention': '#6f42c1', // Purple
+      'decision_maker_identified': '#007bff', // Blue
+      'budget_insight': '#20c997',    // Teal
+      'timeline_insight': '#ffc107',  // Yellow
+      'champion_identified': '#e83e8c', // Pink
+      'my_insights': '#6c757d'        // Gray
+    };
+    return colorMap[type] || '#6c757d';
+  };
+
+  // Helper function to get score colors
+  const getScoreColor = (score) => {
+    if (score >= 80) return '#28a745'; // Green for high scores
+    if (score >= 60) return '#ffc107'; // Yellow for medium scores
+    if (score >= 40) return '#fd7e14'; // Orange for low scores
+    return '#dc3545'; // Red for very low scores
   };
 
   // console.log(allInsights, "check all insights");
