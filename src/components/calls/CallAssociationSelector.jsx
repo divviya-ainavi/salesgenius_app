@@ -93,8 +93,6 @@ export const CallAssociationSelector = ({
   console.log(hubspotIntegration, "HubSpot Integration Status");
   // Check HubSpot integration status on component mount
   const handleSyncFromHubSpot = async () => {
-    const hasHubSpotIntegration =
-      hubspotIntegration?.connected && hubspotIntegration?.hubspotUserId;
     dispatch(setCallCompanyAPI(false));
     if (!user?.organization_id) {
       toast.error("Organization information not available");
@@ -323,6 +321,7 @@ export const CallAssociationSelector = ({
     if (
       hubspotIntegration?.connected &&
       hubspotIntegration?.hubspotUserId &&
+      hubspotIntegration?.hubspotUserId != undefined &&
       selectedCompany?.hubspot_company_id
     ) {
       handleSyncFromHubSpotDeals(company);
@@ -594,7 +593,8 @@ export const CallAssociationSelector = ({
 
                 {/* Sync Button */}
                 {hubspotIntegration?.connected &&
-                  hubspotIntegration?.hubspotUserId && (
+                  hubspotIntegration?.hubspotUserId &&
+                  hubspotIntegration?.hubspotUserId != undefined && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -738,6 +738,7 @@ export const CallAssociationSelector = ({
                 </div>
                 {hubspotIntegration?.connected &&
                   hubspotIntegration?.hubspotUserId &&
+                  hubspotIntegration?.hubspotUserId != undefined &&
                   selectedCompany?.hubspot_company_id && (
                     <TooltipProvider>
                       <Tooltip>

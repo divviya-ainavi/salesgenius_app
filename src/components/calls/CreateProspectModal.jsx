@@ -78,6 +78,7 @@ export const CreateProspectModal = ({
       const hasHubSpotIntegration =
         hubspotIntegration?.connected &&
         hubspotIntegration?.hubspotUserId &&
+        hubspotIntegration?.hubspotUserId != undefined &&
         selectedCompany?.hubspot_company_id;
 
       if (hasHubSpotIntegration) {

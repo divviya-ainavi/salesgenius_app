@@ -73,7 +73,9 @@ export const CreateCompanyModal = ({ isOpen, onClose, onCompanyCreated }) => {
 
       // Check if user has HubSpot integration and user ID
       const hasHubSpotIntegration =
-        hubspotIntegration?.connected && hubspotIntegration?.hubspotUserId;
+        hubspotIntegration?.connected &&
+        hubspotIntegration?.hubspotUserId &&
+        hubspotIntegration?.hubspotUserId != undefined;
 
       if (hasHubSpotIntegration) {
         try {
