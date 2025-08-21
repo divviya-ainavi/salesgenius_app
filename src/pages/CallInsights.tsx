@@ -908,7 +908,7 @@ const CallInsights = () => {
             body: mergedInsightsText.trim(),
           },
         },
-        id: crypto.randomUUID(),
+        id: user?.organization_id,
         dealid: selectedProspect.hubspot_deal_id,
         companyid: companyData?.hubspot_company_id,
         ownerId: hubspotIntegration.hubspotUserId,
