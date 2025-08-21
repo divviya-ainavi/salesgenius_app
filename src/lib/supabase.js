@@ -2707,6 +2707,7 @@ export const dbHelpers = {
       .from("prospect")
       .select("*, company(id, name)") // ✅ Include company.id and company.name
       .eq("user_id", userId)
+     .not("communication_style_ids", "is", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
