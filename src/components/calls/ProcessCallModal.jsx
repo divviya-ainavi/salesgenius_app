@@ -19,7 +19,6 @@ import {
 import { toast } from "sonner";
 
 export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
-export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm, prospectResearchData = {} }) => {
   const [selectedAssociation, setSelectedAssociation] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -127,7 +126,6 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm, prospectRes
               isProcessing={isProcessing}
               onAssociationReset={handleAssociationReset}
               onFetchingStateChange={setIsFetchingDealNotes}
-              prospectResearchData={prospectResearchData}
             />
           )}
 

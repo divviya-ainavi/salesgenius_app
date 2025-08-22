@@ -74,7 +74,6 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -111,7 +110,6 @@ export const SalesCalls = () => {
   const [source, setSource] = useState("upload");
   const [firefliesSummary, setFirefliesSummary] = useState(null);
   const [insightTypes, setInsightTypes] = useState([]);
-  const [prospectResearchData, setProspectResearchData] = useState({});
   const dispatch = useDispatch();
 
   const userId = CURRENT_USER.id;
@@ -152,36 +150,6 @@ export const SalesCalls = () => {
     };
     loadInsightTypes();
   }, []);
-
-  // Load research data for prospects
-  useEffect(() => {
-    const loadProspectResearchData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('prospect')
-          .select('id, research_company_id')
-          .eq('user_id', userId);
-
-        if (error) throw error;
-
-        const researchMap = {};
-        data.forEach(prospect => {
-          if (prospect.research_company_id) {
-            researchMap[prospect.id] = prospect.research_company_id;
-          }
-        });
-
-        setProspectResearchData(researchMap);
-      } catch (error) {
-        console.error('Error loading prospect research data:', error);
-      }
-    };
-
-    if (userId) {
-      loadProspectResearchData();
-    }
-  }, [userId]);
-
   console.log(insightTypes, "check insight types in SalesCalls");
   const loadUploadedFiles = async () => {
     setRecentUploadRefresh(true);
@@ -629,31 +597,6 @@ export const SalesCalls = () => {
 
     // }
     try {
-      // Update prospect with research data if selected
-      if (chosendata?.researchCompany?.id) {
-        console.log('🔄 Updating prospect with research data:', {
-          prospectId,
-          researchCompanyId: chosendata.researchCompany.id
-        });
-
-        const { error: updateError } = await supabase
-          .from('prospect')
-          .update({ research_company_id: chosendata.researchCompany.id })
-          .eq('id', prospectId);
-
-        if (updateError) {
-          console.error('Error updating prospect with research data:', updateError);
-          toast.error('Failed to link research data to prospect');
-        } else {
-          console.log('✅ Successfully linked research data to prospect');
-          // Update local state
-          setProspectResearchData(prev => ({
-            ...prev,
-            [prospectId]: chosendata.researchCompany.id
-          }));
-        }
-      }
-
       // Get file blob from URL
 
       let fileBlob = null;
@@ -1701,7 +1644,6 @@ export const SalesCalls = () => {
           }}
           file={currentProcessingFile}
           onConfirm={handleConfirmAssociation}
-          prospectResearchData={prospectResearchData}
         />
       )}
 
