@@ -56,7 +56,8 @@ export const config = {
       hubspotDealNotes: 'hub-get-deals-notes',
       hubspotCompanyCreation: 'Hub-create-company',
       hubspotDealCreation: 'Hub-create-deal',
-      cummulativeSalesInsights: 'Cumulative-insights'
+      cummulativeSalesInsights: 'Cumulative-insights',
+      updateCompanyName: 'update-company'
     }
   }
 };

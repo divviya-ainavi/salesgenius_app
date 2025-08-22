@@ -2747,6 +2747,19 @@ export const dbHelpers = {
     return data;
   },
 
+
+
+  async getCallNotes(dealId, userId) {
+    const { data, error } = await supabase
+      .from("call_notes")
+      .select("*")
+      .eq("deal_id", dealId)
+      .eq("user_id", userId);
+
+    if (error) throw error;
+    return data;
+  },
+
   // Get communication styles for a given prospect
   async getCommunicationStylesForProspect(prospectId, userId) {
     const { data: prospect, error } = await supabase
@@ -3318,8 +3331,8 @@ export const dbHelpers = {
       // Map insights with their corresponding types
       const mappedInsights = (data || []).map(insight => {
         // Find the matching insight type based on type_id
-        const matchingType = insightTypes?.find(type => type.id === insight.insight_type_id);
-
+        const matchingType = insightTypes?.find(type => type.id === insight.type_id);
+        // console.log(matchingType, insight, "check matching type 2020")
         return {
           ...insight,
           // insight_type_details: matchingType || null,
@@ -3327,7 +3340,7 @@ export const dbHelpers = {
         };
       });
 
-      console.log("🔗 Mapped insights with types:", mappedInsights.length);
+      console.log("🔗 Mapped insights with types:", mappedInsights);
       return mappedInsights;
     } catch (error) {
       console.error("❌ Error in getSalesInsightsByIds:", error);

@@ -72,6 +72,7 @@ import {
 import useEmblaCarousel from "embla-carousel-react";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
 import { useDispatch } from "react-redux";
+import { config } from "../lib/config";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -367,7 +368,10 @@ const CallInsights = () => {
             defaultInsight.id,
             user?.id
           );
-          console.log(defaultInsight, "check default insight");
+          const callNotes = defaultInsight?.is_hubspot
+            ? await dbHelpers.getCallNotes(defaultInsight?.id, user?.id)
+            : [];
+          // console.log(defaultInsight, "check default insight");
           const prospect = {
             id: defaultInsight.id,
             name: defaultInsight?.name,
@@ -404,14 +408,8 @@ const CallInsights = () => {
             is_hubspot: defaultInsight?.is_hubspot || false,
             hubspot_deal_id: defaultInsight?.hubspot_deal_id || null,
             deal_stage: defaultInsight?.deal_stage || null,
+            hubspotDataCount: callNotes?.length || 0,
           };
-
-          // console.log(
-          //   prospect,
-          //   "selected prospect",
-          //   defaultInsight,
-          //   "get default insight"
-          // );
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
@@ -585,6 +583,29 @@ const CallInsights = () => {
 
     try {
       const newCompanyName = editingCompanyName.trim();
+      if (selectedProspect?.is_hubspot) {
+        if (
+          hubspotIntegration?.connected &&
+          hubspotIntegration?.hubspotUserId
+        ) {
+          const companyData = await dbHelpers.getHubspotCompanyId(
+            selectedProspect
+          );
+          const apiFormData = new FormData();
+          apiFormData.append("id", user?.organization_id);
+          apiFormData.append("companyid", companyData?.hubspot_company_id);
+          apiFormData.append("ownerid", hubspotIntegration?.hubspotUserId);
+          apiFormData.append("companyname", editingCompanyName.trim());
+
+          const response = await fetch(
+            `${config.api.baseUrl}${config.api.endpoints.updateCompanyName}`,
+            {
+              method: "POST",
+              body: apiFormData,
+            }
+          );
+        }
+      }
 
       // Update company table
       await dbHelpers.updateCompanyName(
@@ -1389,7 +1410,13 @@ const CallInsights = () => {
                             ? "border-primary bg-primary/5 shadow-md"
                             : "border-border hover:border-primary/50"
                         )}
-                        onClick={() =>
+                        onClick={async () => {
+                          const callNotes = prospect?.is_hubspot
+                            ? await dbHelpers.getCallNotes(
+                                prospect?.id,
+                                user?.id
+                              )
+                            : [];
                           handleProspectSelect({
                             id: prospect.id,
                             name: prospect.name,
@@ -1419,8 +1446,9 @@ const CallInsights = () => {
                             is_hubspot: prospect?.is_hubspot || false,
                             hubspot_deal_id: prospect?.hubspot_deal_id || null,
                             deal_stage: prospect?.deal_stage || null,
-                          })
-                        }
+                            hubspotDataCount: callNotes?.length || 0,
+                          });
+                        }}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
@@ -1595,12 +1623,12 @@ const CallInsights = () => {
                   <span className="text-sm">HubSpot Data:</span>
                   <Badge
                     variant={
-                      selectedProspect.dataSources.hubspot > 0
+                      selectedProspect.hubspotDataCount !== 0
                         ? "default"
                         : "secondary"
                     }
                   >
-                    {selectedProspect.dataSources.hubspot}
+                    {selectedProspect.hubspotDataCount}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
