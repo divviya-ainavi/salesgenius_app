@@ -47,6 +47,7 @@ export const CallAssociationSelector = ({
   selectedAssociation = null,
   isProcessing,
   onFetchingStateChange,
+  prospectResearchData = {},
 }) => {
   const [currentState, setCurrentState] = useState(
     SELECTOR_STATES.SELECT_COMPANY
@@ -78,6 +79,7 @@ export const CallAssociationSelector = ({
   const [researchCompanies, setResearchCompanies] = useState([]);
   const [selectedResearchCompany, setSelectedResearchCompany] = useState(null);
   const [isLoadingResearch, setIsLoadingResearch] = useState(false);
+  const [hasExistingResearch, setHasExistingResearch] = useState(false);
 
   // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
@@ -432,8 +434,25 @@ export const CallAssociationSelector = ({
   // Function to check for research company data for the current user
   const checkForResearchCompanyData = async () => {
     if (!user?.id) return;
+    if (!selectedProspect?.id) return;
+
+    // Check if this prospect already has research data
+    const existingResearchId = prospectResearchData[selectedProspect.id];
+    if (existingResearchId) {
+      console.log('🔍 Prospect already has research data:', existingResearchId);
+      setHasExistingResearch(true);
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      onAssociationChange({
+        company: selectedCompany,
+        prospect: selectedProspect,
+        researchCompany: null,
+        dealNotes: dealNotes,
+      });
+      return;
+    }
 
     setIsLoadingResearch(true);
+    setHasExistingResearch(false);
     try {
       console.log("🔍 Checking for research data for user:", user.id);
 
@@ -462,6 +481,7 @@ export const CallAssociationSelector = ({
           company: selectedCompany,
           prospect: selectedProspect,
           researchCompany: null,
+          dealNotes: dealNotes,
         });
         return;
       }
@@ -499,6 +519,7 @@ export const CallAssociationSelector = ({
         company: selectedCompany,
         prospect: selectedProspect,
         researchCompany: null,
+        dealNotes: dealNotes,
       });
     } finally {
       setIsLoadingResearch(false);
@@ -1013,6 +1034,17 @@ export const CallAssociationSelector = ({
 
           {currentState === SELECTOR_STATES.COMPLETE && (
             <div className="space-y-3">
+              {/* Research Already Processed Alert */}
+              {hasExistingResearch && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    <strong>Research Already Processed:</strong> This deal already has research data associated with it. 
+                    The existing research will be used for processing.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Deal Notes Fetching Progress */}
               {isFetchingDealNotes && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -1094,6 +1126,16 @@ export const CallAssociationSelector = ({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                      </span>
+                    </div>
+                  )}
+
+                  {hasExistingResearch && (
+                    <div className="flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm flex items-center">
+                        <span className="font-medium mr-1">Research:</span>
+                        <span className="text-orange-600">Previously processed</span>
                       </span>
                     </div>
                   )}
