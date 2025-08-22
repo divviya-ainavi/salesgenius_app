@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
-export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
 export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm, prospectResearchData = {} }) => {
   const [selectedAssociation, setSelectedAssociation] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
