@@ -1069,7 +1069,7 @@ export const CallAssociationSelector = ({
                       </p>
                       <p className="text-xs text-blue-600">
                         This company ({selectedCompany?.name}) already has
-                        research data processed. Existing insights will be used for AI processing.
+                        research data processed.
                       </p>
                     </div>
                   </div>
