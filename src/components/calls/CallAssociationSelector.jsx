@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Loader2,
   RefreshCw,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -1057,7 +1058,8 @@ export const CallAssociationSelector = ({
               )}
 
               {/* Research Already Processed Alert */}
-              {(selectedAssociation?.skipReason === "already_has_research" || selectedProspect?.research_id) && (
+              {(selectedAssociation?.skipReason === "already_has_research" ||
+                selectedProspect?.research_id) && (
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-orange-600" />
@@ -1066,7 +1068,9 @@ export const CallAssociationSelector = ({
                         Research Data Already Processed
                       </p>
                       <p className="text-xs text-orange-600">
-                        This company ({selectedCompany?.name}) already has research data processed for this deal. The existing research insights will be used for AI processing.
+                        This company ({selectedCompany?.name}) already has
+                        research data processed for this deal. The existing
+                        research insights will be used for AI processing.
                       </p>
                     </div>
                   </div>

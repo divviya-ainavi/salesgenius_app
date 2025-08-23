@@ -2610,7 +2610,7 @@ export const dbHelpers = {
 
       return inserted.id;
     }))).filter(Boolean);
-
+    console.log(salesInsightIds, "check sales insight ids")
     // 6. Handle Call Analysis Overview
     // const { data: analysis } = await supabase
     //   .from("call_analysis_overview")
@@ -2672,7 +2672,8 @@ export const dbHelpers = {
         user_id: userId,
         uploaded_file_id: isFireflies ? null : file?.id,
         fireflies_id: isFireflies ? file?.id : null,
-        type: isFireflies ? "fireflies" : "file_upload"
+        type: isFireflies ? "fireflies" : "file_upload",
+        sales_insight_ids: salesInsightIds
       })
       .select()
       .single();

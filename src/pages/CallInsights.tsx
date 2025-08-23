@@ -1485,6 +1485,14 @@ const CallInsights = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
+                              Deal Stage:
+                            </span>
+                            <span className="font-medium">
+                              {prospect?.deal_stage || "-"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
                               Last Engagement:
                             </span>
                             <span className="font-medium">
@@ -1677,7 +1685,10 @@ const CallInsights = () => {
               </div>
 
               {cummulativeSpinner ? (
-                <Skeleton className="h-4 w-full" />
+                <>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {cummulativeSummary || ""}

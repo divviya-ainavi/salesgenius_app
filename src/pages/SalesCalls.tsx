@@ -494,65 +494,61 @@ export const SalesCalls = () => {
         );
       }
       const getResearchData = await formatResearchData(selectedCompanyResearch);
-      // Prepare API payload
-      const payload = {
-        previous_sales_insights:
-          previousSalesInsights?.length > 0
-            ? previousSalesInsights.map((insight) => ({
-                type: insight.type || insight.insight_type || "",
-                content: insight.content,
-                relevance_score: insight.relevance_score || 50,
-                speaker: insight.speaker || "Unknown",
-                source: insight.source || "transcript",
-              }))
-            : [],
-        current_sales_insights: currentSalesInsights,
-        hubspot_data_content: dealNotes || null,
-        company_research_content: getResearchData || null,
-      };
+      if (
+        (selectedCompanyResearch != null && selectedCompanyResearch != "") ||
+        (dealNotes != "" && dealNotes != null) ||
+        previousSalesInsights?.length > 0
+      ) {
+        // Prepare API payload
+        const payload = {
+          previous_sales_insights:
+            previousSalesInsights?.length > 0
+              ? previousSalesInsights.map((insight) => ({
+                  type: insight.type || insight.insight_type || "",
+                  content: insight.content,
+                  relevance_score: insight.relevance_score || 50,
+                  speaker: insight.speaker || "Unknown",
+                  source: insight.source || "transcript",
+                }))
+              : [],
+          current_sales_insights: currentSalesInsights,
+          hubspot_data_content: dealNotes || null,
+          company_research_content: getResearchData || null,
+        };
 
-      console.log(
-        "📤 Sending cumulative insights API request with payload:",
-        payload
-      );
+        // Call the cumulative insights API
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}${
+            config.api.endpoints.cummulativeSalesInsights
+          }`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
 
-      // Call the cumulative insights API
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.cummulativeSalesInsights
-        }`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+        if (!response.ok) {
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`
+          );
         }
-      );
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const apiResponse = await response.json();
+
+        // Store the response in sales_insights table and update prospect
+        const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
+          apiResponse?.[0]?.output,
+          prospectDetails.id,
+          user?.id
+        );
+
+        return result;
+      } else {
+        return "";
       }
-
-      const apiResponse = await response.json();
-      console.log(
-        "✅ Cumulative insights API response:",
-        apiResponse?.[0]?.output
-      );
-
-      // Store the response in sales_insights table and update prospect
-      const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
-        apiResponse?.[0]?.output,
-        prospectDetails.id,
-        user?.id
-      );
-
-      console.log("💾 Stored insights and updated prospect:", result);
-      toast.success(
-        "Cumulative sales insights generated and stored successfully"
-      );
-
-      return result;
     } catch (error) {
       console.error("❌ Error generating cumulative sales insights:", error);
       toast.error("Failed to generate cumulative insights: " + error.message);
@@ -696,8 +692,10 @@ export const SalesCalls = () => {
           prospectId,
           chosendata?.researchCompany != null
             ? chosendata?.researchCompany?.id
-            : null,
-          chosendata?.dealNotes != null ? true : false
+            : prospectDetails?.research_id || null,
+          chosendata?.dealNotes != null
+            ? true
+            : prospectDetails?.hubspot_deals_processed || false
         );
         // console.log(result, "check result");
         if (result?.status === "success") {
