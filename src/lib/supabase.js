@@ -4389,56 +4389,6 @@ export const dbHelpers = {
     }
   },
 
-  // Process and save HubSpot deal notes
-  async processHubspotDealNotes(prospectId, hubspotData, userId) {
-    try {
-      console.log('🔄 Processing HubSpot deal notes for prospect:', prospectId);
-      
-      // Extract notes from HubSpot API response
-      const notes = hubspotData?.[0]?.Notes || hubspotData?.Notes || [];
-      
-      if (!notes || notes.length === 0) {
-        console.log('📭 No notes found in HubSpot data');
-        return { notesCount: 0 };
-      }
-
-      // Process each note and save to call_notes table
-      const savedNotes = [];
-      for (const note of notes) {
-        try {
-          const { data, error } = await supabase
-            .from('call_notes')
-            .insert([{
-              user_id: userId,
-              deal_id: prospectId,
-              notes: note.body || note.content || 'No content',
-              hubspot_notes_id: note.id,
-              hubspot_created_at: note.createdAt ? new Date(note.createdAt).toISOString() : new Date().toISOString(),
-              hubspot_updated_at: note.updatedAt ? new Date(note.updatedAt).toISOString() : new Date().toISOString(),
-            }])
-            .select()
-            .single();
-
-          if (error) {
-            console.error('❌ Error saving note:', error);
-            continue;
-          }
-
-          savedNotes.push(data);
-        } catch (noteError) {
-          console.error('❌ Error processing individual note:', noteError);
-        }
-      }
-
-      console.log('✅ Processed and saved', savedNotes.length, 'notes from HubSpot');
-      return { notesCount: savedNotes.length, savedNotes };
-      
-    } catch (error) {
-      console.error('❌ Error processing HubSpot deal notes:', error);
-      throw error;
-    }
-  },
-
   // Get HubSpot deal notes for a specific deal
   async getHubSpotDealNotes(dealId, organizationId, hubspotDealId, user) {
     try {

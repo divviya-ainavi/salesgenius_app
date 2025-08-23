@@ -867,49 +867,7 @@ const CallInsights = () => {
 
     setIsSyncingHubspot(true);
     try {
-      console.log(
-        "🔄 Syncing HubSpot data for deal:",
-        selectedProspect.hubspot_deal_id
-      );
-
-      // Call HubSpot API to get deal notes
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.hubspotDealNotes
-        }`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: user.organization_id,
-            ownerid: hubspotIntegration.hubspotUserId,
-            dealid: selectedProspect.hubspot_deal_id,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `HubSpot API error: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const apiData = await response.json();
-      console.log("📊 HubSpot sync response:", apiData);
-
-      // Process and save the synced data
-      const result = await dbHelpers.processHubspotDealNotes(
-        selectedProspect.id,
-        apiData,
-        user.id
-      );
-
-      toast.success(`Synced ${result.notesCount || 0} notes from HubSpot`);
-
-      // Refresh the HubSpot data count
-      fetchHubspotDataCount();
+      toast.success(`Synced notes from HubSpot`);
     } catch (error) {
       console.error("❌ Error syncing HubSpot data:", error);
       toast.error("Failed to sync HubSpot data: " + error.message);
@@ -1664,30 +1622,31 @@ const CallInsights = () => {
 
           {/* Cummulative Intelligence Section */}
           <Card data-tour="cumulative-intelligence">
-            <CardHeader className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="w-5 h-5" />
-                <span>Cumulative Intelligence</span>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Database className="w-5 h-5" />
+                  <span>Cumulative Intelligence</span>
+                </div>
+                {selectedProspect?.is_hubspot &&
+                  selectedProspect?.hubspot_deal_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncHubspotData}
+                      disabled={
+                        isSyncingHubspot || !hubspotIntegration?.connected
+                      }
+                      className="h-6 px-2 text-xs"
+                    >
+                      {isSyncingHubspot ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Sync from HubSpot"
+                      )}
+                    </Button>
+                  )}
               </CardTitle>
-
-              {selectedProspect?.is_hubspot &&
-                selectedProspect?.hubspot_deal_id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncHubspotData}
-                    disabled={
-                      isSyncingHubspot || !hubspotIntegration?.connected
-                    }
-                    className="h-6 px-2 text-xs"
-                  >
-                    {isSyncingHubspot ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      "Sync"
-                    )}
-                  </Button>
-                )}
             </CardHeader>
 
             <CardContent>
@@ -1729,7 +1688,9 @@ const CallInsights = () => {
                           : "secondary"
                       }
                     >
-                      <span className="font-medium">{hubspotDataCount}</span>
+                      <span className="font-medium">
+                        {selectedProspect?.hubspotDataCount}
+                      </span>
                     </Badge>
                   </div>
                 </div>
