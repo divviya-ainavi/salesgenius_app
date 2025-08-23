@@ -1740,6 +1740,24 @@ const CallInsights = () => {
                   <Building className="w-5 h-5" />
                   <span>Company Information</span>
                 </div>
+                {selectedProspect?.is_hubspot &&
+                  selectedProspect?.hubspot_deal_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncHubspotData}
+                      disabled={
+                        isSyncingHubspot || !hubspotIntegration?.connected
+                      }
+                      className="h-6 px-2 text-xs"
+                    >
+                      {isSyncingHubspot ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Sync from HubSpot"
+                      )}
+                    </Button>
+                  )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1801,24 +1819,6 @@ const CallInsights = () => {
                   <Database className="w-5 h-5" />
                   <span>Cumulative Intelligence</span>
                 </div>
-                {selectedProspect?.is_hubspot &&
-                  selectedProspect?.hubspot_deal_id && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSyncHubspotData}
-                      disabled={
-                        isSyncingHubspot || !hubspotIntegration?.connected
-                      }
-                      className="h-6 px-2 text-xs"
-                    >
-                      {isSyncingHubspot ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        "Sync from HubSpot"
-                      )}
-                    </Button>
-                  )}
               </CardTitle>
             </CardHeader>
 
