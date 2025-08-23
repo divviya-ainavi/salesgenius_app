@@ -163,6 +163,10 @@ const CallInsights = () => {
   const [salespersonIds, setSalespersonIds] = useState(new Set());
   const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
   const [isPushingToHubSpot, setIsPushingToHubSpot] = useState(false);
+  const [isLoadingProspects, setIsLoadingProspects] = useState(true);
+  const [hubspotDataCount, setHubspotDataCount] = useState(0);
+  const [isLoadingHubspotCount, setIsLoadingHubspotCount] = useState(false);
+  const [isSyncingHubspot, setIsSyncingHubspot] = useState(false);
   console.log(selectedProspect, "check selected prospect 1");
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
@@ -847,6 +851,64 @@ const CallInsights = () => {
       toast.error("Failed to delete insight");
     } finally {
       setIsSavingInsight(false);
+    }
+  };
+
+  const handleSyncHubspotData = async () => {
+    if (!selectedProspect?.is_hubspot || !selectedProspect?.hubspot_deal_id) {
+      toast.error("This is not a HubSpot deal");
+      return;
+    }
+
+    if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
+      toast.error("HubSpot integration not available");
+      return;
+    }
+
+    setIsSyncingHubspot(true);
+    try {
+      console.log("🔄 Syncing HubSpot data for deal:", selectedProspect.hubspot_deal_id);
+
+      // Call HubSpot API to get deal notes
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.hubspotDealNotes}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user.organization_id,
+            ownerid: hubspotIntegration.hubspotUserId,
+            dealid: selectedProspect.hubspot_deal_id,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiData = await response.json();
+      console.log("📊 HubSpot sync response:", apiData);
+
+      // Process and save the synced data
+      const result = await dbHelpers.processHubspotDealNotes(
+        selectedProspect.id,
+        apiData,
+        user.id
+      );
+
+      toast.success(`Synced ${result.notesCount || 0} notes from HubSpot`);
+      
+      // Refresh the HubSpot data count
+      fetchHubspotDataCount();
+      
+    } catch (error) {
+      console.error("❌ Error syncing HubSpot data:", error);
+      toast.error("Failed to sync HubSpot data: " + error.message);
+    } finally {
+      setIsSyncingHubspot(false);
     }
   };
 
@@ -1630,16 +1692,35 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">HubSpot Data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.hubspotDataCount !== 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.hubspotDataCount}
-                  </Badge>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      HubSpot Data:
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium">
+                        {isLoadingHubspotCount ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          hubspotDataCount
+                        )}
+                      </span>
+                      {selectedProspect?.is_hubspot && selectedProspect?.hubspot_deal_id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSyncHubspotData}
+                          disabled={isSyncingHubspot || !hubspotIntegration?.connected}
+                          className="h-6 px-2 text-xs"
+                        >
+                          {isSyncingHubspot ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            "Sync"
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText
