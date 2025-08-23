@@ -2324,9 +2324,41 @@ const CallInsights = () => {
                                     >
                                       <X className="w-3 h-3" />
                                     </Button>
-                                  </div>
-                                </div>
-                              )}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="cursor-help hover:bg-blue-50 transition-colors rounded p-2 -m-2">
+                                      <p className="text-sm text-gray-700 leading-relaxed">
+                                        {x.content}
+                                      </p>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium">Source:</span>
+                                        <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs font-medium">
+                                          {x.source || 'AI Analysis'}
+                                        </Badge>
+                                      </div>
+                                      {x.speaker && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-medium">Speaker:</span>
+                                          <span className="text-xs">{x.speaker}</span>
+                                        </div>
+                                      )}
+                                      {x.relevance_score && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-medium">Relevance:</span>
+                                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                                            {x.relevance_score}%
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           ))}
                         </div>
