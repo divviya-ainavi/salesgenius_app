@@ -56,6 +56,7 @@ import {
   Info,
   Brain,
   Phone,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -469,6 +470,15 @@ const CallInsights = () => {
   //     );
   //   }
   // };
+  // console.log(
+  //   dbHelpers.getSalesInsightsByProspectIdWithoutPriority(
+  //     selectedProspect.id,
+  //     user?.id,
+  //     insightTypes
+  //   ),
+  //   "Test Data 567"
+  // );
+
   const loadProspectInsights = async (insightData) => {
     // Check if prospect has sales_insight_ids
     if (
@@ -1749,17 +1759,22 @@ const CallInsights = () => {
                       disabled={
                         isSyncingHubspot || !hubspotIntegration?.connected
                       }
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 hover:from-orange-600 hover:to-orange-700 shadow-sm hover:shadow-md transition-all duration-200 font-semibold"
+                      className="
+    border border-orange-500 text-orange-500 
+    hover:bg-orange-500 hover:text-white 
+    transition-all duration-200 ease-in-out 
+    flex items-center space-x-1 font-medium rounded-md
+  "
                     >
                       {isSyncingHubspot ? (
                         <>
-                          Syncing
+                          <span>Syncing</span>
                           <Loader2 className="w-3 h-3 animate-spin" />
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Sync from HubSpot
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Sync from HubSpot</span>
                         </>
                       )}
                     </Button>
@@ -2308,7 +2323,7 @@ const CallInsights = () => {
                                       }
                                       title="Delete insight"
                                     >
-                                      <X className="w-3 h-3" />
+                                      <Trash2 className="w-4 h-4" />
                                     </Button>
                                   </div>
                                 </div>
