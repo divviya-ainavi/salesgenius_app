@@ -1734,34 +1734,31 @@ const CallInsights = () => {
         <>
           {/* Company Name Section with Edit Capability */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-lg font-semibold">
-                Company Information
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Building className="w-5 h-5" />
+                  <span>Company Information</span>
+                </div>
+                {selectedProspect?.is_hubspot &&
+                  selectedProspect?.hubspot_deal_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncHubspotData}
+                      disabled={
+                        isSyncingHubspot || !hubspotIntegration?.connected
+                      }
+                      className="h-6 px-2 text-xs"
+                    >
+                      {isSyncingHubspot ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Sync from HubSpot"
+                      )}
+                    </Button>
+                  )}
               </CardTitle>
-              {selectedProspect?.is_hubspot &&
-                selectedProspect?.hubspot_deal_id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSyncHubspotData}
-                    disabled={
-                      isSyncingHubspot || !hubspotIntegration?.connected
-                    }
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
-                  >
-                    {isSyncingHubspot ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        <span>Syncing HubSpot...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        <span>Sync from HubSpot</span>
-                      </>
-                    )}
-                  </Button>
-                )}
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-3">
