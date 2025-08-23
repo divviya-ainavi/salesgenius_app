@@ -340,7 +340,11 @@ export const CallAssociationSelector = ({
     setProspectSearch("");
 
     // Fetch HubSpot deal notes if this is a HubSpot deal
-    if (prospect.is_hubspot && prospect.hubspot_deal_id) {
+    if (
+      prospect.is_hubspot &&
+      prospect.hubspot_deal_id &&
+      prospect.hubspot_deals_processed !== true
+    ) {
       console.log("🔄 Prospect selected - fetching HubSpot deal notes for:", {
         prospectName: prospect.name,
         hubspotDealId: prospect.hubspot_deal_id,
@@ -360,11 +364,14 @@ export const CallAssociationSelector = ({
 
     // Check if prospect already has research_id
     if (prospect.research_id) {
-      console.log("✅ Prospect already has research data, skipping research selection:", {
-        prospectId: prospect.id,
-        researchId: prospect.research_id
-      });
-      
+      console.log(
+        "✅ Prospect already has research data, skipping research selection:",
+        {
+          prospectId: prospect.id,
+          researchId: prospect.research_id,
+        }
+      );
+
       // Skip research selection and go directly to complete
       setSelectedResearchCompany(null);
       setCurrentState(SELECTOR_STATES.COMPLETE);
@@ -373,7 +380,7 @@ export const CallAssociationSelector = ({
         prospect: prospect,
         researchCompany: null,
         dealNotes: dealNotes,
-        skipReason: 'already_has_research'
+        skipReason: "already_has_research",
       });
     } else {
       // Check for research company data for this user (after deal notes fetch)
@@ -1050,7 +1057,7 @@ export const CallAssociationSelector = ({
               )}
 
               {/* Research Already Processed Alert */}
-              {selectedAssociation?.skipReason === 'already_has_research' && (
+              {selectedAssociation?.skipReason === "already_has_research" && (
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-orange-600" />
@@ -1133,12 +1140,15 @@ export const CallAssociationSelector = ({
                     </div>
                   )}
 
-                  {selectedAssociation?.skipReason === 'already_has_research' && (
+                  {selectedAssociation?.skipReason ===
+                    "already_has_research" && (
                     <div className="flex items-center space-x-2">
                       <Search className="w-4 h-4 text-orange-600" />
                       <span className="text-sm flex items-center">
                         <span className="font-medium mr-1">Research:</span>
-                        <span className="text-orange-600">Previously processed</span>
+                        <span className="text-orange-600">
+                          Previously processed
+                        </span>
                       </span>
                     </div>
                   )}

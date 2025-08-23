@@ -2451,7 +2451,7 @@ export const dbHelpers = {
   //   };
   // },
 
-  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id) {
+  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -2692,7 +2692,9 @@ export const dbHelpers = {
         sales_play: recommended_sales_play,
         secondary_objectives: recommended_objectives,
         recommended_objectives_reason: recommended_objectives_reason,
-        recommended_sales_play_reason: recommended_sales_play_reason
+        recommended_sales_play_reason: recommended_sales_play_reason,
+        research_id: researchCompanyId || null,
+        hubspot_deals_processed: dealNotesProcessed
       })
       .eq("id", prospectId);
 

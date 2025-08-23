@@ -693,7 +693,11 @@ export const SalesCalls = () => {
           file,
           processedData,
           companyId,
-          prospectId
+          prospectId,
+          chosendata?.researchCompany != null
+            ? chosendata?.researchCompany?.id
+            : null,
+          chosendata?.dealNotes != null ? true : false
         );
         // console.log(result, "check result");
         if (result?.status === "success") {

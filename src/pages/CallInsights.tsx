@@ -409,6 +409,7 @@ const CallInsights = () => {
             hubspot_deal_id: defaultInsight?.hubspot_deal_id || null,
             deal_stage: defaultInsight?.deal_stage || null,
             hubspotDataCount: callNotes?.length || 0,
+            researchCompanyId: defaultInsight?.research_id || null,
           };
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
@@ -1447,6 +1448,7 @@ const CallInsights = () => {
                             hubspot_deal_id: prospect?.hubspot_deal_id || null,
                             deal_stage: prospect?.deal_stage || null,
                             hubspotDataCount: callNotes?.length || 0,
+                            researchCompanyId: prospect?.research_id || null,
                           });
                         }}
                       >
@@ -1635,17 +1637,21 @@ const CallInsights = () => {
                   <FileText
                     className={cn(
                       "w-4 h-4",
-                      researchCompanyCount > 0
+                      selectedProspect?.researchCompanyId != null
                         ? "text-purple-600"
                         : "text-gray-400"
                     )}
                   />
                   <span className="text-sm">Research:</span>
                   <Badge
-                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
-                    variant={"secondary"}
+                    variant={
+                      selectedProspect?.researchCompanyId != null
+                        ? "default"
+                        : "secondary"
+                    }
+                    // variant={"secondary"}
                   >
-                    0{/* {researchCompanyCount} */}
+                    {selectedProspect?.researchCompanyId != null ? 1 : 0}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
