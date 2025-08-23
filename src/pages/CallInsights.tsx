@@ -1749,12 +1749,18 @@ const CallInsights = () => {
                       disabled={
                         isSyncingHubspot || !hubspotIntegration?.connected
                       }
-                      className="h-6 px-2 text-xs"
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 hover:from-orange-600 hover:to-orange-700 shadow-sm hover:shadow-md transition-all duration-200 font-semibold"
                     >
                       {isSyncingHubspot ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <>
+                          Syncing
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        </>
                       ) : (
-                        "Sync from HubSpot"
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Sync from HubSpot
+                        </>
                       )}
                     </Button>
                   )}
