@@ -1718,7 +1718,24 @@ const CallInsights = () => {
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">
-                    <span className="font-medium">{hubspotDataCount}</span>
+                      HubSpot:
+                    </span>
+                    <Badge
+                      variant={
+                        selectedProspect?.hubspotDataCount > 0
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      <span className="font-medium">{hubspotDataCount}</span>
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText
+                    className={cn(
+                      "w-4 h-4",
+                      selectedProspect?.researchCompanyId != null
                         ? "text-purple-600"
                         : "text-gray-400"
                     )}
@@ -2698,29 +2715,8 @@ const CallInsights = () => {
 
           {/* Cumulative Intelligence Section */}
         </>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-lg">Cumulative Intelligence</CardTitle>
-              {selectedProspect?.is_hubspot && selectedProspect?.hubspot_deal_id && (
-                <Button
-                  onClick={handleSyncHubspotData}
-                  disabled={isSyncingHubspot || !hubspotIntegration?.connected}
-                  variant="outline"
-                  size="sm"
-                  className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 text-orange-700 hover:from-orange-100 hover:to-orange-200 hover:border-orange-300 transition-all duration-200"
-                >
-                  {isSyncingHubspot ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Sync HubSpot Data
-                    </>
-                  )}
-                </Button>
-              )}
+      )}
+    </div>
   );
 };
 
