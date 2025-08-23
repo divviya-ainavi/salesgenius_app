@@ -865,9 +865,189 @@ const CallInsights = () => {
       return;
     }
 
+    if (!selectedProspect?.company?.hubspot_company_id) {
+      toast.error("HubSpot company ID not available for this deal");
+      return;
+    }
+
     setIsSyncingHubspot(true);
+
     try {
-      toast.success(`Synced notes from HubSpot`);
+      console.log("🚀 Starting HubSpot data sync for:", {
+        prospectName: selectedProspect.name,
+        hubspotDealId: selectedProspect.hubspot_deal_id,
+        hubspotCompanyId: selectedProspect.company.hubspot_company_id,
+        organizationId: user?.organization_id,
+        hubspotUserId: hubspotIntegration?.hubspotUserId,
+      });
+
+      // Step 1: Sync company data from HubSpot
+      console.log("📊 Step 1: Syncing company data from HubSpot...");
+      const companyResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}hub-get-company-detail`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            companyid: selectedProspect.company.hubspot_company_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+          }),
+        }
+      );
+
+      if (!companyResponse.ok) {
+        throw new Error(`Company sync failed: ${companyResponse.status} ${companyResponse.statusText}`);
+      }
+
+      const companyData = await companyResponse.json();
+      console.log("📊 Company data received:", companyData);
+
+      if (companyData && companyData.length > 0) {
+        const company = companyData[0];
+        
+        // Update company in database
+        const { error: companyUpdateError } = await supabase
+          .from("company")
+          .update({
+            name: company.properties.name,
+            hubspot_updated_at: company.updatedAt,
+          })
+          .eq("hubspot_company_id", company.id);
+
+        if (companyUpdateError) {
+          console.error("❌ Error updating company:", companyUpdateError);
+          toast.error("Failed to update company data");
+        } else {
+          console.log("✅ Company updated successfully");
+          
+          // Update local state
+          setProspects(prevProspects => 
+            prevProspects.map(p => 
+              p.id === selectedProspect.id 
+                ? {
+                    ...p,
+                    company: {
+                      ...p.company,
+                      name: company.properties.name,
+                      hubspot_updated_at: company.updatedAt,
+                    }
+                  }
+                : p
+            )
+          );
+        }
+      }
+
+      // Step 2: Sync deal data from HubSpot
+      console.log("💼 Step 2: Syncing deal data from HubSpot...");
+      const dealResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}hub-get-deal-info`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            dealid: selectedProspect.hubspot_deal_id,
+            id: user?.organization_id,
+          }),
+        }
+      );
+
+      if (!dealResponse.ok) {
+        throw new Error(`Deal sync failed: ${dealResponse.status} ${dealResponse.statusText}`);
+      }
+
+      const dealData = await dealResponse.json();
+      console.log("💼 Deal data received:", dealData);
+
+      if (dealData && dealData.length > 0) {
+        const deal = dealData[0];
+        
+        // Update prospect in database
+        const { error: prospectUpdateError } = await supabase
+          .from("prospect")
+          .update({
+            name: deal.properties.dealname,
+            amount: deal.properties.amount ? parseFloat(deal.properties.amount) : null,
+            close_date: deal.properties.closedate,
+            deal_stage: deal.properties.dealstage,
+            hubspot_updated_at: deal.updatedAt,
+          })
+          .eq("hubspot_deal_id", deal.id);
+
+        if (prospectUpdateError) {
+          console.error("❌ Error updating prospect:", prospectUpdateError);
+          toast.error("Failed to update deal data");
+        } else {
+          console.log("✅ Prospect updated successfully");
+          
+          // Update local state
+          setProspects(prevProspects => 
+            prevProspects.map(p => 
+              p.id === selectedProspect.id 
+                ? {
+                    ...p,
+                    name: deal.properties.dealname,
+                    amount: deal.properties.amount ? parseFloat(deal.properties.amount) : null,
+                    close_date: deal.properties.closedate,
+                    deal_stage: deal.properties.dealstage,
+                    hubspot_updated_at: deal.updatedAt,
+                  }
+                : p
+            )
+          );
+          
+          // Update selected prospect
+          setSelectedProspect(prev => ({
+            ...prev,
+            name: deal.properties.dealname,
+            amount: deal.properties.amount ? parseFloat(deal.properties.amount) : null,
+            close_date: deal.properties.closedate,
+            deal_stage: deal.properties.dealstage,
+            hubspot_updated_at: deal.updatedAt,
+            company: {
+              ...prev.company,
+              name: companyData[0]?.properties?.name || prev.company.name,
+            }
+          }));
+        }
+      }
+
+      // Step 3: Sync deal notes (existing functionality)
+      console.log("📝 Step 3: Syncing deal notes from HubSpot...");
+      const notesResult = await dbHelpers.getHubSpotDealNotes(
+        selectedProspect.id,
+        user?.organization_id,
+        selectedProspect.hubspot_deal_id,
+        user,
+        hubspotIntegration?.hubspotUserId
+      );
+
+      console.log("✅ HubSpot sync completed:", {
+        companyUpdated: companyData?.length > 0,
+        dealUpdated: dealData?.length > 0,
+        notesCount: notesResult.notes?.length || 0,
+      });
+
+      // Update the HubSpot data count
+      setHubspotDataCount(prev => prev + (notesResult.notes?.length || 0));
+
+      // Show success message
+      const updates = [];
+      if (companyData?.length > 0) updates.push("company");
+      if (dealData?.length > 0) updates.push("deal");
+      if (notesResult.notes?.length > 0) updates.push(`${notesResult.notes.length} notes`);
+
+      if (updates.length > 0) {
+        toast.success(`Successfully synced ${updates.join(", ")} from HubSpot`);
+      } else {
+        toast.info("No new data to sync from HubSpot");
+      }
+
     } catch (error) {
       console.error("❌ Error syncing HubSpot data:", error);
       toast.error("Failed to sync HubSpot data: " + error.message);
