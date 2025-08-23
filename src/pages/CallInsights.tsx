@@ -1664,11 +1664,12 @@ const CallInsights = () => {
 
           {/* Cummulative Intelligence Section */}
           <Card data-tour="cumulative-intelligence">
-            <CardHeader>
+            <CardHeader className="flex items-center justify-between">
               <CardTitle className="flex items-center space-x-2">
                 <Database className="w-5 h-5" />
                 <span>Cumulative Intelligence</span>
               </CardTitle>
+
               {selectedProspect?.is_hubspot &&
                 selectedProspect?.hubspot_deal_id && (
                   <Button
@@ -1688,6 +1689,7 @@ const CallInsights = () => {
                   </Button>
                 )}
             </CardHeader>
+
             <CardContent>
               <div className="grid md:grid-cols-4 gap-4 mb-4">
                 <div className="flex items-center space-x-2">
