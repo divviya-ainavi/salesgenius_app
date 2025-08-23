@@ -1057,16 +1057,16 @@ export const CallAssociationSelector = ({
               )}
 
               {/* Research Already Processed Alert */}
-              {selectedAssociation?.skipReason === "already_has_research" && (
+              {(selectedAssociation?.skipReason === "already_has_research" || selectedProspect?.research_id) && (
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-orange-600" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-orange-800">
-                        Research Already Processed
+                        Research Data Already Processed
                       </p>
                       <p className="text-xs text-orange-600">
-                        This deal already has research data associated with it
+                        This company ({selectedCompany?.name}) already has research data processed for this deal. The existing research insights will be used for AI processing.
                       </p>
                     </div>
                   </div>
