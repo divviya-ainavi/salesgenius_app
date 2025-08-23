@@ -867,11 +867,16 @@ const CallInsights = () => {
 
     setIsSyncingHubspot(true);
     try {
-      console.log("🔄 Syncing HubSpot data for deal:", selectedProspect.hubspot_deal_id);
+      console.log(
+        "🔄 Syncing HubSpot data for deal:",
+        selectedProspect.hubspot_deal_id
+      );
 
       // Call HubSpot API to get deal notes
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.hubspotDealNotes}`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.hubspotDealNotes
+        }`,
         {
           method: "POST",
           headers: {
@@ -886,7 +891,9 @@ const CallInsights = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `HubSpot API error: ${response.status} ${response.statusText}`
+        );
       }
 
       const apiData = await response.json();
@@ -900,10 +907,9 @@ const CallInsights = () => {
       );
 
       toast.success(`Synced ${result.notesCount || 0} notes from HubSpot`);
-      
+
       // Refresh the HubSpot data count
       fetchHubspotDataCount();
-      
     } catch (error) {
       console.error("❌ Error syncing HubSpot data:", error);
       toast.error("Failed to sync HubSpot data: " + error.message);
@@ -1663,6 +1669,24 @@ const CallInsights = () => {
                 <Database className="w-5 h-5" />
                 <span>Cumulative Intelligence</span>
               </CardTitle>
+              {selectedProspect?.is_hubspot &&
+                selectedProspect?.hubspot_deal_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSyncHubspotData}
+                    disabled={
+                      isSyncingHubspot || !hubspotIntegration?.connected
+                    }
+                    className="h-6 px-2 text-xs"
+                  >
+                    {isSyncingHubspot ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      "Sync"
+                    )}
+                  </Button>
+                )}
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-4 gap-4 mb-4">
@@ -1704,21 +1728,6 @@ const CallInsights = () => {
                           hubspotDataCount
                         )}
                       </span>
-                      {selectedProspect?.is_hubspot && selectedProspect?.hubspot_deal_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSyncHubspotData}
-                          disabled={isSyncingHubspot || !hubspotIntegration?.connected}
-                          className="h-6 px-2 text-xs"
-                        >
-                          {isSyncingHubspot ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            "Sync"
-                          )}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>
