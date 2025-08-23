@@ -2705,7 +2705,7 @@ export const dbHelpers = {
   async getProspectData(userId) {
     const { data, error } = await supabase
       .from("prospect")
-      .select("*, company(id, name)") // ✅ Include company.id and company.name
+      .select("*, company(id, name), research_id") // ✅ Include research_id field
       .eq("user_id", userId)
       .not("communication_style_ids", "is", null)
       .order("created_at", { ascending: false });

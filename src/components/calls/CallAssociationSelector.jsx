@@ -358,8 +358,27 @@ export const CallAssociationSelector = ({
       setDealNotes(""); // Clear any existing deal notes
     }
 
-    // Check for research company data for this user (after deal notes fetch)
-    checkForResearchCompanyData();
+    // Check if prospect already has research_id
+    if (prospect.research_id) {
+      console.log("✅ Prospect already has research data, skipping research selection:", {
+        prospectId: prospect.id,
+        researchId: prospect.research_id
+      });
+      
+      // Skip research selection and go directly to complete
+      setSelectedResearchCompany(null);
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      onAssociationChange({
+        company: selectedCompany,
+        prospect: prospect,
+        researchCompany: null,
+        dealNotes: dealNotes,
+        skipReason: 'already_has_research'
+      });
+    } else {
+      // Check for research company data for this user (after deal notes fetch)
+      checkForResearchCompanyData();
+    }
   };
 
   const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
@@ -1030,6 +1049,22 @@ export const CallAssociationSelector = ({
                 </div>
               )}
 
+              {/* Research Already Processed Alert */}
+              {selectedAssociation?.skipReason === 'already_has_research' && (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-orange-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-800">
+                        Research Already Processed
+                      </p>
+                      <p className="text-xs text-orange-600">
+                        This deal already has research data associated with it
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-green-800">
@@ -1094,6 +1129,16 @@ export const CallAssociationSelector = ({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedAssociation?.skipReason === 'already_has_research' && (
+                    <div className="flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm flex items-center">
+                        <span className="font-medium mr-1">Research:</span>
+                        <span className="text-orange-600">Previously processed</span>
                       </span>
                     </div>
                   )}
