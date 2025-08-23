@@ -155,7 +155,8 @@ export const CallAssociationSelector = ({
       setIsSyncing(false);
     }
   };
-  console.log(selectedCompany, "Selected Company in CallAssociationSelector");
+  // console.log(selectedCompany, "Selected Company in CallAssociationSelector");
+
   const handleSyncFromHubSpotDeals = async (companyDetails) => {
     if (!user?.organization_id) {
       toast.error("Organization information not available");
@@ -873,7 +874,9 @@ export const CallAssociationSelector = ({
                                   )}
                                   {prospect.deal_value && (
                                     <p className="text-xs">
-                                      Value: ${prospect.amount.toLocaleString()}
+                                      Value: $
+                                      {prospect.deal_value.toLocaleString() ||
+                                        0}
                                     </p>
                                   )}
                                   {prospect.close_date && (

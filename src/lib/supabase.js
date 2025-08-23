@@ -3187,6 +3187,55 @@ export const dbHelpers = {
     return sortedResults;
   },
 
+  async getSalesInsightsByProspectIdWithoutPriority(prospectId, userId, insightTypes) {
+    // console.log("called get sales insights");
+
+    // Step 1: Get all insights for the given prospect_id
+    const { data: insightsData, error: insightsError } = await supabase
+      .from("insights")
+      .select("sales_insight_ids")
+      .eq("prospect_id", prospectId);
+
+    if (insightsError) {
+      console.error("Error fetching insights", insightsError);
+      return null;
+    }
+
+    const allInsightIds = insightsData
+      .flatMap((entry) => entry.sales_insight_ids || [])
+      .filter((id) => id);
+
+    // Step 3: Get full insights if any
+    let salesInsights = [];
+    if (allInsightIds.length > 0) {
+      const { data: insightsData, error: insightsDetailError } = await supabase
+        .from("sales_insights")
+        .select("*, type_id")
+        .in("id", allInsightIds)
+        .eq("is_active", true)
+        .eq("user_id", userId);
+
+      if (insightsDetailError) {
+        console.error("Error fetching sales insights", insightsDetailError);
+        return null;
+      }
+      salesInsights = insightsData;
+    }
+    const mappedInsights = (salesInsights || []).map(insight => {
+      // Find the matching insight type based on type_id
+      const matchingType = insightTypes?.find(type => type.id === insight.type_id);
+      // console.log(matchingType, insight, "check matching type 2020")
+      return {
+        ...insight,
+        // insight_type_details: matchingType || null,
+        type: matchingType?.key || insight.insight_type || "" // Use type key or fallback
+      };
+    });
+
+    return mappedInsights
+
+  },
+
   async getSalesInsightsByProspectId(prospectId, userId) {
     // console.log("called get sales insights");
 

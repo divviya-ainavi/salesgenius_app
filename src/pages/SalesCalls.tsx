@@ -483,15 +483,24 @@ export const SalesCalls = () => {
     try {
       // Get previous sales insights using the IDs from prospect
       let previousSalesInsights = [];
-      console.log(prospectDetails, "476");
-      if (
-        prospectDetails?.sales_insight_ids &&
-        prospectDetails.sales_insight_ids.length > 0
-      ) {
-        previousSalesInsights = await dbHelpers.getSalesInsightsByIds(
-          prospectDetails.sales_insight_ids,
-          insightTypes
-        );
+
+      if (prospectDetails?.communication_style_ids != null) {
+        if (
+          prospectDetails?.sales_insight_ids &&
+          prospectDetails.sales_insight_ids.length > 0
+        ) {
+          previousSalesInsights = await dbHelpers.getSalesInsightsByIds(
+            prospectDetails.sales_insight_ids,
+            insightTypes
+          );
+        } else {
+          previousSalesInsights =
+            await dbHelpers.getSalesInsightsByProspectIdWithoutPriority(
+              prospectDetails.id,
+              user?.id,
+              insightTypes
+            );
+        }
       }
       const getResearchData = await formatResearchData(selectedCompanyResearch);
       if (
