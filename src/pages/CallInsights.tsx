@@ -2035,13 +2035,13 @@ const CallInsights = () => {
                       size="sm"
                       onClick={() => {
                         setIsAddingInsight(false);
-                        setNewInsight({
-                          content: "",
+                         <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                     className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 hover:from-orange-600 hover:to-orange-700 shadow-sm hover:shadow-md transition-all duration-200 font-semibold"
                           type: "my_insights",
                           typeId: "d12b7f8f-6c0d-4294-9e93-15e85c2ed035",
                         });
-                      }}
-                    >
+                         <RefreshCw className="w-3 h-3 mr-1" />
+                         Sync from HubSpot
                       <X className="w-4 h-4 mr-1" />
                       Cancel
                     </Button>
