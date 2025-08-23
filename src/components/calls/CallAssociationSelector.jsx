@@ -1060,16 +1060,16 @@ export const CallAssociationSelector = ({
               {/* Research Already Processed Alert */}
               {(selectedAssociation?.skipReason === "already_has_research" ||
                 selectedProspect?.research_id) && (
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-5 h-5 text-orange-600" />
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-orange-800">
+                      <p className="text-sm font-medium text-blue-800">
                         Research Data Already Processed
                       </p>
-                      <p className="text-xs text-orange-600">
+                      <p className="text-xs text-blue-600">
                         This company ({selectedCompany?.name}) already has
-                        research data processed for this deal.
+                        research data processed. Existing insights will be used for AI processing.
                       </p>
                     </div>
                   </div>
@@ -1146,10 +1146,10 @@ export const CallAssociationSelector = ({
                   {selectedAssociation?.skipReason ===
                     "already_has_research" && (
                     <div className="flex items-center space-x-2">
-                      <Search className="w-4 h-4 text-orange-600" />
+                      <Search className="w-4 h-4 text-blue-600" />
                       <span className="text-sm flex items-center">
                         <span className="font-medium mr-1">Research:</span>
-                        <span className="text-orange-600">
+                        <span className="text-blue-600">
                           Previously processed
                         </span>
                       </span>
