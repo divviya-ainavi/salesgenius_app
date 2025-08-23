@@ -2139,7 +2139,7 @@ const CallInsights = () => {
                             "space-y-2",
                             insight?.insights?.length > 3 &&
                               "max-h-60 overflow-y-auto pr-2"
-                         className="border-2 border-orange-500 text-orange-600 hover:border-orange-600 hover:text-orange-700 hover:bg-orange-50 bg-white shadow-sm hover:shadow-md transition-all duration-200 h-6 px-2 text-xs font-semibold"
+                          )}
                         >
                           {insight?.insights?.map((x) => (
                             <div key={x.id} className="relative">
