@@ -1259,6 +1259,18 @@ const CallInsights = () => {
     return "#dc3545"; // Red for very low scores
   };
 
+  // Helper function to get source colors
+  const getSourceColor = (source) => {
+    const sourceColorMap = {
+      'User Input': 'bg-blue-100 text-blue-800 border-blue-200',
+      'AI Analysis': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Fireflies': 'bg-green-100 text-green-800 border-green-200',
+      'HubSpot': 'bg-purple-100 text-purple-800 border-purple-200',
+      'Manual': 'bg-gray-100 text-gray-800 border-gray-200',
+    };
+    return sourceColorMap[source] || 'bg-orange-100 text-orange-800 border-orange-200';
+  };
+
   // console.log(allInsights, "check all insights");
   const filteredProspects = allInsights?.filter(
     (prospect) =>
@@ -2267,30 +2279,27 @@ const CallInsights = () => {
                                         className="z-[9999] bg-white border border-gray-200 rounded-md shadow-lg p-3 text-xs max-w-xs"
                                         sideOffset={5}
                                       >
-                                        <div className="space-y-1">
-                                          <div className="flex items-center space-x-2">
-                                            <span className="font-medium text-gray-700">
-                                              Speaker:
-                                            </span>
-                                            <span className="text-gray-600">
-                                              {x.speaker || "Unknown"}
-                                            </span>
+                                        <div className="space-y-2">
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium">Speaker:</span>
+                                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 font-medium">
+                                              {x.speaker || 'Unknown'}
+                                            </Badge>
                                           </div>
-                                          <div className="flex items-center space-x-2">
-                                            <span className="font-medium text-gray-700">
-                                              Relevance Score:
-                                            </span>
-                                            <span className="text-gray-600">
-                                              {x.relevance_score || "N/A"}
-                                            </span>
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium">Score:</span>
+                                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 font-medium">
+                                              {x.relevance_score || 'N/A'}
+                                            </Badge>
                                           </div>
-                                          <div className="flex items-center space-x-2">
-                                            <span className="font-medium text-gray-700">
-                                              Source:
-                                            </span>
-                                            <span className="text-gray-600">
-                                              {x.source || "Current"}
-                                            </span>
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium">Source:</span>
+                                            <Badge 
+                                              variant="outline" 
+                                              className={`font-medium ${getSourceColor(x.source)}`}
+                                            >
+                                              {x.source || 'AI Analysis'}
+                                            </Badge>
                                           </div>
                                         </div>
                                       </TooltipContent>
