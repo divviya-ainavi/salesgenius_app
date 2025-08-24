@@ -215,7 +215,7 @@ export const ActionItems = () => {
                 prospect_details: insight.prospect_details || [],
                 people,
                 status: "new",
-                dealValue: "TBD",
+                dealValue: insight?.deal_value || "TBD",
                 probability: 50,
                 nextAction: "Initial follow-up",
                 created_at: insight.created_at,

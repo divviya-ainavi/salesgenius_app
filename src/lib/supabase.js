@@ -888,6 +888,136 @@ export const getOnboardingTourStatus = async (userId) => {
   }
 };
 
+// HubSpot Company Sync Functions
+export const syncHubSpotCompanies = async (organizationId, integrationStatus, userId, apiData) => {
+  try {
+    console.log('🔄 Starting HubSpot company sync for organization:', organizationId);
+
+    // if (!integrationStatus.connected) {
+    //   throw new Error('HubSpot integration not found for this organization');
+    // }
+
+
+    // if (integrationStatus?.) {
+    //   throw new Error('No active HubSpot users found for this organization');
+    // }
+
+    // const hubspotUserId = hubspotUsers[0].hubspot_user_id;
+    // console.log('📞 Using HubSpot user ID for API call:', hubspotUserId);
+
+
+    // Extract companies from the nested response structure
+    const hubspotCompanies = apiData?.[0]?.Companies || apiData?.Companies || [];
+
+    if (!hubspotCompanies || hubspotCompanies.length === 0) {
+      console.log('📭 No companies found in HubSpot response');
+      return {
+        total: 0,
+        inserted: 0,
+        updated: 0,
+        failed: 0,
+        companies: [],
+      };
+    }
+
+    console.log('🏢 Processing', hubspotCompanies.length, 'companies from HubSpot');
+
+    let inserted = 0;
+    let updated = 0;
+    let failed = 0;
+    const processedCompanies = [];
+
+    for (const hubspotCompany of hubspotCompanies) {
+      try {
+        const companyData = {
+          name: hubspotCompany.properties.name || 'Unnamed Company',
+          // domain: hubspotCompany.properties.domain || null,
+          // industry: hubspotCompany.properties.industry || null,
+          // city: hubspotCompany.properties.city || null,
+          hubspot_company_id: hubspotCompany.id,
+          is_hubspot: true,
+          hubspot_created_at: hubspotCompany.createdAt,
+          hubspot_updated_at: hubspotCompany.updatedAt,
+          // hubspot_owner_id: hubspotCompany.properties.hubspot_owner_id,
+          organization_id: organizationId,
+          user_id: userId, // HubSpot companies don't have a specific user owner
+        };
+
+        // Check if company already exists
+        const { data: existingCompany, error: checkError } = await supabase
+          .from('company')
+          .select('id, hubspot_updated_at')
+          .eq('organization_id', organizationId)
+          .eq('hubspot_company_id', hubspotCompany.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Error checking existing company:', checkError);
+          failed++;
+          continue;
+        }
+
+        if (existingCompany) {
+          // Company exists - check if we need to update
+          const existingUpdatedAt = new Date(existingCompany.hubspot_updated_at);
+          const hubspotUpdatedAt = new Date(hubspotCompany.updatedAt);
+
+          if (hubspotUpdatedAt > existingUpdatedAt) {
+            // Update existing company
+            const { error: updateError } = await supabase
+              .from('company')
+              .update(companyData)
+              .eq('id', existingCompany.id);
+
+            if (updateError) {
+              console.error('Error updating company:', updateError);
+              failed++;
+            } else {
+              updated++;
+              processedCompanies.push({ ...companyData, id: existingCompany.id });
+            }
+          } else {
+            // No update needed - data is current
+            processedCompanies.push({ ...companyData, id: existingCompany.id });
+          }
+        } else {
+          // Insert new company
+          const { data: newCompany, error: insertError } = await supabase
+            .from('company')
+            .insert([companyData])
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error inserting company:', insertError);
+            failed++;
+          } else {
+            inserted++;
+            processedCompanies.push(newCompany);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing company:', hubspotCompany.id, error);
+        failed++;
+      }
+    }
+
+    const result = {
+      total: hubspotCompanies.length,
+      inserted,
+      updated,
+      failed,
+      companies: processedCompanies,
+    };
+
+    console.log('✅ HubSpot company sync completed:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error syncing HubSpot companies:', error);
+    throw error;
+  }
+};
+
 // Database helpers (existing code remains the same)
 export const dbHelpers = {
   // File operations
@@ -942,6 +1072,12 @@ export const dbHelpers = {
 
 
   async getUploadedFiles(userId, limit = 20) {
+    // Check if userId is null or undefined
+    if (!userId || userId === 'null' || userId === null) {
+      console.warn('getUploadedFiles called with null/undefined userId, returning empty array');
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('uploaded_files')
@@ -2315,7 +2451,7 @@ export const dbHelpers = {
   //   };
   // },
 
-  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id) {
+  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -2474,7 +2610,7 @@ export const dbHelpers = {
 
       return inserted.id;
     }))).filter(Boolean);
-
+    console.log(salesInsightIds, "check sales insight ids")
     // 6. Handle Call Analysis Overview
     // const { data: analysis } = await supabase
     //   .from("call_analysis_overview")
@@ -2536,7 +2672,8 @@ export const dbHelpers = {
         user_id: userId,
         uploaded_file_id: isFireflies ? null : file?.id,
         fireflies_id: isFireflies ? file?.id : null,
-        type: isFireflies ? "fireflies" : "file_upload"
+        type: isFireflies ? "fireflies" : "file_upload",
+        sales_insight_ids: salesInsightIds
       })
       .select()
       .single();
@@ -2556,7 +2693,9 @@ export const dbHelpers = {
         sales_play: recommended_sales_play,
         secondary_objectives: recommended_objectives,
         recommended_objectives_reason: recommended_objectives_reason,
-        recommended_sales_play_reason: recommended_sales_play_reason
+        recommended_sales_play_reason: recommended_sales_play_reason,
+        research_id: researchCompanyId || null,
+        hubspot_deals_processed: dealNotesProcessed
       })
       .eq("id", prospectId);
 
@@ -2569,9 +2708,21 @@ export const dbHelpers = {
   async getProspectData(userId) {
     const { data, error } = await supabase
       .from("prospect")
-      .select("*, company(id, name)") // ✅ Include company.id and company.name
+      .select("*, company(id, name), research_id") // ✅ Include research_id field
       .eq("user_id", userId)
+      .not("communication_style_ids", "is", null)
       .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getHubspotCompanyId(selectedProspect) {
+    const { data, error } = await supabase
+      .from("company")
+      .select("hubspot_company_id")
+      .eq("id", selectedProspect.company_id)
+      .single();
 
     if (error) throw error;
     return data;
@@ -2593,6 +2744,19 @@ export const dbHelpers = {
       .from("peoples")
       .select("*")
       .eq("prospect_id", prospectId)
+      .eq("user_id", userId);
+
+    if (error) throw error;
+    return data;
+  },
+
+
+
+  async getCallNotes(dealId, userId) {
+    const { data, error } = await supabase
+      .from("call_notes")
+      .select("*")
+      .eq("deal_id", dealId)
       .eq("user_id", userId);
 
     if (error) throw error;
@@ -2917,6 +3081,161 @@ export const dbHelpers = {
   //   return result.sort((a, b) => b.average_score - a.average_score);
   // },
 
+  async getSalesInsightsByIdNewFlow(allInsightIds, prospectId, userId) {
+    // console.log("called get sales insights");
+    const { data: insightTypes, error: typeError } = await supabase
+      .from("sales_insight_types")
+      .select("id, key");
+
+    const typeMap = Object.fromEntries(insightTypes.map((t) => [t.id, t.key]));
+
+    // Step 3: Get full insights if any
+    let salesInsights = [];
+    if (allInsightIds.length > 0) {
+      const { data: insightsData, error: insightsDetailError } = await supabase
+        .from("sales_insights")
+        .select("*, type_id")
+        .in("id", allInsightIds)
+        .eq("is_active", true)
+        .eq("user_id", userId);
+
+      if (insightsDetailError) {
+        console.error("Error fetching sales insights", insightsDetailError);
+        return null;
+      }
+      salesInsights = insightsData;
+    }
+    console.log(salesInsights, "sales insights data 1950")
+    // Step 4: Group all types, even if no insights present
+    const grouped = {};
+    for (const type of insightTypes) {
+      grouped[type.key] = []; // initialize all
+    }
+
+    for (const insight of salesInsights) {
+      const typeKey = typeMap[insight.type_id] || "my_insights";
+      grouped[typeKey].push(insight);
+    }
+
+    // Step 5: Prepare full results (with average score)
+    const computed = Object.entries(grouped).map(([type, insights]) => {
+      const average =
+        insights.reduce((sum, i) => sum + (i.relevance_score || 0), 0) /
+        (insights.length || 1); // avoid NaN
+
+      const typeId = insightTypes.find((t) => t.key === type)?.id || null;
+
+      return {
+        type,
+        type_id: typeId,
+        average_score: Number(average.toFixed(2)),
+        insights,
+      };
+    });
+    console.log(computed, "computed data 1960")
+    // Step 6: Get prospect priority list
+    const { data: prospectData, error: prospectError } = await supabase
+      .from("prospect")
+      .select("sales_insight_priority_list")
+      .eq("id", prospectId)
+      .single();
+
+    if (prospectError) {
+      console.error("Error fetching prospect priority list:", prospectError);
+      return null;
+    }
+
+    let sortedResults = [];
+    // console.log(prospectData, Array.isArray(prospectData?.sales_insight_priority_list), "check prospect data 1956")
+    if (
+      Array.isArray(prospectData?.sales_insight_priority_list) &&
+      prospectData.sales_insight_priority_list.length > 0
+    ) {
+      console.log("1961")
+      const parsedPriorityList = prospectData.sales_insight_priority_list.map((item) =>
+        typeof item === "string" ? JSON.parse(item) : item
+      );
+      const priorityMap = Object.fromEntries(
+        parsedPriorityList.map((item) => [item.type_id, item.priority])
+      );
+      console.log(priorityMap, "check priority map 1965")
+      sortedResults = [...computed].sort((a, b) => {
+        const aPriority = priorityMap[a.type_id] || Infinity;
+        const bPriority = priorityMap[b.type_id] || Infinity;
+        return aPriority - bPriority;
+      });
+      console.log(sortedResults, "sorted results 1969")
+    } else {
+      sortedResults = [...computed].sort((a, b) => b.average_score - a.average_score);
+
+      const priorityList = sortedResults.map((item, index) => ({
+        type_id: item.type_id,
+        priority: index + 1,
+        average_score: item.average_score,
+      }));
+
+      const { error: updateError } = await supabase
+        .from("prospect")
+        .update({ sales_insight_priority_list: priorityList })
+        .eq("id", prospectId);
+
+      if (updateError) {
+        console.error("Error updating sales_insight_priority_list:", updateError);
+      }
+    }
+
+    return sortedResults;
+  },
+
+  async getSalesInsightsByProspectIdWithoutPriority(prospectId, userId, insightTypes) {
+    // console.log("called get sales insights");
+
+    // Step 1: Get all insights for the given prospect_id
+    const { data: insightsData, error: insightsError } = await supabase
+      .from("insights")
+      .select("sales_insight_ids")
+      .eq("prospect_id", prospectId);
+
+    if (insightsError) {
+      console.error("Error fetching insights", insightsError);
+      return null;
+    }
+
+    const allInsightIds = insightsData
+      .flatMap((entry) => entry.sales_insight_ids || [])
+      .filter((id) => id);
+
+    // Step 3: Get full insights if any
+    let salesInsights = [];
+    if (allInsightIds.length > 0) {
+      const { data: insightsData, error: insightsDetailError } = await supabase
+        .from("sales_insights")
+        .select("*, type_id")
+        .in("id", allInsightIds)
+        .eq("is_active", true)
+        .eq("user_id", userId);
+
+      if (insightsDetailError) {
+        console.error("Error fetching sales insights", insightsDetailError);
+        return null;
+      }
+      salesInsights = insightsData;
+    }
+    const mappedInsights = (salesInsights || []).map(insight => {
+      // Find the matching insight type based on type_id
+      const matchingType = insightTypes?.find(type => type.id === insight.type_id);
+      // console.log(matchingType, insight, "check matching type 2020")
+      return {
+        ...insight,
+        // insight_type_details: matchingType || null,
+        type: matchingType?.key || insight.insight_type || "" // Use type key or fallback
+      };
+    });
+
+    return mappedInsights
+
+  },
+
   async getSalesInsightsByProspectId(prospectId, userId) {
     // console.log("called get sales insights");
 
@@ -3042,6 +3361,140 @@ export const dbHelpers = {
     }
 
     return sortedResults;
+  },
+
+  // Get sales insights by IDs
+  async getSalesInsightsByIds(insightIds, insightTypes) {
+    try {
+      console.log("🔍 Fetching sales insights by IDs:", insightIds);
+
+      const { data, error } = await supabase
+        .from('sales_insights')
+        .select('*')
+        .in('id', insightIds);
+
+      if (error) {
+        console.error("❌ Error fetching sales insights by IDs:", error);
+        throw error;
+      }
+
+      console.log("✅ Retrieved sales insights:", data?.length || 0);
+
+      // Map insights with their corresponding types
+      const mappedInsights = (data || []).map(insight => {
+        // Find the matching insight type based on type_id
+        const matchingType = insightTypes?.find(type => type.id === insight.type_id);
+        // console.log(matchingType, insight, "check matching type 2020")
+        return {
+          ...insight,
+          // insight_type_details: matchingType || null,
+          type: matchingType?.key || insight.insight_type || "" // Use type key or fallback
+        };
+      });
+
+      console.log("🔗 Mapped insights with types:", mappedInsights);
+      return mappedInsights;
+    } catch (error) {
+      console.error("❌ Error in getSalesInsightsByIds:", error);
+      throw error;
+    }
+  },
+
+  // Store cumulative insights response and update prospect
+  async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId) {
+    try {
+      // console.log("💾 Starting to store cumulative insights and update prospect...", {
+      //   prospectId,
+      //   userId,
+      //   responseKeys: Object.keys(apiResponse)
+      // });
+
+      // Start a transaction-like operation
+      const insertedInsightIds = [];
+
+      // Process and store each insight from the API response
+      if (apiResponse && Array.isArray(apiResponse)) {
+        // console.log("📊 Processing", apiResponse.insights.length, "insights from API response");
+
+        for (const insight of apiResponse) {
+          try {
+            // Get the type_id for this insight type
+            const { data: insightType, error: typeError } = await supabase
+              .from('sales_insight_types')
+              .select('id')
+              .eq('key', insight.type)
+              .single();
+
+            if (typeError) {
+              console.warn("⚠️ Could not find insight type for:", insight.type, "- skipping");
+              continue;
+            }
+
+            // Insert the insight
+            const { data: insertedInsight, error: insertError } = await supabase
+              .from('sales_insights')
+              .insert([{
+                type_id: insightType.id,
+                content: insight.content,
+                relevance_score: insight.relevance_score || 50,
+                speaker: insight.speaker || null,
+                source: insight.source || 'api',
+                user_id: userId,
+                is_selected: true,
+                is_active: true
+              }])
+              .select('id')
+              .single();
+
+            if (insertError) {
+              console.error("❌ Error inserting insight:", insertError);
+              continue;
+            }
+
+            insertedInsightIds.push(insertedInsight.id);
+            console.log("✅ Inserted insight with ID:", insertedInsight.id);
+          } catch (insightError) {
+            console.error("❌ Error processing individual insight:", insightError);
+            continue;
+          }
+        }
+      }
+
+      console.log("📝 Total insights inserted:", insertedInsightIds.length);
+
+      // Update the prospect with the new insight IDs
+      if (insertedInsightIds.length > 0) {
+
+        // Update the prospect
+        const { data: updatedProspect, error: updateError } = await supabase
+          .from('prospect')
+          .update({ sales_insight_ids: insertedInsightIds })
+          .eq('id', prospectId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error("❌ Error updating prospect with insight IDs:", updateError);
+          throw updateError;
+        }
+
+        console.log("✅ Successfully updated prospect with insight IDs");
+
+        return {
+          success: true,
+          insertedInsights: insertedInsightIds.length
+        };
+      } else {
+        console.log("⚠️ No insights were inserted, skipping prospect update");
+        return {
+          success: false,
+          message: "No insights were processed from the API response"
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error in storeCumulativeInsightsAndUpdateProspect:", error);
+      throw error;
+    }
   },
 
   async updateSalesInsightContent(id, newContent, userId) {
@@ -3505,6 +3958,634 @@ export const dbHelpers = {
     }
   },
 
+  // Sync HubSpot deals to database
+  async syncHubSpotDeals(companyId, organizationId, hubspotUserId, userId, dealsData) {
+    try {
+      console.log('🔄 Starting HubSpot deals sync for company:', companyId);
+
+      // Get deals from HubSpot
+      const hubspotDeals = await dealsData?.[0]?.Deals || [];
+
+      if (!hubspotDeals || hubspotDeals.length === 0) {
+        console.log('📭 No deals found in HubSpot for this company');
+        return {
+          total: 0,
+          inserted: 0,
+          updated: 0,
+          failed: 0,
+          deals: [],
+        };
+      }
+
+      console.log('📊 Processing', hubspotDeals.length, 'deals from HubSpot');
+
+      let inserted = 0;
+      let updated = 0;
+      let failed = 0;
+      const processedDeals = [];
+
+      for (const deal of hubspotDeals) {
+        console.log('Processing deal:', deal)
+        try {
+          // Extract deal data from HubSpot response
+          const dealData = {
+            name: deal?.properties.dealname || deal?.properties.name || 'Untitled Deal',
+            company_id: companyId,
+            user_id: userId,
+            hubspot_deal_id: deal.id,
+            is_hubspot: true,
+            deal_value: deal?.properties.amount || null,
+            deal_stage: deal?.properties.dealstage || null,
+            close_date: deal?.properties.closedate ? new Date(deal?.properties.closedate).toISOString() : null,
+            hubspot_created_at: deal.createdAt ? new Date(deal.createdAt).toISOString() : null,
+            hubspot_updated_at: deal.updatedAt ? new Date(deal.updatedAt).toISOString() : null,
+          };
+          console.log(dealData, "deal data 1")
+          // Check if deal already exists
+          const { data: existingDeal, error: checkError } = await supabase
+            .from('prospect')
+            .select('*')
+            .eq('hubspot_deal_id', dealData.hubspot_deal_id)
+            .single();
+          console.log(existingDeal, "existing deal 1")
+          if (checkError && checkError.code !== 'PGRST116') {
+            console.error('❌ Error checking existing deal:', checkError);
+            failed++;
+            continue;
+          }
+
+          if (existingDeal) {
+            // Deal exists, check if we need to update
+            const existingUpdatedAt = new Date(existingDeal.hubspot_updated_at || 0);
+            const hubspotUpdatedAt = new Date(dealData.hubspot_updated_at || 0);
+            console.log("inside of existing deal", hubspotUpdatedAt > existingUpdatedAt, hubspotUpdatedAt, existingUpdatedAt)
+            if (hubspotUpdatedAt > existingUpdatedAt) {
+              // Update existing deal
+              const { data: updatedDeal, error: updateError } = await supabase
+                .from('prospect')
+                .update(dealData)
+                .eq('id', existingDeal.id)
+                .select()
+                .single();
+
+              if (updateError) {
+                console.error('❌ Error updating deal:', updateError);
+                failed++;
+              } else {
+                console.log('✅ Updated deal:', updatedDeal.name);
+                updated++;
+                processedDeals.push(updatedDeal);
+              }
+            } else {
+              console.log('⏭️ Deal is up to date, skipping:', dealData.name);
+              processedDeals.push(existingDeal);
+            }
+          } else {
+            // Insert new deal
+            const { data: newDeal, error: insertError } = await supabase
+              .from('prospect')
+              .insert([dealData])
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('❌ Error inserting deal:', insertError);
+              failed++;
+            } else {
+              console.log('✅ Inserted new deal:', newDeal.name);
+              inserted++;
+              processedDeals.push(newDeal);
+            }
+          }
+        } catch (dealError) {
+          console.error('❌ Error processing deal:', dealError);
+          failed++;
+        }
+      }
+
+      const result = {
+        total: hubspotDeals.length,
+        inserted,
+        updated,
+        failed,
+        deals: processedDeals,
+      };
+
+      console.log('✅ HubSpot deals sync completed:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error syncing HubSpot deals:', error);
+      throw error;
+    }
+  },
+
+  // Get complete HubSpot user details for a specific user
+  getHubSpotUserDetails: async (userId, organizationId) => {
+    try {
+      console.log('🔍 Getting HubSpot user details for user:', { userId, organizationId });
+
+      if (!userId || !organizationId) {
+        console.warn('⚠️ Missing required parameters for HubSpot user details lookup');
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('hubspot_users')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .eq('is_archived', false)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('📭 No HubSpot user found for user:', userId);
+          return null;
+        }
+        throw error;
+      }
+
+      console.log('✅ Found HubSpot user details:', {
+        hubspot_user_id: data.hubspot_user_id,
+        email: data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        hubspot_type: data.hubspot_type
+      });
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error getting HubSpot user details:', error);
+      return null;
+    }
+  },
+
+  // Save or update HubSpot users data (upsert operation)
+  async saveOrUpdateHubSpotUsers(organizationId, ownersData) {
+    try {
+      console.log('💾 Saving/updating HubSpot users for organization:', organizationId);
+      console.log('👥 Processing owners data:', ownersData);
+
+      if (!Array.isArray(ownersData) || ownersData.length === 0) {
+        console.warn('⚠️ No valid owners data provided');
+        return [];
+      }
+
+      const results = [];
+
+      for (const owner of ownersData) {
+        try {
+          // Find matching profile by email
+          const { data: matchingProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .eq('email', owner.email)
+            .eq('organization_id', organizationId);
+
+          if (profileError) {
+            console.error('❌ Error finding profile for email:', owner.email, profileError);
+            continue;
+          }
+
+          const matchingProfile = matchingProfiles?.[0];
+          console.log('🔍 Profile match for', owner.email, ':', matchingProfile ? 'Found' : 'Not found');
+
+          // Prepare HubSpot user data
+          const hubspotUserData = {
+            organization_id: organizationId,
+            hubspot_user_id: owner.id.toString(),
+            email: owner.email,
+            first_name: owner.firstName || null,
+            last_name: owner.lastName || null,
+            hubspot_type: owner.type || 'PERSON',
+            hubspot_created_at: owner.createdAt ? new Date(owner.createdAt).toISOString() : null,
+            hubspot_updated_at: owner.updatedAt ? new Date(owner.updatedAt).toISOString() : null,
+            is_archived: owner.archived || false,
+            user_id: matchingProfile?.id || null,
+          };
+
+          // Use upsert (insert or update) based on organization_id and hubspot_user_id
+          const { data: upsertedUser, error: upsertError } = await supabase
+            .from('hubspot_users')
+            .upsert(hubspotUserData, {
+              onConflict: 'organization_id,hubspot_user_id',
+              ignoreDuplicates: false
+            })
+            .select()
+            .single();
+
+          if (upsertError) {
+            console.error('❌ Error upserting HubSpot user:', owner.email, upsertError);
+            results.push({
+              email: owner.email,
+              success: false,
+              error: upsertError.message,
+            });
+          } else {
+            console.log('✅ Successfully upserted HubSpot user:', owner.email);
+            results.push({
+              email: owner.email,
+              success: true,
+              data: upsertedUser,
+              matched_profile: !!matchingProfile,
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error processing owner:', owner.email, error);
+          results.push({
+            email: owner.email,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      const matchedCount = results.filter(r => r.success && r.matched_profile).length;
+
+      console.log('📊 HubSpot users save/update summary:', {
+        total: results.length,
+        successful: successCount,
+        failed: failureCount,
+        matched_profiles: matchedCount,
+      });
+
+      return {
+        results,
+        summary: {
+          total: results.length,
+          successful: successCount,
+          failed: failureCount,
+          matched_profiles: matchedCount,
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error in saveOrUpdateHubSpotUsers:', error);
+      throw error;
+    }
+  },
+
+  // Save HubSpot users data
+  async saveHubSpotUsers(organizationId, ownersData) {
+    try {
+      console.log('💾 Saving HubSpot users for organization:', organizationId);
+      console.log('👥 Processing owners data:', ownersData);
+
+      if (!Array.isArray(ownersData) || ownersData.length === 0) {
+        console.warn('⚠️ No valid owners data provided');
+        return [];
+      }
+
+      const results = [];
+
+      for (const owner of ownersData) {
+        try {
+          // Find matching profile by email
+          const { data: matchingProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, email, full_name')
+            .eq('email', owner.email)
+            .eq('organization_id', organizationId);
+
+          if (profileError) {
+            console.error('❌ Error finding profile for email:', owner.email, profileError);
+            continue;
+          }
+
+          const matchingProfile = matchingProfiles?.[0];
+          console.log('🔍 Profile match for', owner.email, ':', matchingProfile ? 'Found' : 'Not found');
+
+          // Prepare HubSpot user data
+          const hubspotUserData = {
+            organization_id: organizationId,
+            hubspot_user_id: owner.id.toString(),
+            email: owner.email,
+            first_name: owner.firstName || null,
+            last_name: owner.lastName || null,
+            hubspot_type: owner.type || 'PERSON',
+            hubspot_created_at: owner.createdAt ? new Date(owner.createdAt).toISOString() : null,
+            hubspot_updated_at: owner.updatedAt ? new Date(owner.updatedAt).toISOString() : null,
+            is_archived: owner.archived || false,
+            user_id: matchingProfile?.id || null,
+          };
+
+          // Insert HubSpot user data
+          const { data: insertedUser, error: insertError } = await supabase
+            .from('hubspot_users')
+            .insert(hubspotUserData)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('❌ Error inserting HubSpot user:', owner.email, insertError);
+            results.push({
+              email: owner.email,
+              success: false,
+              error: insertError.message,
+            });
+          } else {
+            console.log('✅ Successfully saved HubSpot user:', owner.email);
+            results.push({
+              email: owner.email,
+              success: true,
+              data: insertedUser,
+              matched_profile: !!matchingProfile,
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error processing owner:', owner.email, error);
+          results.push({
+            email: owner.email,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      const matchedCount = results.filter(r => r.success && r.matched_profile).length;
+
+      console.log('📊 HubSpot users save summary:', {
+        total: results.length,
+        successful: successCount,
+        failed: failureCount,
+        matched_profiles: matchedCount,
+      });
+
+      return {
+        results,
+        summary: {
+          total: results.length,
+          successful: successCount,
+          failed: failureCount,
+          matched_profiles: matchedCount,
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error in saveHubSpotUsers:', error);
+      throw error;
+    }
+  },
+
+  updateOnboardingTourStatus: async (userId, hasSeenTour) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ has_seen_onboarding_tour: hasSeenTour })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating onboarding tour status:', error);
+      throw error;
+    }
+  },
+
+  // Check HubSpot integration status for an organization
+  checkHubSpotIntegration: async (organizationId) => {
+    try {
+      if (!organizationId) {
+        return {
+          connected: false,
+          error: 'No organization ID provided',
+          hasToken: false,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      // Check if organization has HubSpot access token
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('hubspot_access_token, hubspot_user_details')
+        .eq('id', organizationId)
+        .single();
+
+      if (orgError) {
+        console.error('Error checking organization HubSpot data:', orgError);
+        return {
+          connected: false,
+          error: orgError.message,
+          hasToken: false,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      const hasToken = !!(orgData?.hubspot_access_token);
+
+      // Check for HubSpot users in the organization
+      const { data: hubspotUsers, error: usersError } = await supabase
+        .from('hubspot_users')
+        .select('id, email, hubspot_user_id')
+        .eq('organization_id', organizationId)
+        .eq('is_archived', false);
+
+      if (usersError) {
+        console.error('Error checking HubSpot users:', usersError);
+        return {
+          connected: hasToken,
+          error: usersError.message,
+          hasToken,
+          hasUsers: false,
+          userCount: 0
+        };
+      }
+
+      const hasUsers = hubspotUsers && hubspotUsers.length > 0;
+      const userCount = hubspotUsers?.length || 0;
+
+      return {
+        connected: hasToken && hasUsers,
+        hasToken,
+        hasUsers,
+        userCount,
+        lastSync: orgData?.updated_at,
+        accountInfo: orgData?.hubspot_user_details,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error checking HubSpot integration:', error);
+      return {
+        connected: false,
+        error: error.message,
+        hasToken: false,
+        hasUsers: false,
+        userCount: 0
+      };
+    }
+  },
+
+  // Save feedback to database
+  saveFeedback: async (feedbackData) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .insert([feedbackData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      throw error;
+    }
+  },
+
+  // Get HubSpot deal notes for a specific deal
+  async getHubSpotDealNotes(dealId, organizationId, hubspotDealId, user) {
+    try {
+      console.log('🔍 Getting HubSpot deal notes for deal:', { dealId, organizationId });
+
+      // Check if we already have notes for this deal
+      const { data: existingNotes, error: checkError } = await supabase
+        .from('call_notes')
+        .select('*')
+        .eq('deal_id', dealId)
+        .order('hubspot_updated_at', { ascending: false });
+
+      if (checkError) {
+        console.error('❌ Error checking existing notes:', checkError);
+        // Continue with API call even if check fails
+      }
+
+      if (existingNotes && existingNotes.length > 0) {
+
+        // Merge all existing notes into a single paragraph
+        const mergedNotes = existingNotes
+          .map(note => note.notes)
+          .filter(note => note && note.trim())
+          .join(' ');
+
+        console.log('📋 Deal notes already exist in database, skipping API call');
+        return {
+          success: true,
+          message: 'Notes already exist in database',
+          notes: existingNotes,
+          mergedNotes: mergedNotes,
+          fromCache: true
+        };
+      }
+
+      console.log('🔄 Fetching deal notes from HubSpot API...');
+
+      // Call HubSpot API to get deal notes
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.hubspotDealNotes}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealid: hubspotDealId,
+          id: organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
+      }
+
+      const apiData = await response.json();
+      console.log('📊 HubSpot deal notes API response:', apiData);
+
+      // Extract notes from API response
+      const dealNotes = apiData?.[0]?.Deals_Notes || [];
+      console.log("check deals notes", dealNotes)
+      if (!dealNotes || dealNotes.length === 0) {
+        console.log('📭 No notes found for this deal');
+        return {
+          success: true,
+          message: 'No notes found for this deal',
+          notes: [],
+          notes: [],
+          mergedNotes: '',
+          fromCache: false
+        };
+      }
+
+      console.log('📝 Processing', dealNotes.length, 'notes from HubSpot');
+
+      // Save notes to database
+      const savedNotes = [];
+      const noteTexts = [];
+      for (const note of dealNotes) {
+        console.log('4202 deal notes', note)
+        try {
+          // Extract text content from HTML
+          const htmlContent = note.properties.hs_note_body || '';
+          const textContent = this.extractTextFromHtml(htmlContent);
+
+          if (textContent) {
+            noteTexts.push(textContent);
+          }
+
+          const noteData = {
+            hubspot_notes_id: note.id,
+            hubspot_created_at: note.createdAt ? new Date(note.createdAt).toISOString() : null,
+            hubspot_updated_at: note.updatedAt ? new Date(note.updatedAt).toISOString() : null,
+            notes: textContent,
+            user_id: user?.id,
+            deal_id: dealId
+          };
+
+          const { data: savedNote, error: saveError } = await supabase
+            .from('call_notes')
+            .insert([noteData])
+            .select()
+            .single();
+
+          if (saveError) {
+            console.error('❌ Error saving note:', saveError);
+          } else {
+            console.log('✅ Saved note:', savedNote.id);
+            savedNotes.push(savedNote);
+          }
+        } catch (noteError) {
+          console.error('❌ Error processing note:', noteError);
+        }
+      }
+
+      // Merge all notes into a single paragraph
+      const mergedNotes = noteTexts.join('\n\n');
+
+      console.log('✅ HubSpot deal notes sync completed:', savedNotes.length, 'notes saved');
+
+      return {
+        success: true,
+        message: `Successfully synced ${savedNotes.length} notes`,
+        notes: savedNotes,
+        mergedNotes: mergedNotes,
+        fromCache: false
+      };
+    } catch (error) {
+      console.error('❌ Error getting HubSpot deal notes:', error);
+      throw error;
+    }
+  },
+
+  // Helper function to extract text content from HTML
+  extractTextFromHtml(htmlString) {
+    try {
+      // Create a temporary DOM element to parse HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlString;
+
+      // Get text content and clean it up
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      return textContent.trim();
+    } catch (error) {
+      console.error('Error extracting text from HTML:', error);
+      // Fallback: return original string with basic HTML tag removal
+      return htmlString.replace(/<[^>]*>/g, '').trim();
+    }
+  },
+
   // Onboarding tour
   updateOnboardingTourStatus,
   getOnboardingTourStatus,
@@ -3513,6 +4594,10 @@ export const dbHelpers = {
   getUserFeedback,
   getAllUserFeedback,
   getFeedbackForAdmin,
+
+  // HubSpot Integration
+  // checkHubSpotIntegration,
+  syncHubSpotCompanies
 }
 
 // User helpers for backward compatibility

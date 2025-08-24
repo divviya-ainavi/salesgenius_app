@@ -359,6 +359,8 @@ export const Settings = () => {
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
   const dispatch = useDispatch();
 
+  console.log("LoginPage rendered", hubspotIntegration);
+
   // console.log(
   //   userProfileInfo,
   //   userRole,
@@ -584,6 +586,8 @@ export const Settings = () => {
     }
   };
 
+  console.log(hubspotIntegration, "check hubspot user details");
+
   // Load HubSpot integration status
   useEffect(() => {
     const loadHubSpotStatus = async () => {
@@ -592,10 +596,29 @@ export const Settings = () => {
           const hubspotStatus = await authHelpers.getOrganizationHubSpotStatus(
             organizationDetails.id
           );
+          const hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+            user?.id,
+            organizationDetails?.id
+          );
 
           dispatch(
+            // setHubspotIntegration({
+            //   connected: hubspotStatus.connected,
+            //   lastSync: hubspotStatus.connected
+            //     ? new Date().toISOString()
+            //     : null,
+            //   accountInfo: hubspotStatus.connected
+            //     ? {
+            //         maskedToken: hubspotStatus.encryptedToken
+            //           ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+            //           : null,
+            //       }
+            //     : null,
+            // })
             setHubspotIntegration({
               connected: hubspotStatus.connected,
+              hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+              hubspotUserDetails: hubspotUserDetails,
               lastSync: hubspotStatus.connected
                 ? new Date().toISOString()
                 : null,
@@ -603,6 +626,10 @@ export const Settings = () => {
                 ? {
                     maskedToken: hubspotStatus.encryptedToken
                       ? "xxxxx" + hubspotStatus.encryptedToken.slice(-4)
+                      : null,
+                    userEmail: hubspotUserDetails?.email || null,
+                    userName: hubspotUserDetails
+                      ? `${hubspotUserDetails.first_name} ${hubspotUserDetails.last_name}`.trim()
                       : null,
                   }
                 : null,
@@ -1135,24 +1162,69 @@ export const Settings = () => {
       const result = await response.json();
 
       if (result.success || result.valid) {
-        // Save the encrypted token to organization
         await authHelpers.updateOrganizationHubSpotToken(
           organizationDetails.id,
-          {
-            hubspot_encrypted_token: jwtToken,
-          }
+          { hubspot_encrypted_token: jwtToken }
         );
+        // Get owner details and save to separate table
         const ownersData = await getOwnerDetails();
-        await authHelpers.updateOrganizationHubSpotToken(
-          organizationDetails.id,
-          {
-            hubspot_user_details: ownersData,
+        if (ownersData.length > 0) {
+          // Extract the actual owners array from the response
+          const actualOwners = ownersData[0]?.Owners || [];
+
+          if (actualOwners.length > 0) {
+            console.log(
+              "👥 Processing HubSpot owners:",
+              actualOwners.length,
+              "owners"
+            );
+
+            // Save/update HubSpot users in separate table
+            const saveResult = await dbHelpers.saveOrUpdateHubSpotUsers(
+              organizationDetails.id,
+              actualOwners
+            );
+
+            console.log("💾 HubSpot users save result:", saveResult.summary);
+
+            // Show summary toast
+            const { successful, failed, matched_profiles } = saveResult.summary;
+            if (successful > 0) {
+              toast.success(
+                `HubSpot users synced: ${successful} saved, ${matched_profiles} matched with existing profiles`
+              );
+            }
+            if (failed > 0) {
+              toast.warning(`${failed} HubSpot users failed to sync`);
+            }
+          } else {
+            console.warn("⚠️ No owners found in HubSpot response");
+            toast.warning("No HubSpot owners found to sync");
           }
-        );
+        } else {
+          console.warn("⚠️ Empty owners data received");
+          toast.warning("No HubSpot owner data received");
+        }
+
+        // const ownersData = await getOwnerDetails();
+        // await authHelpers.updateOrganizationHubSpotToken(
+        //   organizationDetails.id,
+        //   {
+        //     hubspot_user_details: ownersData,
+        //   }
+        // );
         // Update Redux state
+
+        const hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+          user?.id,
+          organizationDetails?.id
+        );
+
         dispatch(
           setHubspotIntegration({
             connected: true,
+            hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+            hubspotUserDetails: hubspotUserDetails,
             lastSync: new Date().toISOString(),
             accountInfo: {
               maskedToken: "xxxxx" + hubspotToken.slice(-4),
@@ -1160,6 +1232,16 @@ export const Settings = () => {
             },
           })
         );
+        // dispatch(
+        //   setHubspotIntegration({
+        //     connected: true,
+        //     lastSync: new Date().toISOString(),
+        //     accountInfo: {
+        //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
+        //       ...result.account_info,
+        //     },
+        //   })
+        // );
 
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
@@ -2180,6 +2262,7 @@ export const Settings = () => {
                     )}
                   </CardTitle> */}
                 </CardHeader>
+                {console.log(hubspotIntegration, "check hubspot integration")}
                 <CardContent className="space-y-4">
                   {hubspotIntegration.connected ? (
                     <div className="space-y-4">

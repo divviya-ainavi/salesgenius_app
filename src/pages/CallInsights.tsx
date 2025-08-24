@@ -67,10 +67,13 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@radix-ui/react-tooltip";
 import useEmblaCarousel from "embla-carousel-react";
 import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
 import { useDispatch } from "react-redux";
+import { config } from "../lib/config";
+import { supabase } from "../lib/supabase";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -160,6 +163,38 @@ const CallInsights = () => {
   // Salesperson checkbox state
   const [salespersonIds, setSalespersonIds] = useState(new Set());
   const [isUpdatingSalesperson, setIsUpdatingSalesperson] = useState(false);
+  const [isPushingToHubSpot, setIsPushingToHubSpot] = useState(false);
+  const [isLoadingProspects, setIsLoadingProspects] = useState(true);
+  const [hubspotDataCount, setHubspotDataCount] = useState(0);
+  const [isLoadingHubspotCount, setIsLoadingHubspotCount] = useState(false);
+  const [isSyncingHubspot, setIsSyncingHubspot] = useState(false);
+  console.log(selectedProspect, "check selected prospect 1");
+
+  // Function to get source color based on source type
+  const getSourceColor = (source) => {
+    if (!source) return "bg-gray-100 text-gray-800 border-gray-200";
+
+    const sourceType = source.toLowerCase();
+
+    if (sourceType.includes("hubspot") || sourceType.includes("crm")) {
+      return "bg-orange-100 text-orange-800 border-orange-200";
+    } else if (
+      sourceType.includes("research") ||
+      sourceType.includes("company")
+    ) {
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    } else if (
+      sourceType.includes("transcript") ||
+      sourceType.includes("call")
+    ) {
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    } else if (sourceType.includes("ai") || sourceType.includes("analysis")) {
+      return "bg-green-100 text-green-800 border-green-200";
+    } else {
+      return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
   // Function to refresh peoples data
   const refreshPeoplesData = async () => {
     if (!selectedProspect?.id || !user?.id) return;
@@ -247,7 +282,6 @@ const CallInsights = () => {
     return insightIcons[iconName] || Lightbulb;
   }
 
-  console.log(communicationStyles, "communication styles data");
   function mapInsightTypesToObject(insightTypesArray) {
     return insightTypesArray.reduce((acc, item) => {
       acc[item.key] = {
@@ -309,7 +343,6 @@ const CallInsights = () => {
     const fetchInsightsAndSetProspect = async () => {
       try {
         let insights = await dbHelpers.getProspectData(user?.id);
-        // console.log(insights, "get insights data");
 
         // Sort insights by created_at descending
         insights = insights.sort(
@@ -366,6 +399,9 @@ const CallInsights = () => {
             defaultInsight.id,
             user?.id
           );
+          const callNotes = defaultInsight?.is_hubspot
+            ? await dbHelpers.getCallNotes(defaultInsight?.id, user?.id)
+            : [];
           // console.log(defaultInsight, "check default insight");
           const prospect = {
             id: defaultInsight.id,
@@ -387,7 +423,7 @@ const CallInsights = () => {
             lastCallDate: defaultInsight.created_at,
             lastEngagement: "Just now",
             status: "new",
-            dealValue: "TBD",
+            deal_value: defaultInsight?.deal_value || "TBD",
             probability: 50,
             nextAction: "Initial follow-up",
             dataSources: {
@@ -400,14 +436,12 @@ const CallInsights = () => {
             people, // ✅ attach people to selectedProspect
             call_summary: defaultInsight?.call_summary || "",
             communication_style_ids: defaultInsight?.communication_style_ids,
+            is_hubspot: defaultInsight?.is_hubspot || false,
+            hubspot_deal_id: defaultInsight?.hubspot_deal_id || null,
+            deal_stage: defaultInsight?.deal_stage || null,
+            hubspotDataCount: callNotes?.length || 0,
+            researchCompanyId: defaultInsight?.research_id || null,
           };
-
-          // console.log(
-          //   prospect,
-          //   "selected prospect",
-          //   defaultInsight,
-          //   "get default insight"
-          // );
           setCummulativeSummary(defaultInsight?.call_summary);
           setSelectedProspect(prospect);
           loadProspectInsights(defaultInsight);
@@ -461,16 +495,60 @@ const CallInsights = () => {
   //     );
   //   }
   // };
+  // console.log(
+  //   dbHelpers.getSalesInsightsByProspectIdWithoutPriority(
+  //     selectedProspect.id,
+  //     user?.id,
+  //     insightTypes
+  //   ),
+  //   "Test Data 567"
+  // );
+
   const loadProspectInsights = async (insightData) => {
-    const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
-      insightData.id,
-      user?.id
-    );
-    setInsights(groupedInsights); // You may need to map this to your display structure
-    console.log(
-      insightData.communication_style_ids,
-      "insightData.communication_style_ids"
-    );
+    // Check if prospect has sales_insight_ids
+    if (
+      insightData.sales_insight_ids &&
+      insightData.sales_insight_ids.length > 0
+    ) {
+      const specificInsights = await dbHelpers.getSalesInsightsByIdNewFlow(
+        insightData.sales_insight_ids,
+        insightData.id,
+        user?.id
+      );
+
+      // Group insights by type for display
+      // const groupedSpecificInsights = specificInsights.reduce(
+      //   (acc, insight) => {
+      //     const typeKey = insight.type || "unknown";
+      //     const existingGroup = acc.find((group) => group.type === typeKey);
+
+      //     if (existingGroup) {
+      //       existingGroup.insights.push(insight);
+      //     } else {
+      //       acc.push({
+      //         type: typeKey,
+      //         type_id: insight.type_id || insight.insight_type_id,
+      //         average_score: insight.relevance_score || 0,
+      //         insights: [insight],
+      //       });
+      //     }
+
+      //     return acc;
+      //   },
+      //   []
+      // );
+
+      // console.log("✅ Grouped specific insights:", groupedSpecificInsights);
+      setInsights(specificInsights);
+    } else {
+      // Use existing flow - get all insights by prospect ID
+      const groupedInsights = await dbHelpers.getSalesInsightsByProspectId(
+        insightData.id,
+        user?.id
+      );
+      setInsights(groupedInsights);
+    }
+
     const styles = await fetchCommunicationStyles(
       insightData.communication_style_ids
     );
@@ -546,6 +624,29 @@ const CallInsights = () => {
 
     try {
       const newCompanyName = editingCompanyName.trim();
+      if (selectedProspect?.is_hubspot) {
+        if (
+          hubspotIntegration?.connected &&
+          hubspotIntegration?.hubspotUserId
+        ) {
+          const companyData = await dbHelpers.getHubspotCompanyId(
+            selectedProspect
+          );
+          const apiFormData = new FormData();
+          apiFormData.append("id", user?.organization_id);
+          apiFormData.append("companyid", companyData?.hubspot_company_id);
+          apiFormData.append("ownerid", hubspotIntegration?.hubspotUserId);
+          apiFormData.append("companyname", editingCompanyName.trim());
+
+          const response = await fetch(
+            `${config.api.baseUrl}${config.api.endpoints.updateCompanyName}`,
+            {
+              method: "POST",
+              body: apiFormData,
+            }
+          );
+        }
+      }
 
       // Update company table
       await dbHelpers.updateCompanyName(
@@ -787,6 +888,401 @@ const CallInsights = () => {
     } finally {
       setIsSavingInsight(false);
     }
+  };
+  console.log(selectedProspect, "check selected prospect 2");
+  const handleSyncHubspotData = async () => {
+    if (!selectedProspect?.is_hubspot || !selectedProspect?.hubspot_deal_id) {
+      toast.error("This is not a HubSpot deal");
+      return;
+    }
+
+    if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
+      toast.error("HubSpot integration not available");
+      return;
+    }
+    const companyDetails = await dbHelpers.getHubspotCompanyId(
+      selectedProspect
+    );
+    if (!companyDetails?.hubspot_company_id) {
+      toast.error("HubSpot company ID not available for this deal");
+      return;
+    }
+
+    setIsSyncingHubspot(true);
+
+    try {
+      // Step 1: Sync company data from HubSpot
+      console.log("📊 Step 1: Syncing company data from HubSpot...");
+      const companyResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}hub-get-company-detail`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            companyid: companyDetails?.hubspot_company_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+          }),
+        }
+      );
+
+      if (!companyResponse.ok) {
+        throw new Error(
+          `Company sync failed: ${companyResponse.status} ${companyResponse.statusText}`
+        );
+      }
+
+      const companyData = await companyResponse.json();
+      console.log("📊 Company data received:", companyData);
+
+      if (companyData && companyData.length > 0) {
+        const company = companyData[0];
+
+        // Update company in database
+        const { error: companyUpdateError } = await supabase
+          .from("company")
+          .update({
+            name: company.properties.name,
+            hubspot_updated_at: company.updatedAt,
+          })
+          .eq("hubspot_company_id", company.id);
+
+        if (companyUpdateError) {
+          console.error("❌ Error updating company:", companyUpdateError);
+          toast.error("Failed to update company data");
+        } else {
+          console.log("✅ Company updated successfully");
+
+          // Update local state
+          setAllInsights((prevProspects) =>
+            prevProspects.map((p) =>
+              p.company_id === selectedProspect.company_id
+                ? {
+                    ...p,
+                    company: {
+                      ...p.company,
+                      name: company.properties.name,
+                      hubspot_updated_at: company.updatedAt,
+                    },
+                    companyName: company.properties.name,
+                  }
+                : p
+            )
+          );
+          setSelectedProspect((prev) => ({
+            ...prev,
+            companyName: company.properties.name,
+            company: {
+              ...prev.company,
+              name: company.properties.name,
+            },
+          }));
+        }
+      }
+
+      // Step 2: Sync deal data from HubSpot
+      console.log("💼 Step 2: Syncing deal data from HubSpot...");
+      const dealResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}hub-get-deal-info`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            dealid: selectedProspect.hubspot_deal_id,
+            id: user?.organization_id,
+          }),
+        }
+      );
+
+      if (!dealResponse.ok) {
+        throw new Error(
+          `Deal sync failed: ${dealResponse.status} ${dealResponse.statusText}`
+        );
+      }
+
+      const dealData = await dealResponse.json();
+      console.log("💼 Deal data received:", dealData);
+
+      if (dealData && dealData.length > 0) {
+        const deal = dealData[0];
+
+        // Update prospect in database
+        const { error: prospectUpdateError } = await supabase
+          .from("prospect")
+          .update({
+            name: deal.properties.dealname,
+            deal_value: deal.properties.amount
+              ? parseFloat(deal.properties.amount)
+              : null,
+            close_date: deal.properties.closedate,
+            deal_stage: deal.properties.dealstage,
+            hubspot_updated_at: deal.updatedAt,
+          })
+          .eq("hubspot_deal_id", deal.id);
+
+        if (prospectUpdateError) {
+          console.error("❌ Error updating prospect:", prospectUpdateError);
+          toast.error("Failed to update deal data");
+        } else {
+          console.log("✅ Prospect updated successfully");
+
+          // Update local state
+          setAllInsights((prevProspects) =>
+            prevProspects.map((p) =>
+              p.id === selectedProspect.id
+                ? {
+                    ...p,
+                    name: deal.properties.dealname,
+                    deal_value: deal.properties.amount
+                      ? parseFloat(deal.properties.amount)
+                      : null,
+                    close_date: deal.properties.closedate,
+                    deal_stage: deal.properties.dealstage,
+                    hubspot_updated_at: deal.updatedAt,
+                  }
+                : p
+            )
+          );
+
+          // Update selected prospect
+          setSelectedProspect((prev) => ({
+            ...prev,
+            name: deal.properties.dealname,
+            amount: deal.properties.amount
+              ? parseFloat(deal.properties.amount)
+              : null,
+            close_date: deal.properties.closedate,
+            deal_stage: deal.properties.dealstage,
+            hubspot_updated_at: deal.updatedAt,
+            company: {
+              ...prev.company,
+              name: companyData[0]?.properties?.name || prev.company.name,
+            },
+          }));
+        }
+      }
+
+      // Show success message
+      const updates = [];
+      if (companyData?.length > 0) updates.push("company");
+      if (dealData?.length > 0) updates.push("deal");
+
+      if (updates.length > 0) {
+        toast.success(`Successfully synced ${updates.join(", ")} from HubSpot`);
+      } else {
+        toast.info("No new data to sync from HubSpot");
+      }
+    } catch (error) {
+      console.error("❌ Error syncing HubSpot data:", error);
+      toast.error("Failed to sync HubSpot data: " + error.message);
+    } finally {
+      setIsSyncingHubspot(false);
+    }
+  };
+
+  const handlePushToHubSpot = async () => {
+    if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
+      toast.error("HubSpot integration not available");
+      return;
+    }
+
+    if (!selectedProspect?.hubspot_deal_id) {
+      toast.error("This deal is not synced with HubSpot");
+      return;
+    }
+
+    if (!selectedProspect?.company_id) {
+      toast.error("Company is not synced with HubSpot");
+      return;
+    }
+
+    if (totalInsightsCount === 0) {
+      toast.error("No insights available to push");
+      return;
+    }
+
+    setIsPushingToHubSpot(true);
+
+    try {
+      const companyData = await dbHelpers.getHubspotCompanyId(selectedProspect);
+      console.log(companyData, "check company data");
+
+      // Create formatted HTML content for HubSpot
+      const formatInsightsForHubSpot = (insights) => {
+        const allInsights = [];
+
+        // Process each insight category
+        insights.forEach((category) => {
+          if (category.insights && category.insights.length > 0) {
+            const selectedInsights = category.insights.filter(
+              (insight) => insight.is_selected
+            );
+            if (selectedInsights.length > 0) {
+              allInsights.push({
+                type: category.type,
+                averageScore: category.average_score,
+                insights: selectedInsights,
+              });
+            }
+          }
+        });
+
+        if (allInsights.length === 0) {
+          return "<p>No insights available to push.</p>";
+        }
+
+        // Create clean, professional HTML content
+        let htmlContent = `
+          <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px;">
+            <div style="background: #f8f9fa; border-left: 4px solid #007bff; padding: 16px; margin-bottom: 20px;">
+              <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #007bff;">SalesGenius AI Insights</h2>
+              <p style="margin: 0; font-size: 14px; color: #6c757d;">Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+        `;
+
+        allInsights.forEach((category) => {
+          const categoryTitle = category.type
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+
+          htmlContent += `
+            <div style="margin-bottom: 20px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 8px;">
+                ${categoryTitle}
+                <span style="font-weight: normal; font-size: 14px; color: #6c757d; margin-left: 8px;">(Avg Score: ${category.averageScore.toFixed(
+                  1
+                )})</span>
+              </h3>
+              <div style="background: #ffffff; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px;">
+          `;
+
+          category.insights.forEach((insight, index) => {
+            htmlContent += `
+              <div style="margin-bottom: ${
+                index < category.insights.length - 1 ? "16px" : "0"
+              }; ${
+              index < category.insights.length - 1
+                ? "border-bottom: 1px solid #f1f3f4; padding-bottom: 16px;"
+                : ""
+            }">
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 500; color: #212529;">${
+                  insight.content
+                }</p>
+                <div style="font-size: 13px; color: #6c757d;">
+                  <span style="margin-right: 16px;"><strong>Speaker:</strong> ${
+                    insight.speaker || "Unknown"
+                  }</span>
+                  <span style="margin-right: 16px;"><strong>Score:</strong> ${
+                    insight.relevance_score || "N/A"
+                  }</span>
+                  <span><strong>Source:</strong> ${
+                    insight.source || "N/A"
+                  }</span>
+                </div>
+              </div>
+            `;
+          });
+
+          htmlContent += `
+              </div>
+            </div>
+          `;
+        });
+
+        // Add simple summary
+        const totalInsights = allInsights.reduce(
+          (sum, category) => sum + category.insights.length,
+          0
+        );
+        htmlContent += `
+          <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 4px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; color: #6c757d; font-weight: 500;">
+              Total: ${totalInsights} insights across ${allInsights.length} categories
+            </p>
+          </div>
+          </div>
+        `;
+
+        return htmlContent;
+      };
+
+      // Format insights for HubSpot body with HTML
+      const formattedBody = formatInsightsForHubSpot(insights);
+
+      // Prepare API payload
+      const payload = {
+        Hubspotdata: {
+          engagement: {
+            active: true,
+            ownerId: hubspotIntegration.hubspotUserId,
+            timestamp: Date.now(),
+            type: "NOTE",
+          },
+          associations: {
+            dealIds: [selectedProspect.hubspot_deal_id],
+            companyIds: [companyData?.hubspot_company_id],
+          },
+          metadata: {
+            body: formattedBody.trim(),
+          },
+        },
+        id: user?.organization_id,
+        dealid: selectedProspect.hubspot_deal_id,
+        companyid: companyData?.hubspot_company_id,
+        ownerId: hubspotIntegration.hubspotUserId,
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}SI-push-HS`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      toast.success("Data successfully pushed to HubSpot!");
+    } catch (error) {
+      console.error("Error pushing to HubSpot:", error);
+      toast.error("Failed to push insights to HubSpot: " + error.message);
+    } finally {
+      setIsPushingToHubSpot(false);
+    }
+  };
+
+  // Helper function to get category colors
+  const getCategoryColor = (type) => {
+    const colorMap = {
+      buying_signal: "#28a745", // Green
+      pain_point: "#dc3545", // Red
+      risk_or_objection: "#fd7e14", // Orange
+      competitor_mention: "#6f42c1", // Purple
+      decision_maker_identified: "#007bff", // Blue
+      budget_insight: "#20c997", // Teal
+      timeline_insight: "#ffc107", // Yellow
+      champion_identified: "#e83e8c", // Pink
+      my_insights: "#6c757d", // Gray
+    };
+    return colorMap[type] || "#6c757d";
+  };
+
+  // Helper function to get score colors
+  const getScoreColor = (score) => {
+    if (score >= 80) return "#28a745"; // Green for high scores
+    if (score >= 60) return "#ffc107"; // Yellow for medium scores
+    if (score >= 40) return "#fd7e14"; // Orange for low scores
+    return "#dc3545"; // Red for very low scores
   };
 
   // console.log(allInsights, "check all insights");
@@ -1149,7 +1645,13 @@ const CallInsights = () => {
                             ? "border-primary bg-primary/5 shadow-md"
                             : "border-border hover:border-primary/50"
                         )}
-                        onClick={() =>
+                        onClick={async () => {
+                          const callNotes = prospect?.is_hubspot
+                            ? await dbHelpers.getCallNotes(
+                                prospect?.id,
+                                user?.id
+                              )
+                            : [];
                           handleProspectSelect({
                             id: prospect.id,
                             name: prospect.name,
@@ -1161,7 +1663,7 @@ const CallInsights = () => {
                             lastCallDate: prospect.created_at,
                             lastEngagement,
                             status,
-                            dealValue,
+                            deal_value: prospect?.deal_value || "TBD",
                             probability,
                             nextAction: "Initial follow-up",
                             dataSources: {
@@ -1176,8 +1678,13 @@ const CallInsights = () => {
                             call_summary: prospect?.call_summary,
                             communication_style_ids:
                               prospect?.communication_style_ids,
-                          })
-                        }
+                            is_hubspot: prospect?.is_hubspot || false,
+                            hubspot_deal_id: prospect?.hubspot_deal_id || null,
+                            deal_stage: prospect?.deal_stage || null,
+                            hubspotDataCount: callNotes?.length || 0,
+                            researchCompanyId: prospect?.research_id || null,
+                          });
+                        }}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
@@ -1206,7 +1713,17 @@ const CallInsights = () => {
                             <span className="text-muted-foreground">
                               Deal Value:
                             </span>
-                            <span className="font-medium">{dealValue}</span>
+                            <span className="font-medium">
+                              {prospect?.deal_value || "TBD"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Deal Stage:
+                            </span>
+                            <span className="font-medium">
+                              {prospect?.deal_stage || "-"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
@@ -1258,6 +1775,35 @@ const CallInsights = () => {
                   <Building className="w-5 h-5" />
                   <span>Company Information</span>
                 </div>
+                {selectedProspect?.is_hubspot &&
+                  selectedProspect?.hubspot_deal_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncHubspotData}
+                      disabled={
+                        isSyncingHubspot || !hubspotIntegration?.connected
+                      }
+                      className="
+    border border-orange-500 text-orange-500 
+    hover:bg-orange-500 hover:text-white 
+    transition-all duration-200 ease-in-out 
+    flex items-center space-x-1 font-medium rounded-md
+  "
+                    >
+                      {isSyncingHubspot ? (
+                        <>
+                          <span>Syncing</span>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Sync from HubSpot</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1314,11 +1860,14 @@ const CallInsights = () => {
           {/* Cummulative Intelligence Section */}
           <Card data-tour="cumulative-intelligence">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="w-5 h-5" />
-                <span>Cumulative Intelligence</span>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Database className="w-5 h-5" />
+                  <span>Cumulative Intelligence</span>
+                </div>
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               <div className="grid md:grid-cols-4 gap-4 mb-4">
                 <div className="flex items-center space-x-2">
@@ -1347,32 +1896,42 @@ const CallInsights = () => {
                         : "text-gray-400"
                     )}
                   />
-                  <span className="text-sm">HubSpot Data:</span>
-                  <Badge
-                    variant={
-                      selectedProspect.dataSources.hubspot > 0
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {selectedProspect.dataSources.hubspot}
-                  </Badge>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      HubSpot:
+                    </span>
+                    <Badge
+                      variant={
+                        selectedProspect?.hubspotDataCount > 0
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      <span className="font-medium">
+                        {selectedProspect?.hubspotDataCount}
+                      </span>
+                    </Badge>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText
                     className={cn(
                       "w-4 h-4",
-                      researchCompanyCount > 0
+                      selectedProspect?.researchCompanyId != null
                         ? "text-purple-600"
                         : "text-gray-400"
                     )}
                   />
                   <span className="text-sm">Research:</span>
                   <Badge
-                    // variant={researchCompanyCount > 0 ? "default" : "secondary"}
-                    variant={"secondary"}
+                    variant={
+                      selectedProspect?.researchCompanyId != null
+                        ? "default"
+                        : "secondary"
+                    }
+                    // variant={"secondary"}
                   >
-                    0{/* {researchCompanyCount} */}
+                    {selectedProspect?.researchCompanyId != null ? 1 : 0}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1398,7 +1957,10 @@ const CallInsights = () => {
               </div>
 
               {cummulativeSpinner ? (
-                <Skeleton className="h-4 w-full" />
+                <>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {cummulativeSummary || ""}
@@ -1417,13 +1979,45 @@ const CallInsights = () => {
                     {totalInsightsCount} insights
                   </Badge>
                 </div>
-                <Button
-                  onClick={() => setIsAddingInsight(true)}
-                  disabled={isAddingInsight}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Insight
-                </Button>
+                <div className="flex items-center space-x-2">
+                  {console.log(hubspotIntegration, "hubspot integration")}
+                  {hubspotIntegration?.connected &&
+                    hubspotIntegration?.hubspotUserId &&
+                    hubspotIntegration?.hubspotUserId != undefined &&
+                    selectedProspect?.is_hubspot && (
+                      <Button
+                        variant="outline"
+                        onClick={handlePushToHubSpot}
+                        disabled={
+                          totalInsightsCount === 0 ||
+                          !hubspotIntegration?.connected ||
+                          isPushingToHubSpot
+                        }
+                        size="sm"
+                      >
+                        {isPushingToHubSpot ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            Pushing...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Push to HubSpot
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                  <Button
+                    onClick={() => setIsAddingInsight(true)}
+                    disabled={isAddingInsight}
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Insight
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1500,7 +2094,7 @@ const CallInsights = () => {
                   </div>
                 </div>
               )}
-
+              {/* {console.log(insights, "get insights data 1")} */}
               {/* Insights List */}
               {insights?.map((insight, index) => {
                 const typeConfig = insightTypes[insight?.type] || {
@@ -1602,6 +2196,26 @@ const CallInsights = () => {
                                         <strong>Score:</strong>{" "}
                                         {x.relevance_score || "N/A"}
                                       </span>
+                                      <span>
+                                        <strong>Source:</strong>{" "}
+                                        <Badge
+                                          variant="outline"
+                                          className={`font-medium ${getSourceColor(
+                                            x.source
+                                          )}`}
+                                        >
+                                          {x?.source
+                                            ? x?.source
+                                                .charAt(0)
+                                                .toUpperCase() +
+                                              x?.source.slice(1)
+                                            : "" || "AI Analysis"}
+                                        </Badge>
+                                        {/* {x?.source
+                                          ? x?.source.charAt(0).toUpperCase() +
+                                            x?.source.slice(1)
+                                          : ""} */}
+                                      </span>
                                     </div>
                                   </div>
                                   <Textarea
@@ -1659,7 +2273,7 @@ const CallInsights = () => {
                                   </p>
 
                                   {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded shadow-lg p-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-10 pointer-events-none">
+                                  {/* <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white border rounded shadow-lg p-2 text-xs text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-max max-w-xs z-[9999] pointer-events-none">
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">
                                         Speaker:
@@ -1672,9 +2286,67 @@ const CallInsights = () => {
                                       </span>
                                       <span>{x.relevance_score || "N/A"}</span>
                                     </div>
-                                    {/* Arrow pointer */}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-b border-r rotate-45"></div>
-                                  </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">
+                                        Source:
+                                      </span>
+                                      <span>{x.source || "Current"}</span>
+                                    </div>
+                                  </div> */}
+
+                                  {/* Tooltip using Radix UI */}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="absolute inset-0 cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        align="center"
+                                        className="z-[9999] bg-white border border-gray-200 rounded-md shadow-lg p-3 text-xs max-w-xs"
+                                        sideOffset={5}
+                                      >
+                                        <div className="space-y-1">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Speaker:
+                                            </span>
+                                            <span className="text-gray-600">
+                                              {x.speaker || "Unknown"}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Relevance Score:
+                                            </span>
+                                            <span className="text-gray-600">
+                                              {x.relevance_score || "N/A"}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-gray-700">
+                                              Source:
+                                            </span>
+                                            {/* <span
+                                              className={`font-medium ${getSourceColor(
+                                                x.source
+                                              )}`}
+                                            >
+                                              {x.source || "Current"}
+                                            </span> */}
+                                            <Badge
+                                              variant="outline"
+                                              className={`font-medium ${getSourceColor(
+                                                x.source
+                                              )}`}
+                                            >
+                                              {x.source || "AI Analysis"}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
 
                                   {/* Edit and Delete buttons */}
                                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
@@ -1715,7 +2387,6 @@ const CallInsights = () => {
                 );
               })}
 
-              {/* {console.log(insights, "isAddingInsight state")} */}
               {totalInsightsCount === 0 && !isAddingInsight && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1748,7 +2419,6 @@ const CallInsights = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {console.log(cummulativeSpinner, "cummulative spinner")}
               {cummulativeSpinner ? (
                 <div className="space-y-6">
                   {/* Skeleton for stakeholder cards */}

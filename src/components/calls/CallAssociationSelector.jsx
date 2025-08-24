@@ -20,6 +20,8 @@ import {
   ChevronRight,
   ChevronDown,
   Loader2,
+  RefreshCw,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -28,10 +30,15 @@ import { CreateCompanyModal } from "./CreateCompanyModal";
 import { CreateProspectModal } from "./CreateProspectModal";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import { useSelector } from "react-redux";
+import { toast } from "sonner";
+import { config } from "../../lib/config";
+import { setCallCompanyAPI } from "../../store/slices/authSlice";
+import { useDispatch } from "react-redux";
 
 const SELECTOR_STATES = {
   SELECT_COMPANY: "select_company",
   SELECT_PROSPECT: "select_prospect",
+  SELECT_RESEARCH: "select_research",
   COMPLETE: "complete",
 };
 
@@ -40,6 +47,7 @@ export const CallAssociationSelector = ({
   onAssociationReset,
   selectedAssociation = null,
   isProcessing,
+  onFetchingStateChange,
 }) => {
   const [currentState, setCurrentState] = useState(
     SELECTOR_STATES.SELECT_COMPANY
@@ -62,6 +70,17 @@ export const CallAssociationSelector = ({
   // Modal states
   const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
   const [showCreateProspectModal, setShowCreateProspectModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const dispatch = useDispatch();
+  const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
+  const [dealNotes, setDealNotes] = useState("");
+
+  // Research company states
+  const [researchCompanies, setResearchCompanies] = useState([]);
+  const [selectedResearchCompany, setSelectedResearchCompany] = useState(null);
+  const [isLoadingResearch, setIsLoadingResearch] = useState(false);
+
+  // const [hubspotIntegrationStatus, setHubspotIntegrationStatus] = useState(null);
   const {
     userProfileInfo,
     userRole,
@@ -70,7 +89,131 @@ export const CallAssociationSelector = ({
     organizationDetails,
     user,
     hubspotIntegration,
+    callCompanyAPI,
   } = useSelector((state) => state.auth);
+  console.log(hubspotIntegration, "HubSpot Integration Status");
+  // Check HubSpot integration status on component mount
+  const handleSyncFromHubSpot = async () => {
+    dispatch(setCallCompanyAPI(false));
+    if (!user?.organization_id) {
+      toast.error("Organization information not available");
+      return;
+    }
+
+    if (!hubspotIntegration?.hubspotUserId) {
+      toast.error("Hubspot information is not available for for your account");
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      // Call HubSpot API to get companies
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.hubspotCompanies
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HubSpot API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const apiData = await response.json();
+      console.log("📊 HubSpot API response:", apiData);
+
+      const result = await dbHelpers.syncHubSpotCompanies(
+        user.organization_id,
+        hubspotIntegration,
+        user?.id,
+        apiData
+      );
+
+      toast.success(
+        `Sync completed: ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
+      );
+
+      // Refresh companies list
+      setCompanySearch(" "); // Trigger search refresh
+
+      setTimeout(() => setCompanySearch(""), 100);
+    } catch (error) {
+      console.error("Error syncing HubSpot companies:", error);
+      toast.error("Failed to sync companies from HubSpot: " + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  // console.log(selectedCompany, "Selected Company in CallAssociationSelector");
+
+  const handleSyncFromHubSpotDeals = async (companyDetails) => {
+    if (!user?.organization_id) {
+      toast.error("Organization information not available");
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      // Call HubSpot API to get companies
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.hubspotDeals
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user?.organization_id,
+            ownerid: hubspotIntegration?.hubspotUserId,
+            companyid: companyDetails?.hubspot_company_id || "",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HubSpot API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const apiData = await response.json();
+      console.log("📊 HubSpot API response:", apiData);
+
+      const result = await dbHelpers.syncHubSpotDeals(
+        companyDetails?.id,
+        user.organization_id,
+        hubspotIntegration?.hubspotUserId,
+        user?.id,
+        apiData
+      );
+
+      toast.success(
+        `Sync completed: ${result.inserted} new, ${result.updated} updated, ${result.failed} failed`
+      );
+
+      // Refresh companies list
+      setProspectSearch(" "); // Trigger search refresh
+      setTimeout(() => setProspectSearch(""), 100);
+    } catch (error) {
+      console.error("Error syncing HubSpot companies:", error);
+      toast.error("Failed to sync companies from HubSpot: " + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Initialize from props if provided
   useEffect(() => {
@@ -80,7 +223,7 @@ export const CallAssociationSelector = ({
       setCurrentState(SELECTOR_STATES.COMPLETE);
     }
   }, [selectedAssociation]);
-
+  console.log(hubspotIntegration, "HubSpot Integration Status");
   // Search companies
   useEffect(() => {
     if (companySearch.trim().length > 0 && companySearch.trim().length < 2) {
@@ -127,6 +270,12 @@ export const CallAssociationSelector = ({
     return () => clearTimeout(debounceTimer);
   }, [companySearch, currentState]);
 
+  useEffect(() => {
+    if (callCompanyAPI && hubspotIntegration?.connected) {
+      handleSyncFromHubSpot();
+    }
+  }, []);
+
   // Search prospects
   useEffect(() => {
     if (prospectSearch.trim().length > 0 && prospectSearch.trim().length < 2) {
@@ -166,28 +315,273 @@ export const CallAssociationSelector = ({
     const debounceTimer = setTimeout(searchProspects, 300);
     return () => clearTimeout(debounceTimer);
   }, [prospectSearch, currentState, selectedCompany]);
-
+  console.log(
+    hubspotIntegration?.connected &&
+      hubspotIntegration?.hubspotUserId &&
+      hubspotIntegration?.hubspotUserId != undefined &&
+      selectedCompany?.hubspot_company_id,
+    "HubSpot Deal Sync Check"
+  );
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     setCompanySearch("");
     setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
+    if (
+      hubspotIntegration?.connected &&
+      hubspotIntegration?.hubspotUserId &&
+      hubspotIntegration?.hubspotUserId != undefined &&
+      company?.hubspot_company_id
+    ) {
+      handleSyncFromHubSpotDeals(company);
+    }
+    console.log(company, "Selected Company in CallAssociationSelector");
   };
-
+  console.log(selectedProspect, "Selected Prospect in CallAssociationSelector");
   const handleProspectSelect = (prospect) => {
     setSelectedProspect(prospect);
     setProspectSearch("");
-    setCurrentState(SELECTOR_STATES.COMPLETE);
 
-    // Notify parent component
+    // Fetch HubSpot deal notes if this is a HubSpot deal
+    if (
+      prospect.is_hubspot &&
+      prospect.hubspot_deal_id &&
+      prospect.hubspot_deals_processed !== true
+    ) {
+      console.log("🔄 Prospect selected - fetching HubSpot deal notes for:", {
+        prospectName: prospect.name,
+        hubspotDealId: prospect.hubspot_deal_id,
+        isHubspot: prospect.is_hubspot,
+      });
+      fetchHubSpotDealNotes(prospect.hubspot_deal_id, prospect.id);
+    } else {
+      console.log(
+        "📭 No HubSpot deal notes to fetch - not a HubSpot deal or missing deal ID:",
+        {
+          isHubspot: prospect.is_hubspot,
+          hubspotDealId: prospect.hubspot_deal_id,
+        }
+      );
+      setDealNotes(""); // Clear any existing deal notes
+    }
+
+    // Check if prospect already has research_id
+    if (prospect.research_id) {
+      console.log(
+        "✅ Prospect already has research data, skipping research selection:",
+        {
+          prospectId: prospect.id,
+          researchId: prospect.research_id,
+        }
+      );
+
+      // Skip research selection and go directly to complete
+      setSelectedResearchCompany(null);
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      onAssociationChange({
+        company: selectedCompany,
+        prospect: prospect,
+        researchCompany: null,
+        dealNotes: dealNotes,
+        skipReason: "already_has_research",
+      });
+    } else {
+      // Check for research company data for this user (after deal notes fetch)
+      checkForResearchCompanyData();
+    }
+  };
+
+  const fetchHubSpotDealNotes = async (hubspotDealId, dealId) => {
+    console.log("🚀 Starting fetchHubSpotDealNotes with:", {
+      hubspotDealId,
+      dealId,
+      organizationId: user?.organization_id,
+      hubspotUserId: hubspotIntegration?.hubspotUserId,
+    });
+
+    setIsFetchingDealNotes(true);
+    onFetchingStateChange?.(true);
+
+    try {
+      // Validate required data
+      if (!user?.organization_id) {
+        throw new Error("Organization ID not available");
+      }
+      if (!hubspotIntegration?.hubspotUserId) {
+        throw new Error("HubSpot user ID not available");
+      }
+
+      const result = await dbHelpers.getHubSpotDealNotes(
+        dealId,
+        user?.organization_id,
+        hubspotDealId,
+        user,
+        hubspotIntegration?.hubspotUserId
+      );
+
+      console.log("✅ HubSpot Deal Notes Result:", {
+        fromCache: result.fromCache,
+        notesCount: result.notes?.length || 0,
+        mergedNotesLength: result.mergedNotes?.length || 0,
+        message: result.message,
+      });
+
+      if (result.fromCache) {
+        console.log("📋 Deal notes loaded from cache");
+        toast.success("Deal notes fetched successfully");
+      } else {
+        console.log("📝 Deal notes synced from HubSpot");
+        if (result.notes.length > 0) {
+          toast.success(
+            `Fetched ${result.notes.length} deal notes from HubSpot`
+          );
+        } else {
+          console.log("📭 No deal notes found in HubSpot");
+          toast.info("No deal notes found for this deal");
+        }
+      }
+
+      // Set the merged notes in state
+      setDealNotes(result.mergedNotes || "");
+      console.log(
+        "💾 Deal notes set in state:",
+        result.mergedNotes?.length || 0,
+        "characters"
+      );
+    } catch (error) {
+      console.error("❌ Error fetching HubSpot deal notes:", error);
+      toast.error("Failed to fetch deal notes: " + error.message);
+      setDealNotes(""); // Clear deal notes on error
+    } finally {
+      setIsFetchingDealNotes(false);
+      onFetchingStateChange?.(false);
+    }
+  };
+
+  // Function to check for research company data for the current user
+  const checkForResearchCompanyData = async () => {
+    if (!user?.id) return;
+
+    setIsLoadingResearch(true);
+    try {
+      console.log("🔍 Checking for research data for user:", user.id);
+
+      // Get all research companies for this user
+      const { data: researchData, error } = await supabase
+        .from("ResearchCompany")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching research companies:", error);
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        return;
+      }
+
+      console.log("📊 Found research companies:", researchData?.length || 0);
+
+      // If no research data exists, skip research screen
+      if (!researchData || researchData.length === 0) {
+        console.log("📭 No research data found, skipping research screen");
+        setResearchCompanies([]);
+        setSelectedResearchCompany(null);
+        setCurrentState(SELECTOR_STATES.COMPLETE);
+        onAssociationChange({
+          company: selectedCompany,
+          prospect: selectedProspect,
+          researchCompany: null,
+        });
+        return;
+      }
+
+      // If research data exists, show research selection screen
+      setResearchCompanies(researchData);
+
+      // Try to find a matching research company by name, otherwise use the first one
+      const normalizedCompanyName = selectedCompany.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+      const matchingResearch = researchData.find((research) => {
+        const normalizedResearchName = research.company_name
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+        return normalizedResearchName === normalizedCompanyName;
+      });
+
+      setSelectedResearchCompany(matchingResearch || null);
+      setCurrentState(SELECTOR_STATES.SELECT_RESEARCH);
+
+      if (matchingResearch) {
+        console.log(
+          "✅ Found matching research company:",
+          matchingResearch.company_name
+        );
+      } else {
+        console.log("📋 No exact match, defaulting to most recent research");
+      }
+    } catch (error) {
+      console.error("Error checking research companies:", error);
+      setCurrentState(SELECTOR_STATES.COMPLETE);
+      onAssociationChange({
+        company: selectedCompany,
+        prospect: selectedProspect,
+        researchCompany: null,
+      });
+    } finally {
+      setIsLoadingResearch(false);
+    }
+  };
+
+  // Function to handle research company selection
+  const handleResearchCompanySelect = (researchCompany) => {
+    setSelectedResearchCompany(researchCompany);
+  };
+
+  const handleUseResearch = () => {
+    setCurrentState(SELECTOR_STATES.COMPLETE);
     onAssociationChange({
       company: selectedCompany,
-      prospect: prospect,
+      prospect: selectedProspect,
+      researchCompany: selectedResearchCompany,
+      dealNotes: dealNotes,
     });
+  };
+
+  const handleSkipResearch = () => {
+    setSelectedResearchCompany(null);
+    setCurrentState(SELECTOR_STATES.COMPLETE);
+    onAssociationChange({
+      company: selectedCompany,
+      prospect: selectedProspect,
+      researchCompany: null,
+      dealNotes: dealNotes,
+    });
+  };
+
+  const handleEditCompanyFromResearch = () => {
+    setSelectedCompany(null);
+    setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
+    setCompanySearch("");
+    setProspectSearch("");
+    setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
+  };
+
+  const handleEditProspectFromResearch = () => {
+    setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
+    setProspectSearch("");
+    setCurrentState(SELECTOR_STATES.SELECT_PROSPECT);
   };
 
   const handleReset = () => {
     setSelectedCompany(null);
     setSelectedProspect(null);
+    setSelectedResearchCompany(null);
+    setResearchCompanies([]);
     setCompanySearch("");
     setProspectSearch("");
     setCurrentState(SELECTOR_STATES.SELECT_COMPANY);
@@ -214,24 +608,57 @@ export const CallAssociationSelector = ({
               <label className="text-sm font-medium text-gray-700">
                 Select Company
               </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  data-tour="company-selector"
-                  placeholder="Search for a company..."
-                  value={companySearch}
-                  onChange={(e) => setCompanySearch(e.target.value)}
-                  className="pl-10"
-                  aria-invalid={companySearchError ? "true" : "false"}
-                />
-                {loadingCompanies && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-                )}
+              <div className="flex space-x-2 items-center">
+                {/* Search Input with Icon */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    data-tour="company-selector"
+                    placeholder="Search for a company..."
+                    value={companySearch}
+                    onChange={(e) => setCompanySearch(e.target.value)}
+                    className="pl-10"
+                    aria-invalid={companySearchError ? "true" : "false"}
+                  />
+                  {loadingCompanies && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+
+                {/* Sync Button */}
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspotUserId &&
+                  hubspotIntegration?.hubspotUserId != undefined && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncFromHubSpot}
+                            disabled={isSyncing}
+                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                          >
+                            {isSyncing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sync companies from HubSpot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
               </div>
 
               {/* Company Results */}
               {companySearchError && (
-                <p className="text-sm text-red-600 mt-1">{companySearchError}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {companySearchError}
+                </p>
               )}
               {
                 <div
@@ -261,12 +688,43 @@ export const CallAssociationSelector = ({
                         >
                           <Building className="w-4 h-4 mr-2 text-gray-400" />
                           <div className="text-left">
-                            <div className="font-medium line-clamp-2-wrap">
-                              {company.name}
+                            <div className="flex items-center max-w-[350px]">
+                              <span className="font-medium truncate overflow-hidden whitespace-nowrap">
+                                {company.name}
+                              </span>
+                              {company.is_hubspot && (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0"
+                                >
+                                  HubSpot
+                                </Badge>
+                              )}
                             </div>
+                            {/* <div className="font-medium line-clamp-2-wrap">
+                              {company.name}
+                              {company.is_hubspot && (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                >
+                                  HubSpot
+                                </Badge>
+                              )}
+                            </div> */}
                             {company.domain && (
                               <div className="text-sm text-gray-500">
                                 {company.domain}
+                              </div>
+                            )}
+                            {company.industry && (
+                              <div className="text-sm text-gray-500">
+                                {company.industry}
+                              </div>
+                            )}
+                            {company.city && (
+                              <div className="text-sm text-gray-500">
+                                📍 {company.city}
                               </div>
                             )}
                           </div>
@@ -287,6 +745,14 @@ export const CallAssociationSelector = ({
                   <span className="font-medium text-foreground truncate max-w-[250px]">
                     {selectedCompany.name}
                   </span>
+                  {selectedCompany.is_hubspot && (
+                    <Badge
+                      variant="outline"
+                      className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                    >
+                      HubSpot
+                    </Badge>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -302,27 +768,61 @@ export const CallAssociationSelector = ({
                 Select Deal
               </label>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  data-tour="prospect-selector"
-                  placeholder="Search for a deal..."
-                  value={prospectSearch}
-                  onChange={(e) => setProspectSearch(e.target.value)}
-                  className="pl-10"
-                  aria-invalid={prospectSearchError ? "true" : "false"}
-                />
-                {loadingProspects && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-                )}
+              <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    data-tour="prospect-selector"
+                    placeholder="Search for a deal..."
+                    value={prospectSearch}
+                    onChange={(e) => setProspectSearch(e.target.value)}
+                    className="pl-10"
+                    aria-invalid={prospectSearchError ? "true" : "false"}
+                  />
+                  {loadingProspects && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+                {hubspotIntegration?.connected &&
+                  hubspotIntegration?.hubspotUserId &&
+                  hubspotIntegration?.hubspotUserId != undefined &&
+                  selectedCompany?.hubspot_company_id && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              handleSyncFromHubSpotDeals(selectedCompany)
+                            }
+                            disabled={isSyncing}
+                            className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
+                          >
+                            {isSyncing ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sync deals from HubSpot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
               </div>
 
               {/* Prospect Results - Separate container */}
               {prospectSearchError && (
-                <p className="text-sm text-red-600 mt-1">{prospectSearchError}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {prospectSearchError}
+                </p>
               )}
               <div className="space-y-3 mt-3">
                 {/* Create New Deal Button - Moved above the list */}
+
                 <Button
                   variant="ghost"
                   className="w-full justify-start p-3 text-blue-600 hover:bg-blue-50 font-medium border border-gray-200 rounded-md mb-2"
@@ -348,7 +848,7 @@ export const CallAssociationSelector = ({
                           key={prospect.id}
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start p-3 hover:bg-gray-100 transition-colors h-14",
+                            "w-full justify-start p-3 hover:bg-gray-50 transition-colors h-14",
                             selectedProspect?.id === prospect.id
                               ? "bg-blue-100 text-blue-700 border-l-4 border-blue-500 shadow-md"
                               : ""
@@ -359,16 +859,61 @@ export const CallAssociationSelector = ({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="flex items-center justify-between w-full py-1">
-                                  <span className="font-medium text-left truncate overflow-hidden whitespace-nowrap max-w-[250px]">
-                                    {prospect.name}
-                                  </span>
+                                  <div className="text-left flex-1">
+                                    {/* <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[250px] flex items-center">
+                                      {prospect.name}
+                                      {prospect.is_hubspot && (
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                        >
+                                          HubSpot
+                                        </Badge>
+                                      )}
+                                    </div> */}
+                                    <div className="flex items-center max-w-[470px]">
+                                      <span className="font-medium truncate overflow-hidden whitespace-nowrap">
+                                        {prospect.name}
+                                      </span>
+                                      {prospect.is_hubspot && (
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0"
+                                        >
+                                          HubSpot
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                   {selectedProspect?.id === prospect.id ? (
                                     <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
                                   ) : null}
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{prospect.name}</p>
+                                <div>
+                                  <p className="font-medium">{prospect.name}</p>
+                                  {prospect.deal_stage && (
+                                    <p className="text-xs">
+                                      Stage: {prospect.deal_stage}
+                                    </p>
+                                  )}
+                                  {prospect.deal_value && (
+                                    <p className="text-xs">
+                                      Value: $
+                                      {prospect.deal_value.toLocaleString() ||
+                                        0}
+                                    </p>
+                                  )}
+                                  {prospect.close_date && (
+                                    <p className="text-xs">
+                                      Close:{" "}
+                                      {new Date(
+                                        prospect.close_date
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -381,8 +926,184 @@ export const CallAssociationSelector = ({
             </div>
           )}
 
+          {/* State 3: Select Research Company */}
+          {currentState === SELECTOR_STATES.SELECT_RESEARCH && (
+            <div className="space-y-4">
+              {/* Previous Selections Display */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Building className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {selectedCompany?.name}
+                    </span>
+                    {selectedCompany?.is_hubspot && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                      >
+                        HubSpot
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditCompanyFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {selectedProspect?.name}
+                    </span>
+                    {selectedProspect?.is_hubspot && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-orange-100 text-orange-800 border-orange-200"
+                      >
+                        HubSpot
+                      </Badge>
+                    )}
+                  </div>
+                  {/* <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditProspectFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button> */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditProspectFromResearch}
+                    className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* <label className="text-sm font-medium text-gray-700">
+                Research Data Found
+              </label> */}
+
+              {/* Research Found Message */}
+              <div className="flex items-center space-x-2 text-blue-600 mb-3">
+                <Search className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Found {researchCompanies.length} research profile
+                  {researchCompanies.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-4">
+                Using research data will enhance AI processing with
+                company-specific insights.
+              </p>
+
+              {/* Research Company Selection */}
+              <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                {researchCompanies.map((research) => (
+                  <Button
+                    key={research.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0",
+                      selectedResearchCompany?.id === research.id
+                        ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
+                        : ""
+                    )}
+                    onClick={() => handleResearchCompanySelect(research)}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="font-medium truncate flex items-center">
+                          {research.company_name}
+                          {selectedResearchCompany?.id === research.id && (
+                            <Check className="w-4 h-4 ml-2 text-blue-600" />
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Created:{" "}
+                          {new Date(research.created_at).toLocaleDateString()}
+                        </div>
+                        {/* {research.summary_note && (
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {research.summary_note.substring(0, 80)}...
+                          </div>
+                        )} */}
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  className="flex-1"
+                  onClick={handleUseResearch}
+                  disabled={!selectedResearchCompany}
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Use Selected Research
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSkipResearch}
+                  className="flex-1"
+                >
+                  Skip Research
+                </Button>
+              </div>
+            </div>
+          )}
+
           {currentState === SELECTOR_STATES.COMPLETE && (
             <div className="space-y-3">
+              {/* Deal Notes Fetching Progress */}
+              {isFetchingDealNotes && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        Fetching deal notes from HubSpot...
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        Getting cumulative sales insights to enhance processing
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Research Already Processed Alert */}
+              {(selectedAssociation?.skipReason === "already_has_research" ||
+                selectedProspect?.research_id) && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        Research Data Already Processed
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        This company ({selectedCompany?.name}) already has
+                        research data processed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-green-800">
@@ -414,7 +1135,7 @@ export const CallAssociationSelector = ({
                   <div className="flex items-center space-x-2">
                     <DollarSign className="w-4 h-4 text-green-600" />
                     <span className="text-sm flex items-center">
-                      <span className="font-medium mr-1">Prospect:</span>
+                      <span className="font-medium mr-1">Deal:</span>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -429,13 +1150,47 @@ export const CallAssociationSelector = ({
                       </TooltipProvider>
                     </span>
                   </div>
+
+                  {selectedResearchCompany && (
+                    <div className="flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-green-600" />
+                      <span className="text-sm flex items-center">
+                        <span className="font-medium mr-1">Research:</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate overflow-hidden whitespace-nowrap max-w-[200px]">
+                                {selectedResearchCompany?.company_name}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{selectedResearchCompany?.company_name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedAssociation?.skipReason ===
+                    "already_has_research" && (
+                    <div className="flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm flex items-center">
+                        <span className="font-medium mr-1">Research:</span>
+                        <span className="text-blue-600">
+                          Previously processed
+                        </span>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <Button
                   variant="outline"
-                  className="w-full hover:bg-green-100 transition-colors mt-2"
+                  size="sm"
                   onClick={handleReset}
-                  disabled={isProcessing}
+                  className="w-full mt-3"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Change Selection
@@ -458,6 +1213,7 @@ export const CallAssociationSelector = ({
         onClose={() => setShowCreateProspectModal(false)}
         onProspectCreated={handleProspectCreated}
         companyId={selectedCompany?.id}
+        selectedCompany={selectedCompany}
       />
     </>
   );
