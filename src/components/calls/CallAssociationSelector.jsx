@@ -687,8 +687,8 @@ export const CallAssociationSelector = ({
                           onClick={() => handleCompanySelect(company)}
                         >
                           <Building className="w-4 h-4 mr-2 text-gray-400" />
-                          <div className="text-left">
-                            <div className="font-medium line-clamp-2-wrap">
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="font-medium">
                               {company.name}
                               {company.is_hubspot && (
                                 <Badge
@@ -700,17 +700,17 @@ export const CallAssociationSelector = ({
                               )}
                             </div>
                             {company.domain && (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 truncate">
                                 {company.domain}
                               </div>
                             )}
                             {company.industry && (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 truncate">
                                 {company.industry}
                               </div>
                             )}
                             {company.city && (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 truncate">
                                 📍 {company.city}
                               </div>
                             )}
@@ -719,18 +719,9 @@ export const CallAssociationSelector = ({
                       ))}
                   </>
                 </div>
-              }
-            </div>
-          )}
-
-          {currentState === SELECTOR_STATES.SELECT_PROSPECT && (
-            <div className="space-y-3">
-              {/* Selected Company Display */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Building className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground truncate max-w-[250px]">
-                    {selectedCompany.name}
+                    <span className="truncate flex-1 min-w-0" title={selectedCompany?.name}>
+                      {selectedCompany?.name}
+                    </span>
                   </span>
                   {selectedCompany.is_hubspot && (
                     <Badge
@@ -739,18 +730,9 @@ export const CallAssociationSelector = ({
                     >
                       HubSpot
                     </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
-                >
-                  <Edit className="w-5 h-5" />
-                </Button>
-              </div>
-
+                      <span className="truncate flex-1 min-w-0" title={selectedResearchCompany?.company_name}>
+                        {selectedResearchCompany?.company_name}
+                      </span>
               <label className="text-sm font-medium text-gray-700">
                 Select Deal
               </label>
@@ -786,18 +768,9 @@ export const CallAssociationSelector = ({
                             disabled={isSyncing}
                             className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
                           >
-                            {isSyncing ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Sync deals from HubSpot</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span className="truncate flex-1 min-w-0" title={selectedProspect?.name}>
+                      {selectedProspect?.name}
+                    </span>
                   )}
               </div>
 
@@ -842,55 +815,41 @@ export const CallAssociationSelector = ({
                           )}
                           onClick={() => handleProspectSelect(prospect)}
                         >
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-between w-full py-1">
-                                  <div className="text-left flex-1">
-                                    <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[250px] flex items-center">
-                                      {prospect.name}
-                                      {prospect.is_hubspot && (
-                                        <Badge
-                                          variant="outline"
-                                          className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
-                                        >
-                                          HubSpot
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {selectedProspect?.id === prospect.id ? (
-                                    <Check className="w-5 h-5 ml-auto text-blue-600 flex-shrink-0" />
-                                  ) : null}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div>
-                                  <p className="font-medium">{prospect.name}</p>
+                          <div className="flex items-center justify-between w-full py-1">
+                            <div className="text-left flex-1 min-w-0 pr-2">
+                              <div className="font-medium flex items-center">
+                                <span className="truncate">{prospect.name}</span>
+                                {prospect.is_hubspot && (
+                                  <Badge
+                                    variant="outline"
+                                    className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0"
+                                  >
+                                    HubSpot
+                                  </Badge>
+                                )}
+                              </div>
+                              {(prospect.deal_stage || prospect.deal_value || prospect.close_date) && (
+                                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                                   {prospect.deal_stage && (
-                                    <p className="text-xs">
-                                      Stage: {prospect.deal_stage}
-                                    </p>
+                                    <div className="truncate">Stage: {prospect.deal_stage}</div>
                                   )}
                                   {prospect.deal_value && (
-                                    <p className="text-xs">
-                                      Value: $
-                                      {prospect.deal_value.toLocaleString() ||
-                                        0}
-                                    </p>
+                                    <div className="truncate">
+                                      Value: ${prospect.deal_value.toLocaleString() || 0}
+                                    </div>
                                   )}
                                   {prospect.close_date && (
-                                    <p className="text-xs">
-                                      Close:{" "}
-                                      {new Date(
-                                        prospect.close_date
-                                      ).toLocaleDateString()}
-                                    </p>
+                                    <div className="truncate">
+                                      Close: {new Date(prospect.close_date).toLocaleDateString()}
+                                    </div>
                                   )}
                                 </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                              )}
+                            </div>
+                            {selectedProspect?.id === prospect.id && (
+                              <Check className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                            )}
+                          </div>
                         </Button>
                       ))}
                     </>
