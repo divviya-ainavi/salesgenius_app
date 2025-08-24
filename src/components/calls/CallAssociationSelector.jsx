@@ -719,18 +719,6 @@ export const CallAssociationSelector = ({
                       ))}
                   </>
                 </div>
-              }
-            </div>
-          )}
-
-          {/* State 2: Select Prospect */}
-          {currentState === SELECTOR_STATES.SELECT_PROSPECT && (
-            <div className="space-y-3">
-              {/* Selected Company Display */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Building className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
                     <span className="truncate flex-1 min-w-0" title={selectedCompany?.name}>
                       {selectedCompany?.name}
                     </span>
@@ -742,32 +730,9 @@ export const CallAssociationSelector = ({
                     >
                       HubSpot
                     </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentState(SELECTOR_STATES.SELECT_COMPANY)}
-                  className="text-muted-foreground hover:text-foreground hover:bg-gray-200 transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Research Company Display (if selected) */}
-              {selectedResearchCompany && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Search className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
                       <span className="truncate flex-1 min-w-0" title={selectedResearchCompany?.company_name}>
                         {selectedResearchCompany?.company_name}
                       </span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
               <label className="text-sm font-medium text-gray-700">
                 Select Deal
               </label>
@@ -803,42 +768,11 @@ export const CallAssociationSelector = ({
                             disabled={isSyncing}
                             className="text-orange-600 hover:bg-orange-50 border-orange-200 whitespace-nowrap"
                           >
-                            {isSyncing ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Sync deals from HubSpot</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span className="truncate flex-1 min-w-0" title={selectedProspect?.name}>
+                      {selectedProspect?.name}
+                    </span>
                   )}
               </div>
-
-              {/* Selected Prospect Display (if selected) */}
-              {selectedProspect && (
-                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">
-                      <span className="truncate flex-1 min-w-0" title={selectedProspect?.name}>
-                        {selectedProspect?.name}
-                      </span>
-                    </span>
-                    {selectedProspect.is_hubspot && (
-                      <Badge
-                        variant="outline"
-                        className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
-                      >
-                        HubSpot
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Prospect Results - Separate container */}
               {prospectSearchError && (
