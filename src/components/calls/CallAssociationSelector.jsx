@@ -330,7 +330,7 @@ export const CallAssociationSelector = ({
       hubspotIntegration?.connected &&
       hubspotIntegration?.hubspotUserId &&
       hubspotIntegration?.hubspotUserId != undefined &&
-      selectedCompany?.hubspot_company_id
+      company?.hubspot_company_id
     ) {
       handleSyncFromHubSpotDeals(company);
     }
