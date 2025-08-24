@@ -688,7 +688,20 @@ export const CallAssociationSelector = ({
                         >
                           <Building className="w-4 h-4 mr-2 text-gray-400" />
                           <div className="text-left">
-                            <div className="font-medium line-clamp-2-wrap">
+                            <div className="flex items-center max-w-[350px]">
+                              <span className="font-medium truncate overflow-hidden whitespace-nowrap">
+                                {company.name}
+                              </span>
+                              {company.is_hubspot && (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0"
+                                >
+                                  HubSpot
+                                </Badge>
+                              )}
+                            </div>
+                            {/* <div className="font-medium line-clamp-2-wrap">
                               {company.name}
                               {company.is_hubspot && (
                                 <Badge
@@ -698,7 +711,7 @@ export const CallAssociationSelector = ({
                                   HubSpot
                                 </Badge>
                               )}
-                            </div>
+                            </div> */}
                             {company.domain && (
                               <div className="text-sm text-gray-500">
                                 {company.domain}
@@ -847,12 +860,25 @@ export const CallAssociationSelector = ({
                               <TooltipTrigger asChild>
                                 <div className="flex items-center justify-between w-full py-1">
                                   <div className="text-left flex-1">
-                                    <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[250px] flex items-center">
+                                    {/* <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[250px] flex items-center">
                                       {prospect.name}
                                       {prospect.is_hubspot && (
                                         <Badge
                                           variant="outline"
                                           className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200"
+                                        >
+                                          HubSpot
+                                        </Badge>
+                                      )}
+                                    </div> */}
+                                    <div className="flex items-center max-w-[470px]">
+                                      <span className="font-medium truncate overflow-hidden whitespace-nowrap">
+                                        {prospect.name}
+                                      </span>
+                                      {prospect.is_hubspot && (
+                                        <Badge
+                                          variant="outline"
+                                          className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-200 flex-shrink-0"
                                         >
                                           HubSpot
                                         </Badge>
