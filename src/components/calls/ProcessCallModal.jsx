@@ -22,6 +22,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
   const [selectedAssociation, setSelectedAssociation] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isFetchingDealNotes, setIsFetchingDealNotes] = useState(false);
 
   const handleAssociationChange = (association) => {
     setSelectedAssociation(association);
@@ -47,7 +48,8 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
         file,
         selectedAssociation.company.id,
         selectedAssociation.prospect.id,
-        selectedAssociation?.prospect
+        selectedAssociation?.prospect,
+        selectedAssociation
       );
 
       setIsComplete(true);
@@ -70,7 +72,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="w-[480px] max-w-[90vw] min-w-[35vw]"
+        className="w-[600px] max-w-[95vw] min-w-[600px]"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
@@ -94,7 +96,14 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
                       <p className="font-medium truncate max-w-[300px]">
                         {file?.filename || file?.title}
                       </p>
-                      <p className="text-xs text-muted-foreground" aria-label={`File size ${file?.size} bytes, uploaded on ${new Date(file?.upload_date || file?.date).toLocaleString()}`}>
+                      <p
+                        className="text-xs text-muted-foreground"
+                        aria-label={`File size ${
+                          file?.size
+                        } bytes, uploaded on ${new Date(
+                          file?.upload_date || file?.date
+                        ).toLocaleString()}`}
+                      >
                         {file?.size} •{" "}
                         {new Date(
                           file?.upload_date || file?.date
@@ -116,6 +125,7 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
               onAssociationChange={handleAssociationChange}
               isProcessing={isProcessing}
               onAssociationReset={handleAssociationReset}
+              onFetchingStateChange={setIsFetchingDealNotes}
             />
           )}
 
@@ -143,10 +153,18 @@ export const ProcessCallModal = ({ isOpen, onClose, file, onConfirm }) => {
           <Button
             onClick={handleConfirm}
             disabled={
-              !selectedAssociation?.prospect || isProcessing || isComplete
+              !selectedAssociation?.prospect ||
+              isProcessing ||
+              isComplete ||
+              isFetchingDealNotes
             }
           >
-            {isProcessing ? (
+            {isFetchingDealNotes ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Fetching Deal Notes...
+              </>
+            ) : isProcessing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Processing...

@@ -336,8 +336,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
             contact:
               (insight.prospect_details || []).map((p) => p.name).join(", ") ||
               "Unknown",
-            dealValue: "", // Default value
-            crmStage: "Proposal Sent", // Default value
+            dealValue: insight?.deal_value || "TBD", // Default value
+            crmStage: insight?.deal_stage || "Proposal Sent", // Default value
             nextAction: "Follow-up",
             communication_style_ids: insight.communication_style_ids || [],
             sales_play: insight?.sales_play,
@@ -347,6 +347,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               insight?.recommended_objectives_reason || "",
             recommended_sales_play_reason:
               insight?.recommended_sales_play_reason || "",
+            is_hubspot: insight?.is_hubspot || false,
+            sales_insight_ids: insight?.sales_insight_ids || [],
           }));
 
         setProspects(enrichedProspects);
@@ -591,6 +593,11 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     }, 1500);
   };
 
+  console.log(
+    selectedProspect?.sales_insight_ids,
+    "selected prospect in supabase 1641"
+  );
+
   const getCummulativeData = async () => {
     if (selectedProspect?.id != undefined) {
       const getCallSummary = await dbHelpers.getCallSummaryByProspectId(
@@ -599,7 +606,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       const getTaskAndContent =
         await dbHelpers.getTasksAndSalesInsightsByProspectId(
           selectedProspect?.id,
-          user?.id
+          user?.id,
+          selectedProspect?.sales_insight_ids || null
         );
       setAllSummary(getCallSummary);
       setGetTaskAndContent(getTaskAndContent);
@@ -1231,7 +1239,7 @@ ${updatedBlocks
             </Card>
 
             {/* Deal Information */}
-            {false && (
+            {selectedProspect?.is_hubspot && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Deal Information</CardTitle>

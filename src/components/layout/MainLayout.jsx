@@ -55,32 +55,44 @@ export const MainLayout = () => {
               {userRole?.label || "Super Admin"}
             </Badge>
           </div>
-
-          {/* HubSpot Connection Status */}
-          {hubspotIntegration.connected && (
-            <Badge
-              variant="default"
-              className="bg-green-100 text-green-800 border-green-200"
-            >
-              HubSpot Connected
-            </Badge>
+          {console.log(
+            hubspotIntegration.connected,
+            hubspotIntegration?.hubspotUserId,
+            hubspotIntegration,
+            "HubSpot connection status"
           )}
+          {/* HubSpot Connection Status */}
+          {hubspotIntegration.connected &&
+            hubspotIntegration?.hubspotUserId && (
+              <Badge
+                variant="default"
+                className="bg-green-100 text-green-800 border-green-200"
+              >
+                HubSpot Connected
+              </Badge>
+            )}
 
           {/* Action Icons */}
           <div className="flex items-center space-x-2">
             {/* Guidelines Icon - Only show after tour completion */}
             {user && hasSeenOnboardingTour && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   console.log("🎯 User clicked guidelines icon in header");
                   if (window.replaySalesFlowTour) {
-                    console.log("🎯 User manually triggered tour replay from header");
+                    console.log(
+                      "🎯 User manually triggered tour replay from header"
+                    );
                     window.replaySalesFlowTour();
                   } else {
-                    console.error("❌ replaySalesFlowTour function not available");
-                    toast.error("Tour is not ready yet. Please try again in a moment.");
+                    console.error(
+                      "❌ replaySalesFlowTour function not available"
+                    );
+                    toast.error(
+                      "Tour is not ready yet. Please try again in a moment."
+                    );
                   }
                 }}
                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
