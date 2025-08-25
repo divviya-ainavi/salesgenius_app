@@ -84,21 +84,24 @@ Deno.serve(async (req: Request) => {
 
     // Construct Slack message payload with clean formatting similar to analytics screen
     const slackPayload = {
-      text: `📝 New feedback from ${feedbackData.user_name}`,
+      text: `📝 User Feedback on ${formattedTime} from ${feedbackData.user_name}`,
       blocks: [
-        // Header with user info and status
+        // Enhanced header with date and user info
         {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `👤 *${feedbackData.user_name}* • 📧 ${feedbackData.user_email} • 🏢 ${feedbackData.organization_name}`
-            },
-            {
-              type: "mrkdwn",
-              text: `🗓️ ${formattedTime} • 📱 ${browserInfo} • 📄 Page: ${feedbackData.page_route}`
-            }
-          ]
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: `📝 User Feedback - ${formattedTime}`,
+            emoji: true
+          }
+        },
+        // User and organization info prominently displayed
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*From:* ${feedbackData.user_name} (${feedbackData.user_email})\n*Organization:* ${feedbackData.organization_name}\n*Page:* ${feedbackData.page_route} • *Browser:* ${browserInfo}`
+          }
         },
         // Divider
         {
@@ -144,13 +147,11 @@ Deno.serve(async (req: Request) => {
         type: "divider"
       },
       {
-        type: "context",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: `🔗 Full URL: ${feedbackData.page_url}`
-          }
-        ]
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `🔗 *Full URL:* <${feedbackData.page_url}|View Page>`
+        }
       }
     );
 
