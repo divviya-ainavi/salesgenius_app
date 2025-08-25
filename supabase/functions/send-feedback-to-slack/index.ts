@@ -144,15 +144,13 @@ Deno.serve(async (req: Request) => {
         type: "divider"
       },
       {
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `🔗 Full URL: ${feedbackData.page_url}`
-            }
-          ]
-        }
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `🔗 Full URL: ${feedbackData.page_url}`
+          }
+        ]
       }
     );
 
