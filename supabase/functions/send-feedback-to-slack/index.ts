@@ -61,116 +61,100 @@ Deno.serve(async (req: Request) => {
     }
 
     // Format timestamp for display
-    const formattedTime = new Date(feedbackData.timestamp).toLocaleString('en-US', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: 'short',
+    const formattedTime = new Date(feedbackData.timestamp).toLocaleString('en-GB', {
       day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
+      hour12: false,
     });
 
     // Extract browser info from user agent
     const getBrowserInfo = (userAgent: string) => {
-      if (userAgent.includes('Chrome')) return 'Chrome';
+      if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
       if (userAgent.includes('Firefox')) return 'Firefox';
-      if (userAgent.includes('Safari')) return 'Safari';
-      if (userAgent.includes('Edge')) return 'Edge';
-      return 'Unknown Browser';
+      if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+      if (userAgent.includes('Edg')) return 'Edge';
+      if (userAgent.includes('Opera')) return 'Opera';
+      return 'Unknown';
     };
 
     const browserInfo = getBrowserInfo(feedbackData.user_agent);
 
-    // Construct feedback sections
-    const feedbackSections = [];
-    
-    if (feedbackData.what_you_like) {
-      feedbackSections.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*👍 What they like:*\n${feedbackData.what_you_like}`
-        }
-      });
-    }
-
-    if (feedbackData.what_needs_improving) {
-      feedbackSections.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*🔧 What needs improving:*\n${feedbackData.what_needs_improving}`
-        }
-      });
-    }
-
-    if (feedbackData.new_features_needed) {
-      feedbackSections.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*💡 New features needed:*\n${feedbackData.new_features_needed}`
-        }
-      });
-    }
-
-    // Construct Slack message payload with rich formatting
+    // Construct Slack message payload with clean formatting similar to analytics screen
     const slackPayload = {
-      text: `New feedback received from ${feedbackData.user_name}`,
+      text: `📝 New feedback from ${feedbackData.user_name}`,
       blocks: [
-        {
-          type: "header",
-          text: {
-            type: "plain_text",
-            text: "📝 New User Feedback Received",
-            emoji: true
-          }
-        },
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `*👤 User:*\n${feedbackData.user_name}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*📧 Email:*\n${feedbackData.user_email}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*🏢 Organization:*\n${feedbackData.organization_name || 'Not specified'}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*📱 Browser:*\n${browserInfo}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*📄 Page:*\n${feedbackData.page_route}`
-            },
-            {
-              type: "mrkdwn",
-              text: `*🕒 Time:*\n${formattedTime} UTC`
-            }
-          ]
-        },
-        {
-          type: "divider"
-        },
-        ...feedbackSections,
+        // Header with user info and status
         {
           type: "context",
           elements: [
             {
               type: "mrkdwn",
-              text: `🔗 *Page URL:* ${feedbackData.page_url}`
+              text: `👤 *${feedbackData.user_name}* • 📧 ${feedbackData.user_email} • 🏢 ${feedbackData.organization_name}`
+            },
+            {
+              type: "mrkdwn",
+              text: `🗓️ ${formattedTime} • 📱 ${browserInfo} • 📄 Page: ${feedbackData.page_route}`
             }
           ]
+        },
+        // Divider
+        {
+          type: "divider"
         }
       ]
     };
+
+    // Add feedback sections with clean formatting
+    if (feedbackData.what_you_like) {
+      slackPayload.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*👍 What they like*\n${feedbackData.what_you_like}`
+        }
+      });
+    }
+
+    if (feedbackData.what_needs_improving) {
+      slackPayload.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*⚠️ What needs improving*\n${feedbackData.what_needs_improving}`
+        }
+      });
+    }
+
+    if (feedbackData.new_features_needed) {
+      slackPayload.blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*💡 New features needed*\n${feedbackData.new_features_needed}`
+        }
+      });
+    }
+
+    // Add footer with URL
+    slackPayload.blocks.push(
+      {
+        type: "divider"
+      },
+      {
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `🔗 Full URL: ${feedbackData.page_url}`
+            }
+          ]
+        }
+      }
+    );
 
     // Send to Slack
     const slackResponse = await fetch(SLACK_WEBHOOK_URL, {
