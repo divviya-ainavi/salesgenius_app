@@ -386,7 +386,7 @@ export const CallAssociationSelector = ({
       });
     } else {
       // Check for research company data for this user (after deal notes fetch)
-      checkForResearchCompanyData();
+      checkForResearchCompanyData(prospect);
     }
   };
 
@@ -458,7 +458,7 @@ export const CallAssociationSelector = ({
   };
 
   // Function to check for research company data for the current user
-  const checkForResearchCompanyData = async () => {
+  const checkForResearchCompanyData = async (prospect = selectedProspect) => {
     if (!user?.id) return;
 
     setIsLoadingResearch(true);
@@ -475,6 +475,12 @@ export const CallAssociationSelector = ({
       if (error) {
         console.error("Error fetching research companies:", error);
         setCurrentState(SELECTOR_STATES.COMPLETE);
+        onAssociationChange({
+          company: selectedCompany,
+          prospect: prospect,
+          researchCompany: null,
+          dealNotes: dealNotes,
+        });
         return;
       }
 
@@ -488,8 +494,9 @@ export const CallAssociationSelector = ({
         setCurrentState(SELECTOR_STATES.COMPLETE);
         onAssociationChange({
           company: selectedCompany,
-          prospect: selectedProspect,
+          prospect: prospect,
           researchCompany: null,
+          dealNotes: dealNotes,
         });
         return;
       }
@@ -525,8 +532,9 @@ export const CallAssociationSelector = ({
       setCurrentState(SELECTOR_STATES.COMPLETE);
       onAssociationChange({
         company: selectedCompany,
-        prospect: selectedProspect,
+        prospect: prospect,
         researchCompany: null,
+        dealNotes: dealNotes,
       });
     } finally {
       setIsLoadingResearch(false);
