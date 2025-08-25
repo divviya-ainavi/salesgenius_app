@@ -1,3 +1,5 @@
+const SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
+
 interface FeedbackPayload {
   user_name: string;
   user_email: string;
@@ -33,22 +35,6 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: "Method not allowed" }),
         {
           status: 405,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
-    }
-
-    // Get Slack webhook URL from environment variables
-    const slackWebhookUrl = Deno.env.get("SLACK_FEEDBACK_WEBHOOK_URL");
-    if (!slackWebhookUrl) {
-      console.error("SLACK_FEEDBACK_WEBHOOK_URL not configured");
-      return new Response(
-        JSON.stringify({ error: "Slack webhook not configured" }),
-        {
-          status: 500,
           headers: {
             "Content-Type": "application/json",
             ...corsHeaders,
@@ -187,7 +173,7 @@ Deno.serve(async (req: Request) => {
     };
 
     // Send to Slack
-    const slackResponse = await fetch(slackWebhookUrl, {
+    const slackResponse = await fetch(SLACK_WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

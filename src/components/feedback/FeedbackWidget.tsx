@@ -154,6 +154,45 @@ export const FeedbackWidget = () => {
         // Don't show error to user - Slack notification is optional
       }
 
+      // Send feedback to Slack via Edge Function
+      try {
+        const slackPayload = {
+          user_name: user?.full_name || userProfileInfo || 'Unknown User',
+          user_email: user?.email || 'Unknown Email',
+          organization_name: organizationDetails?.name || 'Unknown Organization',
+          page_route: pageName,
+          page_url: window.location.href,
+          what_you_like: formData.whatYouLike.trim() || null,
+          what_needs_improving: formData.whatNeedsImproving.trim() || null,
+          new_features_needed: formData.newFeaturesNeeded.trim() || null,
+          user_agent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+        };
+
+        const slackResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-feedback-to-slack`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify(slackPayload),
+          }
+        );
+
+        if (!slackResponse.ok) {
+          const errorData = await slackResponse.json();
+          console.warn('Failed to send feedback to Slack:', errorData);
+          // Don't show error to user - Slack notification is optional
+        } else {
+          console.log('✅ Feedback sent to Slack successfully');
+        }
+      } catch (slackError) {
+        console.warn('Error sending feedback to Slack:', slackError);
+        // Don't show error to user - Slack notification is optional
+      }
+
       // Track analytics
       analytics.track("feedback_submitted", {
         page_route: location.pathname,
