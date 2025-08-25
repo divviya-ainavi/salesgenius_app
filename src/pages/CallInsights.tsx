@@ -1252,7 +1252,7 @@ const CallInsights = () => {
       }
 
       const result = await response.json();
-      toast.success("Data successfully pushed to HubSpot!");
+      toast.success("Sales insights successfully pushed to HubSpot!");
     } catch (error) {
       console.error("Error pushing to HubSpot:", error);
       toast.error("Failed to push insights to HubSpot: " + error.message);
