@@ -348,6 +348,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
             recommended_sales_play_reason:
               insight?.recommended_sales_play_reason || "",
             is_hubspot: insight?.is_hubspot || false,
+            sales_insight_ids: insight?.sales_insight_ids || [],
           }));
 
         setProspects(enrichedProspects);
@@ -592,6 +593,11 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     }, 1500);
   };
 
+  console.log(
+    selectedProspect?.sales_insight_ids,
+    "selected prospect in supabase 1641"
+  );
+
   const getCummulativeData = async () => {
     if (selectedProspect?.id != undefined) {
       const getCallSummary = await dbHelpers.getCallSummaryByProspectId(
@@ -600,7 +606,8 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       const getTaskAndContent =
         await dbHelpers.getTasksAndSalesInsightsByProspectId(
           selectedProspect?.id,
-          user?.id
+          user?.id,
+          selectedProspect?.sales_insight_ids || null
         );
       setAllSummary(getCallSummary);
       setGetTaskAndContent(getTaskAndContent);

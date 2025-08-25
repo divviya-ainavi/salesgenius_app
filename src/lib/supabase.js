@@ -2868,7 +2868,7 @@ export const dbHelpers = {
     }
   },
 
-  async getTasksAndSalesInsightsByProspectId(prospectId, userId) {
+  async getTasksAndSalesInsightsByProspectId(prospectId, userId, sales_insight_ids) {
     // 1. Get insight data for the given prospect
     const { data: insightsData, error: insightsError } = await supabase
       .from("insights")
@@ -2885,9 +2885,7 @@ export const dbHelpers = {
       .flatMap((entry) => entry.action_item_ids || [])
       .filter((id) => id);
 
-    const allSalesInsightIds = insightsData
-      .flatMap((entry) => entry.sales_insight_ids || [])
-      .filter((id) => id);
+
 
     let tasks = [];
     let contents = [];
@@ -2906,6 +2904,10 @@ export const dbHelpers = {
 
       tasks = actionItems.map((item) => item.task);
     }
+
+    const allSalesInsightIds = sales_insight_ids != null && sales_insight_ids?.length > 0 ? sales_insight_ids || [] : insightsData
+      .flatMap((entry) => entry.sales_insight_ids || [])
+      .filter((id) => id);
 
     // 3. Get contents from sales_insights
     if (allSalesInsightIds.length > 0) {
