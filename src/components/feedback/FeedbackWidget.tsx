@@ -115,36 +115,118 @@ export const FeedbackWidget = () => {
       // Save feedback to database
       await dbHelpers.saveFeedback(feedbackData);
 
-      // Send feedback to Slack via Edge Function
+      // Send feedback to Slack directly
       try {
-        const slackPayload = {
-          user_name: user?.full_name || userProfileInfo || 'Unknown User',
-          user_email: user?.email || 'Unknown Email',
-          organization_name: organizationDetails?.name || 'Unknown Organization',
-          page_route: pageName,
-          page_url: window.location.href,
-          what_you_like: formData.whatYouLike.trim() || null,
-          what_needs_improving: formData.whatNeedsImproving.trim() || null,
-          new_features_needed: formData.newFeaturesNeeded.trim() || null,
-          user_agent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
+        // Format timestamp for display
+        const formattedTime = new Date().toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+
+        // Extract browser info from user agent
+        const getBrowserInfo = (userAgent: string) => {
+          if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+          if (userAgent.includes('Firefox')) return 'Firefox';
+          if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+          if (userAgent.includes('Edg')) return 'Edge';
+          if (userAgent.includes('Opera')) return 'Opera';
+          return 'Unknown';
         };
 
+        const browserInfo = getBrowserInfo(navigator.userAgent);
+
+        // Construct Slack message payload with clean formatting
+        const slackPayload = {
+          text: `📝 User Feedback on ${formattedTime} from ${user?.full_name || userProfileInfo || 'Unknown User'}`,
+          blocks: [
+            // Enhanced header with date and user info
+            {
+              type: "header",
+              text: {
+                type: "plain_text",
+                text: `📝 User Feedback - ${formattedTime}`,
+                emoji: true
+              }
+            },
+            // User and organization info prominently displayed
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*From:* ${user?.full_name || userProfileInfo || 'Unknown User'} (${user?.email || 'Unknown Email'})\n*Organization:* ${organizationDetails?.name || 'Unknown Organization'}\n*Page:* ${pageName} • *Browser:* ${browserInfo}`
+              }
+            },
+            // Divider
+            {
+              type: "divider"
+            }
+          ]
+        };
+
+        // Add feedback sections with clean formatting
+        if (formData.whatYouLike.trim()) {
+          slackPayload.blocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*👍 What they like*\n${formData.whatYouLike.trim()}`
+            }
+          });
+        }
+
+        if (formData.whatNeedsImproving.trim()) {
+          slackPayload.blocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*⚠️ What needs improving*\n${formData.whatNeedsImproving.trim()}`
+            }
+          });
+        }
+
+        if (formData.newFeaturesNeeded.trim()) {
+          slackPayload.blocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*💡 New features needed*\n${formData.newFeaturesNeeded.trim()}`
+            }
+          });
+        }
+
+        // Add footer with URL
+        slackPayload.blocks.push(
+          {
+            type: "divider"
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `🔗 *Full URL:* <${window.location.href}|View Page>`
+            }
+          }
+        );
+
+        // Send directly to Slack webhook
         const slackResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-feedback-to-slack`,
+          'https://hooks.slack.com/services/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',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify(slackPayload),
           }
         );
 
         if (!slackResponse.ok) {
-          const errorData = await slackResponse.json();
-          console.warn('Failed to send feedback to Slack:', errorData);
+          const errorText = await slackResponse.text();
+          console.warn('Failed to send feedback to Slack:', errorText);
           // Don't show error to user - Slack notification is optional
         } else {
           console.log('✅ Feedback sent to Slack successfully');
