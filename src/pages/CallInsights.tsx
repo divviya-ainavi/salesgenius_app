@@ -1119,7 +1119,7 @@ const CallInsights = () => {
         insights.forEach((category) => {
           if (category.insights && category.insights.length > 0) {
             const selectedInsights = category.insights.filter(
-              (insight) => insight.is_selected
+              (insight) => insight.is_selected || !insight.is_selected
             );
             if (selectedInsights.length > 0) {
               allInsights.push({
