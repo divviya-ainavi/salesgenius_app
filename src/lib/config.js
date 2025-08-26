@@ -59,7 +59,8 @@ export const config = {
       cummulativeSalesInsights: 'Cumulative-insights',
       updateCompanyName: 'update-company',
       hubspotGetCompanyDetail: 'hub-get-company-detail',
-      hubspotGetDealInfo: 'hub-get-deal-info'
+      hubspotGetDealInfo: 'hub-get-deal-info',
+      sendSlack: "Send-slack"
     }
   }
 };
