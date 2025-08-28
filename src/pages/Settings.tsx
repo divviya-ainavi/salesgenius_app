@@ -1020,15 +1020,17 @@ export const Settings = () => {
       );
       // console.log(uploadedFile, "check uploaded file");
       const formData = new FormData();
-      formData.append("file_name", uploadedFile?.filename);
-      formData.append("file_id", uploadedFile.id);
-      formData.append("organization_id", organizationDetails.id);
-      formData.append("organization_name", organizationDetails.name);
-      formData.append("file", file);
-      formData.append("is_active", true);
+      // formData.append("file_name", uploadedFile?.filename);
+      // formData.append("file_id", uploadedFile.id);
+      // formData.append("organization_id", organizationDetails.id);
+      // formData.append("organization_name", organizationDetails.name);
+      // formData.append("file", file);
+      // formData.append("is_active", true);
+      formData.append("type", "org");
+      formData.append("data", file);
       // Send encrypted token to n8n API
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.vectorFileUpload}`,
+        `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
         {
           method: "POST",
           body: formData,
