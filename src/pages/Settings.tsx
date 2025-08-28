@@ -293,7 +293,7 @@ export const Settings = () => {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
-  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
+  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] = useState(false);
   const handleSaveBusinessKnowledge = async (data) => {
     try {
       // TODO: Implement actual save logic to backend/database
