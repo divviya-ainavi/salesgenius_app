@@ -293,15 +293,16 @@ export const Settings = () => {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
-  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] = useState(false);
+  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
+    useState(false);
   const handleSaveBusinessKnowledge = async (data) => {
     try {
       // TODO: Implement actual save logic to backend/database
-      console.log('Saving business knowledge data:', data);
-      
+      console.log("Saving business knowledge data:", data);
+
       // For now, just update local state
       setBusinessKnowledgeData(data);
-      
+
       toast.success("Business knowledge updated successfully!");
     } catch (error) {
       console.error("Error saving business knowledge:", error);
@@ -310,7 +311,7 @@ export const Settings = () => {
     }
   };
 
-    useState(false);
+  useState(false);
 
   const {
     userProfileInfo,
@@ -1291,16 +1292,17 @@ export const Settings = () => {
         //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
         //       ...result.account_info,
         //     },
-      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-        const businessData = apiData[0];
+        if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+          const businessData = apiData[0];
 
-        toast.success("HubSpot connection verified successfully");
-        setHubspotToken(""); // Clear the input field
-      } else {
-        setHubspotError(
-          "Invalid HubSpot token. Please check your token and try again."
-        );
-        toast.error("HubSpot connection is invalid");
+          toast.success("HubSpot connection verified successfully");
+          setHubspotToken(""); // Clear the input field
+        } else {
+          setHubspotError(
+            "Invalid HubSpot token. Please check your token and try again."
+          );
+          toast.error("HubSpot connection is invalid");
+        }
       }
     } catch (error) {
       console.error("Error checking HubSpot connection:", error);
