@@ -1207,6 +1207,9 @@ export const Settings = () => {
         );
       }
 
+      const apiData = await response.json();
+      console.log("API Response:", apiData);
+
       const result = await response.json();
 
       if (result.success || result.valid) {
@@ -1288,8 +1291,8 @@ export const Settings = () => {
         //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
         //       ...result.account_info,
         //     },
-        //   })
-        // );
+      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+        const businessData = apiData[0];
 
         toast.success("HubSpot connection verified successfully");
         setHubspotToken(""); // Clear the input field
