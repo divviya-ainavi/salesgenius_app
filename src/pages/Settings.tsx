@@ -294,6 +294,22 @@ export const Settings = () => {
   };
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
   const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
+  const handleSaveBusinessKnowledge = async (data) => {
+    try {
+      // TODO: Implement actual save logic to backend/database
+      console.log('Saving business knowledge data:', data);
+      
+      // For now, just update local state
+      setBusinessKnowledgeData(data);
+      
+      toast.success("Business knowledge updated successfully!");
+    } catch (error) {
+      console.error("Error saving business knowledge:", error);
+      toast.error("Failed to save business knowledge");
+      throw error;
+    }
+  };
+
     useState(false);
 
   const {
