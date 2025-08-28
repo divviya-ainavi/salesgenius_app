@@ -1080,9 +1080,10 @@ export const Settings = () => {
           `API request failed: ${response.status} ${response.statusText}`
         );
       }
+      console.log(response, "check response");
       // Check if we have business knowledge data in the response
-      if (responseData && Array.isArray(responseData) && responseData.length > 0) {
-        const businessData = responseData[0];
+      if (response && Array.isArray(response) && response.length > 0) {
+        const businessData = response[0];
         console.log("📋 Business Knowledge Data:", businessData);
         setBusinessKnowledgeData(businessData);
         setShowBusinessKnowledgeModal(true);
