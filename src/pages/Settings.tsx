@@ -293,7 +293,8 @@ export const Settings = () => {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
-  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] = useState(false);
+  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
+    useState(false);
 
   const {
     userProfileInfo,
@@ -389,16 +390,6 @@ export const Settings = () => {
       ai_insights: true,
     },
   });
-
-      // Check if we have business knowledge data in the response
-      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-        const businessData = apiData[0];
-        setBusinessKnowledgeData(businessData);
-        setShowBusinessKnowledgeModal(true);
-        toast.success("Business knowledge extracted! Review the data below.");
-      } else {
-        toast.success("File processed successfully!");
-      }
 
   // console.log(userRoleId, "new user role");
   // console.log(
@@ -921,22 +912,22 @@ export const Settings = () => {
     }
 
     setNewUserEmail("");
-  const handleSaveBusinessKnowledge = async (data) => {
-    try {
-      // Here you would typically save the edited data to your backend
-      // For now, we'll just log it and show a success message
-      console.log("Saving business knowledge data:", data);
-      
-      // You can add an API call here to save the data
-      // await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
-      
-      setBusinessKnowledgeData(data);
-      toast.success("Business knowledge saved successfully!");
-    } catch (error) {
-      console.error("Error saving business knowledge:", error);
-      throw error;
-    }
-  };
+    const handleSaveBusinessKnowledge = async (data) => {
+      try {
+        // Here you would typically save the edited data to your backend
+        // For now, we'll just log it and show a success message
+        console.log("Saving business knowledge data:", data);
+
+        // You can add an API call here to save the data
+        // await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
+
+        setBusinessKnowledgeData(data);
+        toast.success("Business knowledge saved successfully!");
+      } catch (error) {
+        console.error("Error saving business knowledge:", error);
+        throw error;
+      }
+    };
 
     setNewUserRole(null);
   };
@@ -1071,6 +1062,15 @@ export const Settings = () => {
         throw new Error(
           `API request failed: ${response.status} ${response.statusText}`
         );
+      }
+      // Check if we have business knowledge data in the response
+      if (response && Array.isArray(response) && response.length > 0) {
+        const businessData = response[0];
+        setBusinessKnowledgeData(businessData);
+        setShowBusinessKnowledgeModal(true);
+        toast.success("Business knowledge extracted! Review the data below.");
+      } else {
+        toast.success("File processed successfully!");
       }
       clearInterval(progressInterval);
       if (category === "business") {
