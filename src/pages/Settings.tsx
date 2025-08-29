@@ -1080,16 +1080,20 @@ export const Settings = () => {
           `API request failed: ${response.status} ${response.statusText}`
         );
       }
-      console.log(response, "check response");
+      
+      // Parse the JSON response
+      const responseData = await response.json();
+      console.log("📊 API Response Data:", responseData);
+      
       // Check if we have business knowledge data in the response
-      if (response && Array.isArray(response) && response.length > 0) {
-        const businessData = response[0];
+      if (responseData && Array.isArray(responseData) && responseData.length > 0) {
+        const businessData = responseData[0];
         console.log("📋 Business Knowledge Data:", businessData);
         setBusinessKnowledgeData(businessData);
         setShowBusinessKnowledgeModal(true);
         toast.success("Business knowledge extracted! Review the data below.");
       } else {
-        console.log("📭 No business knowledge data found in response");
+        console.log("📭 No business knowledge data found in response:", responseData);
         toast.success("File processed successfully!");
       }
       clearInterval(progressInterval);
