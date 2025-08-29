@@ -952,7 +952,7 @@ export const Settings = () => {
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleMultipleFileUpload(acceptedFiles, "business");
+      handleFileUpload(acceptedFiles[0], "business");
     }
   };
 
@@ -968,11 +968,13 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
+      "video/mp4": [".mp4"],
+      "video/quicktime": [".mov"],
       "application/vnd.ms-powerpoint": [".ppt"],
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
-    multiple: true,
+    maxFiles: 1,
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploadingBusiness,
   });
@@ -1121,136 +1123,6 @@ export const Settings = () => {
         setIsUploading(false);
         setUploadProgress(0);
       }
-    }
-  };
-
-  const handleMultipleFileUpload = async (files, category) => {
-    if (!files || files.length === 0) return;
-
-    // Check permissions
-    if (category === "business" && !canUploadOrgMaterials) {
-      toast.error("You do not have permission to upload business materials");
-      return;
-    }
-
-    setIsUploadingBusiness(true);
-    setBusinessUploadProgress(0);
-
-    try {
-      const totalFiles = files.length;
-      let completedFiles = 0;
-      const uploadResults = [];
-
-      // Upload progress simulation
-      const progressInterval = setInterval(() => {
-        setBusinessUploadProgress((prev) => {
-          const targetProgress = Math.min(90, (completedFiles / totalFiles) * 90);
-          if (prev >= targetProgress) {
-            return prev;
-          }
-          return Math.min(prev + 5, targetProgress);
-        });
-      }, 200);
-
-      // Process each file
-      for (const file of files) {
-        try {
-          console.log(`📁 Processing file: ${file.name}`);
-
-          // Call dbHelpers to save the uploaded file
-          const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-            user?.id,
-            file,
-            organizationDetails.id
-          );
-
-          const formData = new FormData();
-          formData.append("type", "org");
-          formData.append("data", file);
-
-          // Send to API
-          const response = await fetch(
-            `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(
-              `API request failed for ${file.name}: ${response.status} ${response.statusText}`
-            );
-          }
-
-          const responseData = await response.json();
-          console.log(`✅ API response for ${file.name}:`, responseData);
-
-          // Store the result
-          uploadResults.push({
-            file: uploadedFile,
-            apiResponse: responseData,
-            success: true,
-          });
-
-          // Update internalUploadedFiles state with the new file
-          const newFileData = {
-            ...uploadedFile,
-            status: "processed",
-          };
-
-          setInternalUploadedFiles((prev) => [...prev, newFileData]);
-
-          completedFiles++;
-        } catch (error) {
-          console.error(`❌ Error uploading file ${file.name}:`, error);
-          uploadResults.push({
-            file: { name: file.name },
-            error: error.message,
-            success: false,
-          });
-          completedFiles++;
-        }
-      }
-
-      clearInterval(progressInterval);
-      setBusinessUploadProgress(100);
-
-      // Show results summary
-      const successCount = uploadResults.filter(r => r.success).length;
-      const failureCount = uploadResults.filter(r => !r.success).length;
-
-      if (successCount === totalFiles) {
-        toast.success(`All ${totalFiles} files uploaded successfully!`);
-      } else if (successCount > 0) {
-        toast.warning(`${successCount} files uploaded successfully, ${failureCount} failed`);
-      } else {
-        toast.error("All file uploads failed");
-      }
-
-      // Check if any file has business knowledge data to show in popup
-      const businessKnowledgeResults = uploadResults.filter(
-        result => result.success && 
-        result.apiResponse && 
-        Array.isArray(result.apiResponse) && 
-        result.apiResponse.length > 0
-      );
-
-      if (businessKnowledgeResults.length > 0) {
-        // Show business knowledge from the first file that has it
-        const firstBusinessData = businessKnowledgeResults[0].apiResponse[0];
-        console.log("📋 Business Knowledge Data found:", firstBusinessData);
-        setBusinessKnowledgeData(firstBusinessData);
-        setShowBusinessKnowledgeModal(true);
-        toast.success("Business knowledge extracted! Review the data below.");
-      }
-
-    } catch (error) {
-      console.error("❌ Error in multiple file upload:", error);
-      toast.error("Failed to upload files");
-    } finally {
-      setIsUploadingBusiness(false);
-      setBusinessUploadProgress(0);
     }
   };
 
@@ -3324,15 +3196,15 @@ export const Settings = () => {
                           <p className="text-sm font-medium">
                             {isBusinessDragActive
                               ? "Drop the file here"
-                              : "Upload Business Materials"}
+                              : "Upload Business Material"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {isBusinessDragActive
                               ? "Release to upload"
-                              : "Click to browse or drag and drop multiple files here"}
+                              : "Click to browse or drag and drop files here"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
+                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
                           </p>
                         </>
                       )}
@@ -3449,21 +3321,19 @@ export const Settings = () => {
                       type="file"
                       id="personal-upload"
                       className="hidden"
-                      multiple
                       onChange={(e) =>
-                        e.target.files && 
-                        e.target.files.length > 0 &&
-                        handleMultipleFileUpload(Array.from(e.target.files), "personal")
+                        e.target.files?.[0] &&
+                        handleFileUpload(e.target.files[0], "personal")
                       }
-                      accept=".pdf,.doc,.docx,.txt,.ppt,.pptx"
+                      accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                     />
                     <label htmlFor="personal-upload" className="cursor-pointer">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm font-medium">
-                        Upload Personal Materials
+                        Upload Personal Material
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
+                        PDF, DOC, TXT, MP4, PPT (Max 50MB)
                       </p>
                     </label>
                   </div>
