@@ -952,7 +952,7 @@ export const Settings = () => {
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleFileUpload(acceptedFiles, "business"); // Pass all files instead of just the first one
+      handleMultipleFileUpload(acceptedFiles, "business");
     }
   };
 
@@ -968,11 +968,13 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
-    multiple: true, // Enable multiple file selection
+    disabled: isUploadingBusiness,
   });
 
   const handleRemoveUser = (userId) => {
@@ -1123,10 +1125,7 @@ export const Settings = () => {
   };
 
   const handleMultipleFileUpload = async (files, category) => {
-    if (!files || (Array.isArray(files) ? files.length === 0 : !files)) return;
-
-    // Convert single file to array for consistent handling
-    const fileArray = Array.isArray(files) ? files : [files];
+    if (!files || files.length === 0) return;
 
     // Check permissions
     if (category === "business" && !canUploadOrgMaterials) {
@@ -1164,65 +1163,69 @@ export const Settings = () => {
             file,
             organizationDetails.id
           );
-      console.log(`📁 Processing ${fileArray.length} file(s) in batch`);
 
-      // Save all files to database first
-      const uploadedFilesList = [];
-      for (const file of fileArray) {
-        try {
-          const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-            user?.id,
-            file,
-            organizationDetails.id
+          const formData = new FormData();
+          formData.append("type", "org");
+          formData.append("data", file);
+
+          // Send to API
+          const response = await fetch(
+            `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
+            {
+              method: "POST",
+              body: formData,
+            }
           );
-          uploadedFilesList.push({
+
+          if (!response.ok) {
+            throw new Error(
+              `API request failed for ${file.name}: ${response.status} ${response.statusText}`
+            );
+          }
+
+          const responseData = await response.json();
+          console.log(`✅ API response for ${file.name}:`, responseData);
+
+          // Store the result
+          uploadResults.push({
+            file: uploadedFile,
+            apiResponse: responseData,
+            success: true,
+          });
+
+          // Update internalUploadedFiles state with the new file
+          const newFileData = {
             ...uploadedFile,
             status: "processed",
-          });
+          };
+
+          setInternalUploadedFiles((prev) => [...prev, newFileData]);
+
+          completedFiles++;
         } catch (error) {
-          console.error(`❌ Error saving file ${file.name} to database:`, error);
+          console.error(`❌ Error uploading file ${file.name}:`, error);
+          uploadResults.push({
+            file: { name: file.name },
+            error: error.message,
+            success: false,
+          });
+          completedFiles++;
         }
       }
 
-      // Create FormData with all files
-      const formData = new FormData();
-      formData.append("type", "org");
-      
-      // Append all files to the same FormData
-      fileArray.forEach((file, index) => {
-        formData.append(`data`, file); // Use same field name for all files
-      });
+      clearInterval(progressInterval);
+      setBusinessUploadProgress(100);
 
-      // Send all files to API in single call
-      const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      // Show results summary
+      const successCount = uploadResults.filter(r => r.success).length;
+      const failureCount = uploadResults.filter(r => !r.success).length;
 
-      if (!response.ok) {
-        throw new Error(
-          `API request failed: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const apiData = await response.json();
-      console.log("📊 Batch API Response:", apiData);
-
-      // Check if any file contains business knowledge data
-      let businessKnowledgeFound = false;
-      let businessDataResult = null;
-
-      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-        const businessData = apiData[0];
-        if (businessData && typeof businessData === 'object' && Object.keys(businessData).length > 0) {
-          console.log("📋 Business Knowledge Data found in batch upload");
-          businessKnowledgeFound = true;
-          businessDataResult = businessData;
-        }
-      }
+      if (successCount === totalFiles) {
+        toast.success(`All ${totalFiles} files uploaded successfully!`);
+      } else if (successCount > 0) {
+        toast.warning(`${successCount} files uploaded successfully, ${failureCount} failed`);
+      } else {
+        toast.error("All file uploads failed");
       }
 
       // Check if any file has business knowledge data to show in popup
@@ -1234,12 +1237,17 @@ export const Settings = () => {
       );
 
       if (businessKnowledgeResults.length > 0) {
-        toast.success(`${fileArray.length} file(s) uploaded and processed successfully!`);
+        // Show business knowledge from the first file that has it
         const firstBusinessData = businessKnowledgeResults[0].apiResponse[0];
+        console.log("📋 Business Knowledge Data found:", firstBusinessData);
+        setBusinessKnowledgeData(firstBusinessData);
+        setShowBusinessKnowledgeModal(true);
+        toast.success("Business knowledge extracted! Review the data below.");
+      }
 
     } catch (error) {
-      console.error("❌ Error uploading batch files:", error);
-      toast.error(`Failed to upload files: ${error.message}`);
+      console.error("❌ Error in multiple file upload:", error);
+      toast.error("Failed to upload files");
     } finally {
       setIsUploadingBusiness(false);
       setBusinessUploadProgress(0);
@@ -3166,16 +3174,16 @@ export const Settings = () => {
                         }
                         accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                       />
-                            ? "Drop the files here"
-                            : "Upload Business Materials"}
+                      <label
+                        htmlFor="general-upload"
                         className="cursor-pointer"
                       >
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                            ? "Release to upload multiple files"
-                            : "Click to browse or drag and drop multiple files here"}
+                        <p className="text-sm font-medium">
+                          Upload General Training Material
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, DOCX, TXT, PPT, PPTX (Max 10MB each)
+                          PDF, DOC, TXT, MP4, PPT (Max 10MB)
                         </p>
                       </label>
                     </div>
