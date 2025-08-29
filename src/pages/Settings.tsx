@@ -311,8 +311,6 @@ export const Settings = () => {
     }
   };
 
-  useState(false);
-
   const {
     userProfileInfo,
     userRole,
@@ -366,8 +364,7 @@ export const Settings = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fireflies integration state
-  const [firefliesToken, setFirefliesToken] = useState(""
-});
+  const [firefliesToken, setFirefliesToken] = useState("");
   const [showFirefliesToken, setShowFirefliesToken] = useState(false);
   const [firefliesStatus, setFirefliesStatus] = useState(null);
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
@@ -953,7 +950,7 @@ export const Settings = () => {
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleMultipleFileUpload(acceptedFiles, "business");
+      handleFileUpload(acceptedFiles, "business"); // Pass all files instead of just the first one
     }
   };
 
@@ -969,13 +966,11 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
-      "application/vnd.ms-powerpoint": [".ppt"],
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
-    disabled: isUploadingBusiness,
   });
 
   const handleRemoveUser = (userId) => {
@@ -1141,32 +1136,6 @@ export const Settings = () => {
     setBusinessUploadProgress(0);
 
     try {
-      const totalFiles = files.length;
-      let completedFiles = 0;
-      const uploadResults = [];
-
-      // Upload progress simulation
-      const progressInterval = setInterval(() => {
-        setBusinessUploadProgress((prev) => {
-          const targetProgress = Math.min(90, (completedFiles / totalFiles) * 90);
-          if (prev >= targetProgress) {
-            return prev;
-          }
-          return Math.min(prev + 5, targetProgress);
-        });
-      }, 200);
-
-      // Process each file
-      for (const file of files) {
-        try {
-          console.log(`📁 Processing file: ${file.name}`);
-
-          // Call dbHelpers to save the uploaded file
-          const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-            user?.id,
-            file,
-            organizationDetails.id
-          );
       console.log(`📁 Processing ${fileArray.length} file(s) in batch`);
 
       // Save all files to database first
@@ -1226,19 +1195,18 @@ export const Settings = () => {
           businessDataResult = businessData;
         }
       }
-      }
 
-      // Check if any file has business knowledge data to show in popup
-      const businessKnowledgeResults = uploadResults.filter(
-        result => result.success && 
-        result.apiResponse && 
-        Array.isArray(result.apiResponse) && 
-        result.apiResponse.length > 0
-      );
+      // Update UI with uploaded files
+      setInternalUploadedFiles((prev) => [...prev, ...uploadedFilesList]);
 
-      if (businessKnowledgeResults.length > 0) {
+      // Show business knowledge modal if data found
+      if (businessKnowledgeFound) {
+        setBusinessKnowledgeData(businessDataResult);
+        setShowBusinessKnowledgeModal(true);
+        toast.success(`${fileArray.length} file(s) uploaded and business knowledge extracted!`);
+      } else {
         toast.success(`${fileArray.length} file(s) uploaded and processed successfully!`);
-        const firstBusinessData = businessKnowledgeResults[0].apiResponse[0];
+      }
 
     } catch (error) {
       console.error("❌ Error uploading batch files:", error);
@@ -1263,7 +1231,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessMaterial = async (materialId: string) => {
+  const handleDeleteBusinessMaterial = async (materialId) => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
@@ -2896,7 +2864,7 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDeleteClick(material)}
+                                    onClick={() => handleDeleteClick(user)}
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
