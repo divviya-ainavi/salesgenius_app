@@ -366,7 +366,8 @@ export const Settings = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fireflies integration state
-  const [firefliesToken, setFirefliesToken] = useState("");
+  const [firefliesToken, setFirefliesToken] = useState(""
+});
   const [showFirefliesToken, setShowFirefliesToken] = useState(false);
   const [firefliesStatus, setFirefliesStatus] = useState(null);
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
@@ -952,7 +953,7 @@ export const Settings = () => {
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleFileUpload(acceptedFiles, "business"); // Pass all files instead of just the first one
+      handleMultipleFileUpload(acceptedFiles, "business");
     }
   };
 
@@ -968,11 +969,13 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
-    multiple: true, // Enable multiple file selection
+    disabled: isUploadingBusiness,
   });
 
   const handleRemoveUser = (userId) => {
@@ -3166,16 +3169,16 @@ export const Settings = () => {
                         }
                         accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                       />
-                            ? "Drop the files here"
-                            : "Upload Business Materials"}
+                      <label
+                        htmlFor="general-upload"
                         className="cursor-pointer"
                       >
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                            ? "Release to upload multiple files"
-                            : "Click to browse or drag and drop multiple files here"}
+                        <p className="text-sm font-medium">
+                          Upload General Training Material
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, DOCX, TXT, PPT, PPTX (Max 10MB each)
+                          PDF, DOC, TXT, MP4, PPT (Max 10MB)
                         </p>
                       </label>
                     </div>
