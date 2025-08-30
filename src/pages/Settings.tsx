@@ -1019,6 +1019,8 @@ export const Settings = () => {
       setUploadProgress(0);
     }
 
+    const uploadedFileRecords = [];
+
     try {
       // Upload progress simulation
       const progressInterval = setInterval(() => {
@@ -1080,7 +1082,6 @@ export const Settings = () => {
 
         // Store the business knowledge data in database
         try {
-          const uploadedFileRecords = [];
           for (const file of fileArray) {
             const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
               user?.id,
