@@ -295,12 +295,17 @@ export const Settings = () => {
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
   const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
     useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
   const handleSaveBusinessKnowledge = async (data) => {
     try {
-      // TODO: Implement actual save logic to backend/database
+      // Save business knowledge data to database
       console.log("Saving business knowledge data:", data);
 
-      // For now, just update local state
+      // Save to database using dbHelpers
+      await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
+      
+      // Update local state
       setBusinessKnowledgeData(data);
 
       toast.success("Business knowledge updated successfully!");
@@ -952,7 +957,7 @@ export const Settings = () => {
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleFileUpload(acceptedFiles[0], "business");
+      handleFileUpload(acceptedFiles, "business");
     }
   };
 
@@ -968,13 +973,11 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
-      "video/mp4": [".mp4"],
-      "video/quicktime": [".mov"],
       "application/vnd.ms-powerpoint": [".ppt"],
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
-    maxFiles: 1,
+    multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploadingBusiness,
   });
@@ -1010,15 +1013,19 @@ export const Settings = () => {
     }
   };
 
-  const handleFileUpload = async (file, category) => {
-    if (!file) return;
+  const handleFileUpload = async (files, category) => {
+    if (!files || files.length === 0) return;
+
+    // Convert single file to array for consistency
+    const fileArray = Array.isArray(files) ? files : [files];
 
     // Check permissions
-
     if (category === "business" && !canUploadOrgMaterials) {
       toast.error("You do not have permission to upload business materials");
       return;
     }
+
+    console.log(`📁 Uploading ${fileArray.length} file(s) for category: ${category}`);
 
     if (category === "business") {
       setIsUploadingBusiness(true);
@@ -1050,22 +1057,33 @@ export const Settings = () => {
         }
       }, 200);
 
-      // Call dbHelpers to save the uploaded file
-      const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-        user?.id,
-        file,
-        organizationDetails.id
-      );
-      // console.log(uploadedFile, "check uploaded file");
+      // Save all uploaded files to database first
+      const uploadedFileRecords = [];
+      for (const file of fileArray) {
+        const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+          user?.id,
+          file,
+          organizationDetails.id
+        );
+        uploadedFileRecords.push(uploadedFile);
+      }
+
+      console.log(`💾 Saved ${uploadedFileRecords.length} files to database`);
+
+      // Prepare FormData with all files
       const formData = new FormData();
-      // formData.append("file_name", uploadedFile?.filename);
-      // formData.append("file_id", uploadedFile.id);
-      // formData.append("organization_id", organizationDetails.id);
-      // formData.append("organization_name", organizationDetails.name);
-      // formData.append("file", file);
-      // formData.append("is_active", true);
       formData.append("type", "org");
-      formData.append("data", file);
+      
+      // Append all files to the same FormData
+      fileArray.forEach((file, index) => {
+        formData.append(`data`, file);
+      });
+      
+      // Add metadata
+      formData.append("organization_id", organizationDetails.id);
+      formData.append("organization_name", organizationDetails.name);
+      formData.append("file_count", fileArray.length.toString());
+
       // Send encrypted token to n8n API
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
@@ -1085,17 +1103,32 @@ export const Settings = () => {
       const responseData = await response.json();
       console.log("📊 API Response Data:", responseData);
       
+      // Parse the JSON response
+      const apiData = await response.json();
+      console.log("📊 API Response Data:", apiData);
+      
       // Check if we have business knowledge data in the response
-      if (responseData && Array.isArray(responseData) && responseData.length > 0) {
-        const businessData = responseData[0];
+      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+        const businessData = apiData[0];
         console.log("📋 Business Knowledge Data:", businessData);
+        
+        // Store the business knowledge data in database
+        try {
+          await dbHelpers.saveBusinessKnowledgeData(businessData, user?.organization_id);
+          console.log("✅ Business knowledge data saved to database");
+        } catch (dbError) {
+          console.error("❌ Error saving business knowledge to database:", dbError);
+          // Continue with popup display even if DB save fails
+        }
+        
         setBusinessKnowledgeData(businessData);
         setShowBusinessKnowledgeModal(true);
-        toast.success("Business knowledge extracted! Review the data below.");
+        toast.success(`Business knowledge extracted from ${fileArray.length} file(s)! Review the data below.`);
       } else {
         console.log("📭 No business knowledge data found in response:", responseData);
-        toast.success("File processed successfully!");
+        toast.success(`${fileArray.length} file(s) processed successfully!`);
       }
+      
       clearInterval(progressInterval);
       if (category === "business") {
         setBusinessUploadProgress(100);
@@ -1103,18 +1136,18 @@ export const Settings = () => {
         setUploadProgress(100);
       }
 
-      // Update internalUploadedFiles state with the new file
-      const newFileData = {
+      // Update internalUploadedFiles state with all new files
+      const newFilesData = uploadedFileRecords.map(uploadedFile => ({
         ...uploadedFile,
         status: "processed",
-      };
+      }));
 
-      setInternalUploadedFiles((prev) => [...prev, newFileData]);
-
-      toast.success("File uploaded successfully");
+      setInternalUploadedFiles((prev) => [...prev, ...newFilesData]);
+      
+      toast.success(`${fileArray.length} file(s) uploaded successfully`);
     } catch (error) {
       console.error("❌ Error uploading file:", error);
-      toast.error("Failed to upload file");
+      toast.error(`Failed to upload file(s): ${error.message}`);
     } finally {
       if (category === "business") {
         setIsUploadingBusiness(false);
@@ -1800,15 +1833,15 @@ export const Settings = () => {
                     !passwordChange.confirmPassword
                   }
                   className="w-full"
-                >
+                          : "Upload Business Materials"}
                   {isChangingPassword ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Changing Password...
-                    </>
+                          : "Click to browse or drag and drop multiple files here"}
                   ) : (
                     <>
-                      <Save className="w-4 h-4 mr-2" />
+                        PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
                       Save Changes
                     </>
                   )}
