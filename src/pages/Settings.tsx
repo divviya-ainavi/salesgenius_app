@@ -1119,9 +1119,7 @@ export const Settings = () => {
         );
         console.log("💾 Business knowledge data saved:", savedBusinessKnowledge);
 
-        // Link uploaded files to the business knowledge data
-        const fileIds = uploadedFiles.map(file => file.id);
-        await dbHelpers.linkBusinessKnowledgeFiles(fileIds, savedBusinessKnowledge.id);
+       
         console.log("🔗 Files linked to business knowledge data");
 
         // Store the business knowledge data in database
