@@ -1833,15 +1833,14 @@ export const Settings = () => {
                     !passwordChange.confirmPassword
                   }
                   className="w-full"
-                          : "Upload Business Materials"}
+                >
                   {isChangingPassword ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Changing Password...
-                          : "Click to browse or drag and drop multiple files here"}
+                    </>
                   ) : (
                     <>
-                        PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
                       Save Changes
                     </>
                   )}
@@ -3229,15 +3228,15 @@ export const Settings = () => {
                           <p className="text-sm font-medium">
                             {isBusinessDragActive
                               ? "Drop the file here"
-                              : "Upload Business Material"}
+                              : "Upload Business Materials"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {isBusinessDragActive
                               ? "Release to upload"
-                              : "Click to browse or drag and drop files here"}
+                              : "Click to browse or drag and drop multiple files here"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
                           </p>
                         </>
                       )}
