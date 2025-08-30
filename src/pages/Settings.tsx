@@ -1097,6 +1097,19 @@ export const Settings = () => {
         const businessData = apiData[0];
         console.log("📋 Business Knowledge Data:", businessData);
 
+        // Store business knowledge data in database
+        const savedBusinessKnowledge = await dbHelpers.saveBusinessKnowledgeData(
+          businessKnowledgeData,
+          user.organization_id,
+          user.id
+        );
+        console.log("💾 Business knowledge data saved:", savedBusinessKnowledge);
+
+        // Link uploaded files to the business knowledge data
+        const fileIds = uploadedFiles.map(file => file.id);
+        await dbHelpers.linkBusinessKnowledgeFiles(fileIds, savedBusinessKnowledge.id);
+        console.log("🔗 Files linked to business knowledge data");
+
         // Store the business knowledge data in database
         try {
           await dbHelpers.saveBusinessKnowledgeData(

@@ -1881,6 +1881,54 @@ export const dbHelpers = {
     }
   },
 
+  // Save business knowledge data to database
+  async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_data')
+        .insert([{
+          organization_id: organizationId,
+          user_id: userId,
+          organization_name: businessKnowledgeData.organizationName,
+          static_supply_elements: businessKnowledgeData.staticSupplyElements,
+          dynamic_supply_elements: businessKnowledgeData.dynamicSupplyElements,
+          offer_definition: businessKnowledgeData.offerDefinition,
+          pricing_and_objections: businessKnowledgeData.prizingAndObjections,
+          icp: businessKnowledgeData.ICP,
+          reframe_narratives: businessKnowledgeData.reframeNarratives,
+          sales_methodology: businessKnowledgeData.salesMethodology,
+          brand_voice_guidelines: businessKnowledgeData.brandVoiceGuidelines,
+          assets_detected: businessKnowledgeData.assetsDetected,
+          sources: businessKnowledgeData.sources,
+          summary_note: businessKnowledgeData.summaryNote
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Update business knowledge files with data ID
+  async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_files')
+        .update({ business_knowledge_data_id: businessKnowledgeDataId })
+        .in('id', fileIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error linking business knowledge files:', error);
+      throw error;
+    }
+  },
+
   // Get user's Fireflies status
   async getUserFirefliesStatus(userId) {
     try {
