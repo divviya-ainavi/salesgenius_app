@@ -1849,86 +1849,11 @@ export const dbHelpers = {
     }
   },
 
-  // Save business knowledge data to database
-  async saveBusinessKnowledgeData(data, organizationId) {
-    try {
-      console.log('💾 Saving business knowledge data to database:', { organizationId, dataKeys: Object.keys(data) });
-      
-      // You can create a new table for business knowledge or use an existing one
-      // For now, I'll assume you want to store it in a business_knowledge table
-      const { data: savedData, error } = await supabase
-        .from('business_knowledge')
-        .upsert([{
-          organization_id: organizationId,
-          knowledge_data: data,
-          updated_at: new Date().toISOString(),
-        }], {
-          onConflict: 'organization_id'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error saving business knowledge:', error);
-        throw error;
-      }
-
-      console.log('✅ Business knowledge saved successfully:', savedData);
-      return savedData;
-    } catch (error) {
-      console.error('❌ Error in saveBusinessKnowledgeData:', error);
-      throw error;
-    }
-  },
-
-  // Save business knowledge data from API response
-  async saveBusinessKnowledgeData(organizationId, userId, apiResponseData) {
-    try {
-      console.log('💾 Saving business knowledge data to database...');
-      
-      // Extract the first item from the array response
-      const knowledgeData = Array.isArray(apiResponseData) ? apiResponseData[0] : apiResponseData;
-      
-      if (!knowledgeData) {
-        throw new Error('No business knowledge data found in API response');
-      }
-
-      const { data, error } = await supabase
-        .from('business_knowledge_data')
-        .insert([{
-          organization_id: organizationId,
-          user_id: userId,
-          organization_name: knowledgeData.organizationName,
-          static_supply_elements: knowledgeData.staticSupplyElements,
-          dynamic_supply_elements: knowledgeData.dynamicSupplyElements,
-          offer_definition: knowledgeData.offerDefinition,
-          pricing_and_objections: knowledgeData.prizingAndObjections,
-          icp: knowledgeData.ICP,
-          reframe_narratives: knowledgeData.reframeNarratives,
-          sales_methodology: knowledgeData.salesMethodology,
-          brand_voice_guidelines: knowledgeData.brandVoiceGuidelines,
-          assets_detected: knowledgeData.assetsDetected,
-          sources: knowledgeData.sources,
-          summary_note: knowledgeData.summaryNote
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      console.log('✅ Business knowledge data saved successfully:', data.id);
-      return data;
-    } catch (error) {
-      console.error('❌ Error saving business knowledge data:', error);
-      throw error;
-    }
-  },
-
   // Link business knowledge files to business knowledge data
   async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
     try {
       console.log('🔗 Linking files to business knowledge data...');
-      
+
       const { data, error } = await supabase
         .from('business_knowledge_files')
         .update({ business_knowledge_data_id: businessKnowledgeDataId })
@@ -1946,10 +1871,10 @@ export const dbHelpers = {
   },
 
   // Save business knowledge data to database
-  async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId) {
+  async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId, fileIds) {
     try {
       const { data, error } = await supabase
-        .from('business_knowledge_data')
+        .from('business_knowledge_org')
         .insert([{
           organization_id: organizationId,
           user_id: userId,
@@ -1964,7 +1889,8 @@ export const dbHelpers = {
           brand_voice_guidelines: businessKnowledgeData.brandVoiceGuidelines,
           assets_detected: businessKnowledgeData.assetsDetected,
           sources: businessKnowledgeData.sources,
-          summary_note: businessKnowledgeData.summaryNote
+          summary_note: businessKnowledgeData.summaryNote,
+          processed_file_ids: fileIds
         }])
         .select()
         .single();

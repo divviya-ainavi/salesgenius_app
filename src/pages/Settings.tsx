@@ -1042,17 +1042,6 @@ export const Settings = () => {
       }, 200);
 
       // Save all uploaded files to database first
-      const uploadedFileRecords = [];
-      for (const file of fileArray) {
-        const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-          user?.id,
-          file,
-          organizationDetails.id
-        );
-        uploadedFileRecords.push(uploadedFile);
-      }
-
-      console.log(`💾 Saved ${uploadedFileRecords.length} files to database`);
 
       // Prepare FormData with all files
       const formData = new FormData();
@@ -1084,50 +1073,33 @@ export const Settings = () => {
       }
 
       const apiData = await response.json();
-      console.log(apiData, "check response");
-
-      // Parse the JSON response
-      // const responseData = await response.json();
-      // console.log("📊 API Response Data:", responseData);
-
-      console.log("📊 API Response Data:", apiData);
-
       // Check if we have business knowledge data in the response
       if (apiData && Array.isArray(apiData) && apiData.length > 0) {
         const businessData = apiData[0];
-        
-        // Store the business knowledge data in the database
-        const businessKnowledgeData = await dbHelpers.saveBusinessKnowledgeData(
-          user.organization_id,
-          user.id,
-          apiData
-        );
-        
-        // Link the uploaded files to the business knowledge data
-        const fileIds = uploadedFiles.map(file => file.id);
-        await dbHelpers.linkBusinessKnowledgeFiles(fileIds, businessKnowledgeData.id);
-        
-        console.log('✅ Business knowledge data and file links saved successfully');
-        
         console.log("📋 Business Knowledge Data:", businessData);
-
-        // Store business knowledge data in database
-        const savedBusinessKnowledge = await dbHelpers.saveBusinessKnowledgeData(
-          businessKnowledgeData,
-          user.organization_id,
-          user.id
-        );
-        console.log("💾 Business knowledge data saved:", savedBusinessKnowledge);
-
-       
-        console.log("🔗 Files linked to business knowledge data");
 
         // Store the business knowledge data in database
         try {
-          await dbHelpers.saveBusinessKnowledgeData(
+          const uploadedFileRecords = [];
+          for (const file of fileArray) {
+            const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+              user?.id,
+              file,
+              organizationDetails.id
+            );
+            uploadedFileRecords.push(uploadedFile);
+          }
+          const fileIds = uploadedFiles.map((file) => file.id);
+          const savedData = await dbHelpers.saveBusinessKnowledgeData(
             businessData,
-            user?.organization_id
+            user?.organization_id,
+            user?.id,
+            fileIds
           );
+          console.log(
+            `💾 Saved ${uploadedFileRecords.length} files to database`
+          );
+
           console.log("✅ Business knowledge data saved to database");
         } catch (dbError) {
           console.error(
