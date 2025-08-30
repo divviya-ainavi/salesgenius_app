@@ -1871,12 +1871,13 @@ export const dbHelpers = {
   },
 
   // Get business knowledge data for organization
-  async getBusinessKnowledgeData(organizationId) {
+  async getBusinessKnowledgeData(organizationId, userId) {
     try {
       const { data, error } = await supabase
         .from('business_knowledge_org')
         .select('*')
         .eq('organization_id', organizationId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
