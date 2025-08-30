@@ -316,8 +316,6 @@ export const Settings = () => {
     }
   };
 
-  useState(false);
-
   const {
     userProfileInfo,
     userRole,
@@ -934,22 +932,6 @@ export const Settings = () => {
     }
 
     setNewUserEmail("");
-    const handleSaveBusinessKnowledge = async (data) => {
-      try {
-        // Here you would typically save the edited data to your backend
-        // For now, we'll just log it and show a success message
-        console.log("Saving business knowledge data:", data);
-
-        // You can add an API call here to save the data
-        // await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
-
-        setBusinessKnowledgeData(data);
-        toast.success("Business knowledge saved successfully!");
-      } catch (error) {
-        console.error("Error saving business knowledge:", error);
-        throw error;
-      }
-    };
 
     setNewUserRole(null);
   };
@@ -1173,7 +1155,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessMaterial = async (materialId: string) => {
+  const handleDeleteBusinessMaterial = async (materialId) => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
