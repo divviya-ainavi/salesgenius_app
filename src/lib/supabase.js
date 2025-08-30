@@ -1849,6 +1849,39 @@ export const dbHelpers = {
     }
   },
 
+  // Save business knowledge data to database
+  async saveBusinessKnowledgeData(data, organizationId) {
+    try {
+      console.log('💾 Saving business knowledge data to database:', { organizationId, dataKeys: Object.keys(data) });
+      
+      // You can create a new table for business knowledge or use an existing one
+      // For now, I'll assume you want to store it in a business_knowledge table
+      const { data: savedData, error } = await supabase
+        .from('business_knowledge')
+        .upsert([{
+          organization_id: organizationId,
+          knowledge_data: data,
+          updated_at: new Date().toISOString(),
+        }], {
+          onConflict: 'organization_id'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error saving business knowledge:', error);
+        throw error;
+      }
+
+      console.log('✅ Business knowledge saved successfully:', savedData);
+      return savedData;
+    } catch (error) {
+      console.error('❌ Error in saveBusinessKnowledgeData:', error);
+      throw error;
+    }
+  },
+
+  // Get user's Fireflies status
   async getUserFirefliesStatus(userId) {
     try {
       const { data, error } = await supabase
