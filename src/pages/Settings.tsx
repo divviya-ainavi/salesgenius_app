@@ -1089,7 +1089,7 @@ export const Settings = () => {
       console.log("📊 API Response Data:", responseData);
       
       // Parse the JSON response
-      const apiData = await response.json();
+      apiData = await response.json();
       console.log("📊 API Response Data:", apiData);
       
       // Check if we have business knowledge data in the response
