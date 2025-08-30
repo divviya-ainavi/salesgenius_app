@@ -1095,6 +1095,20 @@ export const Settings = () => {
       // Check if we have business knowledge data in the response
       if (apiData && Array.isArray(apiData) && apiData.length > 0) {
         const businessData = apiData[0];
+        
+        // Store the business knowledge data in the database
+        const businessKnowledgeData = await dbHelpers.saveBusinessKnowledgeData(
+          user.organization_id,
+          user.id,
+          apiData
+        );
+        
+        // Link the uploaded files to the business knowledge data
+        const fileIds = uploadedFiles.map(file => file.id);
+        await dbHelpers.linkBusinessKnowledgeFiles(fileIds, businessKnowledgeData.id);
+        
+        console.log('✅ Business knowledge data and file links saved successfully');
+        
         console.log("📋 Business Knowledge Data:", businessData);
 
         // Store business knowledge data in database
