@@ -304,7 +304,7 @@ export const Settings = () => {
 
       // Save to database using dbHelpers
       await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
-      
+
       // Update local state
       setBusinessKnowledgeData(data);
 
@@ -1007,7 +1007,9 @@ export const Settings = () => {
       return;
     }
 
-    console.log(`📁 Uploading ${fileArray.length} file(s) for category: ${category}`);
+    console.log(
+      `📁 Uploading ${fileArray.length} file(s) for category: ${category}`
+    );
 
     if (category === "business") {
       setIsUploadingBusiness(true);
@@ -1055,12 +1057,12 @@ export const Settings = () => {
       // Prepare FormData with all files
       const formData = new FormData();
       formData.append("type", "org");
-      
+
       // Append all files to the same FormData
       fileArray.forEach((file, index) => {
         formData.append(`data`, file);
       });
-      
+
       // Add metadata
       formData.append("organization_id", organizationDetails.id);
       formData.append("organization_name", organizationDetails.name);
@@ -1080,40 +1082,49 @@ export const Settings = () => {
           `API request failed: ${response.status} ${response.statusText}`
         );
       }
-      
+
       const apiData = await response.json();
       console.log(apiData, "check response");
-      
+
       // Parse the JSON response
-      const responseData = await response.json();
-      console.log("📊 API Response Data:", responseData);
-      
-      // Parse the JSON response
-      apiData = await response.json();
+      // const responseData = await response.json();
+      // console.log("📊 API Response Data:", responseData);
+
       console.log("📊 API Response Data:", apiData);
-      
+
       // Check if we have business knowledge data in the response
       if (apiData && Array.isArray(apiData) && apiData.length > 0) {
         const businessData = apiData[0];
         console.log("📋 Business Knowledge Data:", businessData);
-        
+
         // Store the business knowledge data in database
         try {
-          await dbHelpers.saveBusinessKnowledgeData(businessData, user?.organization_id);
+          await dbHelpers.saveBusinessKnowledgeData(
+            businessData,
+            user?.organization_id
+          );
           console.log("✅ Business knowledge data saved to database");
         } catch (dbError) {
-          console.error("❌ Error saving business knowledge to database:", dbError);
+          console.error(
+            "❌ Error saving business knowledge to database:",
+            dbError
+          );
           // Continue with popup display even if DB save fails
         }
-        
+
         setBusinessKnowledgeData(businessData);
         setShowBusinessKnowledgeModal(true);
-        toast.success(`Business knowledge extracted from ${fileArray.length} file(s)! Review the data below.`);
+        toast.success(
+          `Business knowledge extracted from ${fileArray.length} file(s)! Review the data below.`
+        );
       } else {
-        console.log("📭 No business knowledge data found in response:", responseData);
+        console.log(
+          "📭 No business knowledge data found in response:",
+          apiData
+        );
         toast.success(`${fileArray.length} file(s) processed successfully!`);
       }
-      
+
       clearInterval(progressInterval);
       if (category === "business") {
         setBusinessUploadProgress(100);
@@ -1122,13 +1133,13 @@ export const Settings = () => {
       }
 
       // Update internalUploadedFiles state with all new files
-      const newFilesData = uploadedFileRecords.map(uploadedFile => ({
+      const newFilesData = uploadedFileRecords.map((uploadedFile) => ({
         ...uploadedFile,
         status: "processed",
       }));
 
       setInternalUploadedFiles((prev) => [...prev, ...newFilesData]);
-      
+
       toast.success(`${fileArray.length} file(s) uploaded successfully`);
     } catch (error) {
       console.error("❌ Error uploading file:", error);
@@ -1237,7 +1248,7 @@ export const Settings = () => {
       const responseData = await response.json();
       console.log("📊 API Response Data:", responseData);
 
-      const apiData = await response.json();
+      const apiData = responseData;
       console.log("API Response:", apiData);
 
       const result = await response.json();
@@ -1825,9 +1836,7 @@ export const Settings = () => {
                       Changing Password...
                     </>
                   ) : (
-                    <>
-                      Save Changes
-                    </>
+                    <>Save Changes</>
                   )}
                 </Button>
               </CardContent>
@@ -3221,7 +3230,8 @@ export const Settings = () => {
                               : "Click to browse or drag and drop multiple files here"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files supported)
+                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files
+                            supported)
                           </p>
                         </>
                       )}

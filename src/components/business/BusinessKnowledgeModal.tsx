@@ -95,7 +95,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
   data,
   onSave,
 }) => {
-  const [editedData, setEditedData] = useState<BusinessKnowledgeData | null>(null);
+  const [editedData, setEditedData] = useState<BusinessKnowledgeData | null>(
+    null
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -108,72 +110,76 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
   const handleInputChange = (path: string, value: string | string[]) => {
     if (!editedData) return;
 
-    const pathArray = path.split('.');
+    const pathArray = path.split(".");
     const newData = JSON.parse(JSON.stringify(editedData));
-    
+
     let current = newData;
     for (let i = 0; i < pathArray.length - 1; i++) {
       current = current[pathArray[i]];
     }
     current[pathArray[pathArray.length - 1]] = value;
-    
+
     setEditedData(newData);
   };
 
-  const handleArrayItemChange = (path: string, index: number, value: string) => {
+  const handleArrayItemChange = (
+    path: string,
+    index: number,
+    value: string
+  ) => {
     if (!editedData) return;
 
-    const pathArray = path.split('.');
+    const pathArray = path.split(".");
     const newData = JSON.parse(JSON.stringify(editedData));
-    
+
     let current = newData;
     for (let i = 0; i < pathArray.length - 1; i++) {
       current = current[pathArray[i]];
     }
-    
+
     const array = current[pathArray[pathArray.length - 1]];
     if (Array.isArray(array)) {
       array[index] = value;
     }
-    
+
     setEditedData(newData);
   };
 
   const handleAddArrayItem = (path: string) => {
     if (!editedData) return;
 
-    const pathArray = path.split('.');
+    const pathArray = path.split(".");
     const newData = JSON.parse(JSON.stringify(editedData));
-    
+
     let current = newData;
     for (let i = 0; i < pathArray.length - 1; i++) {
       current = current[pathArray[i]];
     }
-    
+
     const array = current[pathArray[pathArray.length - 1]];
     if (Array.isArray(array)) {
-      array.push('');
+      array.push("");
     }
-    
+
     setEditedData(newData);
   };
 
   const handleRemoveArrayItem = (path: string, index: number) => {
     if (!editedData) return;
 
-    const pathArray = path.split('.');
+    const pathArray = path.split(".");
     const newData = JSON.parse(JSON.stringify(editedData));
-    
+
     let current = newData;
     for (let i = 0; i < pathArray.length - 1; i++) {
       current = current[pathArray[i]];
     }
-    
+
     const array = current[pathArray[pathArray.length - 1]];
     if (Array.isArray(array)) {
       array.splice(index, 1);
     }
-    
+
     setEditedData(newData);
   };
 
@@ -228,7 +234,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <>
                 <Input
                   value={item}
-                  onChange={(e) => handleArrayItemChange(path, index, e.target.value)}
+                  onChange={(e) =>
+                    handleArrayItemChange(path, index, e.target.value)
+                  }
                   placeholder={placeholder}
                   className="flex-1"
                 />
@@ -251,7 +259,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           </div>
         ))}
         {items.length === 0 && !isEditing && (
-          <p className="text-sm text-muted-foreground italic">No items available</p>
+          <p className="text-sm text-muted-foreground italic">
+            No items available
+          </p>
         )}
       </div>
     </div>
@@ -299,7 +309,10 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             <div className="flex items-center space-x-2">
               <Building className="w-5 h-5" />
               <span>Business Knowledge Profile</span>
-              <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+              <Badge
+                variant="outline"
+                className="bg-blue-100 text-blue-800 border-blue-200"
+              >
                 {editedData.organizationName}
               </Badge>
             </div>
@@ -324,11 +337,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     <X className="w-4 h-4 mr-1" />
                     Cancel
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                  >
+                  <Button size="sm" onClick={handleSave} disabled={isSaving}>
                     {isSaving ? (
                       <>
                         <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
@@ -346,7 +355,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </div>
           </DialogTitle>
           <DialogDescription>
-            Review and edit your organization's business knowledge profile extracted from uploaded documents.
+            Review and edit your organization's business knowledge profile
+            extracted from uploaded documents.
           </DialogDescription>
         </DialogHeader>
 
@@ -373,13 +383,13 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 {renderTextField(
                   "Core Business Offering",
                   "staticSupplyElements.coreBusinessOffering",
-                  editedData.staticSupplyElements.coreBusinessOffering,
+                  editedData.staticSupplyElements?.coreBusinessOffering,
                   true,
                   "Describe your main business offering..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Value Proposition",
                   "staticSupplyElements.valueProposition",
@@ -387,9 +397,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What unique value do you provide..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Market Position",
                   "staticSupplyElements.marketPosition",
@@ -397,9 +407,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "How are you positioned in the market..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Fundamental Problem Solved",
                   "staticSupplyElements.fundamentalProblemSolved",
@@ -455,27 +465,27 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   editedData.dynamicSupplyElements.currentAdaptationsPivots,
                   "Enter adaptation or pivot..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Response to Market Trends",
                   "dynamicSupplyElements.responseToTrends",
                   editedData.dynamicSupplyElements.responseToTrends,
                   "Enter trend response..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Active Promotions & Campaigns",
                   "dynamicSupplyElements.activePromotionsCampaigns",
                   editedData.dynamicSupplyElements.activePromotionsCampaigns,
                   "Enter promotion or campaign..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Seasonal Tactical Adjustments",
                   "dynamicSupplyElements.seasonalTacticalAdjustments",
@@ -503,9 +513,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What's the ideal outcome for customers..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Pain & Problem",
                   "offerDefinition.painProblem",
@@ -513,9 +523,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What pain points do you address..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Proof & Differentiator",
                   "offerDefinition.proofDifferentiator",
@@ -541,9 +551,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What problem do prospects not realize they have..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Aha Moment",
                   "reframeNarratives.ahaMoment",
@@ -551,9 +561,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What insight creates the 'aha' moment..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Contrarian View",
                   "reframeNarratives.contrarianView",
@@ -582,18 +592,18 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What criteria determine success..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Low Status Triggers",
                   "prizingAndObjections.lowStatusTriggers",
                   editedData.prizingAndObjections.lowStatusTriggers,
                   "Enter status trigger..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Common Prospect Assumptions",
                   "prizingAndObjections.commonProspectAssumptions",
@@ -621,9 +631,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "Who champions your solution internally..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Economic Buyer Persona",
                   "ICP.economicBuyerPersona",
@@ -631,9 +641,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "Who makes the buying decision..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Anti-Persona",
                   "ICP.antiPersona",
@@ -641,9 +651,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "Who is NOT a good fit..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Key Metrics & KPIs",
                   "ICP.keyMetricsOrKPIs",
@@ -671,9 +681,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   false,
                   "e.g., SPIN, Challenger, MEDDIC..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Key Qualification Information",
                   "salesMethodology.keyQualificationInfo",
@@ -681,9 +691,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "How do you qualify prospects..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Go-To Closing Technique",
                   "salesMethodology.goToClosingTechnique",
@@ -691,9 +701,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   true,
                   "What's your primary closing approach..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Brand Voice Guidelines",
                   "brandVoiceGuidelines",
@@ -715,18 +725,18 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   editedData.assetsDetected,
                   "Enter asset description..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderArrayField(
                   "Sources",
                   "sources",
                   editedData.sources,
                   "Enter source..."
                 )}
-                
+
                 <Separator />
-                
+
                 {renderTextField(
                   "Summary Note",
                   "summaryNote",
