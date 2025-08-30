@@ -1185,6 +1185,24 @@ export const Settings = () => {
     }
   };
 
+  const handleDeleteBusinessKnowledge = async (dataId) => {
+    try {
+      // Set is_active to false instead of deleting
+      const { error } = await supabase
+        .from('business_knowledge_org')
+        .update({ is_active: false })
+        .eq('id', dataId);
+
+      if (error) throw error;
+
+      toast.success("Business knowledge data deleted successfully");
+      await loadBusinessKnowledgeData();
+    } catch (error) {
+      console.error("Error deleting business knowledge data:", error);
+      toast.error("Failed to delete business knowledge data");
+    }
+  };
+
   const generateApiKey = () => {
     const apiKey =
       "sk-" +

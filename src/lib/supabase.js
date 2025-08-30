@@ -1870,6 +1870,23 @@ export const dbHelpers = {
     }
   },
 
+  // Get business knowledge data for organization
+  async getBusinessKnowledgeData(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
   // Save business knowledge data to database
   async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId, fileIds) {
     try {
