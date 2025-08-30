@@ -1081,6 +1081,9 @@ export const Settings = () => {
         );
       }
       
+      const apiData = await response.json();
+      console.log(apiData, "check response");
+      
       // Parse the JSON response
       const responseData = await response.json();
       console.log("📊 API Response Data:", responseData);
