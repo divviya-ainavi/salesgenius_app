@@ -1870,6 +1870,58 @@ export const dbHelpers = {
     }
   },
 
+  // Get business knowledge data for organization and user
+  async getBusinessKnowledgeData(userId, organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Update business knowledge data
+  async updateBusinessKnowledgeData(id, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Delete business knowledge data
+  async deleteBusinessKnowledgeData(id) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_org')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting business knowledge data:', error);
+      throw error;
+    }
+  },
+
   // Get business knowledge data for organization
   async getBusinessKnowledgeData(organizationId, userId) {
     try {
