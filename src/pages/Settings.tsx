@@ -498,22 +498,6 @@ export const Settings = () => {
     }
   };
 
-  const loadBusinessKnowledgeData = async () => {
-    setIsLoadingInternalFiles(true);
-    try {
-      const data = await dbHelpers.getBusinessKnowledgeData(
-        user?.id,
-        user?.organization_id
-      );
-      setBusinessKnowledgeData(data);
-    } catch (error) {
-      console.error("Error loading business knowledge data:", error);
-      toast.error("Failed to load business knowledge data");
-    } finally {
-      setIsLoadingInternalFiles(false);
-    }
-  };
-
   const checkFirefliesStatus = async () => {
     try {
       const status = await dbHelpers.getUserFirefliesStatus(user?.id);
@@ -3083,26 +3067,24 @@ export const Settings = () => {
                         onChange={(e) =>
                           e.target.files?.[0] &&
                           handleFileUpload(e.target.files[0], "general")
-                        }
+                    Business Knowledge Profiles
                         accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
                       />
                       <label
                         htmlFor="general-upload"
                         className="cursor-pointer"
-                      >
+                      <p className="text-muted-foreground">Loading business knowledge...</p>
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium">
+                  ) : businessKnowledgeData.length === 0 ? (
                           Upload General Training Material
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                      <p className="mb-2">No business knowledge profiles yet</p>
                           PDF, DOC, TXT, MP4, PPT (Max 10MB)
-                        </p>
+                        Upload business knowledge files to create your first profile
                       </label>
                     </div>
 
                     <div className="space-y-2">
-                      {trainingMaterials.general.map((material) => (
-                        <div
                           key={material.id}
                           className="flex items-center justify-between p-3 border border-border rounded-lg"
                         >
@@ -3259,23 +3241,60 @@ export const Settings = () => {
                             className="flex items-center justify-between p-3 border border-border rounded-lg"
                           >
                             <div className="flex items-center space-x-3">
-                              <FileText className="w-5 h-5 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {/* {material.original_filename} */}
-                                  <a
-                                    href={material.file_url} // ensure this is the correct Supabase file URL
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline text-primary"
-                                  >
-                                    {material.original_filename}
-                                  </a>
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatFileSize(material.file_size)} •{" "}
-                                  {formatDate(material.created_at)}
-                                </p>
+                      {businessKnowledgeData.map((knowledge) => (
+                        <Card
+                          key={knowledge.id}
+                          className="cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => handleViewBusinessKnowledge(knowledge)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                <Building className="w-5 h-5 text-primary mt-1" />
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-lg mb-1">
+                                    {knowledge.organization_name || "Unnamed Organization"}
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                    {knowledge.summary_note || "No summary available"}
+                                  </p>
+                                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                    <span>
+                                      Created: {new Date(knowledge.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span>
+                                      Updated: {new Date(knowledge.updated_at).toLocaleDateString()}
+                                    </span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {knowledge.processed_file_ids?.length || 0} files
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewProcessedFiles(knowledge);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  View Files
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteBusinessKnowledge(knowledge.id);
+                                  }}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -3376,26 +3395,8 @@ export const Settings = () => {
                       <p className="text-xs text-muted-foreground">
                         PDF, DOC, TXT, MP4, PPT (Max 50MB)
                       </p>
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    {trainingMaterials.personal.map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <FileText className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {material.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {material.size} • {material.uploadedAt}
-                            </p>
-                          </div>
-                        </div>
+                          </CardContent>
+                        </Card>
                         <div className="flex items-center space-x-2">
                           <Badge
                             variant={
