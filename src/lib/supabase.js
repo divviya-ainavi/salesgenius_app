@@ -1889,15 +1889,26 @@ export const dbHelpers = {
   },
 
   // Update business knowledge data
-  async updateBusinessKnowledgeData(id, updates) {
+  async updateBusinessKnowledgeData(updates) {
     try {
       const { data, error } = await supabase
         .from('business_knowledge_org')
         .update({
-          ...updates,
+          organization_name: updates?.organization_name,
+          static_supply_elements: updates?.static_supply_elements,
+          dynamic_supply_elements: updates?.dynamic_supply_elements,
+          offer_definition: updates?.offer_definition,
+          pricing_and_objections: updates?.pricing_and_objections,
+          icp: updates?.icp,
+          reframe_narratives: updates?.reframe_narratives,
+          sales_methodology: updates?.sales_methodology,
+          brand_voice_guidelines: updates?.brand_voice_guidelines,
+          assets_detected: updates?.assets_detected,
+          sources: updates?.sources,
+          summary_note: updates?.summary_note,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id)
+        .eq('id', updates.id)
         .select()
         .single();
 
@@ -1913,7 +1924,7 @@ export const dbHelpers = {
   async getProcessedFilesByIds(fileIds) {
     try {
       if (!fileIds || fileIds.length === 0) return [];
-      
+
       const { data, error } = await supabase
         .from('business_knowledge_files')
         .select('*')
@@ -1982,7 +1993,7 @@ export const dbHelpers = {
           assets_detected: businessKnowledgeData.assetsDetected,
           sources: businessKnowledgeData.sources,
           summary_note: businessKnowledgeData.summaryNote,
-          processed_file_ids: fileIds
+          processed_file_ids: fileIds || businessKnowledgeData.processedFileIds,
         }])
         .select()
         .single();

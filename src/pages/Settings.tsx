@@ -293,17 +293,18 @@ export const Settings = () => {
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
   const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
+  const [businessOrgData, setBusinessOrgData] = useState(null);
   const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
     useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  const handleSaveBusinessKnowledge = async (data) => {
+  const handleUpdateBusinessKnowledge = async (data) => {
     try {
       // Save business knowledge data to database
       console.log("Saving business knowledge data:", data);
 
       // Save to database using dbHelpers
-      await dbHelpers.saveBusinessKnowledgeData(data, user?.organization_id);
+      await dbHelpers.updateBusinessKnowledgeData(data);
 
       // Update local state
       setBusinessKnowledgeData(data);
@@ -473,11 +474,38 @@ export const Settings = () => {
     }
   }, [orgSettings.country]);
 
+  const loadBusinessKnowledgeData = async () => {
+    // setIsLoadingInternalFiles(true);
+    try {
+      const data = await dbHelpers.getBusinessKnowledgeData(
+        user?.organization_id,
+        user?.id
+      );
+      console.log(data, "check business knowledge data");
+      setBusinessOrgData(data);
+    } catch (error) {
+      console.error("Error loading business knowledge data:", error);
+      toast.error("Failed to load business knowledge data");
+    } finally {
+      // setIsLoadingInternalFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBusinessKnowledgeData();
+  }, [businessKnowledgeData]);
+
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
     getInternalUploadedFiles();
   }, []);
+
+  const handleViewBusinessKnowledge = (knowledgeData) => {
+    console.log(knowledgeData, "check knowledge data 505");
+    setBusinessKnowledgeData(knowledgeData);
+    setShowBusinessKnowledgeModal(true);
+  };
 
   const getInternalUploadedFiles = async () => {
     try {
@@ -1090,15 +1118,19 @@ export const Settings = () => {
             );
             uploadedFileRecords.push(uploadedFile);
           }
-          const fileIds = uploadedFiles.map((file) => file.id);
+          const fileIds = uploadedFileRecords.map((file) => file.id);
           const savedData = await dbHelpers.saveBusinessKnowledgeData(
             businessData,
             user?.organization_id,
             user?.id,
             fileIds
           );
+          setBusinessKnowledgeData(savedData);
+          setShowBusinessKnowledgeModal(true);
           console.log(
-            `💾 Saved ${uploadedFileRecords.length} files to database`
+            `💾 Saved ${uploadedFileRecords.length} files to database`,
+            uploadedFileRecords,
+            fileIds
           );
 
           console.log("✅ Business knowledge data saved to database");
@@ -1110,8 +1142,6 @@ export const Settings = () => {
           // Continue with popup display even if DB save fails
         }
 
-        setBusinessKnowledgeData(businessData);
-        setShowBusinessKnowledgeModal(true);
         toast.success(
           `Business knowledge extracted from ${fileArray.length} file(s)! Review the data below.`
         );
@@ -3236,13 +3266,16 @@ export const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
-                      {businessKnowledgeData ? (
-                        businessKnowledgeData.length > 0 ? (
-                          businessKnowledgeData.map((knowledge) => (
+                      {console.log(businessOrgData, "businessKnowledgeData")}
+                      {businessOrgData ? (
+                        businessOrgData?.length > 0 ? (
+                          businessOrgData?.map((knowledge) => (
                             <Card
                               key={knowledge.id}
                               className="cursor-pointer hover:shadow-md transition-shadow"
-                              onClick={() => handleViewBusinessKnowledge(knowledge)}
+                              onClick={() =>
+                                handleViewBusinessKnowledge(knowledge)
+                              }
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between">
@@ -3250,20 +3283,33 @@ export const Settings = () => {
                                     <Building className="w-5 h-5 text-primary mt-1" />
                                     <div className="flex-1 min-w-0">
                                       <h3 className="font-semibold text-lg mb-1">
-                                        {knowledge.organization_name || "Unnamed Organization"}
+                                        {knowledge.organization_name ||
+                                          "Unnamed Organization"}
                                       </h3>
-                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                        {knowledge.summary_note || "No summary available"}
+                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+                                        {knowledge.summary_note ||
+                                          "No summary available"}
                                       </p>
                                       <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                         <span>
-                                          Created: {new Date(knowledge.created_at).toLocaleDateString()}
+                                          Created:{" "}
+                                          {new Date(
+                                            knowledge.created_at
+                                          ).toLocaleDateString()}
                                         </span>
                                         <span>
-                                          Updated: {new Date(knowledge.updated_at).toLocaleDateString()}
+                                          Updated:{" "}
+                                          {new Date(
+                                            knowledge.updated_at
+                                          ).toLocaleDateString()}
                                         </span>
-                                        <Badge variant="outline" className="text-xs">
-                                          {knowledge.processed_file_ids?.length || 0} files
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {knowledge.processed_file_ids
+                                            ?.length || 0}{" "}
+                                          files
                                         </Badge>
                                       </div>
                                     </div>
@@ -3286,7 +3332,9 @@ export const Settings = () => {
                                       size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleDeleteBusinessKnowledge(knowledge.id);
+                                        handleDeleteBusinessKnowledge(
+                                          knowledge.id
+                                        );
                                       }}
                                       className="text-destructive hover:text-destructive"
                                     >
@@ -3298,19 +3346,27 @@ export const Settings = () => {
                             </Card>
                           ))
                         ) : (
-                          <div className="text-center py-8">
-                            <p className="text-muted-foreground">No business knowledge profiles yet</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Upload business knowledge files to create your first profile
-                            </p>
-                          </div>
+                          ""
                         )
                       ) : (
+                        // (
+                        //   <div className="text-center py-8">
+                        //     <p className="text-muted-foreground">
+                        //       No business knowledge profiles yet
+                        //     </p>
+                        //     <p className="text-sm text-muted-foreground mt-1">
+                        //       Upload business knowledge files to create your
+                        //       first profile
+                        //     </p>
+                        //   </div>
+                        // )
                         <div className="text-center py-8">
-                          <p className="text-muted-foreground">Loading business knowledge...</p>
+                          <p className="text-muted-foreground">
+                            Loading business knowledge...
+                          </p>
                         </div>
                       )}
-                      {internalUploadedFiles?.length > 0 &&
+                      {/* {internalUploadedFiles?.length > 0 &&
                         internalUploadedFiles.map((material) => (
                           <div
                             key={material.id}
@@ -3361,7 +3417,7 @@ export const Settings = () => {
                               </Button>
                             </div>
                           </div>
-                        ))}
+                        ))} */}
                     </div>
                   </div>
                 </CardContent>
@@ -3649,7 +3705,7 @@ export const Settings = () => {
         isOpen={showBusinessKnowledgeModal}
         onClose={() => setShowBusinessKnowledgeModal(false)}
         data={businessKnowledgeData}
-        onSave={handleSaveBusinessKnowledge}
+        onSave={handleUpdateBusinessKnowledge}
       />
 
       {/* Delete Confirmation Dialog */}

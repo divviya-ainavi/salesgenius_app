@@ -35,8 +35,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface BusinessKnowledgeData {
-  organizationName: string;
-  staticSupplyElements: {
+  organization_name: string;
+  static_supply_elements: {
     coreBusinessOffering: string;
     valueProposition: string;
     marketPosition: string;
@@ -44,42 +44,42 @@ interface BusinessKnowledgeData {
     productsServicesPortfolio: string[];
     fundamentalProblemSolved: string;
   };
-  dynamicSupplyElements: {
+  dynamic_supply_elements: {
     currentAdaptationsPivots: string[];
     responseToTrends: string[];
     activePromotionsCampaigns: string[];
     seasonalTacticalAdjustments: string[];
   };
-  offerDefinition: {
+  offer_definition: {
     dreamOutcome: string;
     painProblem: string;
     proofDifferentiator: string;
   };
-  prizingAndObjections: {
+  pricing_and_objections: {
     prizeCriteria: string;
     lowStatusTriggers: string[];
     commonProspectAssumptions: string[];
   };
-  ICP: {
+  icp: {
     championPersona: string;
     economicBuyerPersona: string;
     antiPersona: string;
     keyMetricsOrKPIs: string[];
   };
-  reframeNarratives: {
+  reframe_narratives: {
     unseenProblem: string;
     ahaMoment: string;
     contrarianView: string;
   };
-  salesMethodology: {
+  sales_methodology: {
     methodologyUsed: string;
     keyQualificationInfo: string;
     goToClosingTechnique: string;
   };
-  brandVoiceGuidelines: string;
-  assetsDetected: string[];
+  brand_voice_guidelines: string;
+  assets_detected: string[];
   sources: string[];
-  summaryNote: string;
+  summary_note: string;
 }
 
 interface BusinessKnowledgeModalProps {
@@ -100,7 +100,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
+  console.log(data, "check data");
   React.useEffect(() => {
     if (data) {
       setEditedData(JSON.parse(JSON.stringify(data))); // Deep clone
@@ -114,10 +114,10 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     const newData = JSON.parse(JSON.stringify(editedData));
 
     let current = newData;
-    for (let i = 0; i < pathArray.length - 1; i++) {
-      current = current[pathArray[i]];
+    for (let i = 0; i < pathArray?.length - 1; i++) {
+      current = current[pathArray?.[i]];
     }
-    current[pathArray[pathArray.length - 1]] = value;
+    current[pathArray[pathArray?.length - 1]] = value;
 
     setEditedData(newData);
   };
@@ -133,11 +133,11 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     const newData = JSON.parse(JSON.stringify(editedData));
 
     let current = newData;
-    for (let i = 0; i < pathArray.length - 1; i++) {
+    for (let i = 0; i < pathArray?.length - 1; i++) {
       current = current[pathArray[i]];
     }
 
-    const array = current[pathArray[pathArray.length - 1]];
+    const array = current[pathArray[pathArray?.length - 1]];
     if (Array.isArray(array)) {
       array[index] = value;
     }
@@ -152,11 +152,11 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     const newData = JSON.parse(JSON.stringify(editedData));
 
     let current = newData;
-    for (let i = 0; i < pathArray.length - 1; i++) {
+    for (let i = 0; i < pathArray?.length - 1; i++) {
       current = current[pathArray[i]];
     }
 
-    const array = current[pathArray[pathArray.length - 1]];
+    const array = current[pathArray[pathArray?.length - 1]];
     if (Array.isArray(array)) {
       array.push("");
     }
@@ -228,37 +228,38 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
         )}
       </div>
       <div className="space-y-2">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-center space-x-2">
-            {isEditing ? (
-              <>
-                <Input
-                  value={item}
-                  onChange={(e) =>
-                    handleArrayItemChange(path, index, e.target.value)
-                  }
-                  placeholder={placeholder}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveArrayItem(path, index)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </>
-            ) : (
-              <div className="flex items-start space-x-2 w-full">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                <p className="text-sm text-muted-foreground flex-1">{item}</p>
-              </div>
-            )}
-          </div>
-        ))}
-        {items.length === 0 && !isEditing && (
+        {items?.length > 0 &&
+          items?.map((item, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              {isEditing ? (
+                <>
+                  <Input
+                    value={item}
+                    onChange={(e) =>
+                      handleArrayItemChange(path, index, e.target.value)
+                    }
+                    placeholder={placeholder}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveArrayItem(path, index)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <div className="flex items-start space-x-2 w-full">
+                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground flex-1">{item}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        {items?.length === 0 && !isEditing && (
           <p className="text-sm text-muted-foreground italic">
             No items available
           </p>
@@ -313,7 +314,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 variant="outline"
                 className="bg-blue-100 text-blue-800 border-blue-200"
               >
-                {editedData.organizationName}
+                {editedData.organization_name}
               </Badge>
             </div>
             <div className="flex items-center space-x-2">
@@ -382,8 +383,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Core Business Offering",
-                  "staticSupplyElements.coreBusinessOffering",
-                  editedData.staticSupplyElements?.coreBusinessOffering,
+                  "static_supply_elements.coreBusinessOffering",
+                  editedData.static_supply_elements?.coreBusinessOffering,
                   true,
                   "Describe your main business offering..."
                 )}
@@ -392,8 +393,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Value Proposition",
-                  "staticSupplyElements.valueProposition",
-                  editedData.staticSupplyElements.valueProposition,
+                  "static_supply_elements.valueProposition",
+                  editedData.static_supply_elements?.valueProposition,
                   true,
                   "What unique value do you provide..."
                 )}
@@ -402,8 +403,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Market Position",
-                  "staticSupplyElements.marketPosition",
-                  editedData.staticSupplyElements.marketPosition,
+                  "static_supply_elements.marketPosition",
+                  editedData.static_supply_elements?.marketPosition,
                   true,
                   "How are you positioned in the market..."
                 )}
@@ -412,8 +413,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Fundamental Problem Solved",
-                  "staticSupplyElements.fundamentalProblemSolved",
-                  editedData.staticSupplyElements.fundamentalProblemSolved,
+                  "static_supply_elements.fundamentalProblemSolved",
+                  editedData.static_supply_elements?.fundamentalProblemSolved,
                   true,
                   "What core problem do you solve..."
                 )}
@@ -427,8 +428,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent>
                 {renderArrayField(
                   "Key Advantages",
-                  "staticSupplyElements.competitiveAdvantages",
-                  editedData.staticSupplyElements.competitiveAdvantages,
+                  "static_supply_elements.competitiveAdvantages",
+                  editedData.static_supply_elements?.competitiveAdvantages,
                   "Enter competitive advantage..."
                 )}
               </CardContent>
@@ -441,8 +442,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent>
                 {renderArrayField(
                   "Products/Services",
-                  "staticSupplyElements.productsServicesPortfolio",
-                  editedData.staticSupplyElements.productsServicesPortfolio,
+                  "static_supply_elements.productsServicesPortfolio",
+                  editedData.static_supply_elements?.productsServicesPortfolio,
                   "Enter product or service..."
                 )}
               </CardContent>
@@ -461,8 +462,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderArrayField(
                   "Current Adaptations & Pivots",
-                  "dynamicSupplyElements.currentAdaptationsPivots",
-                  editedData.dynamicSupplyElements.currentAdaptationsPivots,
+                  "dynamic_supply_elements.currentAdaptationsPivots",
+                  editedData.dynamic_supply_elements.currentAdaptationsPivots,
                   "Enter adaptation or pivot..."
                 )}
 
@@ -470,8 +471,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Response to Market Trends",
-                  "dynamicSupplyElements.responseToTrends",
-                  editedData.dynamicSupplyElements.responseToTrends,
+                  "dynamic_supply_elements.responseToTrends",
+                  editedData.dynamic_supply_elements.responseToTrends,
                   "Enter trend response..."
                 )}
 
@@ -479,8 +480,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Active Promotions & Campaigns",
-                  "dynamicSupplyElements.activePromotionsCampaigns",
-                  editedData.dynamicSupplyElements.activePromotionsCampaigns,
+                  "dynamic_supply_elements.activePromotionsCampaigns",
+                  editedData.dynamic_supply_elements.activePromotionsCampaigns,
                   "Enter promotion or campaign..."
                 )}
 
@@ -488,8 +489,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Seasonal Tactical Adjustments",
-                  "dynamicSupplyElements.seasonalTacticalAdjustments",
-                  editedData.dynamicSupplyElements.seasonalTacticalAdjustments,
+                  "dynamic_supply_elements.seasonalTacticalAdjustments",
+                  editedData.dynamic_supply_elements
+                    .seasonalTacticalAdjustments,
                   "Enter seasonal adjustment..."
                 )}
               </CardContent>
@@ -508,8 +510,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Dream Outcome",
-                  "offerDefinition.dreamOutcome",
-                  editedData.offerDefinition.dreamOutcome,
+                  "offer_definition.dreamOutcome",
+                  editedData.offer_definition.dreamOutcome,
                   true,
                   "What's the ideal outcome for customers..."
                 )}
@@ -518,8 +520,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Pain & Problem",
-                  "offerDefinition.painProblem",
-                  editedData.offerDefinition.painProblem,
+                  "offer_definition.painProblem",
+                  editedData.offer_definition.painProblem,
                   true,
                   "What pain points do you address..."
                 )}
@@ -528,8 +530,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Proof & Differentiator",
-                  "offerDefinition.proofDifferentiator",
-                  editedData.offerDefinition.proofDifferentiator,
+                  "offer_definition.proofDifferentiator",
+                  editedData.offer_definition.proofDifferentiator,
                   true,
                   "What proves you're different and better..."
                 )}
@@ -546,8 +548,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Unseen Problem",
-                  "reframeNarratives.unseenProblem",
-                  editedData.reframeNarratives.unseenProblem,
+                  "reframe_narratives.unseenProblem",
+                  editedData.reframe_narratives.unseenProblem,
                   true,
                   "What problem do prospects not realize they have..."
                 )}
@@ -556,8 +558,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Aha Moment",
-                  "reframeNarratives.ahaMoment",
-                  editedData.reframeNarratives.ahaMoment,
+                  "reframe_narratives.ahaMoment",
+                  editedData.reframe_narratives.ahaMoment,
                   true,
                   "What insight creates the 'aha' moment..."
                 )}
@@ -566,8 +568,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Contrarian View",
-                  "reframeNarratives.contrarianView",
-                  editedData.reframeNarratives.contrarianView,
+                  "reframe_narratives.contrarianView",
+                  editedData.reframe_narratives.contrarianView,
                   true,
                   "What contrarian perspective do you offer..."
                 )}
@@ -587,8 +589,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Prize Criteria",
-                  "prizingAndObjections.prizeCriteria",
-                  editedData.prizingAndObjections.prizeCriteria,
+                  "pricing_and_objections.prizeCriteria",
+                  editedData.pricing_and_objections.prizeCriteria,
                   true,
                   "What criteria determine success..."
                 )}
@@ -597,8 +599,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Low Status Triggers",
-                  "prizingAndObjections.lowStatusTriggers",
-                  editedData.prizingAndObjections.lowStatusTriggers,
+                  "pricing_and_objections.lowStatusTriggers",
+                  editedData.pricing_and_objections.lowStatusTriggers,
                   "Enter status trigger..."
                 )}
 
@@ -606,8 +608,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Common Prospect Assumptions",
-                  "prizingAndObjections.commonProspectAssumptions",
-                  editedData.prizingAndObjections.commonProspectAssumptions,
+                  "pricing_and_objections.commonProspectAssumptions",
+                  editedData.pricing_and_objections.commonProspectAssumptions,
                   "Enter prospect assumption..."
                 )}
               </CardContent>
@@ -626,8 +628,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Champion Persona",
-                  "ICP.championPersona",
-                  editedData.ICP.championPersona,
+                  "icp.championPersona",
+                  editedData.icp.championPersona,
                   true,
                   "Who champions your solution internally..."
                 )}
@@ -636,8 +638,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Economic Buyer Persona",
-                  "ICP.economicBuyerPersona",
-                  editedData.ICP.economicBuyerPersona,
+                  "icp.economicBuyerPersona",
+                  editedData.icp.economicBuyerPersona,
                   true,
                   "Who makes the buying decision..."
                 )}
@@ -646,8 +648,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Anti-Persona",
-                  "ICP.antiPersona",
-                  editedData.ICP.antiPersona,
+                  "icp.antiPersona",
+                  editedData.icp.antiPersona,
                   true,
                   "Who is NOT a good fit..."
                 )}
@@ -656,8 +658,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderArrayField(
                   "Key Metrics & KPIs",
-                  "ICP.keyMetricsOrKPIs",
-                  editedData.ICP.keyMetricsOrKPIs,
+                  "icp.keyMetricsOrKPIs",
+                  editedData.icp.keyMetricsOrKPIs,
                   "Enter metric or KPI..."
                 )}
               </CardContent>
@@ -676,8 +678,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderTextField(
                   "Methodology Used",
-                  "salesMethodology.methodologyUsed",
-                  editedData.salesMethodology.methodologyUsed,
+                  "sales_methodology.methodologyUsed",
+                  editedData.sales_methodology.methodologyUsed,
                   false,
                   "e.g., SPIN, Challenger, MEDDIC..."
                 )}
@@ -686,8 +688,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Key Qualification Information",
-                  "salesMethodology.keyQualificationInfo",
-                  editedData.salesMethodology.keyQualificationInfo,
+                  "sales_methodology.keyQualificationInfo",
+                  editedData.sales_methodology.keyQualificationInfo,
                   true,
                   "How do you qualify prospects..."
                 )}
@@ -696,8 +698,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Go-To Closing Technique",
-                  "salesMethodology.goToClosingTechnique",
-                  editedData.salesMethodology.goToClosingTechnique,
+                  "sales_methodology.goToClosingTechnique",
+                  editedData.sales_methodology.goToClosingTechnique,
                   true,
                   "What's your primary closing approach..."
                 )}
@@ -706,8 +708,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Brand Voice Guidelines",
-                  "brandVoiceGuidelines",
-                  editedData.brandVoiceGuidelines,
+                  "brand_voice_guidelines",
+                  editedData.brand_voice_guidelines,
                   true,
                   "Describe your brand voice and tone..."
                 )}
@@ -721,8 +723,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <CardContent className="space-y-6">
                 {renderArrayField(
                   "Assets Detected",
-                  "assetsDetected",
-                  editedData.assetsDetected,
+                  "assets_detected",
+                  editedData.assets_detected,
                   "Enter asset description..."
                 )}
 
@@ -739,8 +741,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                 {renderTextField(
                   "Summary Note",
-                  "summaryNote",
-                  editedData.summaryNote,
+                  "summary_note",
+                  editedData.summary_note,
                   true,
                   "Overall summary of the business knowledge..."
                 )}
