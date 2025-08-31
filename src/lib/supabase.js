@@ -1955,6 +1955,27 @@ export const dbHelpers = {
     }
   },
 
+  // Get processed files by IDs from business_knowledge_files table
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
+      throw error;
+    }
+  },
+
   // Get business knowledge data for organization
   async getBusinessKnowledgeData(organizationId, userId) {
     try {
