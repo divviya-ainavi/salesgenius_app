@@ -298,6 +298,48 @@ export const Settings = () => {
     useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  const handleViewProcessedFiles = async (knowledgeData) => {
+    try {
+      if (
+        !knowledgeData.processed_file_ids ||
+        knowledgeData.processed_file_ids.length === 0
+      ) {
+        toast.info(
+          "No processed files found for this business knowledge profile"
+        );
+        return;
+      }
+
+      const files = await dbHelpers.getProcessedFilesByIds(
+        knowledgeData.processed_file_ids
+      );
+      setProcessedFiles(files);
+      setShowProcessedFilesModal(true);
+    } catch (error) {
+      console.error("Error fetching processed files:", error);
+      toast.error("Failed to load processed files");
+    }
+  };
+
+  const handleDeleteBusinessKnowledge = async (knowledgeData) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete the business knowledge profile for "${knowledgeData.organization_name}"?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await dbHelpers.deleteBusinessKnowledgeData(knowledgeData.id);
+      await loadBusinessKnowledgeData();
+      toast.success("Business knowledge profile deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business knowledge:", error);
+      toast.error("Failed to delete business knowledge profile");
+    }
+  };
+
   const handleUpdateBusinessKnowledge = async (data) => {
     try {
       // Save business knowledge data to database
