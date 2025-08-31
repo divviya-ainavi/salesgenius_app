@@ -297,6 +297,9 @@ export const Settings = () => {
   const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
     useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showProcessedFilesModal, setShowProcessedFilesModal] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState([]);
+  const [selectedBusinessKnowledgeForFiles, setSelectedBusinessKnowledgeForFiles] = useState(null);
 
   const handleViewProcessedFiles = async (knowledgeData) => {
     try {
@@ -314,6 +317,7 @@ export const Settings = () => {
         knowledgeData.processed_file_ids
       );
       setProcessedFiles(files);
+      setSelectedBusinessKnowledgeForFiles(knowledgeData);
       setShowProcessedFilesModal(true);
     } catch (error) {
       console.error("Error fetching processed files:", error);
@@ -3750,66 +3754,6 @@ export const Settings = () => {
         </TabsContent>
       </Tabs>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProcessedFilesModal(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Business Knowledge Modal */}
-      <BusinessKnowledgeModal
-        isOpen={showBusinessKnowledgeModal}
-        onClose={() => setShowBusinessKnowledgeModal(false)}
-        data={businessKnowledgeData}
-        onSave={handleUpdateBusinessKnowledge}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={showDeleteConfirmDialog}
-        onOpenChange={setShowDeleteConfirmDialog}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-destructive" />
-              <span>Confirm Delete</span>
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{fileToDelete?.original_filename}</strong>
-              "? This action will mark the file as inactive and it won't be
-              available for AI training.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancelDelete}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={isDeletingBusinessFile}
-            >
-              {isDeletingBusinessFile ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
       {/* Processed Files Modal */}
       <Dialog open={showProcessedFilesModal} onOpenChange={setShowProcessedFilesModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -3876,6 +3820,67 @@ export const Settings = () => {
               </div>
             )}
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProcessedFilesModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Knowledge Modal */}
+      <BusinessKnowledgeModal
+        isOpen={showBusinessKnowledgeModal}
+        onClose={() => setShowBusinessKnowledgeModal(false)}
+        data={businessKnowledgeData}
+        onSave={handleUpdateBusinessKnowledge}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <span>Confirm Delete</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>{fileToDelete?.original_filename}</strong>
+              "? This action will mark the file as inactive and it won't be
+              available for AI training.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelDelete}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeletingBusinessFile}
+            >
+              {isDeletingBusinessFile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
