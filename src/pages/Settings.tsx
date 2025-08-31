@@ -375,7 +375,11 @@ export const Settings = () => {
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
   const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
     useState(false);
-  const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
+  const [businessKnowledgeData, setBusinessKnowledgeData] = useState([]);
+  const [selectedBusinessKnowledge, setSelectedBusinessKnowledge] = useState(null);
+  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState([]);
+  const [showProcessedFilesModal, setShowProcessedFilesModal] = useState(false);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);

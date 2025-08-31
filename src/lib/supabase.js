@@ -1870,7 +1870,7 @@ export const dbHelpers = {
     }
   },
 
-  // Get business knowledge data for organization and user
+  // Get business knowledge data for user/organization
   async getBusinessKnowledgeData(userId, organizationId) {
     try {
       const { data, error } = await supabase
@@ -1893,7 +1893,10 @@ export const dbHelpers = {
     try {
       const { data, error } = await supabase
         .from('business_knowledge_org')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .select()
         .single();
@@ -1902,6 +1905,25 @@ export const dbHelpers = {
       return data;
     } catch (error) {
       console.error('Error updating business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get processed files by IDs
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
       throw error;
     }
   },
@@ -4564,8 +4586,8 @@ export const dbHelpers = {
     }
   },
 
-  // Save feedback to database
-  saveFeedback: async (feedbackData) => {
+  // Save user feedback
+  async saveFeedback(feedbackData) {
     try {
       const { data, error } = await supabase
         .from('user_feedback')
