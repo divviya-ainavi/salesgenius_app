@@ -296,9 +296,6 @@ export const Settings = () => {
   const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
     useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [selectedBusinessKnowledge, setSelectedBusinessKnowledge] = useState(null);
-  const [showProcessedFilesModal, setShowProcessedFilesModal] = useState(false);
-  const [processedFiles, setProcessedFiles] = useState([]);
 
   const handleSaveBusinessKnowledge = async (data) => {
     try {
@@ -317,11 +314,6 @@ export const Settings = () => {
       toast.error("Failed to save business knowledge");
       throw error;
     }
-  };
-
-  const handleViewFile = (file) => {
-    // Handle file viewing logic
-    console.log("Viewing file:", file);
   };
 
   const {
@@ -3244,6 +3236,80 @@ export const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
+                      {businessKnowledgeData ? (
+                        businessKnowledgeData.length > 0 ? (
+                          businessKnowledgeData.map((knowledge) => (
+                            <Card
+                              key={knowledge.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => handleViewBusinessKnowledge(knowledge)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-3 flex-1">
+                                    <Building className="w-5 h-5 text-primary mt-1" />
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-lg mb-1">
+                                        {knowledge.organization_name || "Unnamed Organization"}
+                                      </h3>
+                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                        {knowledge.summary_note || "No summary available"}
+                                      </p>
+                                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                        <span>
+                                          Created: {new Date(knowledge.created_at).toLocaleDateString()}
+                                        </span>
+                                        <span>
+                                          Updated: {new Date(knowledge.updated_at).toLocaleDateString()}
+                                        </span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {knowledge.processed_file_ids?.length || 0} files
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewProcessedFiles(knowledge);
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      <FileText className="w-3 h-3 mr-1" />
+                                      View Files
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBusinessKnowledge(knowledge.id);
+                                      }}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground">No business knowledge profiles yet</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Upload business knowledge files to create your first profile
+                            </p>
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">Loading business knowledge...</p>
+                        </div>
+                      )}
                       {internalUploadedFiles?.length > 0 &&
                         internalUploadedFiles.map((material) => (
                           <div
@@ -3254,15 +3320,7 @@ export const Settings = () => {
                               <FileText className="w-5 h-5 text-muted-foreground" />
                               <div>
                                 <p className="text-sm font-medium">
-                                  {/* {material.original_filename} */}
-                                  <a
-                                    href={material.file_url} // ensure this is the correct Supabase file URL
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline text-primary"
-                                  >
-                                    {material.original_filename}
-                                  </a>
+                                  {material.original_filename}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatFileSize(material.file_size)} •{" "}
@@ -3585,65 +3643,6 @@ export const Settings = () => {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Business Knowledge Modal */}
-      {selectedBusinessKnowledge && (
-        <BusinessKnowledgeModal
-          isOpen={showBusinessKnowledgeModal}
-          onClose={() => {
-            setShowBusinessKnowledgeModal(false);
-            setSelectedBusinessKnowledge(null);
-          }}
-          data={selectedBusinessKnowledge}
-          onSave={handleSaveBusinessKnowledge}
-        />
-      )}
-
-      {/* Processed Files Modal */}
-      <Dialog open={showProcessedFilesModal} onOpenChange={setShowProcessedFilesModal}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Processed Files</DialogTitle>
-            <DialogDescription>
-              Files that were processed to create this business knowledge profile
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            {processedFiles.map((file) => (
-              <Card key={file.id} className="cursor-pointer hover:shadow-sm transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{file.original_filename}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>{(file.file_size / 1024 / 1024).toFixed(2)} MB</span>
-                          <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {file.content_type}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewFile(file)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowProcessedFilesModal(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Business Knowledge Modal */}
       <BusinessKnowledgeModal
