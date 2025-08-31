@@ -307,26 +307,17 @@ export const Settings = () => {
         toast.info(
           "No processed files found for this business knowledge profile"
         );
-    setSelectedBusinessKnowledgeForFiles(businessKnowledge);
-    setLoadingProcessedFiles(true);
-    setShowProcessedFilesModal(true);
-    
         return;
       }
 
-        setProcessedFiles([]);
       const files = await dbHelpers.getProcessedFilesByIds(
         knowledgeData.processed_file_ids
       );
       setProcessedFiles(files);
-      setProcessedFiles(files || []);
       setShowProcessedFilesModal(true);
     } catch (error) {
       console.error("Error fetching processed files:", error);
       toast.error("Failed to load processed files");
-      setProcessedFiles([]);
-    } finally {
-      setLoadingProcessedFiles(false);
     }
   };
 
@@ -1491,6 +1482,14 @@ export const Settings = () => {
   const countries = getCountries();
   // const isOrgAdmin = roles
   // console.log(roles, titles)
+  const handleViewFile = (file) => {
+    if (file.file_url) {
+      window.open(file.file_url, '_blank');
+    } else {
+      toast.error("File URL not available");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
