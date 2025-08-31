@@ -307,17 +307,26 @@ export const Settings = () => {
         toast.info(
           "No processed files found for this business knowledge profile"
         );
+    setSelectedBusinessKnowledgeForFiles(businessKnowledge);
+    setLoadingProcessedFiles(true);
+    setShowProcessedFilesModal(true);
+    
         return;
       }
 
+        setProcessedFiles([]);
       const files = await dbHelpers.getProcessedFilesByIds(
         knowledgeData.processed_file_ids
       );
       setProcessedFiles(files);
+      setProcessedFiles(files || []);
       setShowProcessedFilesModal(true);
     } catch (error) {
       console.error("Error fetching processed files:", error);
       toast.error("Failed to load processed files");
+      setProcessedFiles([]);
+    } finally {
+      setLoadingProcessedFiles(false);
     }
   };
 
