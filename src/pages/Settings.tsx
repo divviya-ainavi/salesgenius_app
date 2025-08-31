@@ -301,6 +301,14 @@ export const Settings = () => {
   const [processedFiles, setProcessedFiles] = useState([]);
   const [selectedBusinessKnowledgeForFiles, setSelectedBusinessKnowledgeForFiles] = useState(null);
 
+  const handleViewFile = (file) => {
+    if (file.file_url) {
+      window.open(file.file_url, '_blank');
+    } else {
+      toast.error("File URL not available");
+    }
+  };
+
   const handleViewProcessedFiles = async (knowledgeData) => {
     try {
       if (
@@ -1486,14 +1494,6 @@ export const Settings = () => {
   const countries = getCountries();
   // const isOrgAdmin = roles
   // console.log(roles, titles)
-  const handleViewFile = (file) => {
-    if (file.file_url) {
-      window.open(file.file_url, '_blank');
-    } else {
-      toast.error("File URL not available");
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
