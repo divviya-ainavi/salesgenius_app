@@ -498,6 +498,22 @@ export const Settings = () => {
     }
   };
 
+  const loadBusinessKnowledgeData = async () => {
+    setIsLoadingInternalFiles(true);
+    try {
+      const data = await dbHelpers.getBusinessKnowledgeData(
+        user?.id,
+        user?.organization_id
+      );
+      setBusinessKnowledgeData(data);
+    } catch (error) {
+      console.error("Error loading business knowledge data:", error);
+      toast.error("Failed to load business knowledge data");
+    } finally {
+      setIsLoadingInternalFiles(false);
+    }
+  };
+
   const checkFirefliesStatus = async () => {
     try {
       const status = await dbHelpers.getUserFirefliesStatus(user?.id);
