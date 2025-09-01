@@ -30,6 +30,7 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -213,25 +214,29 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     items: string[],
     placeholder: string = "Enter item..."
   ) => (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">{title}</Label>
+        <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span>{title}</span>
+        </Label>
         {isEditing && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => handleAddArrayItem(path)}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
           >
-            <Plus className="w-3 h-3 mr-1" />
+            <Plus className="w-3 h-3 mr-1.5" />
             Add
           </Button>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {items?.length > 0 &&
           items?.map((item, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-center space-x-3 group">
               {isEditing ? (
                 <>
                   <Input
@@ -240,30 +245,32 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                       handleArrayItemChange(path, index, e.target.value)
                     }
                     placeholder={placeholder}
-                    className="flex-1"
+                    className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemoveArrayItem(path, index)}
-                    className="text-destructive hover:text-destructive"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </>
               ) : (
-                <div className="flex items-start space-x-2 w-full">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground flex-1">{item}</p>
+                <div className="flex items-start space-x-3 w-full bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-gray-700 flex-1 leading-relaxed">{item}</p>
                 </div>
               )}
             </div>
           ))}
         {items?.length === 0 && !isEditing && (
-          <p className="text-sm text-muted-foreground italic">
-            No items available
-          </p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+            <p className="text-sm text-gray-500 italic">
+              No items available
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -276,27 +283,33 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     multiline: boolean = false,
     placeholder: string = ""
   ) => (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">{title}</Label>
+    <div className="space-y-3">
+      <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        <span>{title}</span>
+      </Label>
       {isEditing ? (
         multiline ? (
           <Textarea
             value={value}
             onChange={(e) => handleInputChange(path, e.target.value)}
             placeholder={placeholder}
-            className="min-h-[100px]"
+            className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
           />
         ) : (
           <Input
             value={value}
             onChange={(e) => handleInputChange(path, e.target.value)}
             placeholder={placeholder}
+            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
           />
         )
       ) : (
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {value || "Not specified"}
-        </p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {value || <span className="italic text-gray-500">Not specified</span>}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -308,83 +321,89 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Building className="w-5 h-5" />
-              <span>Business Knowledge Profile</span>
-              <Badge
-                variant="outline"
-                className="bg-blue-100 text-blue-800 border-blue-200"
-              >
-                {editedData.organization_name}
-              </Badge>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Building className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Business Knowledge Profile</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Comprehensive business intelligence and insights
+                </p>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {
-                // !isEditing ? (
-                //   <Button
-                //     variant="outline"
-                //     size="sm"
-                //     onClick={() => setIsEditing(true)}
-                //   >
-                //     <Edit className="w-4 h-4 mr-1" />
-                //     Edit
-                //   </Button>
-                // ) : (
-                // <div className="flex items-center space-x-2">
-                //   <Button
-                //     variant="outline"
-                //     size="sm"
-                //     onClick={handleCancel}
-                //     disabled={isSaving}
-                //   >
-                //     <X className="w-4 h-4 mr-1" />
-                //     Cancel
-                //   </Button>
-                //   <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                //     {isSaving ? (
-                //       <>
-                //         <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
-                //         Saving...
-                //       </>
-                //     ) : (
-                //       <>
-                //         <Save className="w-4 h-4 mr-1" />
-                //         Save Changes
-                //       </>
-                //     )}
-                //   </Button>
-                // </div>
-                // )
-              }
-            </div>
+            <Badge
+              variant="outline"
+              className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 px-3 py-1.5 font-medium"
+            >
+              {editedData.organization_name}
+            </Badge>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-600 mt-2">
             Review and edit your organization's business knowledge profile
             extracted from uploaded documents.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="core" className="w-full flex flex-col flex-1 min-h-0">
-          <TabsList className="grid w-full grid-cols-6 flex-shrink-0">
-            <TabsTrigger value="core">Core Business</TabsTrigger>
-            <TabsTrigger value="dynamic">Market Dynamics</TabsTrigger>
-            <TabsTrigger value="offer">Value Offer</TabsTrigger>
-            <TabsTrigger value="objections">Objections</TabsTrigger>
-            <TabsTrigger value="icp">Target Customers</TabsTrigger>
-            <TabsTrigger value="methodology">Sales Process</TabsTrigger>
+        <Tabs defaultValue="core" className="w-full flex flex-col flex-1 min-h-0 mt-4">
+          <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-gray-50 p-1 rounded-xl border border-gray-200">
+            <TabsTrigger 
+              value="core" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <Target className="w-4 h-4 mr-1.5" />
+              Core Business
+            </TabsTrigger>
+            <TabsTrigger 
+              value="dynamic"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <TrendingUp className="w-4 h-4 mr-1.5" />
+              Market Dynamics
+            </TabsTrigger>
+            <TabsTrigger 
+              value="offer"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <DollarSign className="w-4 h-4 mr-1.5" />
+              Value Offer
+            </TabsTrigger>
+            <TabsTrigger 
+              value="objections"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <AlertCircle className="w-4 h-4 mr-1.5" />
+              Objections
+            </TabsTrigger>
+            <TabsTrigger 
+              value="icp"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <Users className="w-4 h-4 mr-1.5" />
+              Target Customers
+            </TabsTrigger>
+            <TabsTrigger 
+              value="methodology"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+            >
+              <MessageSquare className="w-4 h-4 mr-1.5" />
+              Sales Process
+            </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto mt-4 pr-2">
             {/* Core Business Tab */}
-            <TabsContent value="core" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="w-5 h-5" />
-                    <span>Core Business Elements</span>
+            <TabsContent value="core" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg border-b border-blue-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Target className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Core Business Elements</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Core Business Offering",
                     "static_supply_elements.coreBusinessOffering",
@@ -393,7 +412,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Describe your main business offering..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Value Proposition",
@@ -403,7 +422,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What unique value do you provide..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Market Position",
@@ -413,7 +432,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "How are you positioned in the market..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Fundamental Problem Solved",
@@ -425,11 +444,16 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Competitive Advantages</CardTitle>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg border-b border-green-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Competitive Advantages</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   {renderArrayField(
                     "Key Advantages",
                     "static_supply_elements.competitiveAdvantages",
@@ -439,11 +463,16 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Products & Services Portfolio</CardTitle>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-t-lg border-b border-purple-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Building className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Products & Services Portfolio</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   {renderArrayField(
                     "Products/Services",
                     "static_supply_elements.productsServicesPortfolio",
@@ -455,15 +484,17 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </TabsContent>
 
             {/* Market Dynamics Tab */}
-            <TabsContent value="dynamic" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5" />
-                    <span>Market Dynamics</span>
+            <TabsContent value="dynamic" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-lg border-b border-orange-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Market Dynamics</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderArrayField(
                     "Current Adaptations & Pivots",
                     "dynamic_supply_elements.currentAdaptationsPivots",
@@ -471,7 +502,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter adaptation or pivot..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Response to Market Trends",
@@ -480,7 +511,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter trend response..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Active Promotions & Campaigns",
@@ -489,7 +520,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter promotion or campaign..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Seasonal Tactical Adjustments",
@@ -503,15 +534,17 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </TabsContent>
 
             {/* Value Offer Tab */}
-            <TabsContent value="offer" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <DollarSign className="w-5 h-5" />
-                    <span>Value Offer Definition</span>
+            <TabsContent value="offer" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg border-b border-emerald-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Value Offer Definition</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Dream Outcome",
                     "offer_definition.dreamOutcome",
@@ -520,7 +553,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What's the ideal outcome for customers..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Pain & Problem",
@@ -530,7 +563,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What pain points do you address..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Proof & Differentiator",
@@ -542,14 +575,16 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Lightbulb className="w-5 h-5" />
-                    <span>Reframe Narratives</span>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-t-lg border-b border-yellow-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                      <Lightbulb className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Reframe Narratives</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Unseen Problem",
                     "reframe_narratives.unseenProblem",
@@ -558,7 +593,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What problem do prospects not realize they have..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Aha Moment",
@@ -568,7 +603,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What insight creates the 'aha' moment..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Contrarian View",
@@ -582,15 +617,17 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </TabsContent>
 
             {/* Objections Tab */}
-            <TabsContent value="objections" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Pricing & Objections</span>
+            <TabsContent value="objections" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-red-50 to-rose-50 rounded-t-lg border-b border-red-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                      <AlertCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Pricing & Objections</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Prize Criteria",
                     "pricing_and_objections.prizeCriteria",
@@ -599,7 +636,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What criteria determine success..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Low Status Triggers",
@@ -608,7 +645,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter status trigger..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Common Prospect Assumptions",
@@ -621,15 +658,17 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </TabsContent>
 
             {/* Target Customers Tab */}
-            <TabsContent value="icp" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Users className="w-5 h-5" />
-                    <span>Ideal Customer Profile</span>
+            <TabsContent value="icp" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-t-lg border-b border-cyan-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Ideal Customer Profile</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Champion Persona",
                     "icp.championPersona",
@@ -638,7 +677,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Who champions your solution internally..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Economic Buyer Persona",
@@ -648,7 +687,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Who makes the buying decision..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Anti-Persona",
@@ -658,7 +697,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Who is NOT a good fit..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Key Metrics & KPIs",
@@ -671,15 +710,17 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </TabsContent>
 
             {/* Sales Process Tab */}
-            <TabsContent value="methodology" className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <MessageSquare className="w-5 h-5" />
-                    <span>Sales Methodology</span>
+            <TabsContent value="methodology" className="space-y-6 p-1 mt-0">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg border-b border-indigo-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Sales Methodology</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderTextField(
                     "Methodology Used",
                     "sales_methodology.methodologyUsed",
@@ -688,7 +729,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "e.g., SPIN, Challenger, MEDDIC..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Key Qualification Information",
@@ -698,7 +739,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "How do you qualify prospects..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Go-To Closing Technique",
@@ -708,7 +749,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What's your primary closing approach..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Brand Voice Guidelines",
@@ -720,11 +761,16 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Assets & Sources</CardTitle>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-t-lg border-b border-slate-100">
+                  <CardTitle className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-slate-500 rounded-lg flex items-center justify-center">
+                      <Building className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-gray-800">Assets & Sources</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                   {renderArrayField(
                     "Assets Detected",
                     "assets_detected",
@@ -732,7 +778,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter asset description..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderArrayField(
                     "Sources",
@@ -741,7 +787,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Enter source..."
                   )}
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   {renderTextField(
                     "Summary Note",
@@ -756,30 +802,34 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           </div>
         </Tabs>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 flex-shrink-0 border-t pt-4 mt-4">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 flex-shrink-0 border-t border-gray-200 pt-6 mt-6 bg-gray-50 rounded-b-lg -mx-6 -mb-6 px-6 pb-6">
           {/* <Button variant="outline" onClick={onClose}>
             Close
           </Button> */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <Button
               variant="outline"
-              size="sm"
               onClick={onClose}
               disabled={isSaving}
+              className="px-6 py-2.5 border-gray-300 hover:bg-gray-100"
             >
               <X className="w-4 h-4 mr-1" />
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+            <Button 
+              onClick={handleSave} 
+              disabled={isSaving}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+            >
               {isSaving ? (
                 <>
-                  <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-1" />
-                  Save
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
                 </>
               )}
             </Button>
