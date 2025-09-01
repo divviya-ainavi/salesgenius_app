@@ -3395,12 +3395,12 @@ export const Settings = () => {
                                       View Files
                                     </Button>
                                     <Button
-                                      variant="outline"
+                                      variant="ghost"
                                       size="sm"
                                       onClick={() =>
                                         handleViewBusinessKnowledge(knowledge)
                                       }
-                                      className="text-green-600 hover:bg-green-50"
+                                      className="text-black hover:text-black"
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
