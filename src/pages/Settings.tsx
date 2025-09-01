@@ -3478,14 +3478,6 @@ export const Settings = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewBusinessKnowledge(item)}
-                                className="text-gray-600 hover:text-gray-700"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
                             </div>
                           </div>
                         ))} */}
