@@ -98,12 +98,13 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
   const [editedData, setEditedData] = useState<BusinessKnowledgeData | null>(
     null
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   console.log(data, "check data");
   React.useEffect(() => {
     if (data) {
       setEditedData(JSON.parse(JSON.stringify(data))); // Deep clone
+      setIsEditing(true);
     }
   }, [data]);
 
@@ -318,41 +319,43 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               </Badge>
             </div>
             <div className="flex items-center space-x-2">
-              {!isEditing ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-1" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+              {
+                // !isEditing ? (
+                //   <Button
+                //     variant="outline"
+                //     size="sm"
+                //     onClick={() => setIsEditing(true)}
+                //   >
+                //     <Edit className="w-4 h-4 mr-1" />
+                //     Edit
+                //   </Button>
+                // ) : (
+                // <div className="flex items-center space-x-2">
+                //   <Button
+                //     variant="outline"
+                //     size="sm"
+                //     onClick={handleCancel}
+                //     disabled={isSaving}
+                //   >
+                //     <X className="w-4 h-4 mr-1" />
+                //     Cancel
+                //   </Button>
+                //   <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                //     {isSaving ? (
+                //       <>
+                //         <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
+                //         Saving...
+                //       </>
+                //     ) : (
+                //       <>
+                //         <Save className="w-4 h-4 mr-1" />
+                //         Save Changes
+                //       </>
+                //     )}
+                //   </Button>
+                // </div>
+                // )
+              }
             </div>
           </DialogTitle>
           <DialogDescription>
@@ -752,9 +755,33 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
         </Tabs>
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
-          <Button variant="outline" onClick={onClose}>
+          {/* <Button variant="outline" onClick={onClose}>
             Close
-          </Button>
+          </Button> */}
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-1" />
+                  Save
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

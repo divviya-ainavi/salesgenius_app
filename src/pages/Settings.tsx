@@ -299,7 +299,10 @@ export const Settings = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showProcessedFilesModal, setShowProcessedFilesModal] = useState(false);
   const [processedFiles, setProcessedFiles] = useState([]);
-  const [selectedBusinessKnowledgeForFiles, setSelectedBusinessKnowledgeForFiles] = useState(null);
+  const [
+    selectedBusinessKnowledgeForFiles,
+    setSelectedBusinessKnowledgeForFiles,
+  ] = useState(null);
   const [loadingProcessedFiles, setLoadingProcessedFiles] = useState(false);
 
   const handleViewProcessedFiles = async (knowledgeData) => {
@@ -314,7 +317,7 @@ export const Settings = () => {
         setSelectedBusinessKnowledgeForFiles(knowledgeData);
         setLoadingProcessedFiles(true);
         setShowProcessedFilesModal(true);
-        
+
         return;
       }
 
@@ -336,7 +339,7 @@ export const Settings = () => {
 
   const handleViewFile = (file) => {
     if (file.file_url) {
-      window.open(file.file_url, '_blank');
+      window.open(file.file_url, "_blank");
     } else {
       toast.error("File URL not available");
     }
@@ -2867,7 +2870,7 @@ export const Settings = () => {
                                       )}
                                     </div>
                                   </div>
-                                 <Edit className="w-4 h-4 text-blue-600" />
+                                  <Edit className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="text-right text-sm text-muted-foreground">
@@ -3392,6 +3395,16 @@ export const Settings = () => {
                                       View Files
                                     </Button>
                                     <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleViewBusinessKnowledge(knowledge)
+                                      }
+                                      className="text-green-600 hover:bg-green-50"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={(e) => {
@@ -3773,20 +3786,27 @@ export const Settings = () => {
       </Tabs>
 
       {/* Processed Files Modal */}
-      <Dialog open={showProcessedFilesModal} onOpenChange={setShowProcessedFilesModal}>
+      <Dialog
+        open={showProcessedFilesModal}
+        onOpenChange={setShowProcessedFilesModal}
+      >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <FileText className="w-5 h-5" />
               <span>Processed Files</span>
               {selectedBusinessKnowledgeForFiles && (
-                <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-200"
+                >
                   {selectedBusinessKnowledgeForFiles.organization_name}
                 </Badge>
               )}
             </DialogTitle>
             <DialogDescription>
-              Files that were processed to create this business knowledge profile
+              Files that were processed to create this business knowledge
+              profile
             </DialogDescription>
           </DialogHeader>
 
@@ -3795,7 +3815,9 @@ export const Settings = () => {
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p className="mb-2">No processed files found</p>
-                <p className="text-sm">This business knowledge profile has no associated files</p>
+                <p className="text-sm">
+                  This business knowledge profile has no associated files
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -3812,12 +3834,17 @@ export const Settings = () => {
                             {file.original_filename || file.filename}
                           </h4>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {file.description || 'No description available'}
+                            {file.description || "No description available"}
                           </p>
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-2">
-                            <span>Size: {(file.file_size / 1024).toFixed(1)} KB</span>
+                            <span>
+                              Size: {(file.file_size / 1024).toFixed(1)} KB
+                            </span>
                             <span>Type: {file.content_type}</span>
-                            <span>Uploaded: {new Date(file.created_at).toLocaleDateString()}</span>
+                            <span>
+                              Uploaded:{" "}
+                              {new Date(file.created_at).toLocaleDateString()}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -3840,7 +3867,10 @@ export const Settings = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProcessedFilesModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowProcessedFilesModal(false)}
+            >
               Close
             </Button>
           </DialogFooter>
