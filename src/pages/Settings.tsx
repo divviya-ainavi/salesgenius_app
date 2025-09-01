@@ -67,6 +67,9 @@ import {
   ChevronsUpDown,
   Loader2,
   Mic,
+  Calendar,
+  Clock,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -3549,147 +3552,84 @@ export const Settings = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <Card
-                    key={item.id}
-                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 hover:from-blue-50/50 hover:via-indigo-50/40 hover:to-purple-50/30"
-                    onClick={() => handleViewBusinessKnowledge(item)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          {/* Header with icon and title */}
-                          <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                              <Building className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-xl text-gray-900 truncate">
-                                {item.organization_name}
-                              </h3>
-                              <div className="flex items-center space-x-2 mt-1">
-                                {item.is_active ? (
-                                  <Badge className="bg-green-100 text-green-800 border-green-200 text-xs px-2 py-1">
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Active Profile
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 border-gray-200">
-                                    Inactive
-                                  </Badge>
-                                )}
-                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
-                                  {item.processed_file_ids?.length || 0} files processed
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
+                    <input
+                      type="file"
+                      id="personal-upload"
+                      className="hidden"
+                      onChange={(e) =>
+                        e.target.files?.[0] &&
+                        handleFileUpload(e.target.files[0], "personal")
+                      }
+                      accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                    />
+                    <label htmlFor="personal-upload" className="cursor-pointer">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium">
+                        Upload Personal Material
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                      </p>
+                    </label>
+                  </div>
 
-                          {/* Summary */}
-                          {item.summary_note && (
-                            <div className="bg-white/60 border border-blue-100 rounded-lg p-4 mb-4">
-                              <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">
-                                {item.summary_note}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Key insights preview */}
-                          <div className="grid grid-cols-2 gap-3 mb-4">
-                            {item.static_supply_elements?.coreBusinessOffering && (
-                              <div className="bg-white/60 border border-emerald-100 rounded-lg p-3">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                                  <span className="text-xs font-medium text-emerald-700">Core Offering</span>
-                                </div>
-                                <p className="text-xs text-gray-600 line-clamp-2">
-                                  {item.static_supply_elements.coreBusinessOffering}
-                                </p>
-                              </div>
-                            )}
-                            {item.icp?.championPersona && (
-                              <div className="bg-white/60 border border-purple-100 rounded-lg p-3">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                  <span className="text-xs font-medium text-purple-700">Target Customer</span>
-                                </div>
-                                <p className="text-xs text-gray-600 line-clamp-2">
-                                  {item.icp.championPersona}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Metadata */}
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <div className="flex items-center space-x-4">
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>Created: {new Date(item.created_at).toLocaleDateString()}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <Clock className="w-3 h-3" />
-                                <span>Updated: {new Date(item.updated_at).toLocaleDateString()}</span>
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-blue-600">
-                              <Edit className="w-3 h-3" />
-                              <span className="font-medium">Click to edit</span>
-                            </div>
+                  <div className="space-y-2">
+                    {trainingMaterials.personal.map((material) => (
+                      <div
+                        key={material.id}
+                        className="flex items-center justify-between p-3 border border-border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <FileText className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">
+                              {material.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {material.size} • {material.uploadedAt}
+                            </p>
                           </div>
                         </div>
-
-                        {/* Action buttons */}
-                        <div className="flex flex-col space-y-2 ml-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewProcessedFiles(item);
-                            }}
-                            className="text-blue-600 hover:bg-blue-50 border-blue-200 shadow-sm hover:shadow-md transition-all duration-200"
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            variant={
+                              material.status === "processed"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="text-xs"
                           >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Files
-                          </Button>
+                            {material.status === "processed" ? (
+                              <>
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Processed
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                Processing
+                              </>
+                            )}
+                          </Badge>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewBusinessKnowledge(item);
-                            }}
-                            className="text-green-600 hover:bg-green-50 border-green-200 shadow-sm hover:shadow-md transition-all duration-200"
+                            onClick={() =>
+                              handleDeleteMaterial(material.id, "personal")
+                            }
                           >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteBusinessKnowledge(item.id);
-                            }}
-                            className="text-red-600 hover:bg-red-50 border-red-200 shadow-sm hover:shadow-md transition-all duration-200"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-        {/* <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Target className="w-5 h-5" />
-              <span>Success Metrics Framework</span>
-            </div>
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-              Coming Soon for Your Organization
-            </Badge>
-          </CardTitle> */}
         {/* Analytics Access */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
