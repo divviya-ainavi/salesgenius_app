@@ -305,7 +305,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -364,8 +364,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="core" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="core" className="w-full flex flex-col flex-1 min-h-0">
+          <TabsList className="grid w-full grid-cols-6 flex-shrink-0">
             <TabsTrigger value="core">Core Business</TabsTrigger>
             <TabsTrigger value="dynamic">Market Dynamics</TabsTrigger>
             <TabsTrigger value="offer">Value Offer</TabsTrigger>
@@ -374,387 +374,389 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             <TabsTrigger value="methodology">Sales Process</TabsTrigger>
           </TabsList>
 
-          {/* Core Business Tab */}
-          <TabsContent value="core" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>Core Business Elements</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Core Business Offering",
-                  "static_supply_elements.coreBusinessOffering",
-                  editedData.static_supply_elements?.coreBusinessOffering,
-                  true,
-                  "Describe your main business offering..."
-                )}
+          <div className="flex-1 overflow-y-auto">
+            {/* Core Business Tab */}
+            <TabsContent value="core" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="w-5 h-5" />
+                    <span>Core Business Elements</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Core Business Offering",
+                    "static_supply_elements.coreBusinessOffering",
+                    editedData.static_supply_elements?.coreBusinessOffering,
+                    true,
+                    "Describe your main business offering..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Value Proposition",
-                  "static_supply_elements.valueProposition",
-                  editedData.static_supply_elements?.valueProposition,
-                  true,
-                  "What unique value do you provide..."
-                )}
+                  {renderTextField(
+                    "Value Proposition",
+                    "static_supply_elements.valueProposition",
+                    editedData.static_supply_elements?.valueProposition,
+                    true,
+                    "What unique value do you provide..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Market Position",
-                  "static_supply_elements.marketPosition",
-                  editedData.static_supply_elements?.marketPosition,
-                  true,
-                  "How are you positioned in the market..."
-                )}
+                  {renderTextField(
+                    "Market Position",
+                    "static_supply_elements.marketPosition",
+                    editedData.static_supply_elements?.marketPosition,
+                    true,
+                    "How are you positioned in the market..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Fundamental Problem Solved",
-                  "static_supply_elements.fundamentalProblemSolved",
-                  editedData.static_supply_elements?.fundamentalProblemSolved,
-                  true,
-                  "What core problem do you solve..."
-                )}
-              </CardContent>
-            </Card>
+                  {renderTextField(
+                    "Fundamental Problem Solved",
+                    "static_supply_elements.fundamentalProblemSolved",
+                    editedData.static_supply_elements?.fundamentalProblemSolved,
+                    true,
+                    "What core problem do you solve..."
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Competitive Advantages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderArrayField(
-                  "Key Advantages",
-                  "static_supply_elements.competitiveAdvantages",
-                  editedData.static_supply_elements?.competitiveAdvantages,
-                  "Enter competitive advantage..."
-                )}
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Competitive Advantages</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderArrayField(
+                    "Key Advantages",
+                    "static_supply_elements.competitiveAdvantages",
+                    editedData.static_supply_elements?.competitiveAdvantages,
+                    "Enter competitive advantage..."
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Products & Services Portfolio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderArrayField(
-                  "Products/Services",
-                  "static_supply_elements.productsServicesPortfolio",
-                  editedData.static_supply_elements?.productsServicesPortfolio,
-                  "Enter product or service..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Products & Services Portfolio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderArrayField(
+                    "Products/Services",
+                    "static_supply_elements.productsServicesPortfolio",
+                    editedData.static_supply_elements?.productsServicesPortfolio,
+                    "Enter product or service..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Market Dynamics Tab */}
-          <TabsContent value="dynamic" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5" />
-                  <span>Market Dynamics</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderArrayField(
-                  "Current Adaptations & Pivots",
-                  "dynamic_supply_elements.currentAdaptationsPivots",
-                  editedData.dynamic_supply_elements.currentAdaptationsPivots,
-                  "Enter adaptation or pivot..."
-                )}
+            {/* Market Dynamics Tab */}
+            <TabsContent value="dynamic" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <TrendingUp className="w-5 h-5" />
+                    <span>Market Dynamics</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderArrayField(
+                    "Current Adaptations & Pivots",
+                    "dynamic_supply_elements.currentAdaptationsPivots",
+                    editedData.dynamic_supply_elements.currentAdaptationsPivots,
+                    "Enter adaptation or pivot..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Response to Market Trends",
-                  "dynamic_supply_elements.responseToTrends",
-                  editedData.dynamic_supply_elements.responseToTrends,
-                  "Enter trend response..."
-                )}
+                  {renderArrayField(
+                    "Response to Market Trends",
+                    "dynamic_supply_elements.responseToTrends",
+                    editedData.dynamic_supply_elements.responseToTrends,
+                    "Enter trend response..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Active Promotions & Campaigns",
-                  "dynamic_supply_elements.activePromotionsCampaigns",
-                  editedData.dynamic_supply_elements.activePromotionsCampaigns,
-                  "Enter promotion or campaign..."
-                )}
+                  {renderArrayField(
+                    "Active Promotions & Campaigns",
+                    "dynamic_supply_elements.activePromotionsCampaigns",
+                    editedData.dynamic_supply_elements.activePromotionsCampaigns,
+                    "Enter promotion or campaign..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Seasonal Tactical Adjustments",
-                  "dynamic_supply_elements.seasonalTacticalAdjustments",
-                  editedData.dynamic_supply_elements
-                    .seasonalTacticalAdjustments,
-                  "Enter seasonal adjustment..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {renderArrayField(
+                    "Seasonal Tactical Adjustments",
+                    "dynamic_supply_elements.seasonalTacticalAdjustments",
+                    editedData.dynamic_supply_elements
+                      .seasonalTacticalAdjustments,
+                    "Enter seasonal adjustment..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Value Offer Tab */}
-          <TabsContent value="offer" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5" />
-                  <span>Value Offer Definition</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Dream Outcome",
-                  "offer_definition.dreamOutcome",
-                  editedData.offer_definition.dreamOutcome,
-                  true,
-                  "What's the ideal outcome for customers..."
-                )}
+            {/* Value Offer Tab */}
+            <TabsContent value="offer" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <DollarSign className="w-5 h-5" />
+                    <span>Value Offer Definition</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Dream Outcome",
+                    "offer_definition.dreamOutcome",
+                    editedData.offer_definition.dreamOutcome,
+                    true,
+                    "What's the ideal outcome for customers..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Pain & Problem",
-                  "offer_definition.painProblem",
-                  editedData.offer_definition.painProblem,
-                  true,
-                  "What pain points do you address..."
-                )}
+                  {renderTextField(
+                    "Pain & Problem",
+                    "offer_definition.painProblem",
+                    editedData.offer_definition.painProblem,
+                    true,
+                    "What pain points do you address..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Proof & Differentiator",
-                  "offer_definition.proofDifferentiator",
-                  editedData.offer_definition.proofDifferentiator,
-                  true,
-                  "What proves you're different and better..."
-                )}
-              </CardContent>
-            </Card>
+                  {renderTextField(
+                    "Proof & Differentiator",
+                    "offer_definition.proofDifferentiator",
+                    editedData.offer_definition.proofDifferentiator,
+                    true,
+                    "What proves you're different and better..."
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Lightbulb className="w-5 h-5" />
-                  <span>Reframe Narratives</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Unseen Problem",
-                  "reframe_narratives.unseenProblem",
-                  editedData.reframe_narratives.unseenProblem,
-                  true,
-                  "What problem do prospects not realize they have..."
-                )}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Lightbulb className="w-5 h-5" />
+                    <span>Reframe Narratives</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Unseen Problem",
+                    "reframe_narratives.unseenProblem",
+                    editedData.reframe_narratives.unseenProblem,
+                    true,
+                    "What problem do prospects not realize they have..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Aha Moment",
-                  "reframe_narratives.ahaMoment",
-                  editedData.reframe_narratives.ahaMoment,
-                  true,
-                  "What insight creates the 'aha' moment..."
-                )}
+                  {renderTextField(
+                    "Aha Moment",
+                    "reframe_narratives.ahaMoment",
+                    editedData.reframe_narratives.ahaMoment,
+                    true,
+                    "What insight creates the 'aha' moment..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Contrarian View",
-                  "reframe_narratives.contrarianView",
-                  editedData.reframe_narratives.contrarianView,
-                  true,
-                  "What contrarian perspective do you offer..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {renderTextField(
+                    "Contrarian View",
+                    "reframe_narratives.contrarianView",
+                    editedData.reframe_narratives.contrarianView,
+                    true,
+                    "What contrarian perspective do you offer..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Objections Tab */}
-          <TabsContent value="objections" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5" />
-                  <span>Pricing & Objections</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Prize Criteria",
-                  "pricing_and_objections.prizeCriteria",
-                  editedData.pricing_and_objections.prizeCriteria,
-                  true,
-                  "What criteria determine success..."
-                )}
+            {/* Objections Tab */}
+            <TabsContent value="objections" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>Pricing & Objections</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Prize Criteria",
+                    "pricing_and_objections.prizeCriteria",
+                    editedData.pricing_and_objections.prizeCriteria,
+                    true,
+                    "What criteria determine success..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Low Status Triggers",
-                  "pricing_and_objections.lowStatusTriggers",
-                  editedData.pricing_and_objections.lowStatusTriggers,
-                  "Enter status trigger..."
-                )}
+                  {renderArrayField(
+                    "Low Status Triggers",
+                    "pricing_and_objections.lowStatusTriggers",
+                    editedData.pricing_and_objections.lowStatusTriggers,
+                    "Enter status trigger..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Common Prospect Assumptions",
-                  "pricing_and_objections.commonProspectAssumptions",
-                  editedData.pricing_and_objections.commonProspectAssumptions,
-                  "Enter prospect assumption..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {renderArrayField(
+                    "Common Prospect Assumptions",
+                    "pricing_and_objections.commonProspectAssumptions",
+                    editedData.pricing_and_objections.commonProspectAssumptions,
+                    "Enter prospect assumption..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Target Customers Tab */}
-          <TabsContent value="icp" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>Ideal Customer Profile</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Champion Persona",
-                  "icp.championPersona",
-                  editedData.icp.championPersona,
-                  true,
-                  "Who champions your solution internally..."
-                )}
+            {/* Target Customers Tab */}
+            <TabsContent value="icp" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>Ideal Customer Profile</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Champion Persona",
+                    "icp.championPersona",
+                    editedData.icp.championPersona,
+                    true,
+                    "Who champions your solution internally..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Economic Buyer Persona",
-                  "icp.economicBuyerPersona",
-                  editedData.icp.economicBuyerPersona,
-                  true,
-                  "Who makes the buying decision..."
-                )}
+                  {renderTextField(
+                    "Economic Buyer Persona",
+                    "icp.economicBuyerPersona",
+                    editedData.icp.economicBuyerPersona,
+                    true,
+                    "Who makes the buying decision..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Anti-Persona",
-                  "icp.antiPersona",
-                  editedData.icp.antiPersona,
-                  true,
-                  "Who is NOT a good fit..."
-                )}
+                  {renderTextField(
+                    "Anti-Persona",
+                    "icp.antiPersona",
+                    editedData.icp.antiPersona,
+                    true,
+                    "Who is NOT a good fit..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Key Metrics & KPIs",
-                  "icp.keyMetricsOrKPIs",
-                  editedData.icp.keyMetricsOrKPIs,
-                  "Enter metric or KPI..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {renderArrayField(
+                    "Key Metrics & KPIs",
+                    "icp.keyMetricsOrKPIs",
+                    editedData.icp.keyMetricsOrKPIs,
+                    "Enter metric or KPI..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Sales Process Tab */}
-          <TabsContent value="methodology" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Sales Methodology</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderTextField(
-                  "Methodology Used",
-                  "sales_methodology.methodologyUsed",
-                  editedData.sales_methodology.methodologyUsed,
-                  false,
-                  "e.g., SPIN, Challenger, MEDDIC..."
-                )}
+            {/* Sales Process Tab */}
+            <TabsContent value="methodology" className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MessageSquare className="w-5 h-5" />
+                    <span>Sales Methodology</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderTextField(
+                    "Methodology Used",
+                    "sales_methodology.methodologyUsed",
+                    editedData.sales_methodology.methodologyUsed,
+                    false,
+                    "e.g., SPIN, Challenger, MEDDIC..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Key Qualification Information",
-                  "sales_methodology.keyQualificationInfo",
-                  editedData.sales_methodology.keyQualificationInfo,
-                  true,
-                  "How do you qualify prospects..."
-                )}
+                  {renderTextField(
+                    "Key Qualification Information",
+                    "sales_methodology.keyQualificationInfo",
+                    editedData.sales_methodology.keyQualificationInfo,
+                    true,
+                    "How do you qualify prospects..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Go-To Closing Technique",
-                  "sales_methodology.goToClosingTechnique",
-                  editedData.sales_methodology.goToClosingTechnique,
-                  true,
-                  "What's your primary closing approach..."
-                )}
+                  {renderTextField(
+                    "Go-To Closing Technique",
+                    "sales_methodology.goToClosingTechnique",
+                    editedData.sales_methodology.goToClosingTechnique,
+                    true,
+                    "What's your primary closing approach..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Brand Voice Guidelines",
-                  "brand_voice_guidelines",
-                  editedData.brand_voice_guidelines,
-                  true,
-                  "Describe your brand voice and tone..."
-                )}
-              </CardContent>
-            </Card>
+                  {renderTextField(
+                    "Brand Voice Guidelines",
+                    "brand_voice_guidelines",
+                    editedData.brand_voice_guidelines,
+                    true,
+                    "Describe your brand voice and tone..."
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Assets & Sources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {renderArrayField(
-                  "Assets Detected",
-                  "assets_detected",
-                  editedData.assets_detected,
-                  "Enter asset description..."
-                )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assets & Sources</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {renderArrayField(
+                    "Assets Detected",
+                    "assets_detected",
+                    editedData.assets_detected,
+                    "Enter asset description..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderArrayField(
-                  "Sources",
-                  "sources",
-                  editedData.sources,
-                  "Enter source..."
-                )}
+                  {renderArrayField(
+                    "Sources",
+                    "sources",
+                    editedData.sources,
+                    "Enter source..."
+                  )}
 
-                <Separator />
+                  <Separator />
 
-                {renderTextField(
-                  "Summary Note",
-                  "summary_note",
-                  editedData.summary_note,
-                  true,
-                  "Overall summary of the business knowledge..."
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {renderTextField(
+                    "Summary Note",
+                    "summary_note",
+                    editedData.summary_note,
+                    true,
+                    "Overall summary of the business knowledge..."
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
         </Tabs>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 flex-shrink-0 border-t pt-4 mt-4">
           {/* <Button variant="outline" onClick={onClose}>
             Close
           </Button> */}
