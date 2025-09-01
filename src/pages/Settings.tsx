@@ -349,17 +349,9 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessKnowledge = async (knowledgeData) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete the business knowledge profile for "${knowledgeData.organization_name}"?`
-      )
-    ) {
-      return;
-    }
-
+  const handleDeleteBusinessKnowledge = async (id) => {
     try {
-      await dbHelpers.deleteBusinessKnowledgeData(knowledgeData.id);
+      await dbHelpers.deleteBusinessKnowledgeData(id);
       await loadBusinessKnowledgeData();
       toast.success("Business knowledge profile deleted successfully");
     } catch (error) {
@@ -452,7 +444,7 @@ export const Settings = () => {
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const dispatch = useDispatch();
 
@@ -1084,7 +1076,7 @@ export const Settings = () => {
 
     setIsDeletingBusinessFile(true);
     try {
-      await handleDeleteBusinessMaterial(fileToDelete.id);
+      await handleDeleteBusinessKnowledge(fileToDelete.id);
       setShowDeleteConfirmDialog(false);
       setFileToDelete(null);
     } catch (error) {
@@ -3415,9 +3407,10 @@ export const Settings = () => {
                                       size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleDeleteBusinessKnowledge(
-                                          knowledge
-                                        );
+                                        // handleDeleteBusinessKnowledge(
+                                        //   knowledge
+                                        // );
+                                        handleDeleteClick(knowledge);
                                       }}
                                       className="text-destructive hover:text-destructive"
                                     >
@@ -3895,25 +3888,10 @@ export const Settings = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{" "}
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
-                  <Trash2 className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <DialogTitle className="text-xl font-bold text-gray-900 mb-2">
-                    Delete Business Knowledge?
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600 leading-relaxed">
-                    Are you sure you want to permanently delete this business
-                    knowledge profile?
-                  </DialogDescription>
-                </div>
-              </div>
             </DialogDescription>
           </DialogHeader>
 
-          {/* Item Details */}
-          {itemToDelete && (
+          {fileToDelete && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 mx-6">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -3921,15 +3899,15 @@ export const Settings = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-red-900 truncate">
-                    {itemToDelete.organization_name}
+                    {fileToDelete.organization_name}
                   </h4>
                   <p className="text-sm text-red-700">
                     Created:{" "}
-                    {new Date(itemToDelete.created_at).toLocaleDateString()}
+                    {new Date(fileToDelete.created_at).toLocaleDateString()}
                   </p>
-                  {itemToDelete.processed_file_ids && (
+                  {fileToDelete.processed_file_ids && (
                     <p className="text-xs text-red-600 mt-1">
-                      {itemToDelete.processed_file_ids.length} associated files
+                      {fileToDelete.processed_file_ids.length} associated files
                       will also be affected
                     </p>
                   )}
@@ -3937,9 +3915,8 @@ export const Settings = () => {
               </div>
             </div>
           )}
-
           {/* Warning Message */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mx-6">
+          {/* <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mx-6">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
@@ -3953,12 +3930,11 @@ export const Settings = () => {
                 </p>
               </div>
             </div>
-          </div>
-
+          </div> */}
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
+              onClick={() => setShowDeleteConfirmDialog(false)}
               className="mt-2 sm:mt-0 border-gray-300 hover:bg-gray-50 px-6 py-2.5"
             >
               <X className="w-4 h-4 mr-2" />
@@ -3977,7 +3953,7 @@ export const Settings = () => {
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Permanently
+                  Delete
                 </>
               )}
             </Button>
