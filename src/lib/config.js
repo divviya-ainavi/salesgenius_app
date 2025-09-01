@@ -60,7 +60,8 @@ export const config = {
       updateCompanyName: 'update-company',
       hubspotGetCompanyDetail: 'hub-get-company-detail',
       hubspotGetDealInfo: 'hub-get-deal-info',
-      sendSlack: "Send-slack"
+      sendSlack: "Send-slack",
+      fileUpload: 'upload-file-ai '
     }
   }
 };

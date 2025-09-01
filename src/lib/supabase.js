@@ -1849,6 +1849,204 @@ export const dbHelpers = {
     }
   },
 
+  // Link business knowledge files to business knowledge data
+  async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
+    try {
+      console.log('🔗 Linking files to business knowledge data...');
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .update({ business_knowledge_data_id: businessKnowledgeDataId })
+        .in('id', fileIds)
+        .select();
+
+      if (error) throw error;
+
+      console.log('✅ Files linked successfully:', data.length);
+      return data;
+    } catch (error) {
+      console.error('❌ Error linking files to business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get business knowledge data for user/organization
+  async getBusinessKnowledgeData(userId, organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Update business knowledge data
+  async updateBusinessKnowledgeData(updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          organization_name: updates?.organization_name,
+          static_supply_elements: updates?.static_supply_elements,
+          dynamic_supply_elements: updates?.dynamic_supply_elements,
+          offer_definition: updates?.offer_definition,
+          pricing_and_objections: updates?.pricing_and_objections,
+          icp: updates?.icp,
+          reframe_narratives: updates?.reframe_narratives,
+          sales_methodology: updates?.sales_methodology,
+          brand_voice_guidelines: updates?.brand_voice_guidelines,
+          assets_detected: updates?.assets_detected,
+          sources: updates?.sources,
+          summary_note: updates?.summary_note,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', updates.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get processed files by IDs
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
+      throw error;
+    }
+  },
+
+  // Delete business knowledge data
+  async deleteBusinessKnowledgeData(id) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          is_active: false
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get processed files by IDs from business_knowledge_files table
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
+      throw error;
+    }
+  },
+
+  // Get business knowledge data for organization
+  async getBusinessKnowledgeData(organizationId, userId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Save business knowledge data to database
+  async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId, fileIds) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .insert([{
+          organization_id: organizationId,
+          user_id: userId,
+          organization_name: businessKnowledgeData.organizationName,
+          static_supply_elements: businessKnowledgeData.staticSupplyElements,
+          dynamic_supply_elements: businessKnowledgeData.dynamicSupplyElements,
+          offer_definition: businessKnowledgeData.offerDefinition,
+          pricing_and_objections: businessKnowledgeData.prizingAndObjections,
+          icp: businessKnowledgeData.ICP,
+          reframe_narratives: businessKnowledgeData.reframeNarratives,
+          sales_methodology: businessKnowledgeData.salesMethodology,
+          brand_voice_guidelines: businessKnowledgeData.brandVoiceGuidelines,
+          assets_detected: businessKnowledgeData.assetsDetected,
+          sources: businessKnowledgeData.sources,
+          summary_note: businessKnowledgeData.summaryNote,
+          processed_file_ids: fileIds || businessKnowledgeData.processedFileIds,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Update business knowledge files with data ID
+  async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_files')
+        .update({ business_knowledge_data_id: businessKnowledgeDataId })
+        .in('id', fileIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error linking business knowledge files:', error);
+      throw error;
+    }
+  },
+
+  // Get user's Fireflies status
   async getUserFirefliesStatus(userId) {
     try {
       const { data, error } = await supabase
@@ -4423,8 +4621,8 @@ export const dbHelpers = {
     }
   },
 
-  // Save feedback to database
-  saveFeedback: async (feedbackData) => {
+  // Save user feedback
+  async saveFeedback(feedbackData) {
     try {
       const { data, error } = await supabase
         .from('user_feedback')

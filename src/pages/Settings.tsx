@@ -67,6 +67,10 @@ import {
   ChevronsUpDown,
   Loader2,
   Mic,
+  Calendar,
+  Clock,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -97,6 +101,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import TourManagement from "@/components/admin/TourManagement";
+import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -291,6 +296,88 @@ export const Settings = () => {
 
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   };
+  const [businessKnowledgeData, setBusinessKnowledgeData] = useState(null);
+  const [businessOrgData, setBusinessOrgData] = useState(null);
+  const [showBusinessKnowledgeModal, setShowBusinessKnowledgeModal] =
+    useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showProcessedFilesModal, setShowProcessedFilesModal] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState([]);
+  const [
+    selectedBusinessKnowledgeForFiles,
+    setSelectedBusinessKnowledgeForFiles,
+  ] = useState(null);
+  const [loadingProcessedFiles, setLoadingProcessedFiles] = useState(false);
+
+  const handleViewProcessedFiles = async (knowledgeData) => {
+    try {
+      if (
+        !knowledgeData.processed_file_ids ||
+        knowledgeData.processed_file_ids.length === 0
+      ) {
+        toast.info(
+          "No processed files found for this business knowledge profile"
+        );
+        setSelectedBusinessKnowledgeForFiles(knowledgeData);
+        setLoadingProcessedFiles(true);
+        setShowProcessedFilesModal(true);
+
+        return;
+      }
+
+      setProcessedFiles([]);
+      const files = await dbHelpers.getProcessedFilesByIds(
+        knowledgeData.processed_file_ids
+      );
+      setProcessedFiles(files);
+      setProcessedFiles(files || []);
+      setShowProcessedFilesModal(true);
+    } catch (error) {
+      console.error("Error fetching processed files:", error);
+      toast.error("Failed to load processed files");
+      setProcessedFiles([]);
+    } finally {
+      setLoadingProcessedFiles(false);
+    }
+  };
+
+  const handleViewFile = (file) => {
+    if (file.file_url) {
+      window.open(file.file_url, "_blank");
+    } else {
+      toast.error("File URL not available");
+    }
+  };
+
+  const handleDeleteBusinessKnowledge = async (id) => {
+    try {
+      await dbHelpers.deleteBusinessKnowledgeData(id);
+      await loadBusinessKnowledgeData();
+      toast.success("Business knowledge profile deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business knowledge:", error);
+      toast.error("Failed to delete business knowledge profile");
+    }
+  };
+
+  const handleUpdateBusinessKnowledge = async (data) => {
+    try {
+      // Save business knowledge data to database
+      console.log("Saving business knowledge data:", data);
+
+      // Save to database using dbHelpers
+      await dbHelpers.updateBusinessKnowledgeData(data);
+
+      // Update local state
+      setBusinessKnowledgeData(data);
+
+      toast.success("Business knowledge updated successfully!");
+    } catch (error) {
+      console.error("Error saving business knowledge:", error);
+      toast.error("Failed to save business knowledge");
+      throw error;
+    }
+  };
 
   const {
     userProfileInfo,
@@ -357,6 +444,8 @@ export const Settings = () => {
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
+  // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const dispatch = useDispatch();
 
   console.log("LoginPage rendered", hubspotIntegration);
@@ -449,11 +538,38 @@ export const Settings = () => {
     }
   }, [orgSettings.country]);
 
+  const loadBusinessKnowledgeData = async () => {
+    // setIsLoadingInternalFiles(true);
+    try {
+      const data = await dbHelpers.getBusinessKnowledgeData(
+        user?.organization_id,
+        user?.id
+      );
+      console.log(data, "check business knowledge data");
+      setBusinessOrgData(data);
+    } catch (error) {
+      console.error("Error loading business knowledge data:", error);
+      toast.error("Failed to load business knowledge data");
+    } finally {
+      // setIsLoadingInternalFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBusinessKnowledgeData();
+  }, [businessKnowledgeData]);
+
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
     getInternalUploadedFiles();
   }, []);
+
+  const handleViewBusinessKnowledge = (knowledgeData) => {
+    console.log(knowledgeData, "check knowledge data 505");
+    setBusinessKnowledgeData(knowledgeData);
+    setShowBusinessKnowledgeModal(true);
+  };
 
   const getInternalUploadedFiles = async () => {
     try {
@@ -908,13 +1024,14 @@ export const Settings = () => {
     }
 
     setNewUserEmail("");
+
     setNewUserRole(null);
   };
 
   // Drag and drop configuration for business files
   const onDropBusiness = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      handleFileUpload(acceptedFiles[0], "business");
+      handleFileUpload(acceptedFiles, "business");
     }
   };
 
@@ -930,13 +1047,11 @@ export const Settings = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         [".docx"],
       "text/plain": [".txt"],
-      "video/mp4": [".mp4"],
-      "video/quicktime": [".mov"],
       "application/vnd.ms-powerpoint": [".ppt"],
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
     },
-    maxFiles: 1,
+    multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploadingBusiness,
   });
@@ -961,7 +1076,7 @@ export const Settings = () => {
 
     setIsDeletingBusinessFile(true);
     try {
-      await handleDeleteBusinessMaterial(fileToDelete.id);
+      await handleDeleteBusinessKnowledge(fileToDelete.id);
       setShowDeleteConfirmDialog(false);
       setFileToDelete(null);
     } catch (error) {
@@ -972,15 +1087,21 @@ export const Settings = () => {
     }
   };
 
-  const handleFileUpload = async (file, category) => {
-    if (!file) return;
+  const handleFileUpload = async (files, category) => {
+    if (!files || files.length === 0) return;
+
+    // Convert single file to array for consistency
+    const fileArray = Array.isArray(files) ? files : [files];
 
     // Check permissions
-
     if (category === "business" && !canUploadOrgMaterials) {
       toast.error("You do not have permission to upload business materials");
       return;
     }
+
+    console.log(
+      `📁 Uploading ${fileArray.length} file(s) for category: ${category}`
+    );
 
     if (category === "business") {
       setIsUploadingBusiness(true);
@@ -989,6 +1110,8 @@ export const Settings = () => {
       setIsUploading(true);
       setUploadProgress(0);
     }
+
+    const uploadedFileRecords = [];
 
     try {
       // Upload progress simulation
@@ -1012,23 +1135,25 @@ export const Settings = () => {
         }
       }, 200);
 
-      // Call dbHelpers to save the uploaded file
-      const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-        user?.id,
-        file,
-        organizationDetails.id
-      );
-      // console.log(uploadedFile, "check uploaded file");
+      // Save all uploaded files to database first
+
+      // Prepare FormData with all files
       const formData = new FormData();
-      formData.append("file_name", uploadedFile?.filename);
-      formData.append("file_id", uploadedFile.id);
+      formData.append("type", "org");
+
+      // Append all files to the same FormData
+      fileArray.forEach((file, index) => {
+        formData.append(`data`, file);
+      });
+
+      // Add metadata
       formData.append("organization_id", organizationDetails.id);
       formData.append("organization_name", organizationDetails.name);
-      formData.append("file", file);
-      formData.append("is_active", true);
+      formData.append("file_count", fileArray.length.toString());
+
       // Send encrypted token to n8n API
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.vectorFileUpload}`,
+        `${config.api.baseUrl}${config.api.endpoints.fileUpload}`,
         {
           method: "POST",
           body: formData,
@@ -1040,6 +1165,58 @@ export const Settings = () => {
           `API request failed: ${response.status} ${response.statusText}`
         );
       }
+
+      const apiData = await response.json();
+      // Check if we have business knowledge data in the response
+      if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+        const businessData = apiData[0];
+        console.log("📋 Business Knowledge Data:", businessData);
+
+        // Store the business knowledge data in database
+        try {
+          for (const file of fileArray) {
+            const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
+              user?.id,
+              file,
+              organizationDetails.id
+            );
+            uploadedFileRecords.push(uploadedFile);
+          }
+          const fileIds = uploadedFileRecords.map((file) => file.id);
+          const savedData = await dbHelpers.saveBusinessKnowledgeData(
+            businessData,
+            user?.organization_id,
+            user?.id,
+            fileIds
+          );
+          setBusinessKnowledgeData(savedData);
+          setShowBusinessKnowledgeModal(true);
+          console.log(
+            `💾 Saved ${uploadedFileRecords.length} files to database`,
+            uploadedFileRecords,
+            fileIds
+          );
+
+          console.log("✅ Business knowledge data saved to database");
+        } catch (dbError) {
+          console.error(
+            "❌ Error saving business knowledge to database:",
+            dbError
+          );
+          // Continue with popup display even if DB save fails
+        }
+
+        toast.success(
+          `Business knowledge extracted from ${fileArray.length} file(s)! Review the data below.`
+        );
+      } else {
+        console.log(
+          "📭 No business knowledge data found in response:",
+          apiData
+        );
+        toast.success(`${fileArray.length} file(s) processed successfully!`);
+      }
+
       clearInterval(progressInterval);
       if (category === "business") {
         setBusinessUploadProgress(100);
@@ -1047,18 +1224,18 @@ export const Settings = () => {
         setUploadProgress(100);
       }
 
-      // Update internalUploadedFiles state with the new file
-      const newFileData = {
+      // Update internalUploadedFiles state with all new files
+      const newFilesData = uploadedFileRecords.map((uploadedFile) => ({
         ...uploadedFile,
         status: "processed",
-      };
+      }));
 
-      setInternalUploadedFiles((prev) => [...prev, newFileData]);
+      setInternalUploadedFiles((prev) => [...prev, ...newFilesData]);
 
-      toast.success("File uploaded successfully");
+      toast.success(`${fileArray.length} file(s) uploaded successfully`);
     } catch (error) {
       console.error("❌ Error uploading file:", error);
-      toast.error("Failed to upload file");
+      toast.error(`Failed to upload file(s): ${error.message}`);
     } finally {
       if (category === "business") {
         setIsUploadingBusiness(false);
@@ -1084,7 +1261,7 @@ export const Settings = () => {
     }
   };
 
-  const handleDeleteBusinessMaterial = async (materialId: string) => {
+  const handleDeleteBusinessMaterial = async (materialId) => {
     try {
       // Update is_active to false in database
       await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
@@ -1158,6 +1335,13 @@ export const Settings = () => {
           `API request failed: ${response.status} ${response.statusText}`
         );
       }
+
+      // Parse the JSON response
+      const responseData = await response.json();
+      console.log("📊 API Response Data:", responseData);
+
+      const apiData = responseData;
+      console.log("API Response:", apiData);
 
       const result = await response.json();
 
@@ -1240,16 +1424,17 @@ export const Settings = () => {
         //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
         //       ...result.account_info,
         //     },
-        //   })
-        // );
+        if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+          const businessData = apiData[0];
 
-        toast.success("HubSpot connection verified successfully");
-        setHubspotToken(""); // Clear the input field
-      } else {
-        setHubspotError(
-          "Invalid HubSpot token. Please check your token and try again."
-        );
-        toast.error("HubSpot connection is invalid");
+          toast.success("HubSpot connection verified successfully");
+          setHubspotToken(""); // Clear the input field
+        } else {
+          setHubspotError(
+            "Invalid HubSpot token. Please check your token and try again."
+          );
+          toast.error("HubSpot connection is invalid");
+        }
       }
     } catch (error) {
       console.error("Error checking HubSpot connection:", error);
@@ -1743,10 +1928,7 @@ export const Settings = () => {
                       Changing Password...
                     </>
                   ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
-                    </>
+                    <>Save Changes</>
                   )}
                 </Button>
               </CardContent>
@@ -2686,6 +2868,7 @@ export const Settings = () => {
                                       )}
                                     </div>
                                   </div>
+                                  <Edit className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="text-right text-sm text-muted-foreground">
@@ -3132,22 +3315,134 @@ export const Settings = () => {
                           <p className="text-sm font-medium">
                             {isBusinessDragActive
                               ? "Drop the file here"
-                              : "Upload Business Material"}
+                              : "Upload Business Materials"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {isBusinessDragActive
                               ? "Release to upload"
-                              : "Click to browse or drag and drop files here"}
+                              : "Click to browse or drag and drop multiple files here"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files
+                            supported)
                           </p>
                         </>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      {internalUploadedFiles?.length > 0 &&
+                      {console.log(businessOrgData, "businessKnowledgeData")}
+                      {businessOrgData ? (
+                        businessOrgData?.length > 0 ? (
+                          businessOrgData?.map((knowledge) => (
+                            <Card
+                              key={knowledge.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() =>
+                                handleViewBusinessKnowledge(knowledge)
+                              }
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-3 flex-1">
+                                    <Building className="w-5 h-5 text-primary mt-1" />
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-lg mb-1">
+                                        {knowledge.organization_name ||
+                                          "Unnamed Organization"}
+                                      </h3>
+                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+                                        {knowledge.summary_note ||
+                                          "No summary available"}
+                                      </p>
+                                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                        <span>
+                                          Created:{" "}
+                                          {new Date(
+                                            knowledge.created_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                        <span>
+                                          Updated:{" "}
+                                          {new Date(
+                                            knowledge.updated_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {knowledge.processed_file_ids
+                                            ?.length || 0}{" "}
+                                          files
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewProcessedFiles(knowledge);
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      <FileText className="w-3 h-3 mr-1" />
+                                      View Files
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleViewBusinessKnowledge(knowledge)
+                                      }
+                                      className="text-black hover:text-black"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // handleDeleteBusinessKnowledge(
+                                        //   knowledge
+                                        // );
+                                        handleDeleteClick(knowledge);
+                                      }}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          ""
+                        )
+                      ) : (
+                        // (
+                        //   <div className="text-center py-8">
+                        //     <p className="text-muted-foreground">
+                        //       No business knowledge profiles yet
+                        //     </p>
+                        //     <p className="text-sm text-muted-foreground mt-1">
+                        //       Upload business knowledge files to create your
+                        //       first profile
+                        //     </p>
+                        //   </div>
+                        // )
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            Loading business knowledge...
+                          </p>
+                        </div>
+                      )}
+                      {/* {internalUploadedFiles?.length > 0 &&
                         internalUploadedFiles.map((material) => (
                           <div
                             key={material.id}
@@ -3157,19 +3452,11 @@ export const Settings = () => {
                               <FileText className="w-5 h-5 text-muted-foreground" />
                               <div>
                                 <p className="text-sm font-medium">
-                                  {/* {material.original_filename} */}
-                                  <a
-                                    href={material.file_url} // ensure this is the correct Supabase file URL
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline text-primary"
-                                  >
-                                    {material.original_filename}
-                                  </a>
+                                  {material.original_filename}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatFileSize(material.file_size)} •{" "}
-                                  {formatDate(material.updated_at)}
+                                  {formatDate(material.created_at)}
                                 </p>
                               </div>
                             </div>
@@ -3204,9 +3491,17 @@ export const Settings = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewBusinessKnowledge(item)}
+                                className="text-green-600 hover:bg-green-50"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                        ))}
+                        ))} */}
                     </div>
                   </div>
                 </CardContent>
@@ -3269,7 +3564,7 @@ export const Settings = () => {
                         Upload Personal Material
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        PDF, DOC, TXT, MP4, PPT (Max 50MB)
+                        PDF, DOC, TXT, MP4, PPT (Max 10MB)
                       </p>
                     </label>
                   </div>
@@ -3331,15 +3626,6 @@ export const Settings = () => {
           </div>
         </TabsContent>
 
-        {/* <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Target className="w-5 h-5" />
-              <span>Success Metrics Framework</span>
-            </div>
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-              Coming Soon for Your Organization
-            </Badge>
-          </CardTitle> */}
         {/* Analytics Access */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
@@ -3489,12 +3775,112 @@ export const Settings = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Processed Files Modal */}
+      <Dialog
+        open={showProcessedFilesModal}
+        onOpenChange={setShowProcessedFilesModal}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="w-5 h-5" />
+              <span>Processed Files</span>
+              {selectedBusinessKnowledgeForFiles && (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-200"
+                >
+                  {selectedBusinessKnowledgeForFiles.organization_name}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Files that were processed to create this business knowledge
+              profile
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {processedFiles.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2">No processed files found</p>
+                <p className="text-sm">
+                  This business knowledge profile has no associated files
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {processedFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3 flex-1">
+                        <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">
+                            {file.original_filename || file.filename}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {file.description || "No description available"}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-2">
+                            <span>
+                              Size: {(file.file_size / 1024).toFixed(1)} KB
+                            </span>
+                            <span>Type: {file.content_type}</span>
+                            <span>
+                              Uploaded:{" "}
+                              {new Date(file.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewFile(file)}
+                          disabled={!file.file_url}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View File
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowProcessedFilesModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Knowledge Modal */}
+      <BusinessKnowledgeModal
+        isOpen={showBusinessKnowledgeModal}
+        onClose={() => setShowBusinessKnowledgeModal(false)}
+        data={businessKnowledgeData}
+        onSave={handleUpdateBusinessKnowledge}
+      />
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={showDeleteConfirmDialog}
         onOpenChange={setShowDeleteConfirmDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg border-0 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <AlertCircle className="w-5 h-5 text-destructive" />
@@ -3502,14 +3888,56 @@ export const Settings = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{" "}
-              <strong>{fileToDelete?.original_filename}</strong>
-              "? This action will mark the file as inactive and it won't be
-              available for AI training.
             </DialogDescription>
           </DialogHeader>
 
+          {fileToDelete && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mx-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Building className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-red-900 truncate">
+                    {fileToDelete.organization_name}
+                  </h4>
+                  <p className="text-sm text-red-700">
+                    Created:{" "}
+                    {new Date(fileToDelete.created_at).toLocaleDateString()}
+                  </p>
+                  {fileToDelete.processed_file_ids && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {fileToDelete.processed_file_ids.length} associated files
+                      will also be affected
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Warning Message */}
+          {/* <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mx-6">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-900 mb-1">
+                  This action cannot be undone
+                </h4>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Deleting this business knowledge profile will permanently
+                  remove all associated data, insights, and file references.
+                  This may affect AI processing quality for future calls.
+                </p>
+              </div>
+            </div>
+          </div> */}
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelDelete}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmDialog(false)}
+              className="mt-2 sm:mt-0 border-gray-300 hover:bg-gray-50 px-6 py-2.5"
+            >
+              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button
