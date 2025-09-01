@@ -1944,7 +1944,9 @@ export const dbHelpers = {
     try {
       const { error } = await supabase
         .from('business_knowledge_org')
-        .delete()
+        .update({
+          is_active: false
+        })
         .eq('id', id);
 
       if (error) throw error;
@@ -1983,6 +1985,7 @@ export const dbHelpers = {
         .from('business_knowledge_org')
         .select('*')
         .eq('organization_id', organizationId)
+        .eq('is_active', true)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 

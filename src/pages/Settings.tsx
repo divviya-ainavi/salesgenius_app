@@ -3413,7 +3413,7 @@ export const Settings = () => {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleDeleteBusinessKnowledge(
-                                          knowledge.id
+                                          knowledge
                                         );
                                       }}
                                       className="text-destructive hover:text-destructive"
