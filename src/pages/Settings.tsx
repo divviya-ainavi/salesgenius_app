@@ -2867,6 +2867,7 @@ export const Settings = () => {
                                       )}
                                     </div>
                                   </div>
+                                 <Edit className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="text-right text-sm text-muted-foreground">
