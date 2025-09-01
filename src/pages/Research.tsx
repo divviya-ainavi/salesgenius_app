@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -33,6 +39,26 @@ import {
   Trash2,
   ChevronRight,
   ChevronLeft,
+  Users,
+  Briefcase,
+  Globe,
+  DollarSign,
+  Rocket,
+  ArrowRight,
+  ShieldOff,
+  Shield,
+  PieChart,
+  Activity,
+  Compass,
+  Star,
+  Brain,
+  Zap,
+  HelpCircle,
+  Package,
+  Award,
+  Clock,
+  Network,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
@@ -148,6 +174,18 @@ const Research = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({});
+  const { businessKnowledge } = useSelector((state) => state.org);
+
+  console.log("business knowledge data", businessKnowledge);
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  };
 
   const [historySearch, setHistorySearch] = useState("");
   const filteredHistory =
@@ -304,11 +342,35 @@ const Research = () => {
     if (!isFormValid) return;
 
     setIsLoading(true);
+
+    const fieldsToRemove = [
+      "id",
+      "organization_id",
+      "user_id",
+      "processed_file_ids",
+      "is_active",
+      "updated_at",
+      "created_at",
+    ];
+
+    const cleanedData = businessKnowledge.map(
+      ({
+        id,
+        organization_id,
+        user_id,
+        processed_file_ids,
+        is_active,
+        updated_at,
+        created_at,
+        ...rest
+      }) => rest
+    );
     try {
       // Create FormData for API request with proper file handling
       const apiFormData = new FormData();
       apiFormData.append("companyName", formData.companyName);
       apiFormData.append("companyUrl", formData.companyWebsite);
+      apiFormData.append("org_context", JSON.stringify(cleanedData) || "");
 
       // Add files to FormData with consistent naming
       uploadedFiles.forEach((file, index) => {
@@ -398,9 +460,11 @@ const Research = () => {
 
       const apiResponseData = await response.json();
       const data = apiResponseData;
-      const result = data[0]?.output;
+      // const result = data[0]?.output;
+      const result = data?.[0];
 
-      const output = result.output || result;
+      // const output = result.output || result;
+      const output = result;
 
       for (const fileItem of uploadedFiles) {
         try {
@@ -441,6 +505,10 @@ const Research = () => {
         recommendations: output.recommendations || {},
         prospectProfiles: output?.prospectProfiles || [],
         profiles: uploadedFileData || [],
+        executiveSummary: output?.executiveSummary,
+        companyAnalysisDetails: output?.companyAnalysisDetails,
+        marketAnalysis: output?.marketAnalysis,
+        demandSide: output?.demandSide,
       });
 
       await dbHelpers.saveResearchCompany({
@@ -448,7 +516,7 @@ const Research = () => {
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
         prospect_urls: uploadedFileUrls || [],
-        company_analysis: output.companyOverview,
+        // company_analysis: output.companyOverview,
         prospect_analysis: "",
         sources: output.sources || [],
         recommendations: JSON.stringify(output.recommendations || {}),
@@ -462,6 +530,11 @@ const Research = () => {
         sector: output.sector || "",
         prospectProfiles: output?.prospectProfiles || [],
         profiles: uploadedFileData,
+        executive_summary: output?.executiveSummary || {},
+        company_overview: output?.companyOverview || "",
+        company_analysis_details: output?.companyAnalysisDetails || {},
+        market_analysis: output?.marketAnalysis || {},
+        demand_side: output?.demandSide || {},
       });
       await refreshHistory();
       setCurrentView("results");
@@ -526,7 +599,6 @@ const Research = () => {
     // Convert stored research back to ResearchResult format
     const result: ResearchResult = {
       companyName: storedResearch.company_name,
-      companyOverview: storedResearch.company_analysis,
       sector: storedResearch.sector,
       size: storedResearch.size,
       geographicScope: storedResearch.geographic_scope,
@@ -543,6 +615,11 @@ const Research = () => {
         ? storedResearch.prospectProfiles.map((profile) => JSON.parse(profile))
         : [],
       profiles: [], // Will be loaded separately if needed
+      executiveSummary: storedResearch?.executive_summary,
+      companyOverview: storedResearch?.company_overview,
+      companyAnalysisDetails: storedResearch?.company_analysis_details,
+      marketAnalysis: storedResearch?.market_analysis,
+      demandSide: storedResearch?.demand_side,
     };
 
     setResearchResult(result);
@@ -729,8 +806,8 @@ ${researchResult.summaryNote}
 PROFILES
 ----------
 ${
-  researchResult.prospectProfiles && researchResult.prospectProfiles.length > 0
-    ? `Prospect Profiles\n${researchResult.prospectProfiles
+  researchResult.prospectProfiles && researchResult?.prospectProfiles.length > 0
+    ? `Prospect Profiles\n${researchResult?.prospectProfiles
         .map(
           (profile, index) =>
             `${profile.name}\nCommunication Style:\n${profile.communicationStyle}\nPersonality Type:\n${profile.personalityType}`
@@ -1170,6 +1247,491 @@ Generated by SalesGenius.ai
   }
   // Render results view
   return (
+    // <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
+    //   {/* Fixed Top Bar */}
+    //   <div className="bg-background border-b border-border p-6">
+    //     <div className="flex items-center justify-between">
+    //       {/* Left: Page Title */}
+    //       <div className="flex items-center space-x-4">
+    //         <Button variant="outline" onClick={handleBackToHistory}>
+    //           <ArrowLeft className="w-4 h-4 mr-1" />
+    //           Back to History
+    //         </Button>
+    //         {/* <h1 className="text-2xl font-bold text-foreground">Research</h1> */}
+    //       </div>
+
+    //       {/* Middle: Tab Navigation */}
+    //       <Tabs
+    //         value={activeTab}
+    //         onValueChange={setActiveTab}
+    //         // className="flex-1 mx-8" // ⬅ removed max-w-md so the list can grow
+    //       >
+    //         <TabsList
+    //           className="
+    //           inline-flex items-center
+    //           rounded-md bg-muted p-1 text-muted-foreground
+    //           whitespace-nowrap overflow-x-auto
+    //           gap-2 sm:gap-0
+    //           no-scrollbar
+    //         "
+    //         >
+    //           <TabsTrigger
+    //             value="analysis"
+    //             className="flex items-center gap-1 px-3 whitespace-nowrap"
+    //           >
+    //             <FileText className="w-4 h-4" />
+    //             <span>Company Analysis</span>
+    //           </TabsTrigger>
+
+    //           <TabsTrigger
+    //             value="prospects"
+    //             className="flex items-center gap-1 px-3 whitespace-nowrap"
+    //           >
+    //             <User className="w-4 h-4" />
+    //             <span>Stakeholders</span>
+    //           </TabsTrigger>
+    //           <TabsTrigger
+    //             value="recommendation"
+    //             className="flex items-center gap-1 px-3 whitespace-nowrap"
+    //           >
+    //             <Target className="w-4 h-4" />
+    //             <span>Recommendations</span>
+    //           </TabsTrigger>
+    //           <TabsTrigger
+    //             value="source"
+    //             className="flex items-center gap-1 px-3 whitespace-nowrap"
+    //           >
+    //             <ExternalLink className="w-4 h-4" />
+    //             <span>Source</span>
+    //           </TabsTrigger>
+    //         </TabsList>
+    //       </Tabs>
+
+    //       {/* Right: Controls */}
+    //       <div className="flex items-center space-x-4">
+    //         <div className="flex items-center space-x-2">
+    //           <span className="text-sm font-medium">Prospect in CRM:</span>
+    //           <Switch
+    //             checked={prospectInCRM}
+    //             onCheckedChange={setProspectInCRM}
+    //           />
+    //           <span className="text-sm text-muted-foreground">
+    //             {prospectInCRM ? "On" : "Off"}
+    //           </span>
+    //         </div>
+    //         {/* <Button variant="outline" onClick={handleViewHistory}>
+    //           <Search className="w-4 h-4 mr-1" />
+    //           View History
+    //         </Button> */}
+    //         <Button variant="outline" onClick={handleNewResearch}>
+    //           <Plus className="w-4 h-4 mr-1" />
+    //           New Research
+    //         </Button>
+    //       </div>
+    //     </div>
+    //   </div>
+
+    //   {/* Scrollable Content Area */}
+    //   <div className="flex-1 overflow-y-auto">
+    //     <div className="p-6">
+    //       {activeTab === "analysis" && (
+    //         <div className="space-y-6">
+    //           <Card>
+    //             <CardHeader>
+    //               <CardTitle className="flex items-center space-x-2">
+    //                 <Building className="w-5 h-5" />
+    //                 <span>{researchResult?.companyName}</span>
+    //               </CardTitle>
+    //             </CardHeader>
+    //             <CardContent className="p-6">
+    //               <div className="space-y-6">
+    //                 {/* Company Overview */}
+    //                 <div>
+    //                   <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                     <FileText className="w-4 h-4 mr-2" />
+    //                     Company Overview
+    //                   </h3>
+    //                   <p
+    //                     className="text-sm leading-relaxed text-muted-foreground"
+    //                     dangerouslySetInnerHTML={{
+    //                       __html: DOMPurify.sanitize(
+    //                         researchResult?.companyOverview || ""
+    //                       ),
+    //                     }}
+    //                   />
+    //                 </div>
+
+    //                 {/* Key Details Grid */}
+    //                 <div className="grid md:grid-cols-2 gap-4">
+    //                   <div className="space-y-4">
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2">Sector</h4>
+    //                       <Badge variant="outline" className="text-xs">
+    //                         {researchResult?.sector}
+    //                       </Badge>
+    //                     </div>
+
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2">
+    //                         Company Size
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground">
+    //                         {researchResult?.size}
+    //                       </p>
+    //                     </div>
+
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2">
+    //                         Geographic Scope
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground">
+    //                         {researchResult?.geographicScope}
+    //                       </p>
+    //                     </div>
+    //                   </div>
+
+    //                   <div className="space-y-4">
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2">
+    //                         Nature of Business
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground">
+    //                         {researchResult?.natureOfBusiness}
+    //                       </p>
+    //                     </div>
+
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2">
+    //                         Key Positioning
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground">
+    //                         {researchResult?.keyPositioning}
+    //                       </p>
+    //                     </div>
+    //                   </div>
+    //                 </div>
+
+    //                 {/* Growth Opportunities */}
+    //                 <div>
+    //                   <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                     <TrendingUp className="w-4 h-4 mr-2" />
+    //                     Growth Opportunities
+    //                   </h3>
+    //                   <ul className="space-y-2">
+    //                     {researchResult?.growthOpportunities?.map(
+    //                       (opportunity, index) => (
+    //                         <li
+    //                           key={index}
+    //                           className="flex items-start space-x-2"
+    //                         >
+    //                           <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+    //                           <span className="text-sm text-muted-foreground leading-relaxed">
+    //                             {opportunity}
+    //                           </span>
+    //                         </li>
+    //                       )
+    //                     )}
+    //                   </ul>
+    //                 </div>
+
+    //                 {/* Market Trends */}
+    //                 <div>
+    //                   <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                     <BarChart3 className="w-4 h-4 mr-2" />
+    //                     Market Trends
+    //                   </h3>
+    //                   <ul className="space-y-2">
+    //                     {researchResult?.marketTrends?.map((trend, index) => (
+    //                       <li
+    //                         key={index}
+    //                         className="flex items-start space-x-2"
+    //                       >
+    //                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+    //                         <span className="text-sm text-muted-foreground leading-relaxed">
+    //                           {trend}
+    //                         </span>
+    //                       </li>
+    //                     ))}
+    //                   </ul>
+    //                 </div>
+
+    //                 {/* Summary Note */}
+    //                 <div>
+    //                   <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                     <Lightbulb className="w-4 h-4 mr-2" />
+    //                     Summary Note
+    //                   </h3>
+    //                   <div className="bg-muted/50 rounded-lg p-4">
+    //                     <p
+    //                       className="text-sm leading-relaxed text-muted-foreground"
+    //                       dangerouslySetInnerHTML={{
+    //                         __html: DOMPurify.sanitize(
+    //                           researchResult?.summaryNote || ""
+    //                         ),
+    //                       }}
+    //                     />
+    //                   </div>
+    //                 </div>
+    //               </div>
+    //             </CardContent>
+    //           </Card>
+
+    //           {/* Interaction Bar */}
+    //           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+    //             <div className="flex items-center space-x-2">
+    //               <Button variant="ghost" size="sm">
+    //                 <ThumbsUp className="w-4 h-4" />
+    //               </Button>
+    //               <Button variant="ghost" size="sm">
+    //                 <ThumbsDown className="w-4 h-4" />
+    //               </Button>
+    //               <Button variant="ghost" size="sm" onClick={handleCopy}>
+    //                 <Copy className="w-4 h-4 mr-1" />
+    //                 Copy
+    //               </Button>
+    //             </div>
+
+    //             {!prospectInCRM && (
+    //               <Button onClick={handlePushToHubSpot} disabled={true}>
+    //                 <ExternalLink className="w-4 h-4 mr-1" />
+    //                 Push to HubSpot
+    //               </Button>
+    //             )}
+    //           </div>
+    //         </div>
+    //       )}
+
+    //       {activeTab === "prospects" && (
+    //         <div className="space-y-6">
+    //           {researchResult?.prospectProfiles &&
+    //           researchResult.prospectProfiles.length > 0 ? (
+    //             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    //               {researchResult.prospectProfiles.map((profile, index) => (
+    //                 <Card
+    //                   key={index}
+    //                   className="hover:shadow-md transition-shadow"
+    //                 >
+    //                   <CardHeader className="pb-3">
+    //                     <CardTitle className="text-lg flex items-center space-x-2">
+    //                       <User className="w-5 h-5 text-primary" />
+    //                       <span className="truncate">{profile.name}</span>
+    //                     </CardTitle>
+    //                   </CardHeader>
+    //                   <CardContent className="space-y-4">
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2 flex items-center">
+    //                         <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
+    //                         Communication Style
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground leading-relaxed">
+    //                         {profile.communicationStyle}
+    //                       </p>
+    //                     </div>
+
+    //                     <div>
+    //                       <h4 className="font-medium text-sm mb-2 flex items-center">
+    //                         <Lightbulb className="w-4 h-4 mr-2 text-green-600" />
+    //                         Personality Type
+    //                       </h4>
+    //                       <p className="text-sm text-muted-foreground leading-relaxed">
+    //                         {profile.personalityType}
+    //                       </p>
+    //                     </div>
+    //                   </CardContent>
+    //                 </Card>
+    //               ))}
+    //             </div>
+    //           ) : (
+    //             <Card>
+    //               <CardContent className="text-center py-12">
+    //                 <User className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+    //                 <h3 className="text-lg font-medium mb-2">
+    //                   No Stakeholder Profiles
+    //                 </h3>
+    //                 <p className="text-muted-foreground mb-4">
+    //                   Upload PDF files containing prospect information to
+    //                   generate detailed profiles and communication insights.
+    //                 </p>
+    //               </CardContent>
+    //             </Card>
+    //           )}
+    //         </div>
+    //       )}
+
+    //       {activeTab === "source" && (
+    //         <Card>
+    //           <CardHeader>
+    //             <CardTitle>Sources</CardTitle>
+    //           </CardHeader>
+    //           <CardContent className="p-6">
+    //             {researchResult?.sources &&
+    //             researchResult.sources.length > 0 ? (
+    //               <ol className="space-y-2 list-decimal list-inside">
+    //                 {researchResult.sources.map((source, index) => (
+    //                   <li key={index} className="text-sm leading-relaxed">
+    //                     {source}
+    //                   </li>
+    //                 ))}
+    //               </ol>
+    //             ) : (
+    //               <div className="text-center py-8 text-muted-foreground">
+    //                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+    //                 <p>No sources available for this research</p>
+    //                 <p>
+    //                   Upload PDF files and complete your first research to see
+    //                   results here
+    //                 </p>
+    //               </div>
+    //             )}
+    //           </CardContent>
+    //         </Card>
+    //       )}
+
+    //       {activeTab === "recommendation" && (
+    //         <Card>
+    //           <CardHeader>
+    //             <CardTitle className="flex items-center space-x-2">
+    //               <Target className="w-5 h-5" />
+    //               <span>Sales Recommendations</span>
+    //             </CardTitle>
+    //           </CardHeader>
+    //           <CardContent className="p-6">
+    //             <div className="space-y-6">
+    //               {/* Primary Meeting Goal */}
+    //               <div>
+    //                 <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                   <Target className="w-4 h-4 mr-2" />
+    //                   Primary Meeting Goal
+    //                 </h3>
+    //                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+    //                   <p className="text-sm leading-relaxed">
+    //                     {DOMPurify.sanitize(
+    //                       researchResult?.recommendations?.primaryMeetingGoal ||
+    //                         ""
+    //                     )}
+    //                   </p>
+    //                 </div>
+    //               </div>
+
+    //               {/* Key Talking Points */}
+    //               <div>
+    //                 <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                   <MessageSquare className="w-4 h-4 mr-2" />
+    //                   Key Talking Points
+    //                 </h3>
+    //                 <ul className="space-y-2">
+    //                   {researchResult?.recommendations?.keyTalkingPoints?.map(
+    //                     (point, index) => (
+    //                       <li
+    //                         key={index}
+    //                         className="flex items-start space-x-2"
+    //                       >
+    //                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+    //                         <span className="text-sm text-muted-foreground leading-relaxed">
+    //                           {point}
+    //                         </span>
+    //                       </li>
+    //                     )
+    //                   )}
+    //                 </ul>
+    //               </div>
+
+    //               {/* High-Impact Sales Questions */}
+    //               <div>
+    //                 <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                   <Lightbulb className="w-4 h-4 mr-2" />
+    //                   High-Impact Sales Questions
+    //                 </h3>
+    //                 <div className="space-y-2">
+    //                   {researchResult?.recommendations?.highImpactSalesQuestions?.map(
+    //                     (question, index) => (
+    //                       <Collapsible key={index}>
+    //                         <CollapsibleTrigger asChild>
+    //                           <Button
+    //                             variant="ghost"
+    //                             className="w-full justify-between p-3 h-auto text-left"
+    //                             onClick={() => toggleQuestion(index)}
+    //                           >
+    //                             <span className="text-sm font-medium">
+    //                               Q{index + 1}:{" "}
+    //                               {DOMPurify.sanitize(
+    //                                 question.substring(0, 60)
+    //                               )}
+    //                               ...
+    //                             </span>
+    //                             <ChevronDown
+    //                               className={cn(
+    //                                 "w-4 h-4 transition-transform",
+    //                                 expandedQuestions.includes(index) &&
+    //                                   "rotate-180"
+    //                               )}
+    //                             />
+    //                           </Button>
+    //                         </CollapsibleTrigger>
+    //                         {/* {console.log(question, "check question")} */}
+    //                         <CollapsibleContent className="px-3 pb-3">
+    //                           <p className="text-sm text-muted-foreground leading-relaxed">
+    //                             {question}
+    //                           </p>
+    //                         </CollapsibleContent>
+    //                       </Collapsible>
+    //                     )
+    //                   )}
+    //                 </div>
+    //               </div>
+
+    //               {/* Anticipated Objections */}
+    //               <div>
+    //                 <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                   <AlertTriangle className="w-4 h-4 mr-2" />
+    //                   Anticipated Objections
+    //                 </h3>
+    //                 <ul className="space-y-2">
+    //                   {researchResult?.recommendations?.anticipatedObjections?.map(
+    //                     (objection, index) => (
+    //                       <li
+    //                         key={index}
+    //                         className="flex items-start space-x-2"
+    //                       >
+    //                         <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
+    //                         <span className="text-sm text-muted-foreground leading-relaxed">
+    //                           {objection}
+    //                         </span>
+    //                       </li>
+    //                     )
+    //                   )}
+    //                 </ul>
+    //               </div>
+
+    //               {/* Meeting Checklist */}
+    //               <div>
+    //                 <h3 className="text-lg font-semibold mb-3 flex items-center">
+    //                   <CheckSquare className="w-4 h-4 mr-2" />
+    //                   Meeting Preparation Checklist
+    //                 </h3>
+    //                 <ul className="space-y-2">
+    //                   {researchResult?.recommendations?.meetingChecklist?.map(
+    //                     (item, index) => (
+    //                       <li
+    //                         key={index}
+    //                         className="flex items-start space-x-2"
+    //                       >
+    //                         <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
+    //                         <span className="text-sm text-muted-foreground leading-relaxed">
+    //                           {item}
+    //                         </span>
+    //                       </li>
+    //                     )
+    //                   )}
+    //                 </ul>
+    //               </div>
+    //             </div>
+    //           </CardContent>
+    //         </Card>
+    //       )}
+    //     </div>
+    //   </div>
+    // </div>
     <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
       {/* Fixed Top Bar */}
       <div className="bg-background border-b border-border p-6">
@@ -1210,8 +1772,8 @@ Generated by SalesGenius.ai
                 value="prospects"
                 className="flex items-center gap-1 px-3 whitespace-nowrap"
               >
-                <User className="w-4 h-4" />
-                <span>Stakeholders</span>
+                <Users className="w-4 h-4" />
+                <span>Stakeholder Intelligence</span>
               </TabsTrigger>
               <TabsTrigger
                 value="recommendation"
@@ -1257,401 +1819,830 @@ Generated by SalesGenius.ai
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6">
-          {activeTab === "analysis" && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Building className="w-5 h-5" />
-                    <span>{researchResult?.companyName}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    {/* Company Overview */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 flex items-center">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Company Overview
-                      </h3>
-                      <p
-                        className="text-sm leading-relaxed text-muted-foreground"
-                        dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(
-                            researchResult?.companyOverview || ""
-                          ),
-                        }}
-                      />
-                    </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsContent value="analysis" className="space-y-6">
+              {researchResult && (
+                <div className="space-y-6">
+                  {/* Executive Summary */}
+                  <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Eye className="w-6 h-6 text-blue-600" />
+                        Executive Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-gray-700 leading-relaxed">
+                        {researchResult?.executiveSummary?.overview}
+                      </p>
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-yellow-500" />
+                          Key Insights
+                        </h4>
+                        {researchResult?.executiveSummary?.ahaInsights.map(
+                          (insight, index) => (
+                            <div
+                              key={index}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg"
+                            >
+                              <p className="text-gray-800 font-medium">
+                                {insight}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                    {/* Key Details Grid */}
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Sector</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {researchResult?.sector}
-                          </Badge>
+                  {/* Company Deep Dive */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Building className="w-6 h-6 text-gray-600" />
+                        Company Deep Dive
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Briefcase className="w-4 h-4 text-blue-500" />
+                              Sector & Business Nature
+                            </h4>
+                            <p className="text-gray-700">
+                              {researchResult?.companyAnalysisDetails?.sector}
+                            </p>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {
+                                researchResult?.companyAnalysisDetails
+                                  ?.natureOfBusiness
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Globe className="w-4 h-4 text-green-500" />
+                              Geographic Scope
+                            </h4>
+                            <p className="text-gray-700">
+                              {
+                                researchResult?.companyAnalysisDetails
+                                  ?.geographicScope
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Target className="w-4 h-4 text-purple-500" />
+                              Market Position
+                            </h4>
+                            <p className="text-gray-700">
+                              {
+                                researchResult?.companyAnalysisDetails
+                                  ?.marketPosition
+                              }
+                            </p>
+                          </div>
                         </div>
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">
-                            Company Size
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {researchResult?.size}
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">
-                            Geographic Scope
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {researchResult?.geographicScope}
-                          </p>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <DollarSign className="w-4 h-4 text-green-600" />
+                              Financial Health
+                            </h4>
+                            <p className="text-gray-700">
+                              {
+                                researchResult?.companyAnalysisDetails
+                                  ?.financialHealth
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Rocket className="w-4 h-4 text-orange-500" />
+                              Strategic Initiatives
+                            </h4>
+                            <ul className="space-y-1">
+                              {researchResult?.companyAnalysisDetails?.strategicInitiatives.map(
+                                (initiative, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-gray-700 text-sm flex items-start gap-2"
+                                  >
+                                    <ArrowRight className="w-3 h-3 text-orange-500 mt-1 flex-shrink-0" />
+                                    {initiative}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">
-                            Nature of Business
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {researchResult?.natureOfBusiness}
-                          </p>
-                        </div>
+                      <Collapsible
+                        open={expandedSections["challenges"]}
+                        onOpenChange={() => toggleSection("challenges")}
+                      >
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                          >
+                            {expandedSections["challenges"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                            <AlertTriangle className="w-4 h-4 text-red-500 ml-1" />
+                            <span className="font-semibold text-gray-900">
+                              Key Business Challenges & Vulnerabilities
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.companyAnalysisDetails?.keyBusinessChallenges.map(
+                                (challenge, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-red-800 flex items-start gap-2"
+                                  >
+                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                    {challenge}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
 
+                      <div>
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                          <Shield className="w-4 h-4 text-indigo-500" />
+                          Competitive Positioning
+                        </h4>
+                        <p className="text-gray-700">
+                          {
+                            researchResult?.companyAnalysisDetails
+                              ?.competitivePositioning
+                          }
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Market Analysis & Growth Opportunities */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <TrendingUp className="w-6 h-6 text-green-600" />
+                        Market Analysis & Growth Opportunities
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                          <PieChart className="w-4 h-4 text-blue-500" />
+                          Total Addressable Market (TAM/SAM) Trends
+                        </h4>
+                        <p className="text-gray-700">
+                          {researchResult?.marketAnalysis?.tamSamTrends}
+                        </p>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-6">
                         <div>
-                          <h4 className="font-medium text-sm mb-2">
-                            Key Positioning
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Activity className="w-4 h-4 text-purple-500" />
+                            Macroeconomic Forces
                           </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {researchResult?.keyPositioning}
-                          </p>
+                          <ul className="space-y-2">
+                            {researchResult?.marketAnalysis?.macroeconomicForces.map(
+                              (force, index) => (
+                                <li
+                                  key={index}
+                                  className="text-gray-700 text-sm flex items-start gap-2"
+                                >
+                                  <Compass className="w-3 h-3 text-purple-500 mt-1 flex-shrink-0" />
+                                  {force}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Star className="w-4 h-4 text-yellow-500" />
+                            Growth Opportunities
+                          </h4>
+                          <ul className="space-y-2">
+                            {researchResult?.marketAnalysis?.growthOpportunities.map(
+                              (opportunity, index) => (
+                                <li
+                                  key={index}
+                                  className="text-gray-700 text-sm flex items-start gap-2"
+                                >
+                                  <Star className="w-3 h-3 text-yellow-500 mt-1 flex-shrink-0" />
+                                  {opportunity}
+                                </li>
+                              )
+                            )}
+                          </ul>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Growth Opportunities */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 flex items-center">
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        Growth Opportunities
-                      </h3>
-                      <ul className="space-y-2">
-                        {researchResult?.growthOpportunities?.map(
-                          (opportunity, index) => (
+                      <Collapsible
+                        open={expandedSections["threats"]}
+                        onOpenChange={() => toggleSection("threats")}
+                      >
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                          >
+                            {expandedSections["threats"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                            <ShieldOff className="w-4 h-4 text-red-500 ml-1" />
+                            <span className="font-semibold text-gray-900">
+                              Threats & Disruptive Trends
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.marketAnalysis?.threatsAndDisruptions.map(
+                                (threat, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-orange-800 flex items-start gap-2"
+                                  >
+                                    <ShieldOff className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                    {threat}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+
+                  {/* Demand Side: Prospect's Needs */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Brain className="w-6 h-6 text-indigo-600" />
+                        Demand Side: Prospect's Needs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Building className="w-4 h-4 text-blue-500" />
+                            Static Demand Elements
+                          </h4>
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.demandSide?.staticElements.map(
+                                (element, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-blue-800 text-sm flex items-start gap-2"
+                                  >
+                                    <CheckCircle className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
+                                    {element}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Zap className="w-4 h-4 text-red-500" />
+                            Dynamic Demand Elements
+                          </h4>
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.demandSide?.dynamicElements.map(
+                                (element, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-red-800 text-sm flex items-start gap-2"
+                                  >
+                                    <Zap className="w-3 h-3 text-red-500 mt-1 flex-shrink-0" />
+                                    {element}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Original Company Analysis */}
+                  <Collapsible
+                    open={expandedSections["original"]}
+                    onOpenChange={() => toggleSection("original")}
+                  >
+                    <Card>
+                      <CollapsibleTrigger className="w-full">
+                        <CardHeader className="text-left">
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <FileText className="w-5 h-5" />
+                              Original Analysis Summary
+                            </span>
+                            {expandedSections["original"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </CardTitle>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent>
+                          <p className="text-gray-700 leading-relaxed">
+                            {researchResult?.companyOverview}
+                          </p>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="recommendation" className="space-y-6">
+              {researchResult && (
+                <div className="space-y-6">
+                  {/* Primary Meeting Goal */}
+                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Target className="w-6 h-6 text-green-600" />
+                        Primary Meeting Goal
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-green-100 border border-green-300 rounded-lg p-4">
+                        <p className="text-green-900 font-medium text-lg">
+                          {researchResult?.recommendations?.primaryMeetingGoal}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Key Talking Points */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-blue-600" />
+                        Key Talking Points
+                      </CardTitle>
+                      <CardDescription>
+                        Map prospect's needs to your value equation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {researchResult?.recommendations?.keyTalkingPoints.map(
+                          (point, index) => (
                             <li
                               key={index}
-                              className="flex items-start space-x-2"
+                              className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg"
                             >
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                              <span className="text-sm text-muted-foreground leading-relaxed">
-                                {opportunity}
-                              </span>
+                              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-800">{point}</span>
                             </li>
                           )
                         )}
                       </ul>
-                    </div>
+                    </CardContent>
+                  </Card>
 
-                    {/* Market Trends */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 flex items-center">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Market Trends
-                      </h3>
-                      <ul className="space-y-2">
-                        {researchResult?.marketTrends?.map((trend, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start space-x-2"
-                          >
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {trend}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Summary Note */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 flex items-center">
-                        <Lightbulb className="w-4 h-4 mr-2" />
-                        Summary Note
-                      </h3>
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <p
-                          className="text-sm leading-relaxed text-muted-foreground"
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(
-                              researchResult?.summaryNote || ""
-                            ),
-                          }}
-                        />
+                  {/* Discovery Questions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <HelpCircle className="w-5 h-5 text-purple-600" />
+                        High-Impact Discovery Questions
+                      </CardTitle>
+                      <CardDescription>
+                        Test for urgency and quantify demand
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {researchResult?.recommendations?.discoveryQuestions.map(
+                          (question, index) => (
+                            <div
+                              key={index}
+                              className="border-l-4 border-purple-400 bg-purple-50 p-4 rounded-r-lg"
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className="bg-purple-600 text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
+                                  {index + 1}
+                                </span>
+                                <p className="text-purple-900 font-medium">
+                                  {question}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Interaction Bar */}
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
-                    <ThumbsUp className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <ThumbsDown className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={handleCopy}>
-                    <Copy className="w-4 h-4 mr-1" />
-                    Copy
-                  </Button>
-                </div>
+                  {/* Anticipated Objections & Rebuttals */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ShieldOff className="w-5 h-5 text-red-600" />
+                        Anticipated Objections & Rebuttals
+                      </CardTitle>
+                      <CardDescription>
+                        Pre-emptive responses with proof and differentiators
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {researchResult?.recommendations?.anticipatedObjections?.map(
+                          (objection, index) => (
+                            <div
+                              key={index}
+                              className="border border-red-200 rounded-lg p-4 bg-red-50"
+                            >
+                              <p className="text-red-900 leading-relaxed">
+                                {objection}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {!prospectInCRM && (
-                  <Button onClick={handlePushToHubSpot} disabled={true}>
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Push to HubSpot
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "prospects" && (
-            <div className="space-y-6">
-              {researchResult?.prospectProfiles &&
-              researchResult.prospectProfiles.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {researchResult.prospectProfiles.map((profile, index) => (
-                    <Card
-                      key={index}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg flex items-center space-x-2">
-                          <User className="w-5 h-5 text-primary" />
-                          <span className="truncate">{profile.name}</span>
+                  {/* Advanced Sales Strategy */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Zap className="w-5 h-5 text-yellow-600" />
+                          Positioning Levers
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2 flex items-center">
-                            <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
-                            Communication Style
-                          </h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.communicationStyle}
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2 flex items-center">
-                            <Lightbulb className="w-4 h-4 mr-2 text-green-600" />
-                            Personality Type
-                          </h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.personalityType}
-                          </p>
-                        </div>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.positioningLevers.map(
+                            (lever, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <Star className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">{lever}</span>
+                              </li>
+                            )
+                          )}
+                        </ul>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <User className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No Stakeholder Profiles
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Upload PDF files containing prospect information to
-                      generate detailed profiles and communication insights.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
 
-          {activeTab === "source" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Sources</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {researchResult?.sources &&
-                researchResult.sources.length > 0 ? (
-                  <ol className="space-y-2 list-decimal list-inside">
-                    {researchResult.sources.map((source, index) => (
-                      <li key={index} className="text-sm leading-relaxed">
-                        {source}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No sources available for this research</p>
-                    <p>
-                      Upload PDF files and complete your first research to see
-                      results here
-                    </p>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Package className="w-5 h-5 text-indigo-600" />
+                          Scarcity & Prizing Angles
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.scarcityAndPrizingAngles?.map(
+                            (angle, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <Award className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">{angle}</span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
-          {activeTab === "recommendation" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>Sales Recommendations</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
+                  {/* Engagement & Execution */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-green-600" />
+                          Engagement Momentum
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.engagementMomentum?.map(
+                            (item, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <ArrowRight className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">{item}</span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Package className="w-5 h-5 text-purple-600" />
+                          Offer Packaging Guidance
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.offerPackagingGuidance?.map(
+                            (guidance, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">
+                                  {guidance}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Lead Generation & Meeting Prep */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-blue-600" />
+                          Lead Generation Leverage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.leadGenerationLeverage.map(
+                            (strategy, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <Target className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">
+                                  {strategy}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          Meeting Preparation Checklist
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult.recommendations.meetingPreparationChecklist.map(
+                            (item, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">{item}</span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="prospects" className="space-y-6">
+              {researchResult && (
                 <div className="space-y-6">
-                  {/* Primary Meeting Goal */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <Target className="w-4 h-4 mr-2" />
-                      Primary Meeting Goal
-                    </h3>
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                      <p className="text-sm leading-relaxed">
-                        {DOMPurify.sanitize(
-                          researchResult?.recommendations?.primaryMeetingGoal ||
-                            ""
+                  {/* Stakeholder Profiles */}
+                  {researchResult.prospectProfiles &&
+                  researchResult.prospectProfiles.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        Stakeholder Profiles
+                      </h3>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {researchResult.prospectProfiles.map(
+                          (profile, index) => (
+                            <Card
+                              key={index}
+                              className="hover:shadow-md transition-shadow"
+                            >
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center space-x-2">
+                                  <User className="w-5 h-5 text-primary" />
+                                  <span className="truncate">
+                                    {profile.name}
+                                  </span>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-2">
+                                    Overt Information
+                                  </h4>
+                                  <div className="space-y-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center space-x-2">
+                                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        {profile.title} (
+                                        {profile.seniorityLevel || "N/A"})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Users className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Role:{" "}
+                                        {profile.roleInDecisionMaking ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Globe className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Background:{" "}
+                                        {profile.publicProfessionalBackground ||
+                                          "Not available"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-2">
+                                    Covert Insights
+                                  </h4>
+                                  <div className="space-y-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center space-x-2">
+                                      <Lightbulb className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Motivations:{" "}
+                                        {profile.personalMotivations ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Company Stage Awareness:{" "}
+                                        {profile.companyStageAwareness ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Communication Style:{" "}
+                                        {profile.communicationStyle ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Eye className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Personality Type:{" "}
+                                        {profile.personalityType ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Network className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Influence Patterns:{" "}
+                                        {profile.influencePatterns ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )
                         )}
+                      </div>
+                    </div>
+                  ) : (
+                    // Updated empty state for Stakeholder Intelligence
+                    <Card>
+                      <CardContent className="text-center py-12">
+                        <Users className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No Stakeholder Intelligence Available
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          To generate detailed stakeholder intelligence, please
+                          upload PDF files containing prospect information when
+                          initiating a new research.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="source" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sources</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {researchResult?.sources &&
+                  researchResult.sources.length > 0 ? (
+                    <ol className="space-y-2 list-decimal list-inside">
+                      {researchResult.sources.map((source, index) => (
+                        <li key={index} className="text-sm leading-relaxed">
+                          {source}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No sources available for this research</p>
+                      <p>
+                        Upload PDF files and complete your first research to see
+                        results here
                       </p>
                     </div>
-                  </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
-                  {/* Key Talking Points */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Key Talking Points
-                    </h3>
-                    <ul className="space-y-2">
-                      {researchResult?.recommendations?.keyTalkingPoints?.map(
-                        (point, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start space-x-2"
-                          >
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {point}
-                            </span>
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  </div>
+          {/* Interaction Bar */}
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm">
+                <ThumbsUp className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm">
+                <ThumbsDown className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleCopy}>
+                <Copy className="w-4 h-4 mr-1" />
+                Copy
+              </Button>
+            </div>
 
-                  {/* High-Impact Sales Questions */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <Lightbulb className="w-4 h-4 mr-2" />
-                      High-Impact Sales Questions
-                    </h3>
-                    <div className="space-y-2">
-                      {researchResult?.recommendations?.highImpactSalesQuestions?.map(
-                        (question, index) => (
-                          <Collapsible key={index}>
-                            <CollapsibleTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-between p-3 h-auto text-left"
-                                onClick={() => toggleQuestion(index)}
-                              >
-                                <span className="text-sm font-medium">
-                                  Q{index + 1}:{" "}
-                                  {DOMPurify.sanitize(
-                                    question.substring(0, 60)
-                                  )}
-                                  ...
-                                </span>
-                                <ChevronDown
-                                  className={cn(
-                                    "w-4 h-4 transition-transform",
-                                    expandedQuestions.includes(index) &&
-                                      "rotate-180"
-                                  )}
-                                />
-                              </Button>
-                            </CollapsibleTrigger>
-                            {/* {console.log(question, "check question")} */}
-                            <CollapsibleContent className="px-3 pb-3">
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {question}
-                              </p>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Anticipated Objections */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      Anticipated Objections
-                    </h3>
-                    <ul className="space-y-2">
-                      {researchResult?.recommendations?.anticipatedObjections?.map(
-                        (objection, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start space-x-2"
-                          >
-                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {objection}
-                            </span>
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-
-                  {/* Meeting Checklist */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center">
-                      <CheckSquare className="w-4 h-4 mr-2" />
-                      Meeting Preparation Checklist
-                    </h3>
-                    <ul className="space-y-2">
-                      {researchResult?.recommendations?.meetingChecklist?.map(
-                        (item, index) => (
-                          <li
-                            key={index}
-                            className="flex items-start space-x-2"
-                          >
-                            <div className="w-4 h-4 border border-muted-foreground rounded mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground leading-relaxed">
-                              {item}
-                            </span>
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            {!prospectInCRM && (
+              <Button onClick={handlePushToHubSpot} disabled={true}>
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Push to HubSpot
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -12,6 +12,9 @@ const initialState = {
     allStatus: [],
     insightTypes: [],
     communicationStyleTypes: [],
+    businessKnowledge: null,
+    businessKnowledgeLoading: false,
+    businessKnowledgeError: null,
 };
 
 const orgSlice = createSlice({
@@ -48,6 +51,15 @@ const orgSlice = createSlice({
         setCommunicationTypes: (state, action) => {
             state.communicationStyleTypes = action.payload
         },
+        setBusinessKnowledge: (state, action) => {
+            state.businessKnowledge = action.payload;
+        },
+        setBusinessKnowledgeLoading: (state, action) => {
+            state.businessKnowledgeLoading = action.payload;
+        },
+        setBusinessKnowledgeError: (state, action) => {
+            state.businessKnowledgeError = action.payload;
+        },
         resetOrgState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -66,6 +78,9 @@ export const {
     setGetOrgList,
     setGetAllStatus,
     setInsightTypes,
-    setCommunicationTypes
+    setCommunicationTypes,
+    setBusinessKnowledge,
+    setBusinessKnowledgeLoading,
+    setBusinessKnowledgeError
 } = orgSlice.actions;
 export default orgSlice.reducer;

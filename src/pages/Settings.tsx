@@ -78,6 +78,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
+  setBusinessKnowledge,
   setCompany_size,
   setGetOrgList,
   setGetUsersList,
@@ -547,6 +548,7 @@ export const Settings = () => {
       );
       console.log(data, "check business knowledge data");
       setBusinessOrgData(data);
+      dispatch(setBusinessKnowledge(data));
     } catch (error) {
       console.error("Error loading business knowledge data:", error);
       toast.error("Failed to load business knowledge data");
@@ -1191,13 +1193,13 @@ export const Settings = () => {
           );
           setBusinessKnowledgeData(savedData);
           setShowBusinessKnowledgeModal(true);
-          console.log(
-            `💾 Saved ${uploadedFileRecords.length} files to database`,
-            uploadedFileRecords,
-            fileIds
-          );
+          // const getalldata = await dbHelpers.getBusinessKnowledgeByOrgId(
+          //   user.organization_id
+          // );
 
-          console.log("✅ Business knowledge data saved to database");
+          // if (getalldata) {
+          //   dispatch(setBusinessKnowledge(getalldata));
+          // }
         } catch (dbError) {
           console.error(
             "❌ Error saving business knowledge to database:",
@@ -2456,105 +2458,62 @@ export const Settings = () => {
                           </span>
                         </div>
                         <p className="text-sm text-green-700">
-                          Your Hubspot is connected and ready to sync crm
-                          details.
+                          Your Hubspot is connected and ready to sync crm data.
                         </p>
+                        {hubspotIntegration.accountInfo?.userName && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Connected as:{" "}
+                            {hubspotIntegration.accountInfo.userName}
+                            {hubspotIntegration.accountInfo.userEmail && (
+                              <span>
+                                {" "}
+                                ({hubspotIntegration.accountInfo.userEmail})
+                              </span>
+                            )}
+                          </p>
+                        )}
                       </div>
 
-                      <Button
-                        variant="outline"
-                        // onClick={handleFirefliesDisconnect}
-                        // disabled={isDisconnectingFireflies}
-                        className="w-full"
-                        // variant="outline"
-                        onClick={disconnectHubSpot}
-                        // className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Disconnect
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleEditHubspotToken}
+                          className="flex-1"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Update Token
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={disconnectHubSpot}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Disconnect
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    // <div className="space-y-4">
-                    //   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    //     <div className="flex items-center justify-between mb-2">
-                    //       <p className="text-sm font-medium text-green-900">
-                    //         HubSpot Successfully Connected
-                    //       </p>
-                    //       <CheckCircle className="w-5 h-5 text-green-600" />
-                    //     </div>
-
-                    //     {hubspotIntegration.accountInfo?.maskedToken && (
-                    //       <div className="mt-3">
-                    //         <p className="text-xs text-green-700 mb-1">
-                    //           Access Token:
-                    //         </p>
-                    //         <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
-                    //           {hubspotIntegration.accountInfo.maskedToken}
-                    //         </div>
-                    //       </div>
-                    //     )}
-
-                    //     {hubspotIntegration.lastSync && (
-                    //       <p className="text-xs text-green-700 mt-2">
-                    //         Last synced:{" "}
-                    //         {new Date(
-                    //           hubspotIntegration.lastSync
-                    //         ).toLocaleString()}
-                    //       </p>
-                    //     )}
-                    //   </div>
-
-                    //   <div className="flex space-x-2">
-                    //     <Button
-                    //       variant="outline"
-                    //       onClick={disconnectHubSpot}
-                    //       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    //     >
-                    //       <X className="w-4 h-4 mr-1" />
-                    //       Disconnect
-                    //     </Button>
-                    //     {/* <Button variant="outline">
-                    //       <RefreshCw className="w-4 h-4 mr-1" />
-                    //       Test Connection
-                    //     </Button> */}
-                    //   </div>
-                    // </div>
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        Connect your HubSpot account to enable CRM integration
-                        features.
+                        Connect your HubSpot account to sync CRM data and
+                        enhance AI insights.
                       </p>
-                      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                          <p className="text-sm font-medium text-yellow-900">
-                            HubSpot Not Connected
-                          </p>
-                        </div>
-                        <p className="text-xs text-yellow-700">
-                          Connect your HubSpot account to enable CRM integration
-                          features.
-                        </p>
-                      </div> */}
 
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
+                      <div className="space-y-2">
+                        <Label htmlFor="hubspot-token">
                           HubSpot Access Token
-                        </label>
+                        </Label>
                         <Input
+                          id="hubspot-token"
+                          type="password"
+                          placeholder="Enter your HubSpot access token"
                           value={hubspotToken}
-                          onChange={(e) => {
-                            setHubspotToken(e.target.value);
-                            setHubspotError(""); // Clear error when user types
-                          }}
-                          placeholder="Enter your HubSpot Access Token"
-                          disabled={isCheckingHubSpot}
+                          onChange={(e) => setHubspotToken(e.target.value)}
+                          className={hubspotError ? "border-red-500" : ""}
                         />
                         {hubspotError && (
-                          <p className="text-sm text-red-600 mt-2">
-                            {hubspotError}
-                          </p>
+                          <p className="text-sm text-red-600">{hubspotError}</p>
                         )}
                       </div>
 
@@ -2584,6 +2543,53 @@ export const Settings = () => {
                           Settings → Integrations → Private Apps → Create/View
                           Token
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isEditingHubspot && (
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-hubspot-token">
+                          New HubSpot Access Token
+                        </Label>
+                        <Input
+                          id="new-hubspot-token"
+                          type="password"
+                          placeholder="Enter your new HubSpot access token"
+                          value={hubspotToken}
+                          onChange={(e) => setHubspotToken(e.target.value)}
+                          className={hubspotError ? "border-red-500" : ""}
+                        />
+                        {hubspotError && (
+                          <p className="text-sm text-red-600">{hubspotError}</p>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={validateHubspotToken}
+                          disabled={!hubspotToken.trim() || isCheckingHubSpot}
+                          className="flex-1"
+                        >
+                          {isCheckingHubSpot ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 mr-1" />
+                              Update Token
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelEditHubspot}
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -2868,7 +2874,6 @@ export const Settings = () => {
                                       )}
                                     </div>
                                   </div>
-                                  <Edit className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="text-right text-sm text-muted-foreground">
@@ -2892,7 +2897,7 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDeleteClick(material)}
+                                    onClick={() => handleDeleteClick(user)}
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -3352,8 +3357,10 @@ export const Settings = () => {
                                           "Unnamed Organization"}
                                       </h3>
                                       <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                                        {knowledge.summary_note ||
-                                          "No summary available"}
+                                        {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
+                                          0,
+                                          100
+                                        ) + "..." || "No summary available"}
                                       </p>
                                       <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                         <span>
@@ -3368,14 +3375,6 @@ export const Settings = () => {
                                             knowledge.updated_at
                                           ).toLocaleDateString()}
                                         </span>
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {knowledge.processed_file_ids
-                                            ?.length || 0}{" "}
-                                          files
-                                        </Badge>
                                       </div>
                                     </div>
                                   </div>
@@ -3887,7 +3886,7 @@ export const Settings = () => {
               <span>Confirm Delete</span>
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete{" "}
+              Are you sure you want to delete this item?
             </DialogDescription>
           </DialogHeader>
 

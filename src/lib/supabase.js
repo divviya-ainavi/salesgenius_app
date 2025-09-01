@@ -1888,6 +1888,8 @@ export const dbHelpers = {
     }
   },
 
+
+
   // Update business knowledge data
   async updateBusinessKnowledgeData(updates) {
     try {
@@ -4063,6 +4065,51 @@ export const dbHelpers = {
     }
 
     return data;
+  },
+
+  // Business Knowledge Operations
+  async getBusinessKnowledgeByOrgId(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw error;
+      }
+      console.log(data, "business knowledge data 2213")
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching business knowledge:', error);
+      if (error.code === 'PGRST116') {
+        return null; // No data found
+      }
+      throw error;
+    }
+  },
+
+  async updateBusinessKnowledge(id, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge:', error);
+      throw error;
+    }
   },
 
   // Tour Steps Management
