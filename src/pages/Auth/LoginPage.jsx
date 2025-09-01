@@ -24,7 +24,12 @@ import {
   setTitleName,
 } from "../../store/slices/authSlice";
 import { dbHelpers } from "../../lib/supabase";
-import { setAllTitles } from "../../store/slices/orgSlice";
+import {
+  setAllTitles,
+  setBusinessKnowledge,
+  setBusinessKnowledgeError,
+  setBusinessKnowledgeLoading,
+} from "../../store/slices/orgSlice";
 import { checkIntegrationStatus } from "../../services/hubspotService";
 
 const LoginPage = () => {
@@ -227,12 +232,18 @@ const LoginPage = () => {
         // Load business knowledge data for the organization
         if (profile.organization_id) {
           try {
-            console.log("🔍 Loading business knowledge for organization:", profile.organization_id);
+            console.log(
+              "🔍 Loading business knowledge for organization:",
+              profile.organization_id
+            );
             dispatch(setBusinessKnowledgeLoading(true));
             dispatch(setBusinessKnowledgeError(null));
-            
-            const businessKnowledge = await dbHelpers.getBusinessKnowledgeByOrgId(profile.organization_id);
-            
+
+            const businessKnowledge =
+              await dbHelpers.getBusinessKnowledgeByOrgId(
+                profile.organization_id
+              );
+            console.log("business knowledge", businessKnowledge);
             if (businessKnowledge) {
               dispatch(setBusinessKnowledge(businessKnowledge));
               console.log("✅ Business knowledge loaded successfully");

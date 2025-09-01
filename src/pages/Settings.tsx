@@ -78,6 +78,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
 import {
+  setBusinessKnowledge,
   setCompany_size,
   setGetOrgList,
   setGetUsersList,
@@ -547,6 +548,7 @@ export const Settings = () => {
       );
       console.log(data, "check business knowledge data");
       setBusinessOrgData(data);
+      dispatch(setBusinessKnowledge(data));
     } catch (error) {
       console.error("Error loading business knowledge data:", error);
       toast.error("Failed to load business knowledge data");
@@ -1191,13 +1193,13 @@ export const Settings = () => {
           );
           setBusinessKnowledgeData(savedData);
           setShowBusinessKnowledgeModal(true);
-          console.log(
-            `💾 Saved ${uploadedFileRecords.length} files to database`,
-            uploadedFileRecords,
-            fileIds
-          );
+          // const getalldata = await dbHelpers.getBusinessKnowledgeByOrgId(
+          //   user.organization_id
+          // );
 
-          console.log("✅ Business knowledge data saved to database");
+          // if (getalldata) {
+          //   dispatch(setBusinessKnowledge(getalldata));
+          // }
         } catch (dbError) {
           console.error(
             "❌ Error saving business knowledge to database:",
@@ -2460,9 +2462,13 @@ export const Settings = () => {
                         </p>
                         {hubspotIntegration.accountInfo?.userName && (
                           <p className="text-xs text-green-600 mt-1">
-                            Connected as: {hubspotIntegration.accountInfo.userName}
+                            Connected as:{" "}
+                            {hubspotIntegration.accountInfo.userName}
                             {hubspotIntegration.accountInfo.userEmail && (
-                              <span> ({hubspotIntegration.accountInfo.userEmail})</span>
+                              <span>
+                                {" "}
+                                ({hubspotIntegration.accountInfo.userEmail})
+                              </span>
                             )}
                           </p>
                         )}
@@ -3351,8 +3357,10 @@ export const Settings = () => {
                                           "Unnamed Organization"}
                                       </h3>
                                       <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                                        {knowledge.static_supply_elements?.coreBusinessOffering?.substring(0, 100) + "..." ||
-                                          "No summary available"}
+                                        {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
+                                          0,
+                                          100
+                                        ) + "..." || "No summary available"}
                                       </p>
                                       <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                         <span>

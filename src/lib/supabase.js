@@ -4075,13 +4075,12 @@ export const dbHelpers = {
         .select('*')
         .eq('organization_id', organizationId)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false });
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
         throw error;
       }
+      console.log(data, "business knowledge data 2213")
 
       return data;
     } catch (error) {
