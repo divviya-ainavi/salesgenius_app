@@ -3884,7 +3884,7 @@ export const Settings = () => {
         open={showDeleteConfirmDialog}
         onOpenChange={setShowDeleteConfirmDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg border-0 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <AlertCircle className="w-5 h-5 text-destructive" />
@@ -3892,14 +3892,69 @@ export const Settings = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{" "}
-              <strong>{fileToDelete?.original_filename}</strong>
-              "? This action will mark the file as inactive and it won't be
-              available for AI training.
-            </DialogDescription>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
+                <Trash2 className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900 mb-2">
+                  Delete Business Knowledge?
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 leading-relaxed">
+                  Are you sure you want to permanently delete this business knowledge profile?
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
+          
+          {/* Item Details */}
+          {itemToDelete && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mx-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Building className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-red-900 truncate">
+                    {itemToDelete.organization_name}
+                  </h4>
+                  <p className="text-sm text-red-700">
+                    Created: {new Date(itemToDelete.created_at).toLocaleDateString()}
+                  </p>
+                  {itemToDelete.processed_file_ids && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {itemToDelete.processed_file_ids.length} associated files will also be affected
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Warning Message */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mx-6">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-900 mb-1">
+                  This action cannot be undone
+                </h4>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Deleting this business knowledge profile will permanently remove all associated data, 
+                  insights, and file references. This may affect AI processing quality for future calls.
+                </p>
+              </div>
+            </div>
+          </div>
+
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelDelete}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)}
+              className="mt-2 sm:mt-0 border-gray-300 hover:bg-gray-50 px-6 py-2.5"
+            >
+              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button
@@ -3916,8 +3971,13 @@ export const Settings = () => {
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
-                </>
-              )}
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+              className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg px-6 py-2.5"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
