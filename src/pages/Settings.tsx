@@ -2457,104 +2457,112 @@ export const Settings = () => {
                         </div>
                         <p className="text-sm text-green-700">
                           Your Hubspot is connected and ready to sync crm
-                          details.
-                        </p>
-                      </div>
+                          <Card 
+                            className="group relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+                            onClick={() => handleBusinessKnowledgeClick(businessKnowledge)}
+                          >
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                                    <Building className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">
+                                      {businessKnowledge.organization_name || "Business Knowledge"}
+                                    </h4>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      AI-extracted business intelligence
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge 
+                                  variant="outline" 
+                                  className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200 px-3 py-1.5 font-medium shadow-sm"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1.5" />
+                                  Active
+                                </Badge>
+                              </div>
 
-                      <Button
-                        variant="outline"
-                        // onClick={handleFirefliesDisconnect}
-                        // disabled={isDisconnectingFireflies}
-                        className="w-full"
-                        // variant="outline"
-                        onClick={disconnectHubSpot}
-                        // className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    // <div className="space-y-4">
-                    //   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    //     <div className="flex items-center justify-between mb-2">
-                    //       <p className="text-sm font-medium text-green-900">
-                    //         HubSpot Successfully Connected
-                    //       </p>
-                    //       <CheckCircle className="w-5 h-5 text-green-600" />
-                    //     </div>
+                              {/* Key Insights Preview */}
+                              <div className="space-y-4 mb-6">
+                                {businessKnowledge.static_supply_elements?.coreBusinessOffering && (
+                                  <div className="bg-white/70 backdrop-blur-sm border border-blue-100 rounded-lg p-4 shadow-sm">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      <span className="text-sm font-semibold text-gray-700">Core Offering</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                                      {businessKnowledge.static_supply_elements.coreBusinessOffering}
+                                    </p>
+                                  </div>
+                                )}
 
-                    //     {hubspotIntegration.accountInfo?.maskedToken && (
-                    //       <div className="mt-3">
-                    //         <p className="text-xs text-green-700 mb-1">
-                    //           Access Token:
-                    //         </p>
-                    //         <div className="font-mono text-sm bg-white p-2 rounded border border-green-300">
-                    //           {hubspotIntegration.accountInfo.maskedToken}
-                    //         </div>
-                    //       </div>
-                    //     )}
+                                {businessKnowledge.icp?.championPersona && (
+                                  <div className="bg-white/70 backdrop-blur-sm border border-green-100 rounded-lg p-4 shadow-sm">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                      <span className="text-sm font-semibold text-gray-700">Target Customer</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                                      {businessKnowledge.icp.championPersona}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
 
-                    //     {hubspotIntegration.lastSync && (
-                    //       <p className="text-xs text-green-700 mt-2">
-                    //         Last synced:{" "}
-                    //         {new Date(
-                    //           hubspotIntegration.lastSync
-                    //         ).toLocaleString()}
-                    //       </p>
-                    //     )}
-                    //   </div>
+                              {/* Metadata */}
+                              <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-4">
+                                <div className="flex items-center space-x-4">
+                                  <div className="flex items-center space-x-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Created: {new Date(businessKnowledge.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <FileText className="w-3 h-3" />
+                                    <span>{businessKnowledge.processed_file_ids?.length || 0} files processed</span>
+                                  </div>
+                                </div>
+                              </div>
 
-                    //   <div className="flex space-x-2">
-                    //     <Button
-                    //       variant="outline"
-                    //       onClick={disconnectHubSpot}
-                    //       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    //     >
-                    //       <X className="w-4 h-4 mr-1" />
-                    //       Disconnect
-                    //     </Button>
-                    //     {/* <Button variant="outline">
-                    //       <RefreshCw className="w-4 h-4 mr-1" />
-                    //       Test Connection
-                    //     </Button> */}
-                    //   </div>
-                    // </div>
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Connect your HubSpot account to enable CRM integration
-                        features.
-                      </p>
-                      {/* <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                          <p className="text-sm font-medium text-yellow-900">
-                            HubSpot Not Connected
-                          </p>
-                        </div>
-                        <p className="text-xs text-yellow-700">
-                          Connect your HubSpot account to enable CRM integration
-                          features.
-                        </p>
-                      </div> */}
+                              {/* Action Buttons */}
+                              <div className="absolute bottom-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-white/90 backdrop-blur-sm border-blue-200 text-blue-700 hover:bg-blue-50 shadow-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleBusinessKnowledgeClick(businessKnowledge);
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-white/90 backdrop-blur-sm border-red-200 text-red-700 hover:bg-red-50 shadow-md"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBusinessKnowledge(businessKnowledge);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
 
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          HubSpot Access Token
-                        </label>
-                        <Input
-                          value={hubspotToken}
-                          onChange={(e) => {
-                            setHubspotToken(e.target.value);
-                            setHubspotError(""); // Clear error when user types
-                          }}
-                          placeholder="Enter your HubSpot Access Token"
-                          disabled={isCheckingHubSpot}
-                        />
-                        {hubspotError && (
-                          <p className="text-sm text-red-600 mt-2">
-                            {hubspotError}
-                          </p>
+                              {/* Edit Indicator */}
+                              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Edit className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         )}
                       </div>
 
@@ -3352,31 +3360,18 @@ export const Settings = () => {
                                           "Unnamed Organization"}
                                       </h3>
                                       <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                                        {knowledge.summary_note ||
+                        {businessKnowledgeLoading ? (
                                           "No summary available"}
                                       </p>
                                       <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                         <span>
-                                          Created:{" "}
+                        ) : !businessKnowledge ? (
                                           {new Date(
                                             knowledge.created_at
                                           ).toLocaleDateString()}
                                         </span>
                                         <span>
                                           Updated:{" "}
-                                          {new Date(
-                                            knowledge.updated_at
-                                          ).toLocaleDateString()}
-                                        </span>
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {knowledge.processed_file_ids
-                                            ?.length || 0}{" "}
-                                          files
-                                        </Badge>
-                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center space-x-2">

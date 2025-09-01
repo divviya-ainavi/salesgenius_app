@@ -224,6 +224,31 @@ const LoginPage = () => {
           dispatch(setHasSeenOnboardingTour(false));
         }
 
+        // Load business knowledge data for the organization
+        if (profile.organization_id) {
+          try {
+            console.log("🔍 Loading business knowledge for organization:", profile.organization_id);
+            dispatch(setBusinessKnowledgeLoading(true));
+            dispatch(setBusinessKnowledgeError(null));
+            
+            const businessKnowledge = await dbHelpers.getBusinessKnowledgeByOrgId(profile.organization_id);
+            
+            if (businessKnowledge) {
+              dispatch(setBusinessKnowledge(businessKnowledge));
+              console.log("✅ Business knowledge loaded successfully");
+            } else {
+              dispatch(setBusinessKnowledge(null));
+              console.log("📭 No business knowledge found for organization");
+            }
+          } catch (error) {
+            console.error("❌ Error loading business knowledge:", error);
+            dispatch(setBusinessKnowledgeError(error.message));
+            dispatch(setBusinessKnowledge(null));
+          } finally {
+            dispatch(setBusinessKnowledgeLoading(false));
+          }
+        }
+
         // Check HubSpot integration status for the organization
         if (profile.organization_id) {
           try {
