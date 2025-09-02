@@ -663,7 +663,7 @@ export const Settings = () => {
         throw new Error("Invalid Fireflies token");
       }
 
-      // Encrypt the token before saving
+      // Encrypt the token for storage
       const encryptedToken = CryptoJS.AES.encrypt(
         firefliesToken.trim(),
         "SG"
