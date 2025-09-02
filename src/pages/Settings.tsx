@@ -1059,13 +1059,13 @@ export const Settings = () => {
     onDrop: onDropBusiness,
     accept: {
       "application/pdf": [".pdf"],
-      "application/msword": [".doc"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
+      // "application/msword": [".doc"],
+      // "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      //   [".docx"],
       "text/plain": [".txt"],
-      "application/vnd.ms-powerpoint": [".ppt"],
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        [".pptx"],
+      // "application/vnd.ms-powerpoint": [".ppt"],
+      // "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      //   [".pptx"],
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -3182,7 +3182,8 @@ export const Settings = () => {
                           e.target.files?.[0] &&
                           handleFileUpload(e.target.files[0], "general")
                         }
-                        accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                        // accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                        accept=".pdf,.txt"
                       />
                       <label
                         htmlFor="general-upload"
@@ -3193,7 +3194,7 @@ export const Settings = () => {
                           Upload General Training Material
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                          PDF, TXT(Max 10MB)
                         </p>
                       </label>
                     </div>
@@ -3342,8 +3343,7 @@ export const Settings = () => {
                               : "Click to browse or drag and drop multiple files here"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            PDF, DOC, TXT, PPT (Max 10MB each, multiple files
-                            supported)
+                            PDF, TXT (Max 10MB each, multiple files supported)
                           </p>
                         </>
                       )}
@@ -3569,7 +3569,7 @@ export const Settings = () => {
                         e.target.files?.[0] &&
                         handleFileUpload(e.target.files[0], "personal")
                       }
-                      accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                      accept=".pdf,.txt"
                     />
                     <label htmlFor="personal-upload" className="cursor-pointer">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
@@ -3577,7 +3577,7 @@ export const Settings = () => {
                         Upload Personal Material
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        PDF, DOC, TXT, MP4, PPT (Max 10MB)
+                        PDF, TXT(Max 10MB)
                       </p>
                     </label>
                   </div>
