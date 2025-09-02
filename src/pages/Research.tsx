@@ -165,6 +165,7 @@ const Research = () => {
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
+  const [copyStatus, setCopyStatus] = useState({});
   const {
     userProfileInfo,
     userRole,
@@ -334,6 +335,196 @@ const Research = () => {
     } finally {
       setIsUploadingFiles(false);
     }
+  };
+
+  // Copy functionality for different tabs
+  const handleCopyTabData = async (tabName) => {
+    if (!researchResult) return;
+
+    let textToCopy = "";
+    
+    try {
+      switch (tabName) {
+        case "company":
+          textToCopy = formatCompanyAnalysisForCopy(researchResult);
+          break;
+        case "stakeholder":
+          textToCopy = formatStakeholderIntelligenceForCopy(researchResult);
+          break;
+        case "recommendations":
+          textToCopy = formatRecommendationsForCopy(researchResult);
+          break;
+        case "sources":
+          textToCopy = formatSourcesForCopy(researchResult);
+          break;
+        default:
+          textToCopy = "No data available for this tab";
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+      
+      // Show success state
+      setCopyStatus(prev => ({ ...prev, [tabName]: 'success' }));
+      toast.success(`${getTabDisplayName(tabName)} data copied to clipboard!`);
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, [tabName]: null }));
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      toast.error("Failed to copy data to clipboard");
+      setCopyStatus(prev => ({ ...prev, [tabName]: 'error' }));
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, [tabName]: null }));
+      }, 2000);
+    }
+  };
+
+  // Helper function to get display name for tabs
+  const getTabDisplayName = (tabName) => {
+    const displayNames = {
+      company: "Company Analysis",
+      stakeholder: "Stakeholder Intelligence", 
+      recommendations: "Recommendations",
+      sources: "Sources"
+    };
+    return displayNames[tabName] || tabName;
+  };
+
+  // Format company analysis data for copying
+  const formatCompanyAnalysisForCopy = (data) => {
+    let text = `COMPANY ANALYSIS - ${data.company_name}\n`;
+    text += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+    
+    if (data.executive_summary) {
+      text += `EXECUTIVE SUMMARY\n`;
+      text += `${data.executive_summary.overview || 'Not available'}\n\n`;
+      
+      if (data.executive_summary.key_highlights) {
+        text += `Key Highlights:\n`;
+        data.executive_summary.key_highlights.forEach((highlight, index) => {
+          text += `${index + 1}. ${highlight}\n`;
+        });
+        text += `\n`;
+      }
+    }
+    
+    if (data.company_overview) {
+      text += `COMPANY OVERVIEW\n`;
+      text += `${data.company_overview}\n\n`;
+    }
+    
+    if (data.company_analysis_details) {
+      text += `DETAILED ANALYSIS\n`;
+      Object.entries(data.company_analysis_details).forEach(([key, value]) => {
+        if (value) {
+          text += `${key.replace(/_/g, ' ').toUpperCase()}:\n${value}\n\n`;
+        }
+      });
+    }
+    
+    if (data.market_analysis) {
+      text += `MARKET ANALYSIS\n`;
+      Object.entries(data.market_analysis).forEach(([key, value]) => {
+        if (value) {
+          text += `${key.replace(/_/g, ' ').toUpperCase()}:\n${value}\n\n`;
+        }
+      });
+    }
+    
+    return text;
+  };
+
+  // Format stakeholder intelligence data for copying
+  const formatStakeholderIntelligenceForCopy = (data) => {
+    let text = `STAKEHOLDER INTELLIGENCE - ${data.company_name}\n`;
+    text += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+    
+    if (data.profiles && data.profiles.length > 0) {
+      text += `STAKEHOLDER PROFILES\n`;
+      data.profiles.forEach((profile, index) => {
+        text += `${index + 1}. ${profile}\n`;
+      });
+      text += `\n`;
+    }
+    
+    if (data.demand_side) {
+      text += `DEMAND SIDE ANALYSIS\n`;
+      Object.entries(data.demand_side).forEach(([key, value]) => {
+        if (value) {
+          text += `${key.replace(/_/g, ' ').toUpperCase()}:\n${value}\n\n`;
+        }
+      });
+    }
+    
+    return text;
+  };
+
+  // Format recommendations data for copying
+  const formatRecommendationsForCopy = (data) => {
+    let text = `RECOMMENDATIONS - ${data.company_name}\n`;
+    text += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+    
+    if (data.recommendations) {
+      text += `STRATEGIC RECOMMENDATIONS\n`;
+      text += `${data.recommendations}\n\n`;
+    }
+    
+    if (data.market_trends && data.market_trends.length > 0) {
+      text += `MARKET TRENDS\n`;
+      data.market_trends.forEach((trend, index) => {
+        text += `${index + 1}. ${trend}\n`;
+      });
+      text += `\n`;
+    }
+    
+    if (data.growth_opportunities && data.growth_opportunities.length > 0) {
+      text += `GROWTH OPPORTUNITIES\n`;
+      data.growth_opportunities.forEach((opportunity, index) => {
+        text += `${index + 1}. ${opportunity}\n`;
+      });
+      text += `\n`;
+    }
+    
+    if (data.key_positioning) {
+      text += `KEY POSITIONING\n`;
+      text += `${data.key_positioning}\n\n`;
+    }
+    
+    return text;
+  };
+
+  // Format sources data for copying
+  const formatSourcesForCopy = (data) => {
+    let text = `SOURCES - ${data.company_name}\n`;
+    text += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+    
+    if (data.sources && data.sources.length > 0) {
+      text += `RESEARCH SOURCES\n`;
+      data.sources.forEach((source, index) => {
+        if (typeof source === 'object') {
+          text += `${index + 1}. ${source.title || source.name || 'Untitled Source'}\n`;
+          if (source.url) text += `   URL: ${source.url}\n`;
+          if (source.description) text += `   Description: ${source.description}\n`;
+        } else {
+          text += `${index + 1}. ${source}\n`;
+        }
+      });
+      text += `\n`;
+    }
+    
+    if (data.summary_note) {
+      text += `RESEARCH SUMMARY\n`;
+      text += `${data.summary_note}\n\n`;
+    }
+    
+    text += `Research completed on: ${new Date(data.created_at).toLocaleDateString()}\n`;
+    
+    return text;
   };
 
   // Handle form submission
@@ -1342,11 +1533,30 @@ Generated by SalesGenius.ai
           {activeTab === "analysis" && (
             <div className="space-y-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
                     <Building className="w-5 h-5" />
                     <span>{researchResult?.companyName}</span>
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyTabData("company")}
+                    disabled={copyStatus.company === 'success'}
+                    className="flex items-center space-x-2"
+                  >
+                    {copyStatus.company === 'success' ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-6">
@@ -1512,65 +1722,110 @@ Generated by SalesGenius.ai
 
           {activeTab === "prospects" && (
             <div className="space-y-6">
-              {researchResult?.prospectProfiles &&
-              researchResult.prospectProfiles.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {researchResult.prospectProfiles.map((profile, index) => (
-                    <Card
-                      key={index}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg flex items-center space-x-2">
-                          <User className="w-5 h-5 text-primary" />
-                          <span className="truncate">{profile.name}</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2 flex items-center">
-                            <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
-                            Communication Style
-                          </h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.communicationStyle}
-                          </p>
-                        </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Stakeholder Intelligence</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyTabData("stakeholder")}
+                    disabled={copyStatus.stakeholder === 'success'}
+                    className="flex items-center space-x-2"
+                  >
+                    {copyStatus.stakeholder === 'success' ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {researchResult?.prospectProfiles &&
+                  researchResult.prospectProfiles.length > 0 ? (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {researchResult.prospectProfiles.map((profile, index) => (
+                        <Card
+                          key={index}
+                          className="hover:shadow-md transition-shadow"
+                        >
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center space-x-2">
+                              <User className="w-5 h-5 text-primary" />
+                              <span className="truncate">{profile.name}</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <h4 className="font-medium text-sm mb-2 flex items-center">
+                                <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
+                                Communication Style
+                              </h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {profile.communicationStyle}
+                              </p>
+                            </div>
 
-                        <div>
-                          <h4 className="font-medium text-sm mb-2 flex items-center">
-                            <Lightbulb className="w-4 h-4 mr-2 text-green-600" />
-                            Personality Type
-                          </h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.personalityType}
-                          </p>
-                        </div>
+                            <div>
+                              <h4 className="font-medium text-sm mb-2 flex items-center">
+                                <Lightbulb className="w-4 h-4 mr-2 text-green-600" />
+                                Personality Type
+                              </h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {profile.personalityType}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card>
+                      <CardContent className="text-center py-12">
+                        <User className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No Stakeholder Profiles
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          Upload PDF files containing prospect information to
+                          generate detailed profiles and communication insights.
+                        </p>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <User className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No Stakeholder Profiles
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Upload PDF files containing prospect information to
-                      generate detailed profiles and communication insights.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
           {activeTab === "source" && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Sources</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyTabData("sources")}
+                  disabled={copyStatus.sources === 'success'}
+                  className="flex items-center space-x-2"
+                >
+                  {copyStatus.sources === 'success' ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </Button>
               </CardHeader>
               <CardContent className="p-6">
                 {researchResult?.sources &&
@@ -1598,11 +1853,30 @@ Generated by SalesGenius.ai
 
           {activeTab === "recommendation" && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <Target className="w-5 h-5" />
                   <span>Sales Recommendations</span>
                 </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyTabData("recommendations")}
+                  disabled={copyStatus.recommendations === 'success'}
+                  className="flex items-center space-x-2"
+                >
+                  {copyStatus.recommendations === 'success' ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </Button>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
@@ -2687,9 +2961,24 @@ Generated by SalesGenius.ai
               <Button variant="ghost" size="sm">
                 <ThumbsDown className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleCopy}>
-                <Copy className="w-4 h-4 mr-1" />
-                Copy
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopyTabData(activeTab)}
+                disabled={copyStatus[activeTab] === 'success'}
+                className="flex items-center space-x-2"
+              >
+                {copyStatus[activeTab] === 'success' ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy</span>
+                  </>
+                )}
               </Button>
             </div>
 
