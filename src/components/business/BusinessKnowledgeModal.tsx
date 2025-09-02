@@ -189,6 +189,33 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     setEditedData(newData);
   };
 
+  const handleOthersItemChange = (index: number, field: 'title' | 'content', value: string) => {
+    if (!editedData || !editedData.others) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    newData.others[index][field] = value;
+    setEditedData(newData);
+  };
+
+  const handleAddOthersItem = () => {
+    if (!editedData) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    if (!newData.others) {
+      newData.others = [];
+    }
+    newData.others.push({ title: "", content: "" });
+    setEditedData(newData);
+  };
+
+  const handleRemoveOthersItem = (index: number) => {
+    if (!editedData || !editedData.others) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    newData.others.splice(index, 1);
+    setEditedData(newData);
+  };
+
   const handleSave = async () => {
     if (!editedData) return;
 
