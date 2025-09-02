@@ -655,12 +655,17 @@ export const Settings = () => {
       const result = await response.json();
 
       // Check if the token validation was successful
-      if (!result.success && !result.valid) {
-        throw new Error("Invalid Fireflies token");
-      }
+      // Extract others data from API response
+      const othersData = result.others || null;
+      console.log("📋 Others data extracted:", othersData);
 
-      // Encrypt the token using the same method as HubSpot
-      const encryptedToken = jwtToken;
+      if (!result.success && !result.valid) {
+      const savedData = await dbHelpers.saveBusinessKnowledgeWithOthers(
+        user.organization_id,
+        user.id,
+        result,
+        othersData
+      );
 
       // Save encrypted token to database
       await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);

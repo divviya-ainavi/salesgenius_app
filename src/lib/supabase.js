@@ -4112,6 +4112,42 @@ export const dbHelpers = {
     }
   },
 
+  // Save business knowledge with others data
+  async saveBusinessKnowledgeWithOthers(organizationId, userId, businessData, othersData = null) {
+    try {
+      const dataToSave = {
+        organization_id: organizationId,
+        user_id: userId,
+        organization_name: businessData.organization_name,
+        static_supply_elements: businessData.static_supply_elements,
+        dynamic_supply_elements: businessData.dynamic_supply_elements,
+        offer_definition: businessData.offer_definition,
+        pricing_and_objections: businessData.pricing_and_objections,
+        icp: businessData.icp,
+        reframe_narratives: businessData.reframe_narratives,
+        sales_methodology: businessData.sales_methodology,
+        brand_voice_guidelines: businessData.brand_voice_guidelines,
+        assets_detected: businessData.assets_detected,
+        sources: businessData.sources,
+        summary_note: businessData.summary_note,
+        others: othersData, // Store the additional data
+        is_active: true
+      };
+
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .insert([dataToSave])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge with others:', error);
+      throw error;
+    }
+  },
+
   // Tour Steps Management
   async getTourSteps() {
     try {

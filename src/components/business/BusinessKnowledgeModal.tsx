@@ -81,6 +81,10 @@ interface BusinessKnowledgeData {
   assets_detected: string[];
   sources: string[];
   summary_note: string;
+  others?: Array<{
+    title: string;
+    content: string;
+  }>;
 }
 
 interface BusinessKnowledgeModalProps {
@@ -827,6 +831,89 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Others Data Section */}
+              {editedData.others && editedData.others.length > 0 && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                  <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-t-lg border-b border-teal-100">
+                    <CardTitle className="flex items-center space-x-3">
+                      <div className="w-5 h-5 bg-teal-500 rounded-lg flex items-center justify-center">
+                        <Lightbulb className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-gray-800 text-lg">
+                        Additional Insights
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6 p-6">
+                    {editedData.others.map((item, index) => (
+                      <div key={index} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+                            <span>{item.title}</span>
+                          </Label>
+                          {isEditing && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveOthersItem(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {isEditing ? (
+                          <div className="space-y-3">
+                            <Input
+                              value={item.title}
+                              onChange={(e) => handleOthersItemChange(index, 'title', e.target.value)}
+                              placeholder="Enter title..."
+                              className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
+                            />
+                            <Textarea
+                              value={item.content}
+                              onChange={(e) => handleOthersItemChange(index, 'content', e.target.value)}
+                              placeholder="Enter content..."
+                              className="min-h-[100px] border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {item.content || (
+                                <span className="italic text-gray-500">No content available</span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {index < editedData.others.length - 1 && (
+                          <Separator className="my-4" />
+                        )}
+                      </div>
+                    ))}
+                    
+                    {isEditing && (
+                      <div className="pt-4 border-t border-gray-200">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddOthersItem}
+                          className="text-teal-600 border-teal-200 hover:bg-teal-50"
+                        >
+                          <Plus className="w-3 h-3 mr-1.5" />
+                          Add Additional Insight
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </div>
         </Tabs>
