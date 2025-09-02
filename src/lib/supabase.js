@@ -1908,7 +1908,8 @@ export const dbHelpers = {
           assets_detected: updates?.assets_detected,
           sources: updates?.sources,
           summary_note: updates?.summary_note,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          others: updates?.others || null,
         })
         .eq('id', updates.id)
         .select()
@@ -2020,6 +2021,7 @@ export const dbHelpers = {
           sources: businessKnowledgeData.sources,
           summary_note: businessKnowledgeData.summaryNote,
           processed_file_ids: fileIds || businessKnowledgeData.processedFileIds,
+          others: businessKnowledgeData.others || null,
         }])
         .select()
         .single();
