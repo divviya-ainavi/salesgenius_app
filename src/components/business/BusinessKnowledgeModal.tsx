@@ -189,7 +189,11 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     setEditedData(newData);
   };
 
-  const handleOthersItemChange = (index: number, field: 'title' | 'content', value: string) => {
+  const handleOthersItemChange = (
+    index: number,
+    field: "title" | "content",
+    value: string
+  ) => {
     if (!editedData || !editedData.others) return;
 
     const newData = JSON.parse(JSON.stringify(editedData));
@@ -360,19 +364,20 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  Business Knowledge Profile
+                  Business Knowledge Profile{" "}
+                  <Badge
+                    variant="outline"
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 px-3 py-1.5 font-medium"
+                  >
+                    {editedData.organization_name}
+                  </Badge>
                 </h2>
+
                 <p className="text-sm text-gray-600 mt-0.5">
                   Comprehensive business intelligence and insights
                 </p>
               </div>
             </div>
-            <Badge
-              variant="outline"
-              className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 px-3 py-1.5 font-medium"
-            >
-              {editedData.organization_name}
-            </Badge>
           </DialogTitle>
           <DialogDescription className="text-gray-600 mt-2">
             Review and edit your organization's business knowledge profile
@@ -892,18 +897,30 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                             </Button>
                           )}
                         </div>
-                        
+
                         {isEditing ? (
                           <div className="space-y-3">
                             <Input
                               value={item.title}
-                              onChange={(e) => handleOthersItemChange(index, 'title', e.target.value)}
+                              onChange={(e) =>
+                                handleOthersItemChange(
+                                  index,
+                                  "title",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Enter title..."
                               className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
                             />
                             <Textarea
                               value={item.content}
-                              onChange={(e) => handleOthersItemChange(index, 'content', e.target.value)}
+                              onChange={(e) =>
+                                handleOthersItemChange(
+                                  index,
+                                  "content",
+                                  e.target.value
+                                )
+                              }
                               placeholder="Enter content..."
                               className="min-h-[100px] border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
                             />
@@ -912,18 +929,20 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                             <p className="text-sm text-gray-700 leading-relaxed">
                               {item.content || (
-                                <span className="italic text-gray-500">No content available</span>
+                                <span className="italic text-gray-500">
+                                  No content available
+                                </span>
                               )}
                             </p>
                           </div>
                         )}
-                        
+
                         {index < editedData.others.length - 1 && (
                           <Separator className="my-4" />
                         )}
                       </div>
                     ))}
-                    
+
                     {isEditing && (
                       <div className="pt-4 border-t border-gray-200">
                         <Button
