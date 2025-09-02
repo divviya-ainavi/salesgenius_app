@@ -81,6 +81,10 @@ interface BusinessKnowledgeData {
   assets_detected: string[];
   sources: string[];
   summary_note: string;
+  others?: Array<{
+    title: string;
+    content: string;
+  }>;
 }
 
 interface BusinessKnowledgeModalProps {
@@ -185,6 +189,33 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     setEditedData(newData);
   };
 
+  const handleOthersItemChange = (index: number, field: 'title' | 'content', value: string) => {
+    if (!editedData || !editedData.others) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    newData.others[index][field] = value;
+    setEditedData(newData);
+  };
+
+  const handleAddOthersItem = () => {
+    if (!editedData) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    if (!newData.others) {
+      newData.others = [];
+    }
+    newData.others.push({ title: "", content: "" });
+    setEditedData(newData);
+  };
+
+  const handleRemoveOthersItem = (index: number) => {
+    if (!editedData || !editedData.others) return;
+
+    const newData = JSON.parse(JSON.stringify(editedData));
+    newData.others.splice(index, 1);
+    setEditedData(newData);
+  };
+
   const handleSave = async () => {
     if (!editedData) return;
 
@@ -260,16 +291,16 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               ) : (
                 <div className="flex items-start space-x-3 w-full bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-gray-700 flex-1 leading-relaxed">{item}</p>
+                  <p className="text-sm text-gray-700 flex-1 leading-relaxed">
+                    {item}
+                  </p>
                 </div>
               )}
             </div>
           ))}
         {items?.length === 0 && !isEditing && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-            <p className="text-sm text-gray-500 italic">
-              No items available
-            </p>
+            <p className="text-sm text-gray-500 italic">No items available</p>
           </div>
         )}
       </div>
@@ -307,7 +338,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
       ) : (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <p className="text-sm text-gray-700 leading-relaxed">
-            {value || <span className="italic text-gray-500">Not specified</span>}
+            {value || (
+              <span className="italic text-gray-500">Not specified</span>
+            )}
           </p>
         </div>
       )}
@@ -326,7 +359,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <Building className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Business Knowledge Profile</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Business Knowledge Profile
+                </h2>
                 <p className="text-sm text-gray-600 mt-0.5">
                   Comprehensive business intelligence and insights
                 </p>
@@ -345,44 +380,47 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="core" className="w-full flex flex-col flex-1 min-h-0 mt-4">
+        <Tabs
+          defaultValue="core"
+          className="w-full flex flex-col flex-1 min-h-0 mt-4"
+        >
           <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-gray-50 p-1 rounded-xl border border-gray-200">
-            <TabsTrigger 
-              value="core" 
+            <TabsTrigger
+              value="core"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <Target className="w-4 h-4 mr-1.5" />
               Core Business
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="dynamic"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <TrendingUp className="w-4 h-4 mr-1.5" />
               Market Dynamics
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="offer"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <DollarSign className="w-4 h-4 mr-1.5" />
               Value Offer
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="objections"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <AlertCircle className="w-4 h-4 mr-1.5" />
               Objections
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="icp"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <Users className="w-4 h-4 mr-1.5" />
               Target Customers
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="methodology"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
@@ -397,10 +435,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg border-b border-blue-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-blue-500 rounded-lg flex items-center justify-center">
                       <Target className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Core Business Elements</span>
+                    <span className="text-gray-800 text-lg">
+                      Core Business Elements
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -447,10 +487,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg border-b border-green-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-green-500 rounded-lg flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Competitive Advantages</span>
+                    <span className="text-gray-800 text-lg">
+                      Competitive Advantages
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -466,17 +508,20 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-t-lg border-b border-purple-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-purple-500 rounded-lg flex items-center justify-center">
                       <Building className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Products & Services Portfolio</span>
+                    <span className="text-gray-800 text-lg">
+                      Products & Services Portfolio
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   {renderArrayField(
                     "Products/Services",
                     "static_supply_elements.productsServicesPortfolio",
-                    editedData.static_supply_elements?.productsServicesPortfolio,
+                    editedData.static_supply_elements
+                      ?.productsServicesPortfolio,
                     "Enter product or service..."
                   )}
                 </CardContent>
@@ -488,10 +533,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-lg border-b border-orange-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-orange-500 rounded-lg flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Market Dynamics</span>
+                    <span className="text-gray-800 text-lg">
+                      Market Dynamics
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -516,7 +563,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Active Promotions & Campaigns",
                     "dynamic_supply_elements.activePromotionsCampaigns",
-                    editedData.dynamic_supply_elements.activePromotionsCampaigns,
+                    editedData.dynamic_supply_elements
+                      .activePromotionsCampaigns,
                     "Enter promotion or campaign..."
                   )}
 
@@ -538,10 +586,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-lg border-b border-emerald-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-emerald-500 rounded-lg flex items-center justify-center">
                       <DollarSign className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Value Offer Definition</span>
+                    <span className="text-gray-800 text-lg">
+                      Value Offer Definition
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -578,10 +628,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-t-lg border-b border-yellow-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-yellow-500 rounded-lg flex items-center justify-center">
                       <Lightbulb className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Reframe Narratives</span>
+                    <span className="text-gray-800 text-lg">
+                      Reframe Narratives
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -621,10 +673,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-red-50 to-rose-50 rounded-t-lg border-b border-red-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-red-500 rounded-lg flex items-center justify-center">
                       <AlertCircle className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Pricing & Objections</span>
+                    <span className="text-gray-800 text-lg">
+                      Pricing & Objections
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -662,10 +716,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-t-lg border-b border-cyan-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-cyan-500 rounded-lg flex items-center justify-center">
                       <Users className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Ideal Customer Profile</span>
+                    <span className="text-gray-800 text-lg">
+                      Ideal Customer Profile
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -714,10 +770,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg border-b border-indigo-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-indigo-500 rounded-lg flex items-center justify-center">
                       <MessageSquare className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Sales Methodology</span>
+                    <span className="text-gray-800 text-lg">
+                      Sales Methodology
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -764,10 +822,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                 <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-t-lg border-b border-slate-100">
                   <CardTitle className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-slate-500 rounded-lg flex items-center justify-center">
+                    <div className="w-5 h-5 bg-slate-500 rounded-lg flex items-center justify-center">
                       <Building className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-gray-800">Assets & Sources</span>
+                    <span className="text-gray-800 text-lg">
+                      Assets & Sources
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
@@ -798,6 +858,89 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Others Data Section */}
+              {editedData.others && editedData.others.length > 0 && (
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+                  <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-t-lg border-b border-teal-100">
+                    <CardTitle className="flex items-center space-x-3">
+                      <div className="w-5 h-5 bg-teal-500 rounded-lg flex items-center justify-center">
+                        <Lightbulb className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-gray-800 text-lg">
+                        Additional Insights
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6 p-6">
+                    {editedData.others.map((item, index) => (
+                      <div key={index} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+                            <span>{item.title}</span>
+                          </Label>
+                          {isEditing && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveOthersItem(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {isEditing ? (
+                          <div className="space-y-3">
+                            <Input
+                              value={item.title}
+                              onChange={(e) => handleOthersItemChange(index, 'title', e.target.value)}
+                              placeholder="Enter title..."
+                              className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
+                            />
+                            <Textarea
+                              value={item.content}
+                              onChange={(e) => handleOthersItemChange(index, 'content', e.target.value)}
+                              placeholder="Enter content..."
+                              className="min-h-[100px] border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {item.content || (
+                                <span className="italic text-gray-500">No content available</span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {index < editedData.others.length - 1 && (
+                          <Separator className="my-4" />
+                        )}
+                      </div>
+                    ))}
+                    
+                    {isEditing && (
+                      <div className="pt-4 border-t border-gray-200">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddOthersItem}
+                          className="text-teal-600 border-teal-200 hover:bg-teal-50"
+                        >
+                          <Plus className="w-3 h-3 mr-1.5" />
+                          Add Additional Insight
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </div>
         </Tabs>
@@ -816,8 +959,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <X className="w-4 h-4 mr-1" />
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={isSaving}
               className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
             >
