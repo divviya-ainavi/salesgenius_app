@@ -71,7 +71,6 @@ import {
   Clock,
   Target,
   AlertTriangle,
-  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -661,6 +660,15 @@ export const Settings = () => {
       console.log("📋 Others data extracted:", othersData);
 
       if (!result.success && !result.valid) {
+        throw new Error("Invalid Fireflies token");
+      }
+
+      // Encrypt the token before saving
+      const encryptedToken = CryptoJS.AES.encrypt(
+        firefliesToken.trim(),
+        "SG"
+      ).toString();
+
       const savedData = await dbHelpers.saveBusinessKnowledgeWithOthers(
         user.organization_id,
         user.id,
@@ -3381,39 +3389,6 @@ export const Settings = () => {
                                             knowledge.updated_at
                                           ).toLocaleDateString()}
                                         </span>
-                                      </div>
-                                      <div className="space-y-3">
-                                        <div className="flex items-center space-x-2">
-                                          <Target className="w-4 h-4 text-emerald-600" />
-                                          <span className="text-sm">
-                                            <span className="font-medium text-gray-700">Core Offering:</span>
-                                            <span className="text-gray-600 ml-1">
-                                              {knowledge.static_supply_elements?.coreBusinessOffering?.substring(0, 80) || "Not specified"}
-                                              {knowledge.static_supply_elements?.coreBusinessOffering?.length > 80 && "..."}
-                                            </span>
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                          <Users className="w-4 h-4 text-blue-600" />
-                                          <span className="text-sm">
-                                            <span className="font-medium text-gray-700">Target Customer:</span>
-                                            <span className="text-gray-600 ml-1">
-                                              {knowledge.icp?.championPersona?.substring(0, 80) || "Not specified"}
-                                              {knowledge.icp?.championPersona?.length > 80 && "..."}
-                                            </span>
-                                          </span>
-                                        </div>
-                                        {knowledge.others && knowledge.others.length > 0 && (
-                                          <div className="flex items-center space-x-2">
-                                            <Lightbulb className="w-4 h-4 text-teal-600" />
-                                            <span className="text-sm">
-                                              <span className="font-medium text-gray-700">Additional Insights:</span>
-                                              <span className="text-gray-600 ml-1">
-                                                {knowledge.others.length} insight{knowledge.others.length !== 1 ? 's' : ''} available
-                                              </span>
-                                            </span>
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </div>
