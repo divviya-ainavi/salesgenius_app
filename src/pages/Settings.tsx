@@ -3830,16 +3830,20 @@ export const Settings = () => {
                     className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex items-start space-x-3 flex-1">
+                        <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-sm truncate">
-                            {file.original_filename}
+                            {file.original_filename || file.filename}
                           </h4>
-                          <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {file.description || "No description available"}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-2">
                             <span>
-                              {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                              Size: {(file.file_size / 1024).toFixed(1)} KB
                             </span>
+                            <span>Type: {file.content_type}</span>
                             <span>
                               Uploaded:{" "}
                               {new Date(file.created_at).toLocaleDateString()}
@@ -3852,10 +3856,10 @@ export const Settings = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewFile(file)}
-                          className="text-xs"
+                          disabled={!file.file_url}
                         >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          View
+                          <Eye className="w-4 h-4 mr-1" />
+                          View File
                         </Button>
                       </div>
                     </div>

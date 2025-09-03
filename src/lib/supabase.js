@@ -1131,6 +1131,58 @@ export const dbHelpers = {
           file_url: urlData.publicUrl,
           storage_path: uploadData.path,
           organization_id: orgId,
+          type: "org"
+          // is_processed: false,
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error saving uploaded file:', error)
+      throw error
+    }
+  },
+
+  async savePersonalUploadedFile(userId, file, orgId) {
+    try {
+      // First, upload file to Supabase Storage
+      const timestamp = Date.now()
+      const fileExtension = file.name.split('.').pop()
+      const uniqueFileName = `${userId}/${timestamp}_${file.name}`
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('personal_knowledge')
+        .upload(uniqueFileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('personal_knowledge')
+        .getPublicUrl(uniqueFileName)
+
+      // Save file metadata to database
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .insert([{
+          uploaded_by: userId,
+          filename: uniqueFileName,
+          original_filename: file.name,
+          // file_type: file.type,
+          file_size: file.size,
+          content_type: file.type,
+          // file_content: content,
+          file_url: urlData.publicUrl,
+          storage_path: uploadData.path,
+          organization_id: orgId,
+          type: "personal"
           // is_processed: false,
         }])
         .select()
