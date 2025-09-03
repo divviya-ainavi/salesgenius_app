@@ -16,6 +16,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Building,
   Target,
   TrendingUp,
@@ -389,50 +395,110 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           defaultValue="core"
           className="w-full flex flex-col flex-1 min-h-0 mt-4"
         >
-          <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-gray-50 p-1 rounded-xl border border-gray-200">
-            <TabsTrigger
-              value="core"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <Target className="w-4 h-4 mr-1.5" />
-              Core Business
-            </TabsTrigger>
-            <TabsTrigger
-              value="dynamic"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <TrendingUp className="w-4 h-4 mr-1.5" />
-              Dynamic Supply
-            </TabsTrigger>
-            <TabsTrigger
-              value="offer"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <DollarSign className="w-4 h-4 mr-1.5" />
-              Offer Definition
-            </TabsTrigger>
-            <TabsTrigger
-              value="objections"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <AlertCircle className="w-4 h-4 mr-1.5" />
-              Customer Fit Intelligence
-            </TabsTrigger>
-            <TabsTrigger
-              value="icp"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <Users className="w-4 h-4 mr-1.5" />
-              Ideal Customer Profile
-            </TabsTrigger>
-            <TabsTrigger
-              value="methodology"
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
-            >
-              <MessageSquare className="w-4 h-4 mr-1.5" />
-              Sales Methodology
-            </TabsTrigger>
-          </TabsList>
+          <TooltipProvider>
+            <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-gray-50 p-1 rounded-xl border border-gray-200">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="core"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <Target className="w-4 h-4 mr-1.5" />
+                    Core Business
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Comprehensive business intelligence and insights</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="dynamic"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <TrendingUp className="w-4 h-4 mr-1.5" />
+                    Market Dynamics
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Dynamic Supply</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="offer"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <DollarSign className="w-4 h-4 mr-1.5" />
+                    Value Offer
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="space-y-1">
+                    <p><strong>Pain & Problem</strong> - Pain & Problem that you address</p>
+                    <p><strong>Proof & differentiator</strong> - Your differentiation</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="objections"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <AlertCircle className="w-4 h-4 mr-1.5" />
+                    Objections
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="space-y-1">
+                    <p><strong>Prize Criteria</strong> - Customer fit signals (tooltip: Focuses on the necessary ingredients for a mutual victory, not just qualification.)</p>
+                    <p><strong>Low status trigger</strong> - phrases that diminish (Names the sales person's tactic, coaching reps to avoid being commoditized)</p>
+                    <p><strong>Common prospect assumptions</strong> - Unspoken assumptions (Frames unstated beliefs as active obstacles to be proactively uncovered and addressed.)</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="icp"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <Users className="w-4 h-4 mr-1.5" />
+                    Target Customers
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Ideal Customer Profile</p>
+                  <p>This tab should be before the objections tab</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="methodology"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-1.5" />
+                    Sales Process
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="space-y-1">
+                    <p><strong>Key Qualification Information</strong> - Deal Progression Playbook (tooltip: what must be accomplished to move the deal through the different stages)</p>
+                    <p><strong>Remove Go-to closing technique</strong> - it should be "information" and not "information"</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TabsList>
+          </TooltipProvider>
 
           <div className="flex-1 overflow-y-auto mt-4 pr-2">
             {/* Core Business Tab */}
