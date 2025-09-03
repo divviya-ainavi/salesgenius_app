@@ -71,6 +71,7 @@ import {
   Clock,
   Target,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -310,6 +311,11 @@ export const Settings = () => {
   ] = useState(null);
   const [loadingProcessedFiles, setLoadingProcessedFiles] = useState(false);
 
+  // Add state for personal insights
+  const [personalInsightsFiles, setPersonalInsightsFiles] = useState([]);
+  const [isGeneratingPersonalInsights, setIsGeneratingPersonalInsights] = useState(false);
+  const [isUploadingPersonalFiles, setIsUploadingPersonalFiles] = useState(false);
+
   const handleViewProcessedFiles = async (knowledgeData) => {
     try {
       if (
@@ -377,6 +383,152 @@ export const Settings = () => {
       console.error("Error saving business knowledge:", error);
       toast.error("Failed to save business knowledge");
       throw error;
+    }
+  };
+
+  // Add personal insights file upload handler
+  const handlePersonalInsightsFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    // Validate file types
+    const invalidFiles = files.filter(file => 
+      !['application/pdf', 'text/plain'].includes(file.type)
+    );
+
+    if (invalidFiles.length > 0) {
+      toast.error(`Invalid file types detected. Only PDF and TXT files are supported.`);
+      return;
+    }
+
+    setIsUploadingPersonalFiles(true);
+    const uploadedFiles = [];
+
+    try {
+      for (const file of files) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const uniqueFileName = `${user.id}/${timestamp}_${file.name}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('personal-insights')
+          .upload(uniqueFileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}: ${uploadError.message}`);
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('personal-insights')
+          .getPublicUrl(uniqueFileName);
+
+        // Save file metadata to database
+        const { data: fileData, error: dbError } = await supabase
+          .from('business_knowledge_files')
+          .insert([{
+            organization_id: user.organization_id,
+            uploaded_by: user.id,
+            filename: uniqueFileName,
+            original_filename: file.name,
+            file_size: file.size,
+            content_type: file.type,
+            storage_path: uploadData.path,
+            file_url: urlData.publicUrl,
+            description: 'Personal insights file'
+          }])
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+          toast.error(`Failed to save ${file.name} metadata: ${dbError.message}`);
+          continue;
+        }
+
+        uploadedFiles.push(fileData);
+      }
+
+      if (uploadedFiles.length > 0) {
+        setPersonalInsightsFiles(prev => [...prev, ...uploadedFiles]);
+        toast.success(`Successfully uploaded ${uploadedFiles.length} file(s)`);
+      }
+
+    } catch (error) {
+      console.error('Error uploading personal insights files:', error);
+      toast.error('Failed to upload files');
+    } finally {
+      setIsUploadingPersonalFiles(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  };
+
+  const handleDeletePersonalFile = async (fileId) => {
+    try {
+      // Find the file to get storage path
+      const fileToDelete = personalInsightsFiles.find(f => f.id === fileId);
+      if (!fileToDelete) return;
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('personal-insights')
+        .remove([fileToDelete.storage_path]);
+
+      if (storageError) {
+        console.error('Storage deletion error:', storageError);
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('business_knowledge_files')
+        .delete()
+        .eq('id', fileId);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      // Update local state
+      setPersonalInsightsFiles(prev => prev.filter(f => f.id !== fileId));
+      toast.success('File deleted successfully');
+
+    } catch (error) {
+      console.error('Error deleting personal file:', error);
+      toast.error('Failed to delete file');
+    }
+  };
+
+  const handleGeneratePersonalInsights = async () => {
+    if (personalInsightsFiles.length === 0) {
+      toast.error('Please upload files first');
+      return;
+    }
+
+    setIsGeneratingPersonalInsights(true);
+    try {
+      // TODO: Call your personal insights API here
+      // const response = await api.post('/personal-insights', {
+      //   files: personalInsightsFiles.map(f => f.file_url)
+      // });
+      
+      // For now, simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast.success('Personal insights generated successfully!');
+      // TODO: Show insights modal with results
+      
+    } catch (error) {
+      console.error('Error generating personal insights:', error);
+      toast.error('Failed to generate personal insights');
+    } finally {
+      setIsGeneratingPersonalInsights(false);
     }
   };
 
@@ -566,6 +718,34 @@ export const Settings = () => {
     checkFirefliesStatus();
     getInternalUploadedFiles();
   }, []);
+
+  // Load personal insights files on component mount
+  useEffect(() => {
+    const loadPersonalInsightsFiles = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('business_knowledge_files')
+          .select('*')
+          .eq('uploaded_by', user.id)
+          .eq('description', 'Personal insights file')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading personal insights files:', error);
+          return;
+        }
+
+        setPersonalInsightsFiles(data || []);
+      } catch (error) {
+        console.error('Error loading personal insights files:', error);
+      }
+    };
+
+    loadPersonalInsightsFiles();
+  }, [user?.id]);
 
   const handleViewBusinessKnowledge = (knowledgeData) => {
     console.log(knowledgeData, "check knowledge data 505");
@@ -2080,6 +2260,128 @@ export const Settings = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Personal Insights Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="w-5 h-5" />
+                  <span>Personal Insights</span>
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-100 text-purple-800 border-purple-200"
+                  >
+                    Personal Level
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Personal Insights</h3>
+                    <Button
+                      onClick={() => document.getElementById('personal-insights-upload').click()}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Files
+                    </Button>
+                  </div>
+                  
+                  {/* Hidden file input for multiple files */}
+                  <input
+                    id="personal-insights-upload"
+                    type="file"
+                    multiple
+                    accept=".pdf,.txt"
+                    onChange={handlePersonalInsightsFileUpload}
+                    className="hidden"
+                  />
+
+                  <div className="grid gap-4">
+                    {personalInsightsFiles.length === 0 ? (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-600 mb-2">No personal files uploaded yet</p>
+                        <p className="text-sm text-gray-500">
+                          Upload multiple PDF or TXT files containing your sales transcripts, notes, or performance data
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Supported formats: PDF, TXT
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {personalInsightsFiles.map((file) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="flex items-center space-x-3">
+                              {file.content_type === 'application/pdf' ? (
+                                <FileText className="w-5 h-5 text-red-600" />
+                              ) : (
+                                <FileText className="w-5 h-5 text-blue-600" />
+                              )}
+                              <div>
+                                <p className="font-medium">{file.original_filename}</p>
+                                <p className="text-sm text-gray-500">
+                                  {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'} • 
+                                  {(file.file_size / 1024 / 1024).toFixed(2)} MB • 
+                                  Uploaded {new Date(file.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                variant="outline" 
+                                className={file.content_type === 'application/pdf' ? 
+                                  'text-red-600 border-red-200' : 
+                                  'text-blue-600 border-blue-200'
+                                }
+                              >
+                                {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePersonalFile(file.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Generate Insights Button */}
+                  {personalInsightsFiles.length > 0 && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        onClick={handleGeneratePersonalInsights}
+                        disabled={isGeneratingPersonalInsights}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      >
+                        {isGeneratingPersonalInsights ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating Personal Insights...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate Personal Insights ({personalInsightsFiles.length} files)
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -3830,14 +4132,14 @@ export const Settings = () => {
                     className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <FileText className="w-5 h-5 text-muted-foreground" />
+                      <div className="flex items-start space-x-3 flex-1">
+                        <FileText className="w-5 h-5 text-primary mt-1" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
+                          <h4 className="font-medium text-sm mb-1">
                             {file.original_filename}
-                          </p>
+                          </h4>
                           <p className="text-xs text-muted-foreground">
-                            {formatFileSize(file.file_size)} •{" "}
+                            Size: {formatFileSize(file.file_size)} • Uploaded:{" "}
                             {formatDate(file.created_at)}
                           </p>
                         </div>
