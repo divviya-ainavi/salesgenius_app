@@ -3187,7 +3187,7 @@ export const Settings = () => {
                       />
                       <label
                         htmlFor="general-upload"
-                          Upload your personal sales files to generate insights about your selling style and approach.
+                        className="cursor-pointer"
                       >
                         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium">
@@ -3197,10 +3197,15 @@ export const Settings = () => {
                           PDF, TXT(Max 10MB)
                         </p>
                       </label>
-                        Upload Files
+                    </div>
 
                     <div className="space-y-2">
                       {trainingMaterials.general.map((material) => (
+                        <div
+                          key={material.id}
+                          className="flex items-center justify-between p-3 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
                             <FileText className="w-5 h-5 text-muted-foreground" />
                             <div>
                               <p className="text-sm font-medium">
@@ -3825,47 +3830,28 @@ export const Settings = () => {
                     className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                    {/* Multiple Files Display */}
-                    {personalInsightsFiles.length === 0 ? (
-                      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                        <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-600 mb-2">No personal files uploaded yet</p>
-                        <p className="text-sm text-gray-500">
-                          Upload your sales transcripts, notes, or performance data (PDF, TXT)
-                        </p>
+                      <div className="flex items-center space-x-3 flex-1">
+                        <FileText className="w-5 h-5 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {file.original_filename}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(file.file_size)} •{" "}
+                            {formatDate(file.created_at)}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
-                      <div className="space-y-3">
-                        {personalInsightsFiles.map((file) => (
-                          <div
-                            key={file.id}
-                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <FileText className="w-5 h-5 text-purple-600" />
-                    {/* Generate Personal Insights Button */}
-                    {personalInsightsFiles.length > 0 && (
-                                <p className="text-sm text-gray-500">
-                                  {(file.file_size / 1024 / 1024).toFixed(2)} MB • 
-                                  Uploaded {new Date(file.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeletePersonalFile(file.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                          onClick={() => handleViewFile(file)}
+                          className="text-xs"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
                       </div>
                     </div>
                   </div>
