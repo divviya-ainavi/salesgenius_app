@@ -3470,109 +3470,58 @@ export const Settings = () => {
                       <div className="flex items-center space-x-3 mb-2">
                         <Upload className="w-5 h-5 text-blue-600" />
                         <span className="font-medium text-blue-800">
-                          {isUploadingPersonalFiles ? (
-                            <>
-                              <Loader2 className="w-12 h-12 mx-auto mb-4 text-purple-600 animate-spin" />
-                              <p className="text-purple-600 mb-2 font-medium">Uploading files...</p>
-                              <p className="text-sm text-purple-500">Please wait while we process your files</p>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                              <p className="text-gray-600 mb-2">Drop files here or click to upload</p>
-                              <p className="text-sm text-gray-500">
-                                Upload multiple PDF or TXT files containing your sales transcripts, notes, or performance data
-                              </p>
-                              <p className="text-xs text-gray-400 mt-2">
-                                Supported formats: PDF, TXT • Multiple files supported
-                              </p>
-                            </>
-                          )}
+                          Uploading business material...
+                        </span>
+                      </div>
+                      <Progress
+                        value={businessUploadProgress}
+                        className="w-full"
+                      />
+                      <p className="text-sm text-blue-700 mt-2">
                         {businessUploadProgress < 50
                           ? "Uploading file..."
-                        <>
-                          {/* Upload Area for Additional Files */}
-                          <div 
-                            className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
-                            onClick={() => document.getElementById('personal-insights-upload').click()}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.classList.add('border-purple-400', 'bg-purple-50');
-                            }}
-                            onDragLeave={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('border-purple-400', 'bg-purple-50');
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('border-purple-400', 'bg-purple-50');
-                              const files = Array.from(e.dataTransfer.files);
-                              if (files.length > 0) {
-                                const input = document.getElementById('personal-insights-upload');
-                                const dt = new DataTransfer();
-                                files.forEach(file => dt.items.add(file));
-                                input.files = dt.files;
-                                handlePersonalInsightsFileUpload({ target: { files: dt.files, value: '' } });
-                              }
-                            }}
-                          >
-                            {isUploadingPersonalFiles ? (
-                              <>
-                                <Loader2 className="w-8 h-8 mx-auto mb-2 text-purple-600 animate-spin" />
-                                <p className="text-sm text-purple-600 font-medium">Uploading additional files...</p>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                <p className="text-sm text-gray-600">Add more files (PDF, TXT)</p>
-                              </>
-                            )}
-                          </div>
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
 
-                          {/* Existing Files List */}
-                          <div className="space-y-3">
-                            {personalInsightsFiles.map((file) => (
-                              <div
-                                key={file.id}
-                                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                              >
-                                <div className="flex items-center space-x-3">
-                                  {file.content_type === 'application/pdf' ? (
-                                    <FileText className="w-5 h-5 text-red-600" />
-                                  ) : (
-                                    <FileText className="w-5 h-5 text-blue-600" />
-                                  )}
-                                  <div>
-                                    <p className="font-medium">{file.original_filename}</p>
-                                    <p className="text-sm text-gray-500">
-                                      {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'} • 
-                                      {(file.file_size / 1024 / 1024).toFixed(2)} MB • 
-                                      Uploaded {new Date(file.created_at).toLocaleDateString()}
-                                    </p>
-                                  </div>
+                  <div className="space-y-4">
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
                       {isUploadingBusiness ? (
-                                <div className="flex items-center space-x-2">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={file.content_type === 'application/pdf' ? 
-                                      'text-red-600 border-red-200' : 
-                                      'text-blue-600 border-blue-200'
-                                    }
-                                  >
-                                    {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'}
-                                  </Badge>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeletePersonalFile(file.id)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Materials"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop multiple files here"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, TXT (Max 10MB each, multiple files supported)
+                          </p>
                         </>
                       )}
                     </div>
@@ -3787,7 +3736,29 @@ export const Settings = () => {
                 </p>
               </CardHeader>
               <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">Personal Insights</h3>
+                    <Button
+                      onClick={() => {
+                        const input = document.getElementById('personal-insights-upload');
+                        if (input) input.click();
+                      }}
+                      disabled={isUploadingPersonalFiles}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      {isUploadingPersonalFiles ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Files
+                        </>
+                      )}
+                    </Button>
                   </div>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <input
@@ -3798,30 +3769,7 @@ export const Settings = () => {
                         e.target.files?.[0] &&
                         handleFileUpload(e.target.files[0], "personal")
                       }
-                        <div 
-                          className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
-                          onClick={() => document.getElementById('personal-insights-upload').click()}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.add('border-purple-400', 'bg-purple-50');
-                          }}
-                          onDragLeave={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-purple-400', 'bg-purple-50');
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-purple-400', 'bg-purple-50');
-                            const files = Array.from(e.dataTransfer.files);
-                            if (files.length > 0) {
-                              const input = document.getElementById('personal-insights-upload');
-                              const dt = new DataTransfer();
-                              files.forEach(file => dt.items.add(file));
-                              input.files = dt.files;
-                              handlePersonalInsightsFileUpload({ target: { files: dt.files, value: '' } });
-                            }
-                          }}
-                        >
+                      accept=".pdf,.txt"
                     />
                     <label htmlFor="personal-upload" className="cursor-pointer">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
