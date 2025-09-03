@@ -2524,4 +2524,17 @@ export const Settings = () => {
                   <CardTitle className="flex items-center space-x-2">
                     <Zap className="w-5 h-5" />
                     <span>Hubspot</span>
-                    {
+                    {hubspotIntegration?.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
