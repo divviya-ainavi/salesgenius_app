@@ -103,8 +103,6 @@ import {
 } from "@/components/ui/dialog";
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
-import { PersonalInsightsUploadModal } from "@/components/personal/PersonalInsightsUploadModal";
-import { PersonalInsightsModal } from "@/components/personal/PersonalInsightsModal";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -1949,6 +1947,136 @@ export const Settings = () => {
                     <>Save Changes</>
                   )}
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Personal Insights Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="w-5 h-5" />
+                  <span>Personal Insights</span>
+                </CardTitle>
+                <CardDescription>
+                  Upload files to generate personalized sales insights and coaching recommendations
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Sales Performance Data</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Upload call recordings, performance reviews, or coaching notes
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setShowPersonalInsightsUpload(true)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Files
+                    </Button>
+                  </div>
+
+                  {/* Personal Insights Files Display */}
+                  {personalInsightsFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium">Uploaded Files:</h5>
+                      <div className="grid gap-2">
+                        {personalInsightsFiles.map((file) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {file.original_filename}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(file.created_at).toLocaleDateString()} •{" "}
+                                  {(file.file_size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePersonalInsightsFile(file.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Personal Insights Status */}
+                  {personalInsightsData && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium">
+                            Personal insights generated
+                          </span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => setShowPersonalInsightsModal(true)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Insights
+                          </Button>
+                          <Button
+                            onClick={handleRegeneratePersonalInsights}
+                            variant="outline"
+                            size="sm"
+                            disabled={isRegeneratingPersonalInsights}
+                          >
+                            {isRegeneratingPersonalInsights ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            Regenerate
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Last updated:{" "}
+                        {new Date(personalInsightsData.updated_at).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+
+                  {personalInsightsFiles.length > 0 && !personalInsightsData && (
+                    <Button
+                      onClick={handleGeneratePersonalInsights}
+                      disabled={isGeneratingPersonalInsights}
+                      className="w-full"
+                    >
+                      {isGeneratingPersonalInsights ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating Personal Insights...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate Personal Insights
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -3888,6 +4016,22 @@ export const Settings = () => {
         onClose={() => setShowBusinessKnowledgeModal(false)}
         data={businessKnowledgeData}
         onSave={handleUpdateBusinessKnowledge}
+      />
+
+      {/* Personal Insights Upload Modal */}
+      <PersonalInsightsUploadModal
+        isOpen={showPersonalInsightsUpload}
+        onClose={() => setShowPersonalInsightsUpload(false)}
+        onFilesUploaded={handlePersonalInsightsFilesUploaded}
+      />
+
+      {/* Personal Insights Display Modal */}
+      <PersonalInsightsModal
+        isOpen={showPersonalInsightsModal}
+        onClose={() => setShowPersonalInsightsModal(false)}
+        personalInsights={personalInsightsData}
+        onSave={handleSavePersonalInsights}
+        isLoading={isSavingPersonalInsights}
       />
 
       {/* Delete Confirmation Dialog */}
