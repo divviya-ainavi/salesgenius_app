@@ -1591,7 +1591,7 @@ export const Settings = () => {
             <Shield className="w-4 h-4" />
             <span>Security</span>
           </TabsTrigger>
-          {userRoleId == 2 && (
+          {userRoleId !== 1 && (
             <TabsTrigger
               value="ai-training"
               className="flex items-center space-x-2"
@@ -3254,9 +3254,9 @@ export const Settings = () => {
                 </CardContent>
               </Card>
             )}
-
+            {/* {console.log(userRoleId, "check user role id")} */}
             {/* Business-Specific Knowledge */}
-            {canUploadOrgMaterials && (
+            {canUploadOrgMaterials && userRoleId == 2 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">

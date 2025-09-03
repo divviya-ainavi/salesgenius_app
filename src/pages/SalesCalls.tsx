@@ -441,6 +441,85 @@ export const SalesCalls = () => {
       "check selectedCompanyResearch in formatResearchData"
     );
     try {
+      const newFormattedText = `
+  Company: ${selectedCompanyResearch?.company_name || ""}
+  Executive Summary
+  ${selectedCompanyResearch?.executive_summary?.overview || ""}
+   AHA Insights
+  ${
+    selectedCompanyResearch?.executive_summary?.ahaInsights
+      ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
+      .join("\n") || "None listed"
+  }
+  COMPANY DEEPDIVE
+  • Sector: ${selectedCompanyResearch?.sector || ""}
+  • Nature of Business: ${selectedCompanyResearch?.natureOfBusiness || ""}
+  • Geographic Scope: ${selectedCompanyResearch?.geographicScope || ""}
+  • Financial Health: ${
+    selectedCompanyResearch.company_analysis_details?.financialHealth || ""
+  }
+
+  STRATEGIC INITIATIVES
+  ${
+    selectedCompanyResearch?.company_analysis_details?.strategicInitiatives
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  KEY BUSINESS CHALLENGES & VULNERABILITIES
+  ${
+    selectedCompanyResearch?.company_analysis_details?.keyBusinessChallenges
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  
+  COMPETITIVE POSITIONING
+  ${selectedCompanyResearch?.company_analysis_details?.competitivePositioning}
+
+  COMPETITIVE ANALYSIS
+  ${
+    selectedCompanyResearch?.company_analysis_details?.competitiveAnalysis
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  MARKET ANALYSIS & GROWTH OPPORTUNITIES
+  Total Addressable Market (TAM/SAM) Trends
+  ${selectedCompanyResearch?.market_analysis?.tam_sam_trends || ""}
+  Macroeconomic Forces
+  ${
+    selectedCompanyResearch?.market_analysis?.macroeconomicForces
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Growth Opportunities
+  ${
+    selectedCompanyResearch?.market_analysis?.growthOpportunities
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Threats & Disruptive Trends
+  ${
+    selectedCompanyResearch?.market_analysis?.threatsAndDisruptions
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  DEMAND SIDE: PROSPECT NEED's
+  Static Demand Elements
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Dynamic Demand Elements
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+      `.trim();
       // Format the research result as readable text
       const formattedText = `
   Company: ${selectedCompanyResearch.company_name || ""}
@@ -467,7 +546,7 @@ export const SalesCalls = () => {
   SUMMARY NOTE
   ${selectedCompanyResearch?.summary_note || ""}
           `.trim();
-      return formattedText;
+      return selectedCompanyResearch?.is_new ? newFormattedText : formattedText;
     } catch (error) {
       toast.error("Failed to pass research data");
     }
