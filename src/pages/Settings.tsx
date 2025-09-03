@@ -3523,121 +3523,99 @@ export const Settings = () => {
 
             {/* Personal Insights */}
 
+            {/* Personal Insights Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-5 h-5" />
-                    <span>Personal Insights</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-green-100 text-green-800 border-green-200"
-                    >
-                      Personal Level
-                    </Badge>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-50 text-orange-700 border-orange-200"
-                  >
-                    Coming Soon for Your Organization
-                  </Badge>
-                </CardTitle>
-                {/* <CardTitle className="flex items-center space-x-2">
+                <CardTitle className="flex items-center space-x-2">
                   <User className="w-5 h-5" />
                   <span>Personal Insights</span>
-                  <Badge
-                    variant="outline"
-                    className="bg-green-100 text-green-800 border-green-200"
-                  >
-                    Personal Level
-                  </Badge>
-                </CardTitle> */}
-                <p className="text-sm text-muted-foreground">
-                  Your personal sales knowledge, experiences, and preferred
-                  approaches
-                </p>
+                </CardTitle>
+                <CardDescription>
+                  Upload your personal sales files to generate AI-driven insights about your selling style and approach.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                {/* File Upload Area */}
                 <div className="space-y-4">
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                    <input
-                      type="file"
-                      id="personal-upload"
-                      className="hidden"
-                      onChange={(e) =>
-                        e.target.files?.[0] &&
-                        handleFileUpload(e.target.files[0], "personal")
-                      }
-                      accept=".pdf,.txt"
-                    />
-                    <label htmlFor="personal-upload" className="cursor-pointer">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm font-medium">
-                        Upload Personal Material
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF, TXT(Max 10MB)
-                      </p>
-                    </label>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Upload Personal Files</h3>
+                    <Button
+                      onClick={() => setShowPersonalInsightsUpload(true)}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Files
+                    </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    {trainingMaterials.personal.map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <FileText className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {material.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {material.size} • {material.uploadedAt}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant={
-                              material.status === "processed"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {material.status === "processed" ? (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Processed
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                                Processing
-                              </>
-                            )}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleDeleteMaterial(material.id, "personal")
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                  <div className="grid gap-4">
+                    {personalInsightsFiles.length === 0 ? (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-600 mb-2">No personal files uploaded yet</p>
+                        <p className="text-sm text-gray-500">
+                          Upload your sales transcripts, notes, or performance data to generate personal insights
+                        </p>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="space-y-3">
+                        {personalInsightsFiles.map((file) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-purple-600" />
+                              <div>
+                                <p className="font-medium">{file.original_filename}</p>
+                                <p className="text-sm text-gray-500">
+                                  {(file.file_size / 1024 / 1024).toFixed(2)} MB • 
+                                  Uploaded {new Date(file.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePersonalFile(file.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Generate Insights Button */}
+                  {personalInsightsFiles.length > 0 && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        onClick={handleGeneratePersonalInsights}
+                        disabled={isGeneratingPersonalInsights}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      >
+                        {isGeneratingPersonalInsights ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating Personal Insights...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate Personal Insights
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
         {/* Analytics Access */}
         <TabsContent value="analytics" className="mt-6">
