@@ -332,175 +332,141 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
       {isEditing ? (
         multiline ? (
           <Textarea
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
-        ) : (
-          <Input
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
-        )
-      ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {value || (
-              <span className="italic text-gray-500">Not specified</span>
-            )}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-
-  if (!editedData) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Building className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Your Organization's Value Proposition{" "}
-                  <Badge
-                    variant="outline"
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 px-3 py-1.5 font-medium"
-                  >
-                    {editedData.organization_name}
-                  </Badge>
-                </h2>
-
-                {/* <p className="text-sm text-gray-600 mt-0.5">
-                  Comprehensive business intelligence and insights
-                </p> */}
-              </div>
-            </div>
-          </DialogTitle>
-          <DialogDescription className="text-gray-600 mt-2">
-            Review and edit your organization's business knowledge profile
-            extracted from uploaded documents.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs
-          defaultValue="core"
-          className="w-full flex flex-col flex-1 min-h-0 mt-4"
-        >
-          <TooltipProvider>
             <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-muted p-1 rounded-lg">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="core"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <Target className="w-4 h-4 mr-1.5" />
-                    Core Business
-                  </TabsTrigger>
+                  <div>
+                    <TabsTrigger
+                      value="core"
+                      className="w-full"
+                    >
+                      <Target className="w-4 h-4 mr-1.5" />
+                      Core Business
+                    </TabsTrigger>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Target className="w-4 h-4 text-blue-400" />
-                      <span className="font-semibold text-white">
-                        Core Business Elements
-                      </span>
+                      <span className="font-semibold text-white">Core Business Elements</span>
                     </div>
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      Comprehensive business intelligence including core
-                      offering, value proposition, market position, and
-                      competitive advantages.
-                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-blue-400 font-medium">Static Supply Elements:</span>
+                          <p className="text-slate-300">Core products, services, and capabilities that define your business foundation</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-blue-400 font-medium">Brand Voice:</span>
+                          <p className="text-slate-300">Communication style, tone, and messaging guidelines</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Essential business information that rarely changes
+                      </p>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="dynamic"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <TrendingUp className="w-4 h-4 mr-1.5" />
-                    Dynamic Supply
-                  </TabsTrigger>
+                  <div>
+                    <TabsTrigger
+                      value="dynamic"
+                      className="w-full"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1.5" />
+                      Market Dynamics
+                    </TabsTrigger>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <TrendingUp className="w-4 h-4 text-orange-400" />
-                      <span className="font-semibold text-white">
-                        Dynamic Supply
-                      </span>
+                      <span className="font-semibold text-white">Market Dynamics</span>
                     </div>
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      Dynamic supply elements including current adaptations,
-                      market trend responses, active campaigns, and seasonal
-                      adjustments.
-                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-orange-400 font-medium">Dynamic Supply Elements:</span>
+                          <p className="text-slate-300">Market trends, competitive landscape, and evolving business factors</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-orange-400 font-medium">Market Position:</span>
+                          <p className="text-slate-300">Current market standing and competitive advantages</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Market information that changes with business environment
+                      </p>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="offer"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <DollarSign className="w-4 h-4 mr-1.5" />
-                    Offer Definition
-                  </TabsTrigger>
+                  <div>
+                    <TabsTrigger
+                      value="offer"
+                      className="w-full"
+                    >
+                      <DollarSign className="w-4 h-4 mr-1.5" />
+                      Value Offer
+                    </TabsTrigger>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <DollarSign className="w-4 h-4 text-emerald-400" />
-                      <span className="font-semibold text-white">
-                        Offer Definition
-                      </span>
+                      <span className="font-semibold text-white">Value Offer Definition</span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="font-medium text-emerald-300">
-                            Pain & Problem:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Pain & Problem that you address
-                          </span>
+                          <span className="text-emerald-400 font-medium">Offer Definition:</span>
+                          <p className="text-slate-300">Clear articulation of your value proposition and unique selling points</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="font-medium text-emerald-300">
-                            Proof & Differentiator:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Your differentiation
-                          </span>
+                          <span className="text-emerald-400 font-medium">Pricing Strategy:</span>
+                          <p className="text-slate-300">Pricing models, packages, and value-based positioning</p>
                         </div>
                       </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-emerald-400 font-medium">ROI Metrics:</span>
+                          <p className="text-slate-300">Quantifiable benefits and return on investment data</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        What you offer and why customers should choose you
+                      </p>
                     </div>
                   </div>
                 </TooltipContent>
@@ -508,71 +474,50 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="objections"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <AlertCircle className="w-4 h-4 mr-1.5" />
-                    Customer Fit Intelligence
-                  </TabsTrigger>
+                  <div>
+                    <TabsTrigger
+                      value="objections"
+                      className="w-full"
+                    >
+                      <AlertCircle className="w-4 h-4 mr-1.5" />
+                      Objections
+                    </TabsTrigger>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4 text-red-400" />
-                      <span className="font-semibold text-white">
-                        Customer Fit Intelligence
-                      </span>
+                      <span className="font-semibold text-white">Customer Fit Intelligence</span>
                     </div>
-                    <div className="space-y-2.5 text-sm">
+                    <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="font-medium text-red-300">
-                            Prize Criteria:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Customer fit signals
-                          </span>
-                          <p className="text-xs text-slate-400 mt-1 italic">
-                            Focuses on the necessary ingredients for a mutual
-                            victory, not just qualification.
-                          </p>
+                          <span className="text-red-400 font-medium">Pricing Objections:</span>
+                          <p className="text-slate-300">Common price-related concerns and proven responses</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="font-medium text-red-300">
-                            Low Status Trigger:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Phrases that diminish
-                          </span>
-                          <p className="text-xs text-slate-400 mt-1 italic">
-                            Names the sales person's tactic, coaching reps to
-                            avoid being commoditized.
-                          </p>
+                          <span className="text-red-400 font-medium">Feature Objections:</span>
+                          <p className="text-slate-300">Product capability concerns and competitive comparisons</p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="font-medium text-red-300">
-                            Common Prospect Assumptions:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Unspoken assumptions
-                          </span>
-                          <p className="text-xs text-slate-400 mt-1 italic">
-                            Frames unstated beliefs as active obstacles to be
-                            proactively uncovered and addressed.
-                          </p>
+                          <span className="text-red-400 font-medium">Implementation Concerns:</span>
+                          <p className="text-slate-300">Timeline, resource, and integration worries</p>
                         </div>
                       </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Anticipate and address customer concerns proactively
+                      </p>
                     </div>
                   </div>
                 </TooltipContent>
@@ -580,33 +525,100 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="icp"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <Users className="w-4 h-4 mr-1.5" />
-                    Ideal Customer Profile
-                  </TabsTrigger>
+                  <div>
+                    <TabsTrigger
+                      value="icp"
+                      className="w-full"
+                    >
+                      <Users className="w-4 h-4 mr-1.5" />
+                      Target Customers
+                    </TabsTrigger>
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Users className="w-4 h-4 text-cyan-400" />
-                      <span className="font-semibold text-white">
-                        Ideal Customer Profile
-                      </span>
+                      <span className="font-semibold text-white">Target Customer Intelligence</span>
                     </div>
-                    <p className="text-slate-300 text-sm leading-relaxed">
-                      Define your ideal customer personas including champion,
-                      economic buyer, anti-persona, and key metrics.
-                    </p>
-                    <div className="mt-2 pt-2 border-t border-slate-600">
-                      <p className="text-xs text-slate-400 italic">
-                        Note: This tab should be positioned before the
-                        objections tab
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-cyan-400 font-medium">Ideal Customer Profile:</span>
+                          <p className="text-slate-300">Demographics, firmographics, and behavioral characteristics</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-cyan-400 font-medium">Buyer Personas:</span>
+                          <p className="text-slate-300">Decision-maker profiles and influence patterns</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-cyan-400 font-medium">Qualification Criteria:</span>
+                          <p className="text-slate-300">BANT, MEDDIC, or custom qualification frameworks</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Define who benefits most from your solution
+                      </p>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <TabsTrigger
+                      value="methodology"
+                      className="w-full"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-1.5" />
+                      Sales Process
+                    </TabsTrigger>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="w-4 h-4 text-indigo-400" />
+                      <span className="font-semibold text-white">Sales Process & Methodology</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-indigo-400 font-medium">Sales Methodology:</span>
+                          <p className="text-slate-300">SPIN, Challenger, Solution Selling, or custom approach</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-indigo-400 font-medium">Reframe Narratives:</span>
+                          <p className="text-slate-300">Conversation frameworks and positioning strategies</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-indigo-400 font-medium">Process Steps:</span>
+                          <p className="text-slate-300">Discovery, qualification, presentation, and closing techniques</p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Your systematic approach to winning deals
                       </p>
                     </div>
                   </div>
