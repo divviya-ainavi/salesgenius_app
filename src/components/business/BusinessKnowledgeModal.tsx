@@ -364,7 +364,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  Business Knowledge Profile{" "}
+                  Your Organization's Value Proposition{" "}
                   <Badge
                     variant="outline"
                     className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 px-3 py-1.5 font-medium"
@@ -373,9 +373,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   </Badge>
                 </h2>
 
-                <p className="text-sm text-gray-600 mt-0.5">
+                {/* <p className="text-sm text-gray-600 mt-0.5">
                   Comprehensive business intelligence and insights
-                </p>
+                </p> */}
               </div>
             </div>
           </DialogTitle>
@@ -402,35 +402,35 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <TrendingUp className="w-4 h-4 mr-1.5" />
-              Market Dynamics
+              Dynamic Supply
             </TabsTrigger>
             <TabsTrigger
               value="offer"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <DollarSign className="w-4 h-4 mr-1.5" />
-              Value Offer
+              Offer Definition
             </TabsTrigger>
             <TabsTrigger
               value="objections"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <AlertCircle className="w-4 h-4 mr-1.5" />
-              Objections
+              Customer Fit Intelligence
             </TabsTrigger>
             <TabsTrigger
               value="icp"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <Users className="w-4 h-4 mr-1.5" />
-              Target Customers
+              Ideal Customer Profile
             </TabsTrigger>
             <TabsTrigger
               value="methodology"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
             >
               <MessageSquare className="w-4 h-4 mr-1.5" />
-              Sales Process
+              Sales Methodology
             </TabsTrigger>
           </TabsList>
 
