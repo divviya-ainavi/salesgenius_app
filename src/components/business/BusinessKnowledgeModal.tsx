@@ -396,12 +396,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           className="w-full flex flex-col flex-1 min-h-0 mt-4"
         >
           <TooltipProvider>
-            <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-gray-100 p-1 rounded-lg">
+            <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-muted p-1 rounded-lg">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="core"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <Target className="w-4 h-4 mr-1.5" />
                     Core Business
@@ -431,7 +431,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="dynamic"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <TrendingUp className="w-4 h-4 mr-1.5" />
                     Dynamic Supply
@@ -461,7 +461,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="offer"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <DollarSign className="w-4 h-4 mr-1.5" />
                     Offer Definition
@@ -510,7 +510,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="objections"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <AlertCircle className="w-4 h-4 mr-1.5" />
                     Customer Fit Intelligence
@@ -582,7 +582,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="icp"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <Users className="w-4 h-4 mr-1.5" />
                     Ideal Customer Profile
@@ -617,7 +617,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="methodology"
-                    className="flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=active]:font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     <MessageSquare className="w-4 h-4 mr-1.5" />
                     Sales Methodology
