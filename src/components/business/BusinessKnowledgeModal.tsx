@@ -419,7 +419,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
                   >
                     <TrendingUp className="w-4 h-4 mr-1.5" />
-                    Market Dynamics
+                    Dynamic Supply
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -434,13 +434,19 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
                   >
                     <DollarSign className="w-4 h-4 mr-1.5" />
-                    Value Offer
+                    Offer Definition
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="space-y-1">
-                    <p><strong>Pain & Problem</strong> - Pain & Problem that you address</p>
-                    <p><strong>Proof & differentiator</strong> - Your differentiation</p>
+                    <p>
+                      <strong>Pain & Problem</strong> - Pain & Problem that you
+                      address
+                    </p>
+                    <p>
+                      <strong>Proof & differentiator</strong> - Your
+                      differentiation
+                    </p>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -452,14 +458,26 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
                   >
                     <AlertCircle className="w-4 h-4 mr-1.5" />
-                    Objections
+                    Customer Fit Intelligence
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="space-y-1">
-                    <p><strong>Prize Criteria</strong> - Customer fit signals (tooltip: Focuses on the necessary ingredients for a mutual victory, not just qualification.)</p>
-                    <p><strong>Low status trigger</strong> - phrases that diminish (Names the sales person's tactic, coaching reps to avoid being commoditized)</p>
-                    <p><strong>Common prospect assumptions</strong> - Unspoken assumptions (Frames unstated beliefs as active obstacles to be proactively uncovered and addressed.)</p>
+                    <p>
+                      <strong>Prize Criteria</strong> - Customer fit signals
+                      (tooltip: Focuses on the necessary ingredients for a
+                      mutual victory, not just qualification.)
+                    </p>
+                    <p>
+                      <strong>Low status trigger</strong> - phrases that
+                      diminish (Names the sales person's tactic, coaching reps
+                      to avoid being commoditized)
+                    </p>
+                    <p>
+                      <strong>Common prospect assumptions</strong> - Unspoken
+                      assumptions (Frames unstated beliefs as active obstacles
+                      to be proactively uncovered and addressed.)
+                    </p>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -471,7 +489,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
                   >
                     <Users className="w-4 h-4 mr-1.5" />
-                    Target Customers
+                    Ideal Customer Profile
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -487,13 +505,20 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
                   >
                     <MessageSquare className="w-4 h-4 mr-1.5" />
-                    Sales Process
+                    Sales Methodology
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="space-y-1">
-                    <p><strong>Key Qualification Information</strong> - Deal Progression Playbook (tooltip: what must be accomplished to move the deal through the different stages)</p>
-                    <p><strong>Remove Go-to closing technique</strong> - it should be "information" and not "information"</p>
+                    <p>
+                      <strong>Key Qualification Information</strong> - Deal
+                      Progression Playbook (tooltip: what must be accomplished
+                      to move the deal through the different stages)
+                    </p>
+                    <p>
+                      <strong>Remove Go-to closing technique</strong> - it
+                      should be "information" and not "information"
+                    </p>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -1052,12 +1077,12 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
+                  Approving...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  Approve
                 </>
               )}
             </Button>
