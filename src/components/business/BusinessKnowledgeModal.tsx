@@ -407,8 +407,19 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Core Business
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Comprehensive business intelligence and insights</p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-4 h-4 text-blue-400" />
+                      <span className="font-semibold text-white">Core Business Elements</span>
+                    </div>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Comprehensive business intelligence including core offering, value proposition, market position, and competitive advantages.
+                    </p>
+                  </div>
                 </TooltipContent>
               </Tooltip>
 
@@ -422,8 +433,19 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Dynamic Supply
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Dynamic Supply</p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-orange-400" />
+                      <span className="font-semibold text-white">Market Dynamics</span>
+                    </div>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Dynamic supply elements including current adaptations, market trend responses, active campaigns, and seasonal adjustments.
+                    </p>
+                  </div>
                 </TooltipContent>
               </Tooltip>
 
@@ -437,16 +459,31 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Offer Definition
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <div className="space-y-1">
-                    <p>
-                      <strong>Pain & Problem</strong> - Pain & Problem that you
-                      address
-                    </p>
-                    <p>
-                      <strong>Proof & differentiator</strong> - Your
-                      differentiation
-                    </p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-emerald-400" />
+                      <span className="font-semibold text-white">Value Offer Definition</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-emerald-300">Pain & Problem:</span>
+                          <span className="text-slate-300 ml-1">Pain & Problem that you address</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-emerald-300">Proof & Differentiator:</span>
+                          <span className="text-slate-300 ml-1">Your differentiation</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -461,23 +498,47 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Customer Fit Intelligence
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <div className="space-y-1">
-                    <p>
-                      <strong>Prize Criteria</strong> - Customer fit signals
-                      (tooltip: Focuses on the necessary ingredients for a
-                      mutual victory, not just qualification.)
-                    </p>
-                    <p>
-                      <strong>Low status trigger</strong> - phrases that
-                      diminish (Names the sales person's tactic, coaching reps
-                      to avoid being commoditized)
-                    </p>
-                    <p>
-                      <strong>Common prospect assumptions</strong> - Unspoken
-                      assumptions (Frames unstated beliefs as active obstacles
-                      to be proactively uncovered and addressed.)
-                    </p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                      <span className="font-semibold text-white">Customer Fit Intelligence</span>
+                    </div>
+                    <div className="space-y-2.5 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-red-300">Prize Criteria:</span>
+                          <span className="text-slate-300 ml-1">Customer fit signals</span>
+                          <p className="text-xs text-slate-400 mt-1 italic">
+                            Focuses on the necessary ingredients for a mutual victory, not just qualification.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-red-300">Low Status Trigger:</span>
+                          <span className="text-slate-300 ml-1">Phrases that diminish</span>
+                          <p className="text-xs text-slate-400 mt-1 italic">
+                            Names the sales person's tactic, coaching reps to avoid being commoditized.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-red-300">Common Prospect Assumptions:</span>
+                          <span className="text-slate-300 ml-1">Unspoken assumptions</span>
+                          <p className="text-xs text-slate-400 mt-1 italic">
+                            Frames unstated beliefs as active obstacles to be proactively uncovered and addressed.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -492,9 +553,24 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Ideal Customer Profile
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Ideal Customer Profile</p>
-                  <p>This tab should be before the objections tab</p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-cyan-400" />
+                      <span className="font-semibold text-white">Ideal Customer Profile</span>
+                    </div>
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      Define your ideal customer personas including champion, economic buyer, anti-persona, and key metrics.
+                    </p>
+                    <div className="mt-2 pt-2 border-t border-slate-600">
+                      <p className="text-xs text-slate-400 italic">
+                        Note: This tab should be positioned before the objections tab
+                      </p>
+                    </div>
+                  </div>
                 </TooltipContent>
               </Tooltip>
 
@@ -508,17 +584,36 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     Sales Methodology
                   </TabsTrigger>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <div className="space-y-1">
-                    <p>
-                      <strong>Key Qualification Information</strong> - Deal
-                      Progression Playbook (tooltip: what must be accomplished
-                      to move the deal through the different stages)
-                    </p>
-                    <p>
-                      <strong>Remove Go-to closing technique</strong> - it
-                      should be "information" and not "information"
-                    </p>
+                <TooltipContent 
+                  side="bottom" 
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="w-4 h-4 text-indigo-400" />
+                      <span className="font-semibold text-white">Sales Methodology</span>
+                    </div>
+                    <div className="space-y-2.5 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-indigo-300">Key Qualification Information:</span>
+                          <span className="text-slate-300 ml-1">Deal Progression Playbook</span>
+                          <p className="text-xs text-slate-400 mt-1 italic">
+                            What must be accomplished to move the deal through the different stages
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="font-medium text-yellow-300">Note:</span>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Remove "Go-to closing technique" - it should be "information" and not "information"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
