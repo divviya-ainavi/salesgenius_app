@@ -332,6 +332,54 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
       {isEditing ? (
         multiline ? (
           <Textarea
+            value={value}
+            onChange={(e) => handleInputChange(path, e.target.value)}
+            placeholder={placeholder}
+            className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+          />
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => handleInputChange(path, e.target.value)}
+            placeholder={placeholder}
+            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+          />
+        )
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {value || (
+              <span className="italic text-gray-500">No content available</span>
+            )}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!editedData) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 border-b border-gray-200 pb-4">
+          <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <Building className="w-5 h-5 text-white" />
+            </div>
+            <span>Business Knowledge</span>
+            <Badge variant="secondary" className="ml-2">
+              {editedData.organization_name}
+            </Badge>
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 mt-2">
+            Review and approve the extracted business knowledge from your
+            uploaded documents.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="core" className="flex-1 flex flex-col overflow-hidden">
+          <TooltipProvider>
             <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-muted p-1 rounded-lg">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -620,60 +668,6 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
                         Your systematic approach to winning deals
                       </p>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger
-                    value="methodology"
-                    className="relative flex items-center justify-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-1.5" />
-                    Sales Methodology
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 shadow-xl"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <MessageSquare className="w-4 h-4 text-indigo-400" />
-                      <span className="font-semibold text-white">
-                        Sales Methodology
-                      </span>
-                    </div>
-                    <div className="space-y-2.5 text-sm">
-                      <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <div>
-                          <span className="font-medium text-indigo-300">
-                            Key Qualification Information:
-                          </span>
-                          <span className="text-slate-300 ml-1">
-                            Deal Progression Playbook
-                          </span>
-                          <p className="text-xs text-slate-400 mt-1 italic">
-                            What must be accomplished to move the deal through
-                            the different stages
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <div>
-                          <span className="font-medium text-yellow-300">
-                            Note:
-                          </span>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Remove "Go-to closing technique" - it should be
-                            "information" and not "information"
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </TooltipContent>
