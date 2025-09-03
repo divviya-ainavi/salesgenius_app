@@ -2086,6 +2086,43 @@ export const dbHelpers = {
     }
   },
 
+  async savePersonalKnowledgeData(personalKnowledgeData, organizationId, userId, fileIds) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_personal')
+        .insert([{
+          user_id: userId,
+          organization_id: organizationId,
+          rep_name: personalKnowledgeData.repName,
+          role_title: personalKnowledgeData.roleTitle,
+          territory: personalKnowledgeData.territory,
+          vertical_focus: personalKnowledgeData.verticalFocus,
+          quota: personalKnowledgeData.quota,
+          time_horizon: personalKnowledgeData.timeHorizon,
+          active_pipeline: personalKnowledgeData.activePipeline,
+          personal_proof_bank: personalKnowledgeData.personalProofBank,
+          relationship_capital: personalKnowledgeData.relationshipCapital,
+          selling_style_strengths: personalKnowledgeData.sellingStyleStrengths,
+          common_objections_encountered: personalKnowledgeData.commonObjectionsEncountered,
+          preferred_advance_per_account: personalKnowledgeData.preferredAdvancePerAccount,
+          availability_windows: personalKnowledgeData.availabilityWindows,
+          product_certifications: personalKnowledgeData.productCertifications,
+          brand_voice_tone: personalKnowledgeData.brandVoiceTone,
+          sources: personalKnowledgeData.sources,
+          summary_note: personalKnowledgeData.summaryNote,
+          processed_file_ids: fileIds
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge data:', error);
+      throw error;
+    }
+  },
+
   // Update business knowledge files with data ID
   async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
     try {
