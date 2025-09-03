@@ -401,7 +401,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="core"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <Target className="w-4 h-4 mr-1.5" />
                     Core Business
@@ -427,7 +427,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="dynamic"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <TrendingUp className="w-4 h-4 mr-1.5" />
                     Dynamic Supply
@@ -453,7 +453,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="offer"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <DollarSign className="w-4 h-4 mr-1.5" />
                     Offer Definition
@@ -492,7 +492,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="objections"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <AlertCircle className="w-4 h-4 mr-1.5" />
                     Customer Fit Intelligence
@@ -547,7 +547,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="icp"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <Users className="w-4 h-4 mr-1.5" />
                     Ideal Customer Profile
@@ -578,7 +578,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 <TooltipTrigger asChild>
                   <TabsTrigger
                     value="methodology"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 data-[state=active]:font-medium rounded-lg transition-all duration-200"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-700 data-[state=active]:font-semibold data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent data-[state=active]:border-blue-200"
                   >
                     <MessageSquare className="w-4 h-4 mr-1.5" />
                     Sales Methodology
