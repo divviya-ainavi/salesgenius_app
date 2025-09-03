@@ -309,6 +309,7 @@ export const Settings = () => {
     setSelectedBusinessKnowledgeForFiles,
   ] = useState(null);
   const [loadingProcessedFiles, setLoadingProcessedFiles] = useState(false);
+  const [processedPersonalData, setProcessedPersonalData] = useState([]);
 
   const handleViewProcessedFiles = async (knowledgeData) => {
     try {
@@ -442,6 +443,8 @@ export const Settings = () => {
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
+  const [isUploadingPersonal, setIsUploadingPersonal] = useState(false);
+  const [personalUploadProgress, setPersonalUploadProgress] = useState(0);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
@@ -1072,6 +1075,33 @@ export const Settings = () => {
     disabled: isUploadingBusiness,
   });
 
+  const onDropPersonal = (acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      handleFileUpload(acceptedFiles, "personal");
+    }
+  };
+
+  const {
+    getRootProps: getPersonalRootProps,
+    getInputProps: getPersonalInputProps,
+    isDragActive: isPersonalDragActive,
+  } = useDropzone({
+    onDrop: onDropPersonal,
+    accept: {
+      "application/pdf": [".pdf"],
+      // "application/msword": [".doc"],
+      // "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      //   [".docx"],
+      "text/plain": [".txt"],
+      // "application/vnd.ms-powerpoint": [".ppt"],
+      // "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      //   [".pptx"],
+    },
+    multiple: true,
+    maxSize: 10 * 1024 * 1024, // 10MB
+    disabled: isUploadingPersonal,
+  });
+
   const handleRemoveUser = (userId) => {
     setOrgUsers((prev) => prev.filter((user) => user.id !== userId));
     toast.success("User removed from organization");
@@ -1122,6 +1152,9 @@ export const Settings = () => {
     if (category === "business") {
       setIsUploadingBusiness(true);
       setBusinessUploadProgress(0);
+    } else if (category == "personal") {
+      setIsUploadingPersonal(true);
+      setPersonalUploadProgress(0);
     } else {
       setIsUploading(true);
       setUploadProgress(0);
@@ -1134,6 +1167,14 @@ export const Settings = () => {
       const progressInterval = setInterval(() => {
         if (category === "business") {
           setBusinessUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        } else if (category === "personal") {
+          setPersonalUploadProgress((prev) => {
             if (prev >= 90) {
               clearInterval(progressInterval);
               return 90;
@@ -1155,7 +1196,7 @@ export const Settings = () => {
 
       // Prepare FormData with all files
       const formData = new FormData();
-      formData.append("type", "org");
+      formData.append("type", category == "business" ? "org" : "personal");
 
       // Append all files to the same FormData
       fileArray.forEach((file, index) => {
@@ -1191,29 +1232,31 @@ export const Settings = () => {
         // Store the business knowledge data in database
         try {
           for (const file of fileArray) {
-            const uploadedFile = await dbHelpers?.saveInternalUploadedFile(
-              user?.id,
-              file,
-              organizationDetails.id
-            );
+            const uploadedFile =
+              category == "business"
+                ? await dbHelpers?.saveInternalUploadedFile(
+                    user?.id,
+                    file,
+                    organizationDetails.id
+                  )
+                : await dbHelpers?.savePersonalUploadedFile(
+                    user?.id,
+                    file,
+                    organizationDetails.id
+                  );
             uploadedFileRecords.push(uploadedFile);
           }
           const fileIds = uploadedFileRecords.map((file) => file.id);
-          const savedData = await dbHelpers.saveBusinessKnowledgeData(
-            businessData,
-            user?.organization_id,
-            user?.id,
-            fileIds
-          );
-          setBusinessKnowledgeData(savedData);
-          setShowBusinessKnowledgeModal(true);
-          // const getalldata = await dbHelpers.getBusinessKnowledgeByOrgId(
-          //   user.organization_id
-          // );
-
-          // if (getalldata) {
-          //   dispatch(setBusinessKnowledge(getalldata));
-          // }
+          if (category == "business") {
+            const savedData = await dbHelpers.saveBusinessKnowledgeData(
+              businessData,
+              user?.organization_id,
+              user?.id,
+              fileIds
+            );
+            setBusinessKnowledgeData(savedData);
+            setShowBusinessKnowledgeModal(true);
+          }
         } catch (dbError) {
           console.error(
             "❌ Error saving business knowledge to database:",
@@ -1236,6 +1279,8 @@ export const Settings = () => {
       clearInterval(progressInterval);
       if (category === "business") {
         setBusinessUploadProgress(100);
+      } else if (category === "personal") {
+        setPersonalUploadProgress(100);
       } else {
         setUploadProgress(100);
       }
@@ -3536,102 +3581,169 @@ export const Settings = () => {
                       Personal Level
                     </Badge>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-50 text-orange-700 border-orange-200"
-                  >
-                    Coming Soon for Your Organization
-                  </Badge>
                 </CardTitle>
-                {/* <CardTitle className="flex items-center space-x-2">
-                  <User className="w-5 h-5" />
-                  <span>Personal Insights</span>
-                  <Badge
-                    variant="outline"
-                    className="bg-green-100 text-green-800 border-green-200"
-                  >
-                    Personal Level
-                  </Badge>
-                </CardTitle> */}
+
                 <p className="text-sm text-muted-foreground">
                   Your personal sales knowledge, experiences, and preferred
                   approaches
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                    <input
-                      type="file"
-                      id="personal-upload"
-                      className="hidden"
-                      onChange={(e) =>
-                        e.target.files?.[0] &&
-                        handleFileUpload(e.target.files[0], "personal")
-                      }
-                      accept=".pdf,.txt"
+                {isUploadingPersonal && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Upload className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-800">
+                        Uploading personal material...
+                      </span>
+                    </div>
+                    <Progress
+                      value={personalUploadProgress}
+                      className="w-full"
                     />
-                    <label htmlFor="personal-upload" className="cursor-pointer">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm font-medium">
-                        Upload Personal Material
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF, TXT(Max 10MB)
-                      </p>
-                    </label>
+                    <p className="text-sm text-blue-700 mt-2">
+                      {personalUploadProgress < 50
+                        ? "Uploading file..."
+                        : personalUploadProgress < 90
+                        ? "Processing content..."
+                        : "Finalizing..."}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div
+                    {...getPersonalRootProps()}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                      isPersonalDragActive
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                      isUploadingPersonal && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <input {...getPersonalInputProps()} />
+                    {isUploadingPersonal ? (
+                      <>
+                        <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                        <p className="text-sm font-medium text-blue-800">
+                          Uploading...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">
+                          {isPersonalDragActive
+                            ? "Drop the file here"
+                            : "Upload Personal Materials"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isPersonalDragActive
+                            ? "Release to upload"
+                            : "Click to browse or drag and drop multiple files here"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PDF, TXT (Max 10MB each, multiple files supported)
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    {trainingMaterials.personal.map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex items-center justify-between p-3 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <FileText className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {material.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {material.size} • {material.uploadedAt}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant={
-                              material.status === "processed"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {material.status === "processed" ? (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Processed
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                                Processing
-                              </>
-                            )}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                    {processedPersonalData ? (
+                      processedPersonalData?.length > 0 ? (
+                        businessOrgData?.map((knowledge) => (
+                          <Card
+                            key={knowledge.id}
+                            className="cursor-pointer hover:shadow-md transition-shadow"
                             onClick={() =>
-                              handleDeleteMaterial(material.id, "personal")
+                              handleViewBusinessKnowledge(knowledge)
                             }
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1">
+                                  <Building className="w-5 h-5 text-primary mt-1" />
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-lg mb-1">
+                                      {knowledge.organization_name ||
+                                        "Unnamed Organization"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+                                      {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
+                                        0,
+                                        100
+                                      ) + "..." || "No summary available"}
+                                    </p>
+                                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                      <span>
+                                        Created:{" "}
+                                        {new Date(
+                                          knowledge.created_at
+                                        ).toLocaleDateString()}
+                                      </span>
+                                      <span>
+                                        Updated:{" "}
+                                        {new Date(
+                                          knowledge.updated_at
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewProcessedFiles(knowledge);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    <FileText className="w-3 h-3 mr-1" />
+                                    View Files
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleViewBusinessKnowledge(knowledge)
+                                    }
+                                    className="text-black hover:text-black"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // handleDeleteBusinessKnowledge(
+                                      //   knowledge
+                                      // );
+                                      handleDeleteClick(knowledge);
+                                    }}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      ) : (
+                        ""
+                      )
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          Loading personal knowledge...
+                        </p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </CardContent>
