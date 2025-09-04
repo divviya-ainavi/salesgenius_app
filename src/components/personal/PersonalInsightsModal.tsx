@@ -224,113 +224,125 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
 
         <Tabs defaultValue="profile" className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-6 flex-shrink-0 mb-4">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="profile"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="profile"
+                    className="flex items-center space-x-1"
+                  >
+                    <User className="w-3 h-3" />
+                    <span>Profile</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <User className="w-3 h-3" />
-                  <span>Profile</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Personal profile information and territory details</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Personal profile information and territory details</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="performance"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="performance"
+                    className="flex items-center space-x-1"
+                  >
+                    <TrendingUp className="w-3 h-3" />
+                    <span>Performance</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <TrendingUp className="w-3 h-3" />
-                  <span>Performance</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Quota, pipeline, and performance metrics</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Quota, pipeline, and performance metrics</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="relationships"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="relationships"
+                    className="flex items-center space-x-1"
+                  >
+                    <Heart className="w-3 h-3" />
+                    <span>Relationships</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <Heart className="w-3 h-3" />
-                  <span>Relationships</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Network connections and relationship capital</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Network connections and relationship capital</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="selling-style"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="selling-style"
+                    className="flex items-center space-x-1"
+                  >
+                    <Lightbulb className="w-3 h-3" />
+                    <span>Selling Style</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <Lightbulb className="w-3 h-3" />
-                  <span>Selling Style</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Selling strengths, approach, and brand voice</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Selling strengths, approach, and brand voice</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="objections"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="objections"
+                    className="flex items-center space-x-1"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    <span>Objections</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <MessageSquare className="w-3 h-3" />
-                  <span>Objections</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Common objections and handling strategies</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Common objections and handling strategies</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TabsTrigger
-                  value="availability"
-                  className="flex items-center space-x-1"
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger
+                    value="availability"
+                    className="flex items-center space-x-1"
+                  >
+                    <Clock className="w-3 h-3" />
+                    <span>Availability</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
                 >
-                  <Clock className="w-3 h-3" />
-                  <span>Availability</span>
-                </TabsTrigger>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg"
-              >
-                <p>Scheduling windows and source references</p>
-              </TooltipContent>
-            </Tooltip>
+                  <p>Scheduling windows and source references</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto min-h-0">
