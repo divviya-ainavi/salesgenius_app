@@ -127,6 +127,7 @@ export const SalesCalls = () => {
     firefliesData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
+  const { businessKnowledge } = useSelector((state) => state.org);
 
   // Load initial data
   useEffect(() => {
@@ -787,7 +788,7 @@ export const SalesCalls = () => {
         );
         // console.log(result, "check result");
         if (result?.status === "success") {
-          await generateCummulativesalesinsights(
+          const cummulativeInsights = await generateCummulativesalesinsights(
             chosendata?.researchCompany,
             chosendata?.dealNotes,
             prospectDetails,
@@ -855,6 +856,20 @@ export const SalesCalls = () => {
                       current_communication_styles:
                         processedData?.communication_styles,
                       combined_calls_summary: call_summaries,
+                      cumulative_insights: cummulativeInsights,
+                      rep_context: "",
+                      supply_context: JSON.stringify(businessKnowledge),
+                      crm_context: {
+                        stage: prospectDetails?.deal_stage,
+                        deal_name: prospectDetails?.name,
+                        deal_amount: prospectDetails?.deal_value,
+                        ACV: "",
+                        created_date: prospectDetails?.hubspot_created_at,
+                        close_date: prospectDetails?.close_date,
+                        cadence: "",
+                        history: "",
+                        stakeholders: "",
+                      },
                     }),
                   }
                 );

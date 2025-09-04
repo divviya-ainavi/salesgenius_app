@@ -2012,6 +2012,23 @@ export const dbHelpers = {
     }
   },
 
+  async deletePersonalKnowledgeData(id) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_personal')
+        .update({
+          is_active: false
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting business knowledge data:', error);
+      throw error;
+    }
+  },
+
   // Get processed files by IDs from business_knowledge_files table
   async getProcessedFilesByIds(fileIds) {
     try {
@@ -2092,25 +2109,25 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from('business_knowledge_personal')
         .update({
-          rep_name: data.rep_name,
-          role_title: data.role_title,
-          territory: data.territory,
-          vertical_focus: data.vertical_focus,
-          quota: data.quota,
-          time_horizon: data.time_horizon,
-          active_pipeline: data.active_pipeline,
-          personal_proof_bank: data.personal_proof_bank,
-          relationship_capital: data.relationship_capital,
-          selling_style_strengths: data.selling_style_strengths,
-          common_objections_encountered: data.common_objections_encountered,
-          preferred_advance_per_account: data.preferred_advance_per_account,
-          availability_windows: data.availability_windows,
-          product_certifications: data.product_certifications,
-          brand_voice_tone: data.brand_voice_tone,
-          sources: data.sources,
-          summary_note: data.summary_note,
+          rep_name: updates.repName,
+          role_title: updates.roleTitle,
+          territory: updates.territory,
+          vertical_focus: updates.verticalFocus,
+          quota: updates.quota,
+          time_horizon: updates.timeHorizon,
+          active_pipeline: updates.activePipeline,
+          personal_proof_bank: updates.personalProofBank,
+          relationship_capital: updates.relationshipCapital,
+          selling_style_strengths: updates.sellingStyleStrengths,
+          common_objections_encountered: updates.commonObjectionsEncountered,
+          preferred_advance_per_account: updates.preferredAdvancePerAccount,
+          availability_windows: updates.availabilityWindows,
+          product_certifications: updates.productCertifications,
+          brand_voice_tone: updates.brandVoiceTone,
+          sources: updates.sources,
+          summary_note: updates.summaryNote,
         })
-        .eq('id', updates.id)
+        .eq('id', updates?.id)
         .select()
         .single();
 

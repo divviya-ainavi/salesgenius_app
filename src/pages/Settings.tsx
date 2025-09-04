@@ -358,7 +358,20 @@ export const Settings = () => {
     try {
       await dbHelpers.deleteBusinessKnowledgeData(id);
       await loadBusinessKnowledgeData();
+      setSelectedCategory("business");
       toast.success("Business knowledge profile deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business knowledge:", error);
+      toast.error("Failed to delete business knowledge profile");
+    }
+  };
+
+  const handleDeletePersonalKnowledge = async (id) => {
+    try {
+      await dbHelpers.deletePersonalKnowledgeData(id);
+      await loadPersonalInsightsData();
+      setSelectedCategory("business");
+      toast.success("Personal knowledge profile deleted successfully");
     } catch (error) {
       console.error("Error deleting business knowledge:", error);
       toast.error("Failed to delete business knowledge profile");
@@ -390,7 +403,7 @@ export const Settings = () => {
       console.log("Saving personal knowledge data:", data);
 
       // Save to database using dbHelpers
-      await dbHelpers.updateBusinessKnowledgeData(data);
+      await dbHelpers.updatePersonalKnowledgeData(data);
 
       // Update local state
       setPersonalInsightsData(data);
@@ -470,6 +483,7 @@ export const Settings = () => {
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
   const [isDeletingBusinessFile, setIsDeletingBusinessFile] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("business");
   // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const dispatch = useDispatch();
@@ -573,7 +587,19 @@ export const Settings = () => {
       );
       console.log(data, "check business knowledge data");
       setBusinessOrgData(data);
-      dispatch(setBusinessKnowledge(data));
+      const cleanedData = data.map(
+        ({
+          id,
+          organization_id,
+          user_id,
+          processed_file_ids,
+          is_active,
+          updated_at,
+          created_at,
+          ...rest
+        }) => rest
+      );
+      dispatch(setBusinessKnowledge(cleanedData));
     } catch (error) {
       console.error("Error loading business knowledge data:", error);
       toast.error("Failed to load business knowledge data");
@@ -589,13 +615,13 @@ export const Settings = () => {
   const loadPersonalInsightsData = async () => {
     try {
       const data = await dbHelpers.getPersonalInsights(user?.id);
-      console.log(data, "get sales insights");
+      // console.log(data, "get sales insights");
       setProcessedPersonalData(data);
     } catch (error) {
       console.error("Error loading personal insights:", error);
     }
   };
-
+  console.log(processedPersonalData, "check processed personal data");
   // Load personal insights files on component mount
   useEffect(() => {
     loadPersonalInsightsData();
@@ -1149,7 +1175,8 @@ export const Settings = () => {
     toast.success("User removed from organization");
   };
 
-  const handleDeleteClick = (material) => {
+  const handleDeleteClick = (material, type) => {
+    setSelectedCategory(type);
     setFileToDelete(material);
     setShowDeleteConfirmDialog(true);
   };
@@ -1158,13 +1185,17 @@ export const Settings = () => {
     setShowDeleteConfirmDialog(false);
     setFileToDelete(null);
   };
-
+  console.log(fileToDelete, "check file to delete");
   const handleConfirmDelete = async () => {
     if (!fileToDelete) return;
 
     setIsDeletingBusinessFile(true);
     try {
-      await handleDeleteBusinessKnowledge(fileToDelete.id);
+      if (selectedCategory == "business") {
+        await handleDeleteBusinessKnowledge(fileToDelete.id);
+      } else {
+        await handleDeletePersonalKnowledge(fileToDelete.id);
+      }
       setShowDeleteConfirmDialog(false);
       setFileToDelete(null);
     } catch (error) {
@@ -3008,7 +3039,7 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDeleteClick(user)}
+                                    // onClick={() => handleDeleteClick(user)}
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -3520,7 +3551,10 @@ export const Settings = () => {
                                         // handleDeleteBusinessKnowledge(
                                         //   knowledge
                                         // );
-                                        handleDeleteClick(knowledge);
+                                        handleDeleteClick(
+                                          knowledge,
+                                          "business"
+                                        );
                                       }}
                                       className="text-destructive hover:text-destructive"
                                     >
@@ -3763,7 +3797,7 @@ export const Settings = () => {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() =>
-                                      handleViewBusinessKnowledge(knowledge)
+                                      handleViewPersonalKnowledge(knowledge)
                                     }
                                     className="text-black hover:text-black"
                                   >
@@ -3777,7 +3811,7 @@ export const Settings = () => {
                                       // handleDeleteBusinessKnowledge(
                                       //   knowledge
                                       // );
-                                      handleDeleteClick(knowledge);
+                                      handleDeleteClick(knowledge, "personal");
                                     }}
                                     className="text-destructive hover:text-destructive"
                                   >
@@ -4076,7 +4110,7 @@ export const Settings = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-red-900 truncate">
-                    {fileToDelete.organization_name}
+                    {fileToDelete.organization_name || fileToDelete?.rep_name}
                   </h4>
                   <p className="text-sm text-red-700">
                     Created:{" "}

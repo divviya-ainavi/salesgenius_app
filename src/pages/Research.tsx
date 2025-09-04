@@ -353,24 +353,27 @@ const Research = () => {
       "created_at",
     ];
 
-    const cleanedData = businessKnowledge.map(
-      ({
-        id,
-        organization_id,
-        user_id,
-        processed_file_ids,
-        is_active,
-        updated_at,
-        created_at,
-        ...rest
-      }) => rest
-    );
+    // const cleanedData = businessKnowledge.map(
+    //   ({
+    //     id,
+    //     organization_id,
+    //     user_id,
+    //     processed_file_ids,
+    //     is_active,
+    //     updated_at,
+    //     created_at,
+    //     ...rest
+    //   }) => rest
+    // );
     try {
       // Create FormData for API request with proper file handling
       const apiFormData = new FormData();
       apiFormData.append("companyName", formData.companyName);
       apiFormData.append("companyUrl", formData.companyWebsite);
-      apiFormData.append("org_context", JSON.stringify(cleanedData) || "");
+      apiFormData.append(
+        "org_context",
+        JSON.stringify(businessKnowledge) || ""
+      );
 
       // Add files to FormData with consistent naming
       uploadedFiles.forEach((file, index) => {

@@ -245,7 +245,19 @@ const LoginPage = () => {
               );
             console.log("business knowledge", businessKnowledge);
             if (businessKnowledge) {
-              dispatch(setBusinessKnowledge(businessKnowledge));
+              const cleanedData = businessKnowledge.map(
+                ({
+                  id,
+                  organization_id,
+                  user_id,
+                  processed_file_ids,
+                  is_active,
+                  updated_at,
+                  created_at,
+                  ...rest
+                }) => rest
+              );
+              dispatch(setBusinessKnowledge(cleanedData));
               console.log("✅ Business knowledge loaded successfully");
             } else {
               dispatch(setBusinessKnowledge(null));
