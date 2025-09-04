@@ -25,6 +25,10 @@ import {
   X,
   Plus,
   Trash2,
+  Award,
+  Heart,
+  Lightbulb,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -159,8 +163,8 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4 border-b">
           <DialogTitle className="flex items-center space-x-2">
             <User className="w-5 h-5 text-purple-600" />
             <span>Personal Insights</span>
@@ -170,18 +174,37 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="relationships">Relationships</TabsTrigger>
-            <TabsTrigger value="selling-style">Selling Style</TabsTrigger>
-            <TabsTrigger value="objections">Objections</TabsTrigger>
-            <TabsTrigger value="availability">Availability</TabsTrigger>
+        <Tabs defaultValue="profile" className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-6 flex-shrink-0 mb-4">
+            <TabsTrigger value="profile" className="flex items-center space-x-1">
+              <User className="w-3 h-3" />
+              <span>Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center space-x-1">
+              <TrendingUp className="w-3 h-3" />
+              <span>Performance</span>
+            </TabsTrigger>
+            <TabsTrigger value="relationships" className="flex items-center space-x-1">
+              <Heart className="w-3 h-3" />
+              <span>Relationships</span>
+            </TabsTrigger>
+            <TabsTrigger value="selling-style" className="flex items-center space-x-1">
+              <Lightbulb className="w-3 h-3" />
+              <span>Selling Style</span>
+            </TabsTrigger>
+            <TabsTrigger value="objections" className="flex items-center space-x-1">
+              <MessageSquare className="w-3 h-3" />
+              <span>Objections</span>
+            </TabsTrigger>
+            <TabsTrigger value="availability" className="flex items-center space-x-1">
+              <Clock className="w-3 h-3" />
+              <span>Availability</span>
+            </TabsTrigger>
           </TabsList>
 
+          <div className="flex-1 overflow-y-auto">
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-4">
+            <TabsContent value="profile" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -243,7 +266,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
           </TabsContent>
 
           {/* Performance Tab */}
-          <TabsContent value="performance" className="space-y-4">
+            <TabsContent value="performance" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -291,18 +314,18 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                   field="productCertifications"
                   label="Product Certifications"
                   placeholder="Add certification"
-                  icon={Target}
+                    icon={Award}
                 />
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Relationships Tab */}
-          <TabsContent value="relationships" className="space-y-4">
+            <TabsContent value="relationships" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-4 h-4" />
+                    <Heart className="w-4 h-4" />
                   <span>Relationships & Network</span>
                 </CardTitle>
               </CardHeader>
@@ -311,18 +334,18 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                   field="relationshipCapital"
                   label="Relationship Capital"
                   placeholder="Add relationship contact"
-                  icon={Users}
+                    icon={Heart}
                 />
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Selling Style Tab */}
-          <TabsContent value="selling-style" className="space-y-4">
+            <TabsContent value="selling-style" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-4 h-4" />
+                    <Lightbulb className="w-4 h-4" />
                   <span>Selling Style & Approach</span>
                 </CardTitle>
               </CardHeader>
@@ -331,7 +354,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                   field="sellingStyleStrengths"
                   label="Selling Style Strengths"
                   placeholder="Add selling strength"
-                  icon={Target}
+                    icon={Lightbulb}
                 />
 
                 <div className="space-y-2">
@@ -360,7 +383,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
           </TabsContent>
 
           {/* Objections Tab */}
-          <TabsContent value="objections" className="space-y-4">
+            <TabsContent value="objections" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -380,11 +403,11 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
           </TabsContent>
 
           {/* Availability Tab */}
-          <TabsContent value="availability" className="space-y-4">
+            <TabsContent value="availability" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
+                    <Clock className="w-4 h-4" />
                   <span>Availability & Scheduling</span>
                 </CardTitle>
               </CardHeader>
@@ -393,7 +416,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                   field="availabilityWindows"
                   label="Availability Windows"
                   placeholder="Add availability window"
-                  icon={Calendar}
+                    icon={Clock}
                 />
 
                 <ArrayEditor
@@ -405,9 +428,10 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
               </CardContent>
             </Card>
           </TabsContent>
+          </div>
         </Tabs>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             <X className="w-4 h-4 mr-2" />
             Close
