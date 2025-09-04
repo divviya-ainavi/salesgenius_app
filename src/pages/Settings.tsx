@@ -103,7 +103,7 @@ import {
 } from "@/components/ui/dialog";
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
-
+import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -384,6 +384,25 @@ export const Settings = () => {
     }
   };
 
+  const handleUpdatePersonalInsights = async (data) => {
+    try {
+      // Save business knowledge data to database
+      console.log("Saving personal knowledge data:", data);
+
+      // Save to database using dbHelpers
+      await dbHelpers.updateBusinessKnowledgeData(data);
+
+      // Update local state
+      setPersonalInsightsData(data);
+
+      toast.success("Personal knowledge updated successfully!");
+    } catch (error) {
+      console.error("Error saving personal knowledge:", error);
+      toast.error("Failed to save personal knowledge");
+      throw error;
+    }
+  };
+
   const {
     userProfileInfo,
     userRole,
@@ -567,6 +586,19 @@ export const Settings = () => {
     loadBusinessKnowledgeData();
   }, [businessKnowledgeData]);
 
+  const loadPersonalInsightsData = async () => {
+    try {
+      const data = await dbHelpers.getPersonalInsights(user.id);
+      setProcessedPersonalData(data);
+    } catch (error) {
+      console.error("Error loading personal insights:", error);
+    }
+  };
+
+  // Load personal insights files on component mount
+  useEffect(() => {
+    loadPersonalInsightsData();
+  }, [personalInsightsData]);
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
@@ -1266,6 +1298,7 @@ export const Settings = () => {
               user?.id,
               fileIds
             );
+            // setShowPersonalInsightsModal
             setPersonalInsightsData(savedData);
             setShowPersonalInsightsModal(true);
           }
@@ -4010,6 +4043,13 @@ export const Settings = () => {
         onClose={() => setShowBusinessKnowledgeModal(false)}
         data={businessKnowledgeData}
         onSave={handleUpdateBusinessKnowledge}
+      />
+
+      <PersonalInsightsModal
+        isOpen={showPersonalInsightsModal}
+        onClose={() => setShowPersonalInsightsModal(false)}
+        data={personalInsightsData}
+        onSave={handleUpdatePersonalInsights}
       />
 
       {/* Delete Confirmation Dialog */}

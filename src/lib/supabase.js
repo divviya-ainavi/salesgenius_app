@@ -2086,14 +2086,12 @@ export const dbHelpers = {
     }
   },
 
-  // Save personal insights data to database
-  async savePersonalInsights(data) {
+
+  async updatePersonalKnowledgeData(updates) {
     try {
-      const { data: savedData, error } = await supabase
+      const { data, error } = await supabase
         .from('business_knowledge_personal')
-        .upsert([{
-          user_id: data.user_id,
-          organization_id: data.organization_id,
+        .update({
           rep_name: data.rep_name,
           role_title: data.role_title,
           territory: data.territory,
@@ -2111,21 +2109,18 @@ export const dbHelpers = {
           brand_voice_tone: data.brand_voice_tone,
           sources: data.sources,
           summary_note: data.summary_note,
-          processed_file_ids: data.processed_file_ids
-        }], {
-          onConflict: 'user_id'
         })
+        .eq('id', updates.id)
         .select()
         .single();
 
       if (error) throw error;
-      return savedData;
+      return data;
     } catch (error) {
-      console.error('Error saving personal insights:', error);
+      console.error('Error updating business knowledge data:', error);
       throw error;
     }
   },
-
   // Get personal insights data
   async getPersonalInsights(userId) {
     try {
