@@ -2053,36 +2053,97 @@ export const dbHelpers = {
   },
 
   // Save business knowledge data to database
-  async saveBusinessKnowledgeData(businessKnowledgeData, organizationId, userId, fileIds) {
+  async saveBusinessKnowledgeData(data, organizationId, userId, fileIds = []) {
     try {
-      const { data, error } = await supabase
+      const { data: savedData, error } = await supabase
         .from('business_knowledge_org')
-        .insert([{
+        .upsert([{
           organization_id: organizationId,
           user_id: userId,
-          organization_name: businessKnowledgeData.organizationName,
-          static_supply_elements: businessKnowledgeData.staticSupplyElements,
-          dynamic_supply_elements: businessKnowledgeData.dynamicSupplyElements,
-          offer_definition: businessKnowledgeData.offerDefinition,
-          pricing_and_objections: businessKnowledgeData.prizingAndObjections,
-          icp: businessKnowledgeData.ICP,
-          reframe_narratives: businessKnowledgeData.reframeNarratives,
-          sales_methodology: businessKnowledgeData.salesMethodology,
-          brand_voice_guidelines: businessKnowledgeData.brandVoiceGuidelines,
-          assets_detected: businessKnowledgeData.assetsDetected,
-          sources: businessKnowledgeData.sources,
-          summary_note: businessKnowledgeData.summaryNote,
-          processed_file_ids: fileIds || businessKnowledgeData.processedFileIds,
-          others: businessKnowledgeData.others || null,
+          organization_name: data.organizationName,
+          static_supply_elements: data.staticSupplyElements,
+          dynamic_supply_elements: data.dynamicSupplyElements,
+          offer_definition: data.offerDefinition,
+          pricing_and_objections: data.pricingAndObjections,
+          icp: data.icp,
+          reframe_narratives: data.reframeNarratives,
+          sales_methodology: data.salesMethodology,
+          brand_voice_guidelines: data.brandVoiceGuidelines,
+          assets_detected: data.assetsDetected,
+          sources: data.sources,
+          summary_note: data.summaryNote,
+          processed_file_ids: fileIds,
+          others: data.others || null
         }])
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return savedData;
     } catch (error) {
       console.error('Error saving business knowledge data:', error);
       throw error;
+    }
+  },
+
+  // Save personal insights data to database
+  async savePersonalInsights(data) {
+    try {
+      const { data: savedData, error } = await supabase
+        .from('business_knowledge_personal')
+        .upsert([{
+          user_id: data.user_id,
+          organization_id: data.organization_id,
+          rep_name: data.rep_name,
+          role_title: data.role_title,
+          territory: data.territory,
+          vertical_focus: data.vertical_focus,
+          quota: data.quota,
+          time_horizon: data.time_horizon,
+          active_pipeline: data.active_pipeline,
+          personal_proof_bank: data.personal_proof_bank,
+          relationship_capital: data.relationship_capital,
+          selling_style_strengths: data.selling_style_strengths,
+          common_objections_encountered: data.common_objections_encountered,
+          preferred_advance_per_account: data.preferred_advance_per_account,
+          availability_windows: data.availability_windows,
+          product_certifications: data.product_certifications,
+          brand_voice_tone: data.brand_voice_tone,
+          sources: data.sources,
+          summary_note: data.summary_note,
+          processed_file_ids: data.processed_file_ids
+        }], {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return savedData;
+    } catch (error) {
+      console.error('Error saving personal insights:', error);
+      throw error;
+    }
+  },
+
+  // Get personal insights data
+  async getPersonalInsights(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_personal')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting personal insights:', error);
+      return null;
     }
   },
 

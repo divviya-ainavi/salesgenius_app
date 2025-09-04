@@ -51,26 +51,26 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
 
   // Initialize form data when modal opens
   useEffect(() => {
-    if (data && data.length > 0) {
-      const insights = data[0]; // Take first item from array
+    if (data) {
+      const insights = Array.isArray(data) ? data[0] : data; // Handle both array and object
       setFormData({
-        repName: insights.repName || "",
-        roleTitle: insights.roleTitle || "",
+        repName: insights.repName || insights.rep_name || "",
+        roleTitle: insights.roleTitle || insights.role_title || "",
         territory: insights.territory || "",
-        verticalFocus: insights.verticalFocus || [],
+        verticalFocus: insights.verticalFocus || insights.vertical_focus || [],
         quota: insights.quota || "",
-        timeHorizon: insights.timeHorizon || "",
-        activePipeline: insights.activePipeline || [],
-        personalProofBank: insights.personalProofBank || [],
-        relationshipCapital: insights.relationshipCapital || [],
-        sellingStyleStrengths: insights.sellingStyleStrengths || [],
-        commonObjectionsEncountered: insights.commonObjectionsEncountered || [],
-        preferredAdvancePerAccount: insights.preferredAdvancePerAccount || "",
-        availabilityWindows: insights.availabilityWindows || [],
-        productCertifications: insights.productCertifications || [],
-        brandVoiceTone: insights.brandVoiceTone || "",
+        timeHorizon: insights.timeHorizon || insights.time_horizon || "",
+        activePipeline: insights.activePipeline || insights.active_pipeline || [],
+        personalProofBank: insights.personalProofBank || insights.personal_proof_bank || [],
+        relationshipCapital: insights.relationshipCapital || insights.relationship_capital || [],
+        sellingStyleStrengths: insights.sellingStyleStrengths || insights.selling_style_strengths || [],
+        commonObjectionsEncountered: insights.commonObjectionsEncountered || insights.common_objections_encountered || [],
+        preferredAdvancePerAccount: insights.preferredAdvancePerAccount || insights.preferred_advance_per_account || "",
+        availabilityWindows: insights.availabilityWindows || insights.availability_windows || [],
+        productCertifications: insights.productCertifications || insights.product_certifications || [],
+        brandVoiceTone: insights.brandVoiceTone || insights.brand_voice_tone || "",
         sources: insights.sources || [],
-        summaryNote: insights.summaryNote || "",
+        summaryNote: insights.summaryNote || insights.summary_note || "",
       });
     }
   }, [data]);
