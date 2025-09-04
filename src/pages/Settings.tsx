@@ -588,7 +588,8 @@ export const Settings = () => {
 
   const loadPersonalInsightsData = async () => {
     try {
-      const data = await dbHelpers.getPersonalInsights(user.id);
+      const data = await dbHelpers.getPersonalInsights(user?.id);
+      console.log(data, "get sales insights");
       setProcessedPersonalData(data);
     } catch (error) {
       console.error("Error loading personal insights:", error);
@@ -609,6 +610,12 @@ export const Settings = () => {
     console.log(knowledgeData, "check knowledge data 505");
     setBusinessKnowledgeData(knowledgeData);
     setShowBusinessKnowledgeModal(true);
+  };
+
+  const handleViewPersonalKnowledge = (knowledgeData) => {
+    // console.log(knowledgeData, "check knowledge data 505");
+    setPersonalInsightsData(knowledgeData);
+    setShowPersonalInsightsModal(true);
   };
 
   const getInternalUploadedFiles = async () => {
@@ -3694,16 +3701,18 @@ export const Settings = () => {
                       </>
                     )}
                   </div>
-
+                  {console.log(
+                    processedPersonalData,
+                    "processed personal data"
+                  )}
                   <div className="space-y-2">
-                    {processedPersonalData ? (
-                      processedPersonalData?.length > 0 ? (
-                        businessOrgData?.map((knowledge) => (
+                    {processedPersonalData?.length > 0
+                      ? processedPersonalData?.map((knowledge) => (
                           <Card
                             key={knowledge.id}
                             className="cursor-pointer hover:shadow-md transition-shadow"
                             onClick={() =>
-                              handleViewBusinessKnowledge(knowledge)
+                              handleViewPersonalKnowledge(knowledge)
                             }
                           >
                             <CardContent className="p-4">
@@ -3712,11 +3721,11 @@ export const Settings = () => {
                                   <Building className="w-5 h-5 text-primary mt-1" />
                                   <div className="flex-1 min-w-0">
                                     <h3 className="font-semibold text-lg mb-1">
-                                      {knowledge.organization_name ||
+                                      {knowledge.rep_name ||
                                         "Unnamed Organization"}
                                     </h3>
                                     <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                                      {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
+                                      {knowledge.summary_note?.substring(
                                         0,
                                         100
                                       ) + "..." || "No summary available"}
@@ -3779,16 +3788,7 @@ export const Settings = () => {
                             </CardContent>
                           </Card>
                         ))
-                      ) : (
-                        ""
-                      )
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">
-                          Loading personal knowledge...
-                        </p>
-                      </div>
-                    )}
+                      : ""}
                   </div>
                 </div>
               </CardContent>

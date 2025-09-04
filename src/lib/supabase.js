@@ -2128,8 +2128,7 @@ export const dbHelpers = {
         .from('business_knowledge_personal')
         .select('*')
         .eq('user_id', userId)
-        .eq('is_active', true)
-        .single();
+        .eq('is_active', true);
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
         throw error;
