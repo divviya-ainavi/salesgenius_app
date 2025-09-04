@@ -127,7 +127,9 @@ export const SalesCalls = () => {
     firefliesData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
-  const { businessKnowledge } = useSelector((state) => state.org);
+  const { businessKnowledge, personalInsightKnowledge } = useSelector(
+    (state) => state.org
+  );
 
   // Load initial data
   useEffect(() => {
@@ -857,8 +859,16 @@ export const SalesCalls = () => {
                         processedData?.communication_styles,
                       combined_calls_summary: call_summaries,
                       cumulative_insights: cummulativeInsights,
-                      rep_context: "",
-                      supply_context: JSON.stringify(businessKnowledge),
+                      rep_context:
+                        personalInsightKnowledge?.length > 0 &&
+                        personalInsightKnowledge != null
+                          ? JSON.stringify(personalInsightKnowledge)
+                          : "",
+                      supply_context:
+                        businessKnowledge?.length > 0 &&
+                        businessKnowledge != null
+                          ? JSON.stringify(businessKnowledge)
+                          : "",
                       crm_context: {
                         stage: prospectDetails?.deal_stage,
                         deal_name: prospectDetails?.name,

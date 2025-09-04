@@ -15,6 +15,7 @@ const initialState = {
     businessKnowledge: null,
     businessKnowledgeLoading: false,
     businessKnowledgeError: null,
+    personalInsightKnowledge: null
 };
 
 const orgSlice = createSlice({
@@ -54,6 +55,9 @@ const orgSlice = createSlice({
         setBusinessKnowledge: (state, action) => {
             state.businessKnowledge = action.payload;
         },
+        setPersonalInsightKnowledge: (state, action) => {
+            state.personalInsightKnowledge = action.payload
+        },
         setBusinessKnowledgeLoading: (state, action) => {
             state.businessKnowledgeLoading = action.payload;
         },
@@ -81,6 +85,7 @@ export const {
     setCommunicationTypes,
     setBusinessKnowledge,
     setBusinessKnowledgeLoading,
-    setBusinessKnowledgeError
+    setBusinessKnowledgeError,
+    setPersonalInsightKnowledge
 } = orgSlice.actions;
 export default orgSlice.reducer;

@@ -349,6 +349,23 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               insight?.recommended_sales_play_reason || "",
             is_hubspot: insight?.is_hubspot || false,
             sales_insight_ids: insight?.sales_insight_ids || [],
+            dominant_context:
+              "Discovery and strategic planning with decision-maker engagement",
+            deal_health: {
+              score: 59,
+              risks: [
+                "GDPR compliance concerns",
+                "Economic uncertainty",
+                "Qualification gaps blocking stage advance",
+              ],
+              opportunities: [
+                "Economic buyer identified and engaged",
+                "Clear pain points aligned with solution",
+                "Timeline pressure with beta testing imminent",
+              ],
+            },
+            next_best_move_statement:
+              "I recommend the Champion Enablement Play with the objective to Propose next steps to close qualification gaps and address GDPR compliance concerns, leveraging the identified economic buyer Ian (CMO) to advance the deal toward beta testing and pricing finalization.",
           }));
 
         setProspects(enrichedProspects);

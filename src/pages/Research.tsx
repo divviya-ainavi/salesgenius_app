@@ -177,7 +177,9 @@ const Research = () => {
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({});
-  const { businessKnowledge } = useSelector((state) => state.org);
+  const { businessKnowledge, personalInsightKnowledge } = useSelector(
+    (state) => state.org
+  );
 
   console.log("business knowledge data", businessKnowledge);
   const toggleSection = (sectionId: string) => {
@@ -367,13 +369,30 @@ const Research = () => {
     // );
     try {
       // Create FormData for API request with proper file handling
+      const orgContext =
+        businessKnowledge?.length > 0 && businessKnowledge != null
+          ? "Seller Organization Contexts:" + JSON.stringify(businessKnowledge)
+          : "";
+      const repContext =
+        personalInsightKnowledge?.length > 0 && personalInsightKnowledge != null
+          ? "Seller Rep Contexts:" + JSON.stringify(personalInsightKnowledge)
+          : "";
+      const contextData =
+        businessKnowledge?.length > 0 &&
+        businessKnowledge != null &&
+        personalInsightKnowledge?.length > 0 &&
+        personalInsightKnowledge != null
+          ? orgContext + repContext
+          : businessKnowledge?.length > 0 && businessKnowledge != null
+          ? orgContext
+          : personalInsightKnowledge?.length > 0 &&
+            personalInsightKnowledge != null
+          ? repContext
+          : "";
       const apiFormData = new FormData();
       apiFormData.append("companyName", formData.companyName);
       apiFormData.append("companyUrl", formData.companyWebsite);
-      apiFormData.append(
-        "org_context",
-        JSON.stringify(businessKnowledge) || ""
-      );
+      apiFormData.append("org_context", contextData);
 
       // Add files to FormData with consistent naming
       uploadedFiles.forEach((file, index) => {

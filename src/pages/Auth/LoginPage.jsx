@@ -29,6 +29,7 @@ import {
   setBusinessKnowledge,
   setBusinessKnowledgeError,
   setBusinessKnowledgeLoading,
+  setPersonalInsightKnowledge,
 } from "../../store/slices/orgSlice";
 import { checkIntegrationStatus } from "../../services/hubspotService";
 
@@ -261,6 +262,29 @@ const LoginPage = () => {
               console.log("✅ Business knowledge loaded successfully");
             } else {
               dispatch(setBusinessKnowledge(null));
+              console.log("📭 No business knowledge found for organization");
+            }
+            const personalKnowledge = await dbHelpers.getPersonalInsights(
+              profile.id
+            );
+            // console.log("business knowledge", businessKnowledge);
+            if (personalKnowledge) {
+              const cleanedData = personalKnowledge.map(
+                ({
+                  id,
+                  organization_id,
+                  user_id,
+                  processed_file_ids,
+                  is_active,
+                  updated_at,
+                  created_at,
+                  ...rest
+                }) => rest
+              );
+              dispatch(setPersonalInsightKnowledge(cleanedData));
+              console.log("✅ Business knowledge loaded successfully");
+            } else {
+              dispatch(setPersonalInsightKnowledge(null));
               console.log("📭 No business knowledge found for organization");
             }
           } catch (error) {

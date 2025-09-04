@@ -83,6 +83,7 @@ import {
   setGetOrgList,
   setGetUsersList,
   setIndustry,
+  setPersonalInsightKnowledge,
   setSales_methodology,
 } from "../store/slices/orgSlice";
 import {
@@ -616,6 +617,19 @@ export const Settings = () => {
     try {
       const data = await dbHelpers.getPersonalInsights(user?.id);
       // console.log(data, "get sales insights");
+      const cleanedData = data.map(
+        ({
+          id,
+          organization_id,
+          user_id,
+          processed_file_ids,
+          is_active,
+          updated_at,
+          created_at,
+          ...rest
+        }) => rest
+      );
+      dispatch(setPersonalInsightKnowledge(cleanedData));
       setProcessedPersonalData(data);
     } catch (error) {
       console.error("Error loading personal insights:", error);
