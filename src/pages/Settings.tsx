@@ -1363,6 +1363,7 @@ export const Settings = () => {
       if (category === "business") {
         setBusinessUploadProgress(100);
       } else if (category === "personal") {
+        console.log("1366 called");
         setPersonalUploadProgress(100);
       } else {
         setUploadProgress(100);
@@ -1385,7 +1386,7 @@ export const Settings = () => {
         setIsUploadingBusiness(false);
         setBusinessUploadProgress(0);
       } else {
-        setIsUploading(false);
+        setIsUploadingPersonal(false);
         setUploadProgress(0);
       }
     }
