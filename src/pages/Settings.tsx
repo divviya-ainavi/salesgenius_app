@@ -103,6 +103,7 @@ import {
 } from "@/components/ui/dialog";
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
+import { PersonalInsightsModal } from "@/components/personal/PersonalInsightsModal";
 
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
@@ -313,6 +314,9 @@ export const Settings = () => {
   const [personalInsightsData, setPersonalInsightsData] = useState(null);
   const [showPersonalInsightsModal, setShowPersonalInsightsModal] =
     useState(false);
+  const [personalInsightsFiles, setPersonalInsightsFiles] = useState([]);
+  const [isGeneratingPersonalInsights, setIsGeneratingPersonalInsights] = useState(false);
+  const [isUploadingPersonalFiles, setIsUploadingPersonalFiles] = useState(false);
 
   const handleViewProcessedFiles = async (knowledgeData) => {
     try {
@@ -381,6 +385,223 @@ export const Settings = () => {
       console.error("Error saving business knowledge:", error);
       toast.error("Failed to save business knowledge");
       throw error;
+    }
+  };
+
+  const handleSavePersonalInsights = async (updatedData) => {
+    try {
+      // Save to business_knowledge_personal table
+      const { data, error } = await dbHelpers.savePersonalInsights({
+        user_id: user.id,
+        organization_id: user.organization_id,
+        rep_name: updatedData.repName,
+        role_title: updatedData.roleTitle,
+        territory: updatedData.territory,
+        vertical_focus: updatedData.verticalFocus,
+        quota: updatedData.quota,
+        time_horizon: updatedData.timeHorizon,
+        active_pipeline: updatedData.activePipeline,
+        personal_proof_bank: updatedData.personalProofBank,
+        relationship_capital: updatedData.relationshipCapital,
+        selling_style_strengths: updatedData.sellingStyleStrengths,
+        common_objections_encountered: updatedData.commonObjectionsEncountered,
+        preferred_advance_per_account: updatedData.preferredAdvancePerAccount,
+        availability_windows: updatedData.availabilityWindows,
+        product_certifications: updatedData.productCertifications,
+        brand_voice_tone: updatedData.brandVoiceTone,
+        sources: updatedData.sources,
+        summary_note: updatedData.summaryNote,
+        processed_file_ids: personalInsightsFiles.map(f => f.id)
+      });
+
+      if (error) throw error;
+
+      toast.success('Personal insights saved successfully!');
+      setShowPersonalInsightsModal(false);
+      
+      // Reload personal insights data
+      await loadPersonalInsightsData();
+    } catch (error) {
+      console.error('Error saving personal insights:', error);
+      toast.error('Failed to save personal insights');
+    }
+  };
+
+  // Load personal insights data
+  const loadPersonalInsightsData = async () => {
+    try {
+      const data = await dbHelpers.getPersonalInsights(user.id);
+      setPersonalInsightsData(data);
+    } catch (error) {
+      console.error('Error loading personal insights:', error);
+    }
+  };
+
+  // Load personal insights files on component mount
+  useEffect(() => {
+    const loadPersonalInsightsFiles = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('business_knowledge_files')
+          .select('*')
+          .eq('uploaded_by', user.id)
+          .eq('type', 'personal')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading personal insights files:', error);
+          return;
+        }
+
+        setPersonalInsightsFiles(data || []);
+      } catch (error) {
+        console.error('Error loading personal insights files:', error);
+      }
+    };
+
+    loadPersonalInsightsFiles();
+    loadPersonalInsightsData();
+  }, [user?.id]);
+
+  // Handle personal insights file upload
+  const handlePersonalInsightsFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    // Validate file types
+    const invalidFiles = files.filter(file => 
+      !['application/pdf', 'text/plain'].includes(file.type)
+    );
+
+    if (invalidFiles.length > 0) {
+      toast.error(`Invalid file types detected. Only PDF and TXT files are supported.`);
+      return;
+    }
+
+    setIsUploadingPersonalFiles(true);
+    const uploadedFiles = [];
+
+    try {
+      for (const file of files) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const uniqueFileName = `${user.id}/${timestamp}_${file.name}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('personal-insights')
+          .upload(uniqueFileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}: ${uploadError.message}`);
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('personal-insights')
+          .getPublicUrl(uniqueFileName);
+
+        // Save file metadata to database
+        const { data: fileData, error: dbError } = await supabase
+          .from('business_knowledge_files')
+          .insert([{
+            organization_id: user.organization_id,
+            uploaded_by: user.id,
+            filename: uniqueFileName,
+            original_filename: file.name,
+            file_size: file.size,
+            content_type: file.type,
+            storage_path: uploadData.path,
+            file_url: urlData.publicUrl,
+            type: 'personal',
+            description: 'Personal insights file'
+          }])
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+          toast.error(`Failed to save ${file.name} metadata: ${dbError.message}`);
+          continue;
+        }
+
+        uploadedFiles.push(fileData);
+      }
+
+      if (uploadedFiles.length > 0) {
+        setPersonalInsightsFiles(prev => [...prev, ...uploadedFiles]);
+        toast.success(`Successfully uploaded ${uploadedFiles.length} file(s)`);
+      }
+
+    } catch (error) {
+      console.error('Error uploading personal insights files:', error);
+      toast.error('Failed to upload files');
+    } finally {
+      setIsUploadingPersonalFiles(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  };
+
+  const handleDeletePersonalFile = async (fileId) => {
+    try {
+      // Find the file to get storage path
+      const fileToDelete = personalInsightsFiles.find(f => f.id === fileId);
+      if (!fileToDelete) return;
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('personal-insights')
+        .remove([fileToDelete.storage_path]);
+
+      if (storageError) {
+        console.error('Storage deletion error:', storageError);
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('business_knowledge_files')
+        .delete()
+        .eq('id', fileId);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      // Update local state
+      setPersonalInsightsFiles(prev => prev.filter(f => f.id !== fileId));
+      toast.success('File deleted successfully');
+
+    } catch (error) {
+      console.error('Error deleting personal file:', error);
+      toast.error('Failed to delete file');
+    }
+  };
+
+  const handleGeneratePersonalInsights = async () => {
+    if (personalInsightsFiles.length === 0) {
+      toast.error('Please upload files first');
+      return;
+    }
+
+    setIsGeneratingPersonalInsights(true);
+    try {
+      // Call the file upload API with personal category
+      await handleFileUpload(personalInsightsFiles, 'personal');
+      
+    } catch (error) {
+      console.error('Error generating personal insights:', error);
+      toast.error('Failed to generate personal insights');
+    } finally {
+      setIsGeneratingPersonalInsights(false);
     }
   };
 
@@ -1260,14 +1481,49 @@ export const Settings = () => {
             setBusinessKnowledgeData(savedData);
             setShowBusinessKnowledgeModal(true);
           } else if (category == "personal") {
-            const savedData = await dbHelpers.savePersonalKnowledgeData(
-              businessData,
-              user?.organization_id,
-              user?.id,
-              fileIds
-            );
-            setPersonalInsightsData(savedData);
-            setShowPersonalInsightsModal(true);
+            // Handle personal insights response
+            console.log('Personal insights API response:', businessData);
+            
+            // Store in database
+            try {
+              const personalData = Array.isArray(businessData) ? businessData[0] : businessData;
+              const fileIds = uploadedFileRecords.map((file) => file.id);
+              
+              await dbHelpers.savePersonalInsights({
+                user_id: user.id,
+                organization_id: user.organization_id,
+                rep_name: personalData.repName,
+                role_title: personalData.roleTitle,
+                territory: personalData.territory,
+                vertical_focus: personalData.verticalFocus,
+                quota: personalData.quota,
+                time_horizon: personalData.timeHorizon,
+                active_pipeline: personalData.activePipeline,
+                personal_proof_bank: personalData.personalProofBank,
+                relationship_capital: personalData.relationshipCapital,
+                selling_style_strengths: personalData.sellingStyleStrengths,
+                common_objections_encountered: personalData.commonObjectionsEncountered,
+                preferred_advance_per_account: personalData.preferredAdvancePerAccount,
+                availability_windows: personalData.availabilityWindows,
+                product_certifications: personalData.productCertifications,
+                brand_voice_tone: personalData.brandVoiceTone,
+                sources: personalData.sources,
+                summary_note: personalData.summaryNote,
+                processed_file_ids: fileIds
+              });
+              
+              // Load the saved data and show modal
+              await loadPersonalInsightsData();
+              setShowPersonalInsightsModal(true);
+              
+              toast.success('Personal insights generated and saved successfully!');
+            } catch (dbError) {
+              console.error('Error saving personal insights to database:', dbError);
+              // Still show the modal with the data even if DB save fails
+              setPersonalInsightsData(businessData);
+              setShowPersonalInsightsModal(true);
+              toast.warning('Personal insights generated but failed to save to database');
+            }
           }
         } catch (dbError) {
           console.error(
@@ -3624,138 +3880,152 @@ export const Settings = () => {
                 )}
 
                 <div className="space-y-4">
-                  <div
-                    {...getPersonalRootProps()}
-                    className={cn(
-                      "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-                      isPersonalDragActive
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-border hover:border-blue-400 hover:bg-blue-50/50",
-                      isUploadingPersonal && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <input {...getPersonalInputProps()} />
-                    {isUploadingPersonal ? (
-                      <>
-                        <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
-                        <p className="text-sm font-medium text-blue-800">
-                          Uploading...
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium">
-                          {isPersonalDragActive
-                            ? "Drop the file here"
-                            : "Upload Personal Materials"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isPersonalDragActive
-                            ? "Release to upload"
-                            : "Click to browse or drag and drop multiple files here"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          PDF, TXT (Max 10MB each, multiple files supported)
-                        </p>
-                      </>
-                    )}
-                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Personal Insights</h3>
+                    
+                    <div className="grid gap-4">
+                      {/* Personal Insights Drag & Drop Area */}
+                      <div
+                        {...getPersonalRootProps()}
+                        className={cn(
+                          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                          isPersonalDragActive
+                            ? "border-purple-400 bg-purple-50"
+                            : "border-gray-300 hover:border-purple-400 hover:bg-purple-50",
+                          isUploadingPersonal && "pointer-events-none opacity-50"
+                        )}
+                      >
+                        <input {...getPersonalInputProps()} />
+                        {isUploadingPersonal ? (
+                          <div className="space-y-4">
+                            <Loader2 className="w-12 h-12 mx-auto text-purple-600 animate-spin" />
+                            <div>
+                              <p className="text-purple-600 font-medium">
+                                Processing personal files...
+                              </p>
+                              <Progress
+                                value={personalUploadProgress}
+                                className="w-full mt-2"
+                              />
+                              <p className="text-sm text-purple-500 mt-1">
+                                {personalUploadProgress}% complete
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <User className="w-12 h-12 mx-auto text-gray-400" />
+                            <div>
+                              <p className="text-gray-600 font-medium">
+                                {isPersonalDragActive
+                                  ? "Drop your personal files here"
+                                  : "Upload Personal Sales Files"}
+                              </p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Drag & drop or click to upload PDF and TXT files
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                Supported: PDF, TXT • Max 10MB per file • Multiple files supported
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-                  <div className="space-y-2">
-                    {processedPersonalData ? (
-                      processedPersonalData?.length > 0 ? (
-                        businessOrgData?.map((knowledge) => (
-                          <Card
-                            key={knowledge.id}
-                            className="cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() =>
-                              handleViewBusinessKnowledge(knowledge)
-                            }
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start space-x-3 flex-1">
-                                  <Building className="w-5 h-5 text-primary mt-1" />
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-semibold text-lg mb-1">
-                                      {knowledge.organization_name ||
-                                        "Unnamed Organization"}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                                      {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
-                                        0,
-                                        100
-                                      ) + "..." || "No summary available"}
-                                    </p>
-                                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                      <span>
-                                        Created:{" "}
-                                        {new Date(
-                                          knowledge.created_at
-                                        ).toLocaleDateString()}
-                                      </span>
-                                      <span>
-                                        Updated:{" "}
-                                        {new Date(
-                                          knowledge.updated_at
-                                        ).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewProcessedFiles(knowledge);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    <FileText className="w-3 h-3 mr-1" />
-                                    View Files
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleViewBusinessKnowledge(knowledge)
-                                    }
-                                    className="text-black hover:text-black"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // handleDeleteBusinessKnowledge(
-                                      //   knowledge
-                                      // );
-                                      handleDeleteClick(knowledge);
-                                    }}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                      {/* Uploaded Personal Files List */}
+                      {personalInsightsFiles.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Uploaded Files ({personalInsightsFiles.length})
+                          </h4>
+                          {personalInsightsFiles.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                              <div className="flex items-center space-x-3">
+                                {file.content_type === 'application/pdf' ? (
+                                  <FileText className="w-5 h-5 text-red-600" />
+                                ) : (
+                                  <FileText className="w-5 h-5 text-blue-600" />
+                                )}
+                                <div>
+                                  <p className="font-medium">{file.original_filename}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'} • 
+                                    {(file.file_size / 1024 / 1024).toFixed(2)} MB • 
+                                    Uploaded {new Date(file.created_at).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))
-                      ) : (
-                        ""
-                      )
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">
-                          Loading personal knowledge...
-                        </p>
-                      </div>
-                    )}
+                              <div className="flex items-center space-x-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className={file.content_type === 'application/pdf' ? 
+                                    'text-red-600 border-red-200' : 
+                                    'text-blue-600 border-blue-200'
+                                  }
+                                >
+                                  {file.content_type === 'application/pdf' ? 'PDF' : 'TXT'}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePersonalFile(file.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Show existing personal insights if available */}
+                      {personalInsightsData && (
+                        <div className="mt-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-sm font-medium text-gray-700">
+                              Current Personal Insights
+                            </h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowPersonalInsightsModal(true)}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View/Edit
+                            </Button>
+                          </div>
+                          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Rep Name:</span>
+                                <p className="text-gray-600">{personalInsightsData.rep_name || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Role:</span>
+                                <p className="text-gray-600">{personalInsightsData.role_title || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Territory:</span>
+                                <p className="text-gray-600">{personalInsightsData.territory || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Last Updated:</span>
+                                <p className="text-gray-600">
+                                  {personalInsightsData.updated_at ? 
+                                    new Date(personalInsightsData.updated_at).toLocaleDateString() : 
+                                    'Not available'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -4010,6 +4280,14 @@ export const Settings = () => {
         onClose={() => setShowBusinessKnowledgeModal(false)}
         data={businessKnowledgeData}
         onSave={handleUpdateBusinessKnowledge}
+      />
+
+      {/* Personal Insights Modal */}
+      <PersonalInsightsModal
+        isOpen={showPersonalInsightsModal}
+        onClose={() => setShowPersonalInsightsModal(false)}
+        data={personalInsightsData}
+        onSave={handleSavePersonalInsights}
       />
 
       {/* Delete Confirmation Dialog */}
