@@ -328,7 +328,7 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       setIsLoadingProspects(true);
       try {
         const insights = await dbHelpers.getProspectData(user.id);
-        // console.log("Fetched email insights:", insights);
+        console.log("Fetched email insights:", insights);
 
         const enrichedProspects = insights
           // ?.filter((x) => x.communication_style_ids != null)
@@ -351,23 +351,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
               insight?.recommended_sales_play_reason || "",
             is_hubspot: insight?.is_hubspot || false,
             sales_insight_ids: insight?.sales_insight_ids || [],
-            dominant_context:
-              "Discovery and strategic planning with decision-maker engagement",
-            deal_health: {
-              score: 59,
-              risks: [
-                "GDPR compliance concerns",
-                "Economic uncertainty",
-                "Qualification gaps blocking stage advance",
-              ],
-              opportunities: [
-                "Economic buyer identified and engaged",
-                "Clear pain points aligned with solution",
-                "Timeline pressure with beta testing imminent",
-              ],
-            },
-            next_best_move_statement:
-              "I recommend the Champion Enablement Play with the objective to Propose next steps to close qualification gaps and address GDPR compliance concerns, leveraging the identified economic buyer Ian (CMO) to advance the deal toward beta testing and pricing finalization.",
+            dominant_context: insight?.dominant_context || "",
+            deal_health: insight?.deal_health || {},
+            next_best_move_statement: insight?.next_best_move_statement,
           }));
 
         setProspects(enrichedProspects);
@@ -1308,82 +1294,94 @@ ${updatedBlocks
             )}
 
             {/* Deal Health Score */}
-            {selectedProspect?.deal_health && (
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium text-blue-900">Deal Health</h3>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "font-semibold",
-                        selectedProspect.deal_health.score >= 70
-                          ? "bg-green-100 text-green-800 border-green-200"
-                          : selectedProspect.deal_health.score >= 40
-                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                          : "bg-red-100 text-red-800 border-red-200"
+            {console.log(
+              selectedProspect?.deal_health,
+              "selectedProspect?.deal_health"
+            )}
+            {selectedProspect.deal_health.score ||
+              (selectedProspect.deal_health.risks?.length > 0 && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-blue-900">Deal Health</h3>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-semibold",
+                          selectedProspect.deal_health.score >= 70
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : selectedProspect.deal_health.score >= 40
+                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                            : "bg-red-100 text-red-800 border-red-200"
+                        )}
+                      >
+                        {selectedProspect.deal_health.score}/100
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Risks */}
+                      {selectedProspect.deal_health.risks?.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-red-700 mb-2 flex items-center">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Risks
+                          </h4>
+                          <ul className="space-y-1">
+                            {selectedProspect.deal_health.risks.map(
+                              (risk, index) => (
+                                <li
+                                  key={index}
+                                  className="text-xs text-red-600 flex items-start"
+                                >
+                                  <span className="w-1 h-1 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                  {risk}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
                       )}
-                    >
-                      {selectedProspect.deal_health.score}/100
-                    </Badge>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Risks */}
-                    {selectedProspect.deal_health.risks?.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-red-700 mb-2 flex items-center">
-                          <AlertTriangle className="w-3 h-3 mr-1" />
-                          Risks
-                        </h4>
-                        <ul className="space-y-1">
-                          {selectedProspect.deal_health.risks.map((risk, index) => (
-                            <li key={index} className="text-xs text-red-600 flex items-start">
-                              <span className="w-1 h-1 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                              {risk}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                      {/* Opportunities */}
+                      {selectedProspect.deal_health.opportunities?.length >
+                        0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Opportunities
+                          </h4>
+                          <ul className="space-y-1">
+                            {selectedProspect.deal_health.opportunities.map(
+                              (opportunity, index) => (
+                                <li
+                                  key={index}
+                                  className="text-xs text-green-600 flex items-start"
+                                >
+                                  <span className="w-1 h-1 bg-green-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                  {opportunity}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
 
-                    {/* Opportunities */}
-                    {selectedProspect.deal_health.opportunities?.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Opportunities
-                        </h4>
-                        <ul className="space-y-1">
-                          {selectedProspect.deal_health.opportunities.map((opportunity, index) => (
-                            <li key={index} className="text-xs text-green-600 flex items-start">
-                              <span className="w-1 h-1 bg-green-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                              {opportunity}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+            {selectedProspect?.next_best_move_statement && (
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4">
+                <h4 className="font-medium text-indigo-900 flex items-center space-x-2 mb-3">
+                  <Lightbulb className="w-4 h-4" />
+                  <span>Recommended Next Best Move</span>
+                </h4>
+                <p className="text-sm text-indigo-700 leading-relaxed">
+                  {selectedProspect.next_best_move_statement}
+                </p>
+              </div>
             )}
-
-            {/* Deal Context */}
-            {selectedProspect?.dominant_context && (
-              <Card className="bg-purple-50 border-purple-200">
-                <CardContent className="p-4">
-                  <h3 className="font-medium text-purple-900 mb-2 flex items-center">
-                    <Target className="w-4 h-4 mr-2" />
-                    Deal Context
-                  </h3>
-                  <p className="text-sm text-purple-700">
-                    {selectedProspect.dominant_context}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Personalization Insights & Key Stakeholders */}
             {selectedProspect && (
               <Card>
@@ -1400,78 +1398,6 @@ ${updatedBlocks
                     </>
                   ) : (
                     <>
-                      {/* Deal Health Score */}
-                      {selectedProspect?.deal_health && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-blue-900 flex items-center space-x-2">
-                              <Target className="w-4 h-4" />
-                              <span>Deal Health Score</span>
-                            </h4>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "text-sm font-semibold",
-                                selectedProspect.deal_health.score >= 70 
-                                  ? "bg-green-100 text-green-800 border-green-200"
-                                  : selectedProspect.deal_health.score >= 50
-                                  ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                  : "bg-red-100 text-red-800 border-red-200"
-                              )}
-                            >
-                              {selectedProspect.deal_health.score}/100
-                            </Badge>
-                          </div>
-
-                          {/* Risks */}
-                          {selectedProspect.deal_health.risks && selectedProspect.deal_health.risks.length > 0 && (
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-red-700 flex items-center space-x-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                <span>Risks</span>
-                              </h5>
-                              <div className="space-y-1">
-                                {selectedProspect.deal_health.risks.map((risk, index) => (
-                                  <div key={index} className="text-sm text-red-600 flex items-start space-x-2">
-                                    <span className="w-1 h-1 bg-red-400 rounded-full mt-2 flex-shrink-0" />
-                                    <span>{risk}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Opportunities */}
-                          {selectedProspect.deal_health.opportunities && selectedProspect.deal_health.opportunities.length > 0 && (
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-green-700 flex items-center space-x-1">
-                                <CheckCircle className="w-3 h-3" />
-                                <span>Opportunities</span>
-                              </h5>
-                              <div className="space-y-1">
-                                {selectedProspect.deal_health.opportunities.map((opportunity, index) => (
-                                  <div key={index} className="text-sm text-green-600 flex items-start space-x-2">
-                                    <span className="w-1 h-1 bg-green-400 rounded-full mt-2 flex-shrink-0" />
-                                    <span>{opportunity}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Dominant Context */}
-                      {selectedProspect?.dominant_context && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                          <h4 className="font-medium text-purple-900 flex items-center space-x-2 mb-2">
-                            <Target className="w-4 h-4" />
-                            <span>Deal Context</span>
-                          </h4>
-                          <p className="text-sm text-purple-700">{selectedProspect.dominant_context}</p>
-                        </div>
-                      )}
-
                       {/* Primary Decision Maker Card */}
                       {primaryStakeholder?.length > 0 &&
                         primaryStakeholder?.map((x) => (
@@ -2051,17 +1977,6 @@ ${updatedBlocks
             )}
 
             {/* Next Best Move Statement */}
-            {selectedProspect?.next_best_move_statement && (
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4">
-                <h4 className="font-medium text-indigo-900 flex items-center space-x-2 mb-3">
-                  <Lightbulb className="w-4 h-4" />
-                  <span>Recommended Next Best Move</span>
-                </h4>
-                <p className="text-sm text-indigo-700 leading-relaxed">
-                  {selectedProspect.next_best_move_statement}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Column 2: Strategic Setup (60% width) */}

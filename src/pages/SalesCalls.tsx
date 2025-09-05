@@ -636,7 +636,7 @@ export const SalesCalls = () => {
           user?.id
         );
 
-        return result;
+        return apiResponse?.[0]?.output;
       } else {
         return "";
       }
@@ -800,36 +800,6 @@ export const SalesCalls = () => {
           // console.log(result, "check result after processing");
           // console.log(savedInsight, "check saved insight");
           try {
-            const processedCall = {
-              id: savedInsight?.id || "",
-              callId: `Call ${savedInsight?.id?.slice(-5)}`,
-              companyName:
-                processedData?.company_details?.[0]?.name || "Company",
-              prospectName: processedData?.sales_call_prospect || "Prospect",
-              date: new Date().toISOString().split("T")[0],
-              duration: "N/A",
-              status: "processed",
-              source: isFireflies ? "fireflies" : "upload",
-              hasInsights: true,
-              transcript:
-                processedData?.extracted_transcript || file.file_content,
-              aiProcessedData: processedData,
-              uploaded_file_id: file.id,
-            };
-
-            setPastCalls((prev) => [pastCalls, ...prev]);
-
-            toast.success("File processed successfully!");
-
-            navigate("/call-insights", {
-              state: {
-                selectedCall: {
-                  id: savedInsight?.prospect_id,
-                },
-                source: processedCall.source,
-                aiProcessedData: processedData,
-              },
-            });
             try {
               if (prospectDetails?.communication_style_ids != null) {
                 dispatch(setCummulativeSpin(true));
@@ -858,7 +828,10 @@ export const SalesCalls = () => {
                       current_communication_styles:
                         processedData?.communication_styles,
                       combined_calls_summary: call_summaries,
-                      cumulative_insights: cummulativeInsights,
+                      cumulative_insights:
+                        cummulativeInsights?.length > 0
+                          ? JSON.stringify(cummulativeInsights)
+                          : JSON.stringify(processedData?.sales_insights),
                       rep_context:
                         personalInsightKnowledge?.length > 0 &&
                         personalInsightKnowledge != null
@@ -869,17 +842,13 @@ export const SalesCalls = () => {
                         businessKnowledge != null
                           ? JSON.stringify(businessKnowledge)
                           : "",
-                      crm_context: {
+                      crm_context: JSON.stringify({
                         stage: prospectDetails?.deal_stage,
                         deal_name: prospectDetails?.name,
                         deal_amount: prospectDetails?.deal_value,
-                        ACV: "",
                         created_date: prospectDetails?.hubspot_created_at,
                         close_date: prospectDetails?.close_date,
-                        cadence: "",
-                        history: "",
-                        stakeholders: "",
-                      },
+                      }),
                     }),
                   }
                 );
@@ -900,21 +869,48 @@ export const SalesCalls = () => {
                   cumulativeData?.[0]?.communication_styles || [];
 
                 // 3. Insert new styles into Supabase
-                const newStyleIds = await dbHelpers.insertCommunicationStyles(
-                  newStyles,
-                  prospectId,
-                  user?.id
-                );
+                const newStyleIds =
+                  prospectDetails?.communication_style_ids != null
+                    ? await dbHelpers.insertCommunicationStyles(
+                        newStyles,
+                        prospectId,
+                        user?.id
+                      )
+                    : [];
 
                 // 4. Update prospect with the new style IDs
                 if (newStyleIds.length) {
-                  await dbHelpers.updateProspectWithNewStyles(prospectId, {
-                    communication_style_ids: newStyleIds,
-                    sales_play: cumulativeData?.[0]?.recommended_sales_play,
-                    call_summary: cumulativeData?.[0]?.cumulative_summary,
-                    secondary_objectives:
-                      cumulativeData?.[0]?.recommended_objective,
-                  });
+                  const updateData =
+                    prospectDetails?.communication_style_ids != null
+                      ? {
+                          communication_style_ids: newStyleIds,
+                          sales_play:
+                            cumulativeData?.[0]?.recommended_sales_play,
+                          call_summary: cumulativeData?.[0]?.cumulative_summary,
+                          secondary_objectives:
+                            cumulativeData?.[0]?.recommended_objective,
+                          dominant_context:
+                            cumulativeData?.[0]?.dominant_context,
+                          next_best_move_statement:
+                            cumulativeData?.[0]?.next_best_move_statement,
+                          deal_health: cumulativeData?.[0]?.deal_health,
+                        }
+                      : {
+                          sales_play:
+                            cumulativeData?.[0]?.recommended_sales_play,
+                          call_summary: cumulativeData?.[0]?.cumulative_summary,
+                          secondary_objectives:
+                            cumulativeData?.[0]?.recommended_objective,
+                          dominant_context:
+                            cumulativeData?.[0]?.dominant_context,
+                          next_best_move_statement:
+                            cumulativeData?.[0]?.next_best_move_statement,
+                          deal_health: cumulativeData?.[0]?.deal_health,
+                        };
+                  await dbHelpers.updateProspectWithNewStyles(
+                    prospectId,
+                    updateData
+                  );
                   dispatch(setCummulativeSpin(false));
                   // ✅ 5. Replace the styles in processedData for UI usage
                   processedData.communication_styles = newStyles.map(
@@ -934,6 +930,35 @@ export const SalesCalls = () => {
               console.error("Invalid JSON response from cumulative-comm:");
               throw new Error("Failed to parse cumulative-comm API response");
             }
+            const processedCall = {
+              id: savedInsight?.id || "",
+              callId: `Call ${savedInsight?.id?.slice(-5)}`,
+              companyName:
+                processedData?.company_details?.[0]?.name || "Company",
+              prospectName: processedData?.sales_call_prospect || "Prospect",
+              date: new Date().toISOString().split("T")[0],
+              duration: "N/A",
+              status: "processed",
+              source: isFireflies ? "fireflies" : "upload",
+              hasInsights: true,
+              transcript:
+                processedData?.extracted_transcript || file.file_content,
+              aiProcessedData: processedData,
+              uploaded_file_id: file.id,
+            };
+            setPastCalls((prev) => [pastCalls, ...prev]);
+
+            toast.success("File processed successfully!");
+
+            navigate("/call-insights", {
+              state: {
+                selectedCall: {
+                  id: savedInsight?.prospect_id,
+                },
+                source: processedCall.source,
+                aiProcessedData: processedData,
+              },
+            });
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);
             toast.error("Failed to update communication styles");
