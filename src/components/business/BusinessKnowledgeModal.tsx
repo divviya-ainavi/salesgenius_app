@@ -369,7 +369,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             </div>
             <span>Business Knowledge</span>
             <Badge variant="secondary" className="ml-2">
-              {editedData.organization_name}
+              {editedData?.organization_name || ""}
             </Badge>
           </DialogTitle>
           <DialogDescription className="text-gray-600 mt-2">
@@ -378,43 +378,54 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="core" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs
+          defaultValue="core"
+          className="flex-1 flex flex-col overflow-hidden"
+        >
           <TooltipProvider>
             <TabsList className="grid w-full grid-cols-6 flex-shrink-0 bg-muted p-1 rounded-lg">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="core"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="core" className="w-full">
                       <Target className="w-4 h-4 mr-1.5" />
                       Core Business
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Target className="w-4 h-4 text-blue-400" />
-                      <span className="font-semibold text-white">Core Business Elements</span>
+                      <span className="font-semibold text-white">
+                        Core Business Elements
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-blue-400 font-medium">Static Supply Elements:</span>
-                          <p className="text-slate-300">Core products, services, and capabilities that define your business foundation</p>
+                          <span className="text-blue-400 font-medium">
+                            Static Supply Elements:
+                          </span>
+                          <p className="text-slate-300">
+                            Core products, services, and capabilities that
+                            define your business foundation
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-blue-400 font-medium">Brand Voice:</span>
-                          <p className="text-slate-300">Communication style, tone, and messaging guidelines</p>
+                          <span className="text-blue-400 font-medium">
+                            Brand Voice:
+                          </span>
+                          <p className="text-slate-300">
+                            Communication style, tone, and messaging guidelines
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
@@ -428,41 +439,50 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="dynamic"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="dynamic" className="w-full">
                       <TrendingUp className="w-4 h-4 mr-1.5" />
                       Market Dynamics
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <TrendingUp className="w-4 h-4 text-orange-400" />
-                      <span className="font-semibold text-white">Market Dynamics</span>
+                      <span className="font-semibold text-white">
+                        Market Dynamics
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-orange-400 font-medium">Dynamic Supply Elements:</span>
-                          <p className="text-slate-300">Market trends, competitive landscape, and evolving business factors</p>
+                          <span className="text-orange-400 font-medium">
+                            Dynamic Supply Elements:
+                          </span>
+                          <p className="text-slate-300">
+                            Market trends, competitive landscape, and evolving
+                            business factors
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-orange-400 font-medium">Market Position:</span>
-                          <p className="text-slate-300">Current market standing and competitive advantages</p>
+                          <span className="text-orange-400 font-medium">
+                            Market Position:
+                          </span>
+                          <p className="text-slate-300">
+                            Current market standing and competitive advantages
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
-                        Market information that changes with business environment
+                        Market information that changes with business
+                        environment
                       </p>
                     </div>
                   </div>
@@ -472,44 +492,57 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="offer"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="offer" className="w-full">
                       <DollarSign className="w-4 h-4 mr-1.5" />
                       Value Offer
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <DollarSign className="w-4 h-4 text-emerald-400" />
-                      <span className="font-semibold text-white">Value Offer Definition</span>
+                      <span className="font-semibold text-white">
+                        Value Offer Definition
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-emerald-400 font-medium">Offer Definition:</span>
-                          <p className="text-slate-300">Clear articulation of your value proposition and unique selling points</p>
+                          <span className="text-emerald-400 font-medium">
+                            Offer Definition:
+                          </span>
+                          <p className="text-slate-300">
+                            Clear articulation of your value proposition and
+                            unique selling points
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-emerald-400 font-medium">Pricing Strategy:</span>
-                          <p className="text-slate-300">Pricing models, packages, and value-based positioning</p>
+                          <span className="text-emerald-400 font-medium">
+                            Pricing Strategy:
+                          </span>
+                          <p className="text-slate-300">
+                            Pricing models, packages, and value-based
+                            positioning
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-emerald-400 font-medium">ROI Metrics:</span>
-                          <p className="text-slate-300">Quantifiable benefits and return on investment data</p>
+                          <span className="text-emerald-400 font-medium">
+                            ROI Metrics:
+                          </span>
+                          <p className="text-slate-300">
+                            Quantifiable benefits and return on investment data
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
@@ -523,44 +556,56 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="objections"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="objections" className="w-full">
                       <AlertCircle className="w-4 h-4 mr-1.5" />
                       Objections
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4 text-red-400" />
-                      <span className="font-semibold text-white">Customer Fit Intelligence</span>
+                      <span className="font-semibold text-white">
+                        Customer Fit Intelligence
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-red-400 font-medium">Pricing Objections:</span>
-                          <p className="text-slate-300">Common price-related concerns and proven responses</p>
+                          <span className="text-red-400 font-medium">
+                            Pricing Objections:
+                          </span>
+                          <p className="text-slate-300">
+                            Common price-related concerns and proven responses
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-red-400 font-medium">Feature Objections:</span>
-                          <p className="text-slate-300">Product capability concerns and competitive comparisons</p>
+                          <span className="text-red-400 font-medium">
+                            Feature Objections:
+                          </span>
+                          <p className="text-slate-300">
+                            Product capability concerns and competitive
+                            comparisons
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-red-400 font-medium">Implementation Concerns:</span>
-                          <p className="text-slate-300">Timeline, resource, and integration worries</p>
+                          <span className="text-red-400 font-medium">
+                            Implementation Concerns:
+                          </span>
+                          <p className="text-slate-300">
+                            Timeline, resource, and integration worries
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
@@ -574,44 +619,56 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="icp"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="icp" className="w-full">
                       <Users className="w-4 h-4 mr-1.5" />
                       Target Customers
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Users className="w-4 h-4 text-cyan-400" />
-                      <span className="font-semibold text-white">Target Customer Intelligence</span>
+                      <span className="font-semibold text-white">
+                        Target Customer Intelligence
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-cyan-400 font-medium">Ideal Customer Profile:</span>
-                          <p className="text-slate-300">Demographics, firmographics, and behavioral characteristics</p>
+                          <span className="text-cyan-400 font-medium">
+                            Ideal Customer Profile:
+                          </span>
+                          <p className="text-slate-300">
+                            Demographics, firmographics, and behavioral
+                            characteristics
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-cyan-400 font-medium">Buyer Personas:</span>
-                          <p className="text-slate-300">Decision-maker profiles and influence patterns</p>
+                          <span className="text-cyan-400 font-medium">
+                            Buyer Personas:
+                          </span>
+                          <p className="text-slate-300">
+                            Decision-maker profiles and influence patterns
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-cyan-400 font-medium">Qualification Criteria:</span>
-                          <p className="text-slate-300">BANT, MEDDIC, or custom qualification frameworks</p>
+                          <span className="text-cyan-400 font-medium">
+                            Qualification Criteria:
+                          </span>
+                          <p className="text-slate-300">
+                            BANT, MEDDIC, or custom qualification frameworks
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
@@ -625,44 +682,57 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger
-                      value="methodology"
-                      className="w-full"
-                    >
+                    <TabsTrigger value="methodology" className="w-full">
                       <MessageSquare className="w-4 h-4 mr-1.5" />
                       Sales Process
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
+                <TooltipContent
+                  side="bottom"
                   className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="w-4 h-4 text-indigo-400" />
-                      <span className="font-semibold text-white">Sales Process & Methodology</span>
+                      <span className="font-semibold text-white">
+                        Sales Process & Methodology
+                      </span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-indigo-400 font-medium">Sales Methodology:</span>
-                          <p className="text-slate-300">SPIN, Challenger, Solution Selling, or custom approach</p>
+                          <span className="text-indigo-400 font-medium">
+                            Sales Methodology:
+                          </span>
+                          <p className="text-slate-300">
+                            SPIN, Challenger, Solution Selling, or custom
+                            approach
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-indigo-400 font-medium">Reframe Narratives:</span>
-                          <p className="text-slate-300">Conversation frameworks and positioning strategies</p>
+                          <span className="text-indigo-400 font-medium">
+                            Reframe Narratives:
+                          </span>
+                          <p className="text-slate-300">
+                            Conversation frameworks and positioning strategies
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
                         <div>
-                          <span className="text-indigo-400 font-medium">Process Steps:</span>
-                          <p className="text-slate-300">Discovery, qualification, presentation, and closing techniques</p>
+                          <span className="text-indigo-400 font-medium">
+                            Process Steps:
+                          </span>
+                          <p className="text-slate-300">
+                            Discovery, qualification, presentation, and closing
+                            techniques
+                          </p>
                         </div>
                       </div>
                       <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
@@ -693,7 +763,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Core Business Offering",
                     "static_supply_elements.coreBusinessOffering",
-                    editedData.static_supply_elements?.coreBusinessOffering,
+                    editedData?.static_supply_elements?.coreBusinessOffering,
                     true,
                     "Describe your main business offering..."
                   )}
@@ -703,7 +773,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Value Proposition",
                     "static_supply_elements.valueProposition",
-                    editedData.static_supply_elements?.valueProposition,
+                    editedData?.static_supply_elements?.valueProposition,
                     true,
                     "What unique value do you provide..."
                   )}
@@ -713,7 +783,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Market Position",
                     "static_supply_elements.marketPosition",
-                    editedData.static_supply_elements?.marketPosition,
+                    editedData?.static_supply_elements?.marketPosition,
                     true,
                     "How are you positioned in the market..."
                   )}
@@ -723,7 +793,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Fundamental Problem Solved",
                     "static_supply_elements.fundamentalProblemSolved",
-                    editedData.static_supply_elements?.fundamentalProblemSolved,
+                    editedData?.static_supply_elements
+                      ?.fundamentalProblemSolved,
                     true,
                     "What core problem do you solve..."
                   )}
@@ -745,7 +816,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Key Advantages",
                     "static_supply_elements.competitiveAdvantages",
-                    editedData.static_supply_elements?.competitiveAdvantages,
+                    editedData?.static_supply_elements?.competitiveAdvantages,
                     "Enter competitive advantage..."
                   )}
                 </CardContent>
@@ -766,7 +837,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Products/Services",
                     "static_supply_elements.productsServicesPortfolio",
-                    editedData.static_supply_elements
+                    editedData?.static_supply_elements
                       ?.productsServicesPortfolio,
                     "Enter product or service..."
                   )}
@@ -791,7 +862,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Current Adaptations & Pivots",
                     "dynamic_supply_elements.currentAdaptationsPivots",
-                    editedData.dynamic_supply_elements.currentAdaptationsPivots,
+                    editedData?.dynamic_supply_elements
+                      .currentAdaptationsPivots,
                     "Enter adaptation or pivot..."
                   )}
 
@@ -809,8 +881,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Active Promotions & Campaigns",
                     "dynamic_supply_elements.activePromotionsCampaigns",
-                    editedData.dynamic_supply_elements
-                      .activePromotionsCampaigns,
+                    editedData?.dynamic_supply_elements
+                      ?.activePromotionsCampaigns,
                     "Enter promotion or campaign..."
                   )}
 
@@ -819,8 +891,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Seasonal Tactical Adjustments",
                     "dynamic_supply_elements.seasonalTacticalAdjustments",
-                    editedData.dynamic_supply_elements
-                      .seasonalTacticalAdjustments,
+                    editedData?.dynamic_supply_elements
+                      ?.seasonalTacticalAdjustments,
                     "Enter seasonal adjustment..."
                   )}
                 </CardContent>
@@ -844,7 +916,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Dream Outcome",
                     "offer_definition.dreamOutcome",
-                    editedData.offer_definition.dreamOutcome,
+                    editedData?.offer_definition?.dreamOutcome,
                     true,
                     "What's the ideal outcome for customers..."
                   )}
@@ -854,7 +926,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Pain & Problem",
                     "offer_definition.painProblem",
-                    editedData.offer_definition.painProblem,
+                    editedData?.offer_definition?.painProblem,
                     true,
                     "What pain points do you address..."
                   )}
@@ -864,7 +936,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Proof & Differentiator",
                     "offer_definition.proofDifferentiator",
-                    editedData.offer_definition.proofDifferentiator,
+                    editedData?.offer_definition?.proofDifferentiator,
                     true,
                     "What proves you're different and better..."
                   )}
@@ -886,7 +958,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Unseen Problem",
                     "reframe_narratives.unseenProblem",
-                    editedData.reframe_narratives.unseenProblem,
+                    editedData?.reframe_narratives?.unseenProblem,
                     true,
                     "What problem do prospects not realize they have..."
                   )}
@@ -896,7 +968,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Aha Moment",
                     "reframe_narratives.ahaMoment",
-                    editedData.reframe_narratives.ahaMoment,
+                    editedData?.reframe_narratives?.ahaMoment,
                     true,
                     "What insight creates the 'aha' moment..."
                   )}
@@ -906,7 +978,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Contrarian View",
                     "reframe_narratives.contrarianView",
-                    editedData.reframe_narratives.contrarianView,
+                    editedData?.reframe_narratives?.contrarianView,
                     true,
                     "What contrarian perspective do you offer..."
                   )}
@@ -931,7 +1003,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Prize Criteria",
                     "pricing_and_objections.prizeCriteria",
-                    editedData.pricing_and_objections.prizeCriteria,
+                    editedData?.pricing_and_objections?.prizeCriteria,
                     true,
                     "What criteria determine success..."
                   )}
@@ -941,7 +1013,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Low Status Triggers",
                     "pricing_and_objections.lowStatusTriggers",
-                    editedData.pricing_and_objections.lowStatusTriggers,
+                    editedData?.pricing_and_objections?.lowStatusTriggers,
                     "Enter status trigger..."
                   )}
 
@@ -950,7 +1022,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Common Prospect Assumptions",
                     "pricing_and_objections.commonProspectAssumptions",
-                    editedData.pricing_and_objections.commonProspectAssumptions,
+                    editedData?.pricing_and_objections
+                      ?.commonProspectAssumptions,
                     "Enter prospect assumption..."
                   )}
                 </CardContent>
@@ -974,7 +1047,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Champion Persona",
                     "icp.championPersona",
-                    editedData.icp.championPersona,
+                    editedData?.icp?.championPersona,
                     true,
                     "Who champions your solution internally..."
                   )}
@@ -984,7 +1057,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Economic Buyer Persona",
                     "icp.economicBuyerPersona",
-                    editedData.icp.economicBuyerPersona,
+                    editedData?.icp?.economicBuyerPersona,
                     true,
                     "Who makes the buying decision..."
                   )}
@@ -994,7 +1067,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Anti-Persona",
                     "icp.antiPersona",
-                    editedData.icp.antiPersona,
+                    editedData?.icp?.antiPersona,
                     true,
                     "Who is NOT a good fit..."
                   )}
@@ -1004,7 +1077,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Key Metrics & KPIs",
                     "icp.keyMetricsOrKPIs",
-                    editedData.icp.keyMetricsOrKPIs,
+                    editedData?.icp?.keyMetricsOrKPIs,
                     "Enter metric or KPI..."
                   )}
                 </CardContent>
@@ -1028,7 +1101,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Methodology Used",
                     "sales_methodology.methodologyUsed",
-                    editedData.sales_methodology.methodologyUsed,
+                    editedData?.sales_methodology?.methodologyUsed,
                     false,
                     "e.g., SPIN, Challenger, MEDDIC..."
                   )}
@@ -1038,7 +1111,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Key Qualification Information",
                     "sales_methodology.keyQualificationInfo",
-                    editedData.sales_methodology.keyQualificationInfo,
+                    editedData?.sales_methodology?.keyQualificationInfo,
                     true,
                     "How do you qualify prospects..."
                   )}
@@ -1048,7 +1121,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Go-To Closing Technique",
                     "sales_methodology.goToClosingTechnique",
-                    editedData.sales_methodology.goToClosingTechnique,
+                    editedData?.sales_methodology?.goToClosingTechnique,
                     true,
                     "What's your primary closing approach..."
                   )}
@@ -1058,7 +1131,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Brand Voice Guidelines",
                     "brand_voice_guidelines",
-                    editedData.brand_voice_guidelines,
+                    editedData?.brand_voice_guidelines,
                     true,
                     "Describe your brand voice and tone..."
                   )}
@@ -1080,7 +1153,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Assets Detected",
                     "assets_detected",
-                    editedData.assets_detected,
+                    editedData?.assets_detected,
                     "Enter asset description..."
                   )}
 
@@ -1089,7 +1162,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Sources",
                     "sources",
-                    editedData.sources,
+                    editedData?.sources,
                     "Enter source..."
                   )}
 
@@ -1098,7 +1171,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderTextField(
                     "Summary Note",
                     "summary_note",
-                    editedData.summary_note,
+                    editedData?.summary_note,
                     true,
                     "Overall summary of the business knowledge..."
                   )}
@@ -1106,7 +1179,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               </Card>
 
               {/* Others Data Section */}
-              {editedData.others && editedData.others.length > 0 && (
+              {editedData?.others && editedData?.others?.length > 0 && (
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
                   <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-t-lg border-b border-teal-100">
                     <CardTitle className="flex items-center space-x-3">
@@ -1119,7 +1192,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6 p-6">
-                    {editedData.others.map((item, index) => (
+                    {editedData?.others?.map((item, index) => (
                       <div key={index} className="space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
@@ -1178,7 +1251,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                           </div>
                         )}
 
-                        {index < editedData.others.length - 1 && (
+                        {index < editedData?.others?.length - 1 && (
                           <Separator className="my-4" />
                         )}
                       </div>

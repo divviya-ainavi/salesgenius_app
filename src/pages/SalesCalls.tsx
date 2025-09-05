@@ -803,130 +803,122 @@ export const SalesCalls = () => {
           // console.log(savedInsight, "check saved insight");
           try {
             try {
-              if (prospectDetails?.communication_style_ids != null) {
-                dispatch(setCummulativeSpin(true));
-                const [existingStyles, call_summariesRaw] = await Promise.all([
-                  dbHelpers.getCommunicationStylesData(
-                    prospectDetails?.communication_style_ids,
-                    user?.id
-                  ),
-                  dbHelpers.getCallSummaryByProspectId(prospectId),
-                ]);
+              // if (prospectDetails?.communication_style_ids != null) {
+              dispatch(setCummulativeSpin(true));
+              const [existingStyles, call_summariesRaw] = await Promise.all([
+                dbHelpers.getCommunicationStylesData(
+                  prospectDetails?.communication_style_ids,
+                  user?.id
+                ),
+                dbHelpers.getCallSummaryByProspectId(prospectId),
+              ]);
 
-                const existing = existingStyles || [];
-                const call_summaries =
-                  call_summariesRaw?.length > 0
-                    ? call_summariesRaw
-                    : [processedData?.call_summary || ""];
+              const existing = existingStyles || [];
+              const call_summaries =
+                call_summariesRaw?.length > 0
+                  ? call_summariesRaw
+                  : [processedData?.call_summary || ""];
 
-                // 2. Call cumulative-comm API with existing + current styles
-                const cumulativeRes = await fetch(
-                  `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      previous_communication_styles: existing,
-                      current_communication_styles:
-                        processedData?.communication_styles,
-                      combined_calls_summary: call_summaries,
-                      cumulative_insights:
-                        cummulativeInsights?.length > 0
-                          ? JSON.stringify(cummulativeInsights)
-                          : JSON.stringify(processedData?.sales_insights),
-                      rep_context:
-                        personalInsightKnowledge?.length > 0 &&
-                        personalInsightKnowledge != null
-                          ? JSON.stringify(personalInsightKnowledge)
-                          : "",
-                      supply_context:
-                        businessKnowledge?.length > 0 &&
-                        businessKnowledge != null
-                          ? JSON.stringify(businessKnowledge)
-                          : "",
-                      crm_context: JSON.stringify({
-                        stage: prospectDetails?.deal_stage,
-                        deal_name: prospectDetails?.name,
-                        deal_amount: prospectDetails?.deal_value,
-                        created_date: prospectDetails?.hubspot_created_at,
-                        close_date: prospectDetails?.close_date,
-                      }),
+              // 2. Call cumulative-comm API with existing + current styles
+              const cumulativeRes = await fetch(
+                `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    previous_communication_styles: existing,
+                    current_communication_styles:
+                      processedData?.communication_styles,
+                    combined_calls_summary: call_summaries,
+                    cumulative_insights:
+                      cummulativeInsights?.length > 0
+                        ? JSON.stringify(cummulativeInsights)
+                        : JSON.stringify(processedData?.sales_insights),
+                    rep_context:
+                      personalInsightKnowledge?.length > 0 &&
+                      personalInsightKnowledge != null
+                        ? JSON.stringify(personalInsightKnowledge)
+                        : "",
+                    supply_context:
+                      businessKnowledge?.length > 0 && businessKnowledge != null
+                        ? JSON.stringify(businessKnowledge)
+                        : "",
+                    crm_context: JSON.stringify({
+                      stage: prospectDetails?.deal_stage,
+                      deal_name: prospectDetails?.name,
+                      deal_amount: prospectDetails?.deal_value,
+                      created_date: prospectDetails?.hubspot_created_at,
+                      close_date: prospectDetails?.close_date,
                     }),
-                  }
-                );
-
-                if (!cumulativeRes.ok) {
-                  dispatch(setCummulativeSpin(false));
-                  throw new Error("Failed to call cumulative-comm API");
+                  }),
                 }
+              );
 
-                const rawText = await cumulativeRes.text();
-
-                if (!rawText) {
-                  throw new Error("Empty response from cumulative-comm API");
-                }
-
-                const cumulativeData = JSON.parse(rawText);
-                const newStyles =
-                  cumulativeData?.[0]?.communication_styles || [];
-
-                // 3. Insert new styles into Supabase
-                const newStyleIds =
-                  prospectDetails?.communication_style_ids != null
-                    ? await dbHelpers.insertCommunicationStyles(
-                        newStyles,
-                        prospectId,
-                        user?.id
-                      )
-                    : [];
-
-                // 4. Update prospect with the new style IDs
-                if (newStyleIds.length) {
-                  const updateData =
-                    prospectDetails?.communication_style_ids != null
-                      ? {
-                          communication_style_ids: newStyleIds,
-                          sales_play:
-                            cumulativeData?.[0]?.recommended_sales_play,
-                          call_summary: cumulativeData?.[0]?.cumulative_summary,
-                          secondary_objectives:
-                            cumulativeData?.[0]?.recommended_objective,
-                          dominant_context:
-                            cumulativeData?.[0]?.dominant_context,
-                          next_best_move_statement:
-                            cumulativeData?.[0]?.next_best_move_statement,
-                          deal_health: cumulativeData?.[0]?.deal_health,
-                        }
-                      : {
-                          sales_play:
-                            cumulativeData?.[0]?.recommended_sales_play,
-                          call_summary: cumulativeData?.[0]?.cumulative_summary,
-                          secondary_objectives:
-                            cumulativeData?.[0]?.recommended_objective,
-                          dominant_context:
-                            cumulativeData?.[0]?.dominant_context,
-                          next_best_move_statement:
-                            cumulativeData?.[0]?.next_best_move_statement,
-                          deal_health: cumulativeData?.[0]?.deal_health,
-                        };
-                  await dbHelpers.updateProspectWithNewStyles(
-                    prospectId,
-                    updateData
-                  );
-                  dispatch(setCummulativeSpin(false));
-                  // ✅ 5. Replace the styles in processedData for UI usage
-                  processedData.communication_styles = newStyles.map(
-                    (s, i) => ({
-                      ...s,
-                      id: newStyleIds[i],
-                    })
-                  );
-                } else {
-                  dispatch(setCummulativeSpin(false));
-                }
-              } else {
+              if (!cumulativeRes.ok) {
                 dispatch(setCummulativeSpin(false));
+                throw new Error("Failed to call cumulative-comm API");
               }
+
+              const rawText = await cumulativeRes.text();
+
+              if (!rawText) {
+                throw new Error("Empty response from cumulative-comm API");
+              }
+
+              const cumulativeData = JSON.parse(rawText);
+              const newStyles = cumulativeData?.[0]?.communication_styles || [];
+
+              // 3. Insert new styles into Supabase
+              const newStyleIds =
+                prospectDetails?.communication_style_ids != null
+                  ? await dbHelpers.insertCommunicationStyles(
+                      newStyles,
+                      prospectId,
+                      user?.id
+                    )
+                  : [];
+
+              // 4. Update prospect with the new style IDs
+              // if (newStyleIds.length) {
+              const updateData =
+                prospectDetails?.communication_style_ids != null
+                  ? {
+                      communication_style_ids: newStyleIds,
+                      sales_play: cumulativeData?.[0]?.recommended_sales_play,
+                      call_summary: cumulativeData?.[0]?.cumulative_summary,
+                      secondary_objectives:
+                        cumulativeData?.[0]?.recommended_objective,
+                      dominant_context: cumulativeData?.[0]?.dominant_context,
+                      next_best_move_statement:
+                        cumulativeData?.[0]?.next_best_move_statement,
+                      deal_health: cumulativeData?.[0]?.deal_health,
+                    }
+                  : {
+                      sales_play: cumulativeData?.[0]?.recommended_sales_play,
+                      call_summary: cumulativeData?.[0]?.cumulative_summary,
+                      secondary_objectives:
+                        cumulativeData?.[0]?.recommended_objective,
+                      dominant_context: cumulativeData?.[0]?.dominant_context,
+                      next_best_move_statement:
+                        cumulativeData?.[0]?.next_best_move_statement,
+                      deal_health: cumulativeData?.[0]?.deal_health,
+                    };
+              await dbHelpers.updateProspectWithNewStyles(
+                prospectId,
+                updateData
+              );
+              dispatch(setCummulativeSpin(false));
+              // ✅ 5. Replace the styles in processedData for UI usage
+              processedData.communication_styles = newStyles.map((s, i) => ({
+                ...s,
+                id: newStyleIds[i],
+              }));
+              // } else {
+              //   dispatch(setCummulativeSpin(false));
+              // }
+              // } else {
+              //   dispatch(setCummulativeSpin(false));
+              // }
             } catch (err) {
               dispatch(setCummulativeSpin(false));
               console.error("Invalid JSON response from cumulative-comm:");

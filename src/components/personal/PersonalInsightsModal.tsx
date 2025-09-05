@@ -160,7 +160,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
         </Label>
 
         <div className="space-y-2">
-          {formData[field].map((item, index) => (
+          {formData[field]?.map((item, index) => (
             <div
               key={index}
               className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md"
@@ -298,7 +298,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                       <Label htmlFor="rep-name">Representative Name</Label>
                       <Input
                         id="rep-name"
-                        value={formData.repName}
+                        value={formData?.repName}
                         onChange={(e) =>
                           handleInputChange("repName", e.target.value)
                         }
@@ -309,7 +309,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                       <Label htmlFor="role-title">Role Title</Label>
                       <Input
                         id="role-title"
-                        value={formData.roleTitle}
+                        value={formData?.roleTitle}
                         onChange={(e) =>
                           handleInputChange("roleTitle", e.target.value)
                         }
@@ -322,7 +322,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                     <Label htmlFor="territory">Territory</Label>
                     <Input
                       id="territory"
-                      value={formData.territory}
+                      value={formData?.territory}
                       onChange={(e) =>
                         handleInputChange("territory", e.target.value)
                       }
@@ -341,7 +341,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                     <Label htmlFor="summary-note">Summary Note</Label>
                     <Textarea
                       id="summary-note"
-                      value={formData.summaryNote}
+                      value={formData?.summaryNote}
                       onChange={(e) =>
                         handleInputChange("summaryNote", e.target.value)
                       }
@@ -371,7 +371,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                       <Label htmlFor="quota">Quota</Label>
                       <Input
                         id="quota"
-                        value={formData.quota}
+                        value={formData?.quota}
                         onChange={(e) =>
                           handleInputChange("quota", e.target.value)
                         }
@@ -382,7 +382,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                       <Label htmlFor="time-horizon">Time Horizon</Label>
                       <Input
                         id="time-horizon"
-                        value={formData.timeHorizon}
+                        value={formData?.timeHorizon}
                         onChange={(e) =>
                           handleInputChange("timeHorizon", e.target.value)
                         }
@@ -464,7 +464,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                     </Label>
                     <Textarea
                       id="preferred-advance"
-                      value={formData.preferredAdvancePerAccount}
+                      value={formData?.preferredAdvancePerAccount}
                       onChange={(e) =>
                         handleInputChange(
                           "preferredAdvancePerAccount",
@@ -480,7 +480,7 @@ export const PersonalInsightsModal = ({ isOpen, onClose, data, onSave }) => {
                     <Label htmlFor="brand-voice">Brand Voice & Tone</Label>
                     <Textarea
                       id="brand-voice"
-                      value={formData.brandVoiceTone}
+                      value={formData?.brandVoiceTone}
                       onChange={(e) =>
                         handleInputChange("brandVoiceTone", e.target.value)
                       }

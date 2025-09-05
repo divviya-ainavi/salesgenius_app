@@ -1384,404 +1384,87 @@ ${updatedBlocks
             {/* Personalization Insights & Key Stakeholders */}
             {/* <div className="min-h-80 max-h-96 overflow-y-auto space-y-3 pr-2"> */}
             {/* <div className="min-h-[100px] overflow-y-auto space-y-3 pr-2"> */}
-            <div>
-              {selectedProspect && (
-                <Card className="min-h-[500px] max-h-[900px] overflow-y-auto space-y-3 pr-2">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">
-                      Personalization Insights
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {isAnalyzing ? (
-                      <>
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
-                      </>
-                    ) : (
-                      <>
-                        {/* Primary Decision Maker Card */}
-                        {primaryStakeholder?.length > 0 &&
-                          primaryStakeholder?.map((x) => (
-                            <Card
-                              key={x.id}
-                              className="bg-primary/5 border-primary/20"
-                            >
-                              <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
+
+            {selectedProspect && (
+              <Card className="min-h-[500px] max-h-[900px] overflow-y-auto space-y-3 pr-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">
+                    Personalization Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isAnalyzing ? (
+                    <>
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </>
+                  ) : (
+                    <>
+                      {/* Primary Decision Maker Card */}
+                      {primaryStakeholder?.length > 0 &&
+                        primaryStakeholder?.map((x) => (
+                          <Card
+                            key={x.id}
+                            className="bg-primary/5 border-primary/20"
+                          >
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Crown className="w-4 h-4 text-primary" />
                                   <div className="flex items-center space-x-2">
-                                    <Crown className="w-4 h-4 text-primary" />
-                                    <div className="flex items-center space-x-2">
-                                      {editingNameId === x.id ? (
-                                        <div className="flex items-center space-x-2">
-                                          <Input
-                                            value={editNameValue}
-                                            onChange={(e) =>
-                                              setEditNameValue(e.target.value)
-                                            }
-                                            className="h-6 text-sm px-2 w-40 font-semibold"
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter")
-                                                handleNameSave(x.id);
-                                              if (e.key === "Escape")
-                                                handleNameCancel();
-                                            }}
-                                            autoFocus
-                                            disabled={isUpdatingName}
-                                          />
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={() => handleNameSave(x.id)}
-                                            disabled={isUpdatingName}
-                                          >
-                                            {isUpdatingName ? (
-                                              <Loader2 className="w-3 h-3 animate-spin" />
-                                            ) : (
-                                              <Save className="w-3 h-3" />
-                                            )}
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={handleNameCancel}
-                                            disabled={isUpdatingName}
-                                          >
-                                            <X className="w-3 h-3" />
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <CardTitle
-                                          className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                          onClick={() => handleNameEdit(x)}
-                                        >
-                                          <span>{x.name}</span>
-                                          <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </CardTitle>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <Badge>Primary Decision Maker</Badge>
-                                  </div>
-                                </div>
-                                <CardDescription>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm text-muted-foreground">
-                                      Role:
-                                    </span>
-                                    {editingRoleId === x.id ? (
-                                      <div className="flex items-center space-x-1">
+                                    {editingNameId === x.id ? (
+                                      <div className="flex items-center space-x-2">
                                         <Input
-                                          value={editingRoleText}
+                                          value={editNameValue}
                                           onChange={(e) =>
-                                            setEditingRoleText(e.target.value)
+                                            setEditNameValue(e.target.value)
                                           }
-                                          className="h-7 text-xs w-40"
+                                          className="h-6 text-sm px-2 w-40 font-semibold"
                                           onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                              dbHelpers
-                                                .updateCommunicationStyleRole(
-                                                  x.id,
-                                                  editingRoleText,
-                                                  selectedProspect.id,
-                                                  user?.id
-                                                )
-                                                .then(() => {
-                                                  // Update local state
-                                                  setStakeholders((prev) =>
-                                                    prev.map((s) =>
-                                                      s.id === x.id
-                                                        ? {
-                                                            ...s,
-                                                            title:
-                                                              editingRoleText,
-                                                          }
-                                                        : s
-                                                    )
-                                                  );
-                                                  setEditingRoleId(null);
-                                                  toast.success(
-                                                    "Role updated successfully"
-                                                  );
-                                                })
-                                                .catch((err) => {
-                                                  console.error(
-                                                    "Failed to update role:",
-                                                    err
-                                                  );
-                                                  toast.error(
-                                                    "Failed to update role"
-                                                  );
-                                                });
-                                            } else if (e.key === "Escape") {
-                                              setEditingRoleId(null);
-                                            }
+                                            if (e.key === "Enter")
+                                              handleNameSave(x.id);
+                                            if (e.key === "Escape")
+                                              handleNameCancel();
                                           }}
                                           autoFocus
+                                          disabled={isUpdatingName}
                                         />
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-7 w-7 p-0"
-                                          onClick={() => setEditingRoleId(null)}
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => handleNameSave(x.id)}
+                                          disabled={isUpdatingName}
                                         >
-                                          <X className="h-4 w-4" />
+                                          {isUpdatingName ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <Save className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={handleNameCancel}
+                                          disabled={isUpdatingName}
+                                        >
+                                          <X className="w-3 h-3" />
                                         </Button>
                                       </div>
                                     ) : (
-                                      <span
-                                        className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
-                                        onClick={() => {
-                                          setEditingRoleId(x.id);
-                                          setEditingRoleText(x.title);
-                                        }}
+                                      <CardTitle
+                                        className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleNameEdit(x)}
                                       >
-                                        {x.title}
-                                        <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
-                                      </span>
+                                        <span>{x.name}</span>
+                                        <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </CardTitle>
                                     )}
                                   </div>
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent className="space-y-3 pt-0">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-muted-foreground">
-                                    Confidence:
-                                  </span>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-green-100 text-green-800 border-green-200"
-                                      >
-                                        {x.confidenceScore}%
-                                        <Info className="ml-1 w-3 h-3" />
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-xs">
-                                        {x.confidenceJustification}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm text-muted-foreground">
-                                      Communication Style:
-                                    </span>
-                                    {(() => {
-                                      const styles =
-                                        x.communicationStyle
-                                          ?.split(",")
-                                          .map((s) => s.trim()) || [];
-
-                                      const matchedStyles = styles.map(
-                                        (style) => {
-                                          const match =
-                                            communicationStyleTypes.find(
-                                              (opt) =>
-                                                opt.key?.toLowerCase() ===
-                                                style.toLowerCase()
-                                            );
-                                          return {
-                                            style,
-                                            label: match?.label || style,
-                                            description:
-                                              match?.description ||
-                                              "No description available.",
-                                          };
-                                        }
-                                      );
-
-                                      return matchedStyles.length > 0 ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span className="text-sm font-medium flex items-center cursor-help">
-                                              {matchedStyles
-                                                .map((s) => s.label)
-                                                .join(", ")}
-                                              <Info className="ml-1 w-3 h-3 text-muted-foreground" />
-                                            </span>
-                                          </TooltipTrigger>
-
-                                          <TooltipContent className="max-w-xs bg-white text-sm text-gray-800 border border-gray-200 p-3 rounded-md shadow-md">
-                                            <div className="space-y-2">
-                                              {matchedStyles.map(
-                                                ({ style, description }) => (
-                                                  <div key={style}>
-                                                    <p className="font-semibold">
-                                                      {style}
-                                                    </p>
-                                                    <p className="text-gray-700 leading-snug">
-                                                      {description}
-                                                    </p>
-                                                  </div>
-                                                )
-                                              )}
-                                            </div>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        <span className="text-sm font-medium">
-                                          {x.communicationStyle}
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                      Personality Type:
-                                    </span>
-                                    <span className="text-sm font-medium">
-                                      {x.personalityType}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <Collapsible className="border-t border-primary/10 pt-2">
-                                  <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                                    Key Traits
-                                    <ChevronDown className="w-4 h-4" />
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="pt-2">
-                                    <div className="flex flex-wrap gap-1">
-                                      {x?.keyTraits.map((trait, i) => (
-                                        <Badge
-                                          key={i}
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {trait}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-
-                                <Collapsible className="border-t border-primary/10 pt-2">
-                                  <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                                    Communication Preferences
-                                    <ChevronDown className="w-4 h-4" />
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="pt-2">
-                                    <ul className="text-sm space-y-1 list-disc pl-4">
-                                      {x.communicationPreferences.map(
-                                        (pref, i) => (
-                                          <li key={i}>{pref}</li>
-                                        )
-                                      )}
-                                    </ul>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </CardContent>
-                            </Card>
-                          ))}
-
-                        {/* Secondary Stakeholders */}
-                        {secondaryStakeholders.map((stakeholder) => (
-                          <Card key={stakeholder.id} className="bg-muted/30">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  {editingNameId === stakeholder.id ? (
-                                    <div className="flex items-center space-x-2">
-                                      <Input
-                                        value={editNameValue}
-                                        onChange={(e) =>
-                                          setEditNameValue(e.target.value)
-                                        }
-                                        className="h-6 text-sm px-2 w-40 font-semibold"
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter")
-                                            handleNameSave(stakeholder.id);
-                                          if (e.key === "Escape")
-                                            handleNameCancel();
-                                        }}
-                                        autoFocus
-                                        disabled={isUpdatingName}
-                                      />
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0"
-                                        onClick={() =>
-                                          handleNameSave(stakeholder.id)
-                                        }
-                                        disabled={isUpdatingName}
-                                      >
-                                        {isUpdatingName ? (
-                                          <Loader2 className="w-3 h-3 animate-spin" />
-                                        ) : (
-                                          <Save className="w-3 h-3" />
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0"
-                                        onClick={handleNameCancel}
-                                        disabled={isUpdatingName}
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <CardTitle
-                                      className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                      onClick={() =>
-                                        handleNameEdit(stakeholder)
-                                      }
-                                    >
-                                      <User className="w-4 h-4 text-muted-foreground" />
-                                      <span>{stakeholder.name}</span>
-                                      <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </CardTitle>
-                                  )}
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`salesperson-${stakeholder.id}`}
-                                      checked={
-                                        stakeholder.is_salesperson || false
-                                      }
-                                      onCheckedChange={() =>
-                                        handleSalespersonToggle(
-                                          stakeholder.id,
-                                          stakeholder.is_salesperson || false
-                                        )
-                                      }
-                                      disabled={isUpdatingSalesperson}
-                                    />
-                                    <Label
-                                      htmlFor={`salesperson-${stakeholder.id}`}
-                                      className="text-xs text-muted-foreground cursor-pointer"
-                                    >
-                                      Salesperson
-                                    </Label>
-                                  </div>
-                                  <div className="flex flex-col space-y-1">
-                                    {stakeholder.is_salesperson ? (
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-blue-100 text-blue-800 border-blue-200 text-xs"
-                                      >
-                                        Salesperson
-                                      </Badge>
-                                    ) : (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs"
-                                      >
-                                        Stakeholder
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  <Badge>Primary Decision Maker</Badge>
                                 </div>
                               </div>
                               <CardDescription>
@@ -1789,7 +1472,7 @@ ${updatedBlocks
                                   <span className="text-sm text-muted-foreground">
                                     Role:
                                   </span>
-                                  {editingRoleId === stakeholder.id ? (
+                                  {editingRoleId === x.id ? (
                                     <div className="flex items-center space-x-1">
                                       <Input
                                         value={editingRoleText}
@@ -1801,16 +1484,16 @@ ${updatedBlocks
                                           if (e.key === "Enter") {
                                             dbHelpers
                                               .updateCommunicationStyleRole(
-                                                stakeholder.id,
+                                                x.id,
                                                 editingRoleText,
-                                                selectedProspect?.id,
+                                                selectedProspect.id,
                                                 user?.id
                                               )
                                               .then(() => {
                                                 // Update local state
                                                 setStakeholders((prev) =>
                                                   prev.map((s) =>
-                                                    s.id === stakeholder.id
+                                                    s.id === x.id
                                                       ? {
                                                           ...s,
                                                           title:
@@ -1852,11 +1535,11 @@ ${updatedBlocks
                                     <span
                                       className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
                                       onClick={() => {
-                                        setEditingRoleId(stakeholder.id);
-                                        setEditingRoleText(stakeholder.title);
+                                        setEditingRoleId(x.id);
+                                        setEditingRoleText(x.title);
                                       }}
                                     >
-                                      {stakeholder.title}
+                                      {x.title}
                                       <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
                                     </span>
                                   )}
@@ -1872,15 +1555,15 @@ ${updatedBlocks
                                   <TooltipTrigger asChild>
                                     <Badge
                                       variant="outline"
-                                      className="bg-blue-100 text-blue-800 border-blue-200"
+                                      className="bg-green-100 text-green-800 border-green-200"
                                     >
-                                      {stakeholder.confidenceScore}%
+                                      {x.confidenceScore}%
                                       <Info className="ml-1 w-3 h-3" />
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="max-w-xs">
-                                      {stakeholder.confidenceJustification}
+                                      {x.confidenceJustification}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
@@ -1893,12 +1576,11 @@ ${updatedBlocks
                                   </span>
                                   {(() => {
                                     const styles =
-                                      stakeholder.communicationStyle
+                                      x.communicationStyle
                                         ?.split(",")
-                                        .map((s) => s.trim())
-                                        .filter(Boolean); // remove empty entries
+                                        .map((s) => s.trim()) || [];
 
-                                    const matchedStyles = styles?.map(
+                                    const matchedStyles = styles.map(
                                       (style) => {
                                         const match =
                                           communicationStyleTypes.find(
@@ -1907,7 +1589,7 @@ ${updatedBlocks
                                               style.toLowerCase()
                                           );
                                         return {
-                                          key: style,
+                                          style,
                                           label: match?.label || style,
                                           description:
                                             match?.description ||
@@ -1916,8 +1598,7 @@ ${updatedBlocks
                                       }
                                     );
 
-                                    return matchedStyles &&
-                                      matchedStyles.length > 0 ? (
+                                    return matchedStyles.length > 0 ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="text-sm font-medium flex items-center cursor-help">
@@ -1927,22 +1608,27 @@ ${updatedBlocks
                                             <Info className="ml-1 w-3 h-3 text-muted-foreground" />
                                           </span>
                                         </TooltipTrigger>
-                                        <TooltipContent className="bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200 space-y-2">
-                                          {matchedStyles.map((s) => (
-                                            <div key={s.key}>
-                                              <p className="font-semibold">
-                                                {s.label}
-                                              </p>
-                                              <p className="text-gray-700 leading-snug">
-                                                {s.description}
-                                              </p>
-                                            </div>
-                                          ))}
+
+                                        <TooltipContent className="max-w-xs bg-white text-sm text-gray-800 border border-gray-200 p-3 rounded-md shadow-md">
+                                          <div className="space-y-2">
+                                            {matchedStyles.map(
+                                              ({ style, description }) => (
+                                                <div key={style}>
+                                                  <p className="font-semibold">
+                                                    {style}
+                                                  </p>
+                                                  <p className="text-gray-700 leading-snug">
+                                                    {description}
+                                                  </p>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
                                         </TooltipContent>
                                       </Tooltip>
                                     ) : (
                                       <span className="text-sm font-medium">
-                                        {stakeholder.communicationStyle}
+                                        {x.communicationStyle}
                                       </span>
                                     );
                                   })()}
@@ -1952,19 +1638,19 @@ ${updatedBlocks
                                     Personality Type:
                                   </span>
                                   <span className="text-sm font-medium">
-                                    {stakeholder.personalityType}
+                                    {x.personalityType}
                                   </span>
                                 </div>
                               </div>
 
-                              <Collapsible className="border-t border-border pt-2">
+                              <Collapsible className="border-t border-primary/10 pt-2">
                                 <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
                                   Key Traits
                                   <ChevronDown className="w-4 h-4" />
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="pt-2">
                                   <div className="flex flex-wrap gap-1">
-                                    {stakeholder.keyTraits.map((trait, i) => (
+                                    {x?.keyTraits.map((trait, i) => (
                                       <Badge
                                         key={i}
                                         variant="outline"
@@ -1976,17 +1662,321 @@ ${updatedBlocks
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>
+
+                              <Collapsible className="border-t border-primary/10 pt-2">
+                                <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+                                  Communication Preferences
+                                  <ChevronDown className="w-4 h-4" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="pt-2">
+                                  <ul className="text-sm space-y-1 list-disc pl-4">
+                                    {x.communicationPreferences.map(
+                                      (pref, i) => (
+                                        <li key={i}>{pref}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </CollapsibleContent>
+                              </Collapsible>
                             </CardContent>
                           </Card>
                         ))}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* Next Best Move Statement */}
-            </div>
+                      {/* Secondary Stakeholders */}
+                      {secondaryStakeholders.map((stakeholder) => (
+                        <Card key={stakeholder.id} className="bg-muted/30">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                {editingNameId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      value={editNameValue}
+                                      onChange={(e) =>
+                                        setEditNameValue(e.target.value)
+                                      }
+                                      className="h-6 text-sm px-2 w-40 font-semibold"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter")
+                                          handleNameSave(stakeholder.id);
+                                        if (e.key === "Escape")
+                                          handleNameCancel();
+                                      }}
+                                      autoFocus
+                                      disabled={isUpdatingName}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() =>
+                                        handleNameSave(stakeholder.id)
+                                      }
+                                      disabled={isUpdatingName}
+                                    >
+                                      {isUpdatingName ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Save className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={handleNameCancel}
+                                      disabled={isUpdatingName}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <CardTitle
+                                    className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => handleNameEdit(stakeholder)}
+                                  >
+                                    <User className="w-4 h-4 text-muted-foreground" />
+                                    <span>{stakeholder.name}</span>
+                                    <Target className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </CardTitle>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`salesperson-${stakeholder.id}`}
+                                    checked={
+                                      stakeholder.is_salesperson || false
+                                    }
+                                    onCheckedChange={() =>
+                                      handleSalespersonToggle(
+                                        stakeholder.id,
+                                        stakeholder.is_salesperson || false
+                                      )
+                                    }
+                                    disabled={isUpdatingSalesperson}
+                                  />
+                                  <Label
+                                    htmlFor={`salesperson-${stakeholder.id}`}
+                                    className="text-xs text-muted-foreground cursor-pointer"
+                                  >
+                                    Salesperson
+                                  </Label>
+                                </div>
+                                <div className="flex flex-col space-y-1">
+                                  {stakeholder.is_salesperson ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-blue-100 text-blue-800 border-blue-200 text-xs"
+                                    >
+                                      Salesperson
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      Stakeholder
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <CardDescription>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Role:
+                                </span>
+                                {editingRoleId === stakeholder.id ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Input
+                                      value={editingRoleText}
+                                      onChange={(e) =>
+                                        setEditingRoleText(e.target.value)
+                                      }
+                                      className="h-7 text-xs w-40"
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          dbHelpers
+                                            .updateCommunicationStyleRole(
+                                              stakeholder.id,
+                                              editingRoleText,
+                                              selectedProspect?.id,
+                                              user?.id
+                                            )
+                                            .then(() => {
+                                              // Update local state
+                                              setStakeholders((prev) =>
+                                                prev.map((s) =>
+                                                  s.id === stakeholder.id
+                                                    ? {
+                                                        ...s,
+                                                        title: editingRoleText,
+                                                      }
+                                                    : s
+                                                )
+                                              );
+                                              setEditingRoleId(null);
+                                              toast.success(
+                                                "Role updated successfully"
+                                              );
+                                            })
+                                            .catch((err) => {
+                                              console.error(
+                                                "Failed to update role:",
+                                                err
+                                              );
+                                              toast.error(
+                                                "Failed to update role"
+                                              );
+                                            });
+                                        } else if (e.key === "Escape") {
+                                          setEditingRoleId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => setEditingRoleId(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium flex items-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRoleId(stakeholder.id);
+                                      setEditingRoleText(stakeholder.title);
+                                    }}
+                                  >
+                                    {stakeholder.title}
+                                    <Edit className="ml-1 w-3 h-3 text-muted-foreground" />
+                                  </span>
+                                )}
+                              </div>
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-3 pt-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Confidence:
+                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-blue-100 text-blue-800 border-blue-200"
+                                  >
+                                    {stakeholder.confidenceScore}%
+                                    <Info className="ml-1 w-3 h-3" />
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    {stakeholder.confidenceJustification}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-muted-foreground">
+                                  Communication Style:
+                                </span>
+                                {(() => {
+                                  const styles = stakeholder.communicationStyle
+                                    ?.split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean); // remove empty entries
+
+                                  const matchedStyles = styles?.map((style) => {
+                                    const match = communicationStyleTypes.find(
+                                      (opt) =>
+                                        opt.key?.toLowerCase() ===
+                                        style.toLowerCase()
+                                    );
+                                    return {
+                                      key: style,
+                                      label: match?.label || style,
+                                      description:
+                                        match?.description ||
+                                        "No description available.",
+                                    };
+                                  });
+
+                                  return matchedStyles &&
+                                    matchedStyles.length > 0 ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-sm font-medium flex items-center cursor-help">
+                                          {matchedStyles
+                                            .map((s) => s.label)
+                                            .join(", ")}
+                                          <Info className="ml-1 w-3 h-3 text-muted-foreground" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-white text-sm text-gray-800 max-w-xs p-3 rounded-md shadow-xl border border-gray-200 space-y-2">
+                                        {matchedStyles.map((s) => (
+                                          <div key={s.key}>
+                                            <p className="font-semibold">
+                                              {s.label}
+                                            </p>
+                                            <p className="text-gray-700 leading-snug">
+                                              {s.description}
+                                            </p>
+                                          </div>
+                                        ))}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <span className="text-sm font-medium">
+                                      {stakeholder.communicationStyle}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">
+                                  Personality Type:
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {stakeholder.personalityType}
+                                </span>
+                              </div>
+                            </div>
+
+                            <Collapsible className="border-t border-border pt-2">
+                              <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+                                Key Traits
+                                <ChevronDown className="w-4 h-4" />
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="pt-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {stakeholder.keyTraits.map((trait, i) => (
+                                    <Badge
+                                      key={i}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {trait}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Column 2: Strategic Setup (60% width) */}

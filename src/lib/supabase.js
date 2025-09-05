@@ -3872,7 +3872,7 @@ export const dbHelpers = {
       // Bulk insert in one query
       const { data: insertedInsights, error: insertError } = await supabase
         .from("sales_insights")
-        .insert(rowsToInsert)
+        .insert(rowsToInsert?.filter((x) => x.type_id != null))
         .select("id");
 
       if (insertError) {
