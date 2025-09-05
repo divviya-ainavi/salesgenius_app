@@ -1382,9 +1382,11 @@ ${updatedBlocks
               </div>
             )}
             {/* Personalization Insights & Key Stakeholders */}
-            <div className="h-80 overflow-y-auto space-y-3 pr-2">
+            {/* <div className="min-h-80 max-h-96 overflow-y-auto space-y-3 pr-2"> */}
+            {/* <div className="min-h-[100px] overflow-y-auto space-y-3 pr-2"> */}
+            <div>
               {selectedProspect && (
-                <Card>
+                <Card className="min-h-[500px] max-h-[900px] overflow-y-auto space-y-3 pr-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">
                       Personalization Insights

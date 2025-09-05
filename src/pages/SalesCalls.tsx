@@ -555,6 +555,7 @@ export const SalesCalls = () => {
     }
   };
 
+  // console.log(insightTypes, "check insight types");
   // Function to generate cumulative sales insights
   const generateCummulativesalesinsights = async (
     selectedCompanyResearch,
@@ -633,7 +634,8 @@ export const SalesCalls = () => {
         const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
           apiResponse?.[0]?.output,
           prospectDetails.id,
-          user?.id
+          user?.id,
+          insightTypes
         );
 
         return apiResponse?.[0]?.output;
