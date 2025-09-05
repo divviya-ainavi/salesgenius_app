@@ -1298,91 +1298,91 @@ ${updatedBlocks
               selectedProspect?.deal_health,
               "selectedProspect?.deal_health"
             )}
+
+            {selectedProspect?.deal_health?.risks?.length > 0 && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-blue-900">Deal Health</h3>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-semibold",
+                        selectedProspect.deal_health.score >= 70
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : selectedProspect.deal_health.score >= 40
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : "bg-red-100 text-red-800 border-red-200"
+                      )}
+                    >
+                      {selectedProspect.deal_health.score}/100
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Risks */}
+                    {selectedProspect.deal_health.risks?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-red-700 mb-2 flex items-center">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Risks
+                        </h4>
+                        <ul className="space-y-1">
+                          {selectedProspect.deal_health.risks.map(
+                            (risk, index) => (
+                              <li
+                                key={index}
+                                className="text-xs text-red-600 flex items-start"
+                              >
+                                <span className="w-1 h-1 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                {risk}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Opportunities */}
+                    {selectedProspect.deal_health.opportunities?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Opportunities
+                        </h4>
+                        <ul className="space-y-1">
+                          {selectedProspect.deal_health.opportunities.map(
+                            (opportunity, index) => (
+                              <li
+                                key={index}
+                                className="text-xs text-green-600 flex items-start"
+                              >
+                                <span className="w-1 h-1 bg-green-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
+                                {opportunity}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {selectedProspect?.next_best_move_statement && (
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4">
+                <h4 className="font-medium text-indigo-900 flex items-center space-x-2 mb-3">
+                  <Lightbulb className="w-4 h-4" />
+                  <span>Recommended Next Best Move</span>
+                </h4>
+                <p className="text-sm text-indigo-700 leading-relaxed">
+                  {selectedProspect.next_best_move_statement}
+                </p>
+              </div>
+            )}
+            {/* Personalization Insights & Key Stakeholders */}
             <div className="h-80 overflow-y-auto space-y-3 pr-2">
-              {selectedProspect?.deal_health?.risks?.length > 0 && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-blue-900">Deal Health</h3>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "font-semibold",
-                          selectedProspect.deal_health.score >= 70
-                            ? "bg-green-100 text-green-800 border-green-200"
-                            : selectedProspect.deal_health.score >= 40
-                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                            : "bg-red-100 text-red-800 border-red-200"
-                        )}
-                      >
-                        {selectedProspect.deal_health.score}/100
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Risks */}
-                      {selectedProspect.deal_health.risks?.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-medium text-red-700 mb-2 flex items-center">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            Risks
-                          </h4>
-                          <ul className="space-y-1">
-                            {selectedProspect.deal_health.risks.map(
-                              (risk, index) => (
-                                <li
-                                  key={index}
-                                  className="text-xs text-red-600 flex items-start"
-                                >
-                                  <span className="w-1 h-1 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                                  {risk}
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Opportunities */}
-                      {selectedProspect.deal_health.opportunities?.length >
-                        0 && (
-                        <div>
-                          <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Opportunities
-                          </h4>
-                          <ul className="space-y-1">
-                            {selectedProspect.deal_health.opportunities.map(
-                              (opportunity, index) => (
-                                <li
-                                  key={index}
-                                  className="text-xs text-green-600 flex items-start"
-                                >
-                                  <span className="w-1 h-1 bg-green-400 rounded-full mt-1.5 mr-2 flex-shrink-0" />
-                                  {opportunity}
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {selectedProspect?.next_best_move_statement && (
-                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4">
-                  <h4 className="font-medium text-indigo-900 flex items-center space-x-2 mb-3">
-                    <Lightbulb className="w-4 h-4" />
-                    <span>Recommended Next Best Move</span>
-                  </h4>
-                  <p className="text-sm text-indigo-700 leading-relaxed">
-                    {selectedProspect.next_best_move_statement}
-                  </p>
-                </div>
-              )}
-              {/* Personalization Insights & Key Stakeholders */}
               {selectedProspect && (
                 <Card>
                   <CardHeader className="pb-3">
@@ -1731,7 +1731,9 @@ ${updatedBlocks
                                   ) : (
                                     <CardTitle
                                       className="text-base flex items-center space-x-2 group cursor-pointer hover:text-primary transition-colors"
-                                      onClick={() => handleNameEdit(stakeholder)}
+                                      onClick={() =>
+                                        handleNameEdit(stakeholder)
+                                      }
                                     >
                                       <User className="w-4 h-4 text-muted-foreground" />
                                       <span>{stakeholder.name}</span>
@@ -1888,25 +1890,29 @@ ${updatedBlocks
                                     Communication Style:
                                   </span>
                                   {(() => {
-                                    const styles = stakeholder.communicationStyle
-                                      ?.split(",")
-                                      .map((s) => s.trim())
-                                      .filter(Boolean); // remove empty entries
+                                    const styles =
+                                      stakeholder.communicationStyle
+                                        ?.split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean); // remove empty entries
 
-                                    const matchedStyles = styles?.map((style) => {
-                                      const match = communicationStyleTypes.find(
-                                        (opt) =>
-                                          opt.key?.toLowerCase() ===
-                                          style.toLowerCase()
-                                      );
-                                      return {
-                                        key: style,
-                                        label: match?.label || style,
-                                        description:
-                                          match?.description ||
-                                          "No description available.",
-                                      };
-                                    });
+                                    const matchedStyles = styles?.map(
+                                      (style) => {
+                                        const match =
+                                          communicationStyleTypes.find(
+                                            (opt) =>
+                                              opt.key?.toLowerCase() ===
+                                              style.toLowerCase()
+                                          );
+                                        return {
+                                          key: style,
+                                          label: match?.label || style,
+                                          description:
+                                            match?.description ||
+                                            "No description available.",
+                                        };
+                                      }
+                                    );
 
                                     return matchedStyles &&
                                       matchedStyles.length > 0 ? (
