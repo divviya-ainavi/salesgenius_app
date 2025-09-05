@@ -1298,7 +1298,7 @@ ${updatedBlocks
               selectedProspect?.deal_health,
               "selectedProspect?.deal_health"
             )}
-            {selectedProspect.deal_health.score ||
+            <div className="h-80 overflow-y-auto space-y-3 pr-2">
               (selectedProspect.deal_health.risks?.length > 0 && (
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
