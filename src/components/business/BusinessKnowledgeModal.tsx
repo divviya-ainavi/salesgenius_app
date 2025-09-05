@@ -394,7 +394,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent
-                  side="bottom"
+                  side="left"
                   className="max-w-sm p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
@@ -689,7 +689,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent
-                  side="bottom"
+                  side="right"
                   className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
                 >
                   <div className="space-y-3">
