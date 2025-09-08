@@ -167,7 +167,6 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     for (let i = 0; i < pathArray?.length - 1; i++) {
       current = current[pathArray[i]];
     }
-
     const array = current[pathArray[pathArray?.length - 1]];
     if (Array.isArray(array)) {
       array.push("");
@@ -253,13 +252,32 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     title: string,
     path: string,
     items: string[],
-    placeholder: string = "Enter item..."
+    placeholder: string = "Enter item...",
+    tooltip: string
   ) => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span>{title}</span>
+          {tooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{title}</span>
+                </TooltipTrigger>
+                <TooltipContent
+                  className="bg-gray-900 text-white border-gray-700"
+                  side="right"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span>{title}</span>
+          )}
         </Label>
         {isEditing && (
           <Button
@@ -1049,7 +1067,6 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "pricing_and_objections.lowStatusTriggers",
                     editedData?.pricing_and_objections?.lowStatusTriggers,
                     "Enter status trigger...",
-                    undefined,
                     "Name the prospect's tactic, coach reps to avoid being commoditized"
                   )}
 
@@ -1061,7 +1078,6 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     editedData?.pricing_and_objections
                       ?.commonProspectAssumptions,
                     "Enter prospect assumption...",
-                    undefined,
                     "Frames unstated beliefs as active obstacles proactively uncovered and addressed."
                   )}
                 </CardContent>
