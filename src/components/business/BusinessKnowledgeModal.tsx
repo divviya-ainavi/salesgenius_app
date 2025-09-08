@@ -328,7 +328,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
   ) => {
     const IconComponent = icon;
     const label = title;
-    
+
     return (
       <div className="space-y-3">
         <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
@@ -341,9 +341,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     <span>{label}</span>
                   </Label>
                 </TooltipTrigger>
-                <TooltipContent 
+                <TooltipContent
                   className="bg-gray-900 text-white border-gray-700"
-                  side="top"
+                  side="right"
                   align="center"
                   sideOffset={5}
                 >
@@ -378,7 +378,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <p className="text-sm text-gray-700 leading-relaxed">
               {value || (
-                <span className="italic text-gray-500">No content available</span>
+                <span className="italic text-gray-500">
+                  No content available
+                </span>
               )}
             </p>
           </div>
@@ -1037,7 +1039,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     true,
                     "What criteria determine success...",
                     undefined,
-                    "Key indicators and criteria that signal a prospect is a good fit for your solution, including behavioral patterns, company characteristics, and decision-making signals"
+                    "Focuses on the necessary ingredients on a mutual victory, not just qualification"
                   )}
 
                   <Separator className="my-6" />
@@ -1046,7 +1048,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Phrases that diminish",
                     "pricing_and_objections.lowStatusTriggers",
                     editedData?.pricing_and_objections?.lowStatusTriggers,
-                    "Enter status trigger..."
+                    "Enter status trigger...",
+                    undefined,
+                    "Name the prospect's tactic, coach reps to avoid being commoditized"
                   )}
 
                   <Separator className="my-6" />
@@ -1056,7 +1060,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "pricing_and_objections.commonProspectAssumptions",
                     editedData?.pricing_and_objections
                       ?.commonProspectAssumptions,
-                    "Enter prospect assumption..."
+                    "Enter prospect assumption...",
+                    undefined,
+                    "Frames unstated beliefs as active obstacles proactively uncovered and addressed."
                   )}
                 </CardContent>
               </Card>
@@ -1145,7 +1151,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "sales_methodology.keyQualificationInfo",
                     editedData?.sales_methodology?.keyQualificationInfo,
                     true,
-                    "How do you qualify prospects..."
+                    "How do you qualify prospects...",
+                    undefined,
+                    "What must be accomplished to move the deal throught the different stages"
                   )}
 
                   <Separator className="my-6" />
