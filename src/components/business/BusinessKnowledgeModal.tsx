@@ -332,42 +332,20 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     const label = title;
 
     return (
-        {tooltip ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2 cursor-help">
-                  {icon && <icon className="w-4 h-4" />}
-                  <span>{label}</span>
-                </Label>
-              </TooltipTrigger>
-              <TooltipContent 
-                className="bg-gray-900 text-white border-gray-700 max-w-xs"
-                side="top"
-                align="center"
-                sideOffset={5}
-              >
-                <p>{tooltip}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
-            {icon && <icon className="w-4 h-4" />}
-            <span>{label}</span>
-          </Label>
-        )}
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+          {tooltip ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Label className="flex items-center space-x-2 cursor-help">
-                    {IconComponent && <IconComponent className="w-4 h-4" />}
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2 cursor-help">
+                    {icon && <icon className="w-4 h-4" />}
                     <span>{label}</span>
                   </Label>
                 </TooltipTrigger>
-                <TooltipContent
-                  className="bg-gray-900 text-white border-gray-700"
-                  side="right"
+                <TooltipContent 
+                  className="bg-gray-900 text-white border-gray-700 max-w-xs"
+                  side="top"
                   align="center"
                   sideOffset={5}
                 >
@@ -376,8 +354,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               </Tooltip>
             </TooltipProvider>
           ) : (
-            <Label className="flex items-center space-x-2">
-              {IconComponent && <IconComponent className="w-4 h-4" />}
+            <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+              {icon && <icon className="w-4 h-4" />}
               <span>{label}</span>
             </Label>
           )}
