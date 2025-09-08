@@ -367,7 +367,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <Building className="w-5 h-5 text-white" />
             </div>
-            <span>Business Knowledge</span>
+            <span>Your Organisation's Value Proposition</span>
             <Badge variant="secondary" className="ml-2">
               {editedData?.organization_name || ""}
             </Badge>
@@ -441,7 +441,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <div>
                     <TabsTrigger value="dynamic" className="w-full">
                       <TrendingUp className="w-4 h-4 mr-1.5" />
-                      Market Dynamics
+                      Dynamic Supply
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
@@ -453,7 +453,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     <div className="flex items-center space-x-2">
                       <TrendingUp className="w-4 h-4 text-orange-400" />
                       <span className="font-semibold text-white">
-                        Market Dynamics
+                        Dynamic Supply
                       </span>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -494,7 +494,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <div>
                     <TabsTrigger value="offer" className="w-full">
                       <DollarSign className="w-4 h-4 mr-1.5" />
-                      Value Offer
+                      Offer Definition
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
@@ -506,11 +506,11 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     <div className="flex items-center space-x-2">
                       <DollarSign className="w-4 h-4 text-emerald-400" />
                       <span className="font-semibold text-white">
-                        Value Offer Definition
+                        Offer Definition
                       </span>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-start space-x-2">
+                      {/* <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
                           <span className="text-emerald-400 font-medium">
@@ -521,7 +521,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                             unique selling points
                           </p>
                         </div>
-                      </div>
+                      </div> */}
                       <div className="flex items-start space-x-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
                         <div>
@@ -545,72 +545,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                           </p>
                         </div>
                       </div>
-                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                      {/* <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
                         What you offer and why customers should choose you
-                      </p>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <TabsTrigger value="objections" className="w-full">
-                      <AlertCircle className="w-4 h-4 mr-1.5" />
-                      Objections
-                    </TabsTrigger>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="w-4 h-4 text-red-400" />
-                      <span className="font-semibold text-white">
-                        Customer Fit Intelligence
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
-                        <div>
-                          <span className="text-red-400 font-medium">
-                            Pricing Objections:
-                          </span>
-                          <p className="text-slate-300">
-                            Common price-related concerns and proven responses
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
-                        <div>
-                          <span className="text-red-400 font-medium">
-                            Feature Objections:
-                          </span>
-                          <p className="text-slate-300">
-                            Product capability concerns and competitive
-                            comparisons
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
-                        <div>
-                          <span className="text-red-400 font-medium">
-                            Implementation Concerns:
-                          </span>
-                          <p className="text-slate-300">
-                            Timeline, resource, and integration worries
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
-                        Anticipate and address customer concerns proactively
-                      </p>
+                      </p> */}
                     </div>
                   </div>
                 </TooltipContent>
@@ -621,7 +558,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <div>
                     <TabsTrigger value="icp" className="w-full">
                       <Users className="w-4 h-4 mr-1.5" />
-                      Target Customers
+                      Ideal Customer Profile
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
@@ -682,9 +619,72 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
+                    <TabsTrigger value="objections" className="w-full">
+                      <AlertCircle className="w-4 h-4 mr-1.5" />
+                      Customer Fit Intelligence
+                    </TabsTrigger>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  className="max-w-md p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-slate-700 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                      <span className="font-semibold text-white">
+                        Customer Fit Intelligence
+                      </span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-red-400 font-medium">
+                            Prize Criteria:
+                          </span>
+                          <p className="text-slate-300">
+                            Common price-related concerns and proven responses
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-red-400 font-medium">
+                            Feature Objections:
+                          </span>
+                          <p className="text-slate-300">
+                            Product capability concerns and competitive
+                            comparisons
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 flex-shrink-0"></div>
+                        <div>
+                          <span className="text-red-400 font-medium">
+                            Implementation Concerns:
+                          </span>
+                          <p className="text-slate-300">
+                            Timeline, resource, and integration worries
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 italic text-xs border-t border-slate-700 pt-2 mt-3">
+                        Anticipate and address customer concerns proactively
+                      </p>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
                     <TabsTrigger value="methodology" className="w-full">
                       <MessageSquare className="w-4 h-4 mr-1.5" />
-                      Sales Process
+                      Sales Methodology
                     </TabsTrigger>
                   </div>
                 </TooltipTrigger>
@@ -696,7 +696,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="w-4 h-4 text-indigo-400" />
                       <span className="font-semibold text-white">
-                        Sales Process & Methodology
+                        Sales Methodology
                       </span>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -924,7 +924,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <Separator className="my-6" />
 
                   {renderTextField(
-                    "Pain & Problem",
+                    "Pain & Problem that you address",
                     "offer_definition.painProblem",
                     editedData?.offer_definition?.painProblem,
                     true,
@@ -934,7 +934,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <Separator className="my-6" />
 
                   {renderTextField(
-                    "Proof & Differentiator",
+                    "Your differentiation",
                     "offer_definition.proofDifferentiator",
                     editedData?.offer_definition?.proofDifferentiator,
                     true,
@@ -1001,7 +1001,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
                   {renderTextField(
-                    "Prize Criteria",
+                    "Customer Fit Signals",
                     "pricing_and_objections.prizeCriteria",
                     editedData?.pricing_and_objections?.prizeCriteria,
                     true,
@@ -1011,7 +1011,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <Separator className="my-6" />
 
                   {renderArrayField(
-                    "Low Status Triggers",
+                    "Phrases that diminish",
                     "pricing_and_objections.lowStatusTriggers",
                     editedData?.pricing_and_objections?.lowStatusTriggers,
                     "Enter status trigger..."
@@ -1020,7 +1020,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <Separator className="my-6" />
 
                   {renderArrayField(
-                    "Common Prospect Assumptions",
+                    "Unspoken assumptions",
                     "pricing_and_objections.commonProspectAssumptions",
                     editedData?.pricing_and_objections
                       ?.commonProspectAssumptions,
@@ -1109,7 +1109,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   <Separator className="my-6" />
 
                   {renderTextField(
-                    "Key Qualification Information",
+                    "Deal Progression Playbook",
                     "sales_methodology.keyQualificationInfo",
                     editedData?.sales_methodology?.keyQualificationInfo,
                     true,
@@ -1118,13 +1118,13 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
 
                   <Separator className="my-6" />
 
-                  {renderTextField(
+                  {/* {renderTextField(
                     "Go-To Closing Technique",
                     "sales_methodology.goToClosingTechnique",
                     editedData?.sales_methodology?.goToClosingTechnique,
                     true,
                     "What's your primary closing approach..."
-                  )}
+                  )} */}
 
                   <Separator className="my-6" />
 

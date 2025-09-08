@@ -3786,12 +3786,14 @@ export const Settings = () => {
                                           knowledge.created_at
                                         ).toLocaleDateString()}
                                       </span>
-                                      <span>
-                                        Updated:{" "}
-                                        {new Date(
-                                          knowledge.updated_at
-                                        ).toLocaleDateString()}
-                                      </span>
+                                      {knowledge.updated_at != null && (
+                                        <span>
+                                          Updated:{" "}
+                                          {new Date(
+                                            knowledge.updated_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
