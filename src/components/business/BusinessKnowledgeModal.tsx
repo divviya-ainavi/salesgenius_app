@@ -332,6 +332,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     const label = title;
 
     return (
+      <>
         {tooltip ? (
           <TooltipProvider>
             <Tooltip>
@@ -357,6 +358,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
             <span>{label}</span>
           </Label>
         )}
+      </>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
