@@ -323,13 +323,35 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     value: string,
     multiline: boolean = false,
     placeholder: string = ""
-  ) => (
+    icon?: React.ComponentType<{ className?: string }>,
+    tooltip?: string
     <div className="space-y-3">
       <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <span>{title}</span>
-      </Label>
-      {isEditing ? (
+        {tooltip ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="flex items-center space-x-2 cursor-help">
+                  {IconComponent && <IconComponent className="w-4 h-4" />}
+                  <span>{label}</span>
+                </Label>
+              </TooltipTrigger>
+              <TooltipContent 
+                className="bg-gray-900 text-white border-gray-700"
+                side="top"
+                align="center"
+                sideOffset={5}
+              >
+                <p>{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <Label className="flex items-center space-x-2">
+            {IconComponent && <IconComponent className="w-4 h-4" />}
+            <span>{label}</span>
+          </Label>
+        )}
         multiline ? (
           <Textarea
             value={value}
@@ -1005,7 +1027,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "pricing_and_objections.prizeCriteria",
                     editedData?.pricing_and_objections?.prizeCriteria,
                     true,
-                    "What criteria determine success..."
+                    "What criteria determine success...",
+                    undefined,
+                    "Key indicators and criteria that signal a prospect is a good fit for your solution, including behavioral patterns, company characteristics, and decision-making signals"
                   )}
 
                   <Separator className="my-6" />
