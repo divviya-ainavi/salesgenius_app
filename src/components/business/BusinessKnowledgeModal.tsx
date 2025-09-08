@@ -326,59 +326,66 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     icon?: React.ComponentType<{ className?: string }>,
     tooltip?: string
   ) => {
-    <div className="space-y-3">
-      <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
-        {tooltip ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Label className="flex items-center space-x-2 cursor-help">
-                  {IconComponent && <IconComponent className="w-4 h-4" />}
-                  <span>{label}</span>
-                </Label>
-              </TooltipTrigger>
-              <TooltipContent 
-                className="bg-gray-900 text-white border-gray-700"
-                side="top"
-                align="center"
-                sideOffset={5}
-              >
-                <p>{tooltip}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    const IconComponent = icon;
+    const label = title;
+    
+    return (
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+          {tooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label className="flex items-center space-x-2 cursor-help">
+                    {IconComponent && <IconComponent className="w-4 h-4" />}
+                    <span>{label}</span>
+                  </Label>
+                </TooltipTrigger>
+                <TooltipContent 
+                  className="bg-gray-900 text-white border-gray-700"
+                  side="top"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Label className="flex items-center space-x-2">
+              {IconComponent && <IconComponent className="w-4 h-4" />}
+              <span>{label}</span>
+            </Label>
+          )}
+        </Label>
+        {isEditing ? (
+          multiline ? (
+            <Textarea
+              value={value}
+              onChange={(e) => handleInputChange(path, e.target.value)}
+              placeholder={placeholder}
+              className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+            />
+          ) : (
+            <Input
+              value={value}
+              onChange={(e) => handleInputChange(path, e.target.value)}
+              placeholder={placeholder}
+              className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+            />
+          )
         ) : (
-          <Label className="flex items-center space-x-2">
-            {IconComponent && <IconComponent className="w-4 h-4" />}
-            <span>{label}</span>
-          </Label>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {value || (
+                <span className="italic text-gray-500">No content available</span>
+              )}
+            </p>
+          </div>
         )}
-        multiline ? (
-          <Textarea
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
-        ) : (
-          <Input
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
-        )
-      ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {value || (
-              <span className="italic text-gray-500">No content available</span>
-            )}
-          </p>
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   if (!editedData) return null;
 
@@ -886,7 +893,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Current Adaptations & Pivots",
                     "dynamic_supply_elements.currentAdaptationsPivots",
                     editedData?.dynamic_supply_elements
-                      .currentAdaptationsPivots,
+                      ?.currentAdaptationsPivots,
                     "Enter adaptation or pivot..."
                   )}
 
@@ -895,7 +902,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Response to Market Trends",
                     "dynamic_supply_elements.responseToTrends",
-                    editedData.dynamic_supply_elements.responseToTrends,
+                    editedData?.dynamic_supply_elements?.responseToTrends,
                     "Enter trend response..."
                   )}
 
