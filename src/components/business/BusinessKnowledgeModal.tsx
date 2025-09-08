@@ -1038,6 +1038,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "What criteria determine success...",
                     undefined,
                     "Key indicators and criteria that signal a prospect is a good fit for your solution, including behavioral patterns, company characteristics, and decision-making signals"
+                    undefined,
+                    "Key indicators and criteria that signal a prospect is a good fit for your solution, including behavioral patterns, company characteristics, and decision-making signals"
                   )}
 
                   <Separator className="my-6" />
