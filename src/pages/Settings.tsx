@@ -2689,8 +2689,8 @@ export const Settings = () => {
                           Access Token in your HubSpot account under:
                         </p>
                         <p>
-                          Settings → Integrations → Private Apps → Create/View
-                          Token
+                          Settings → Integrations → Legacy Apps → Create App →
+                          Add scopes → Token
                         </p>
                       </div>
                     </div>
