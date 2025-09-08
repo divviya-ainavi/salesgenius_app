@@ -322,9 +322,10 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     path: string,
     value: string,
     multiline: boolean = false,
-    placeholder: string = ""
+    placeholder: string = "",
     icon?: React.ComponentType<{ className?: string }>,
     tooltip?: string
+  ) => {
     <div className="space-y-3">
       <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
         {tooltip ? (
