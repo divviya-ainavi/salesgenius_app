@@ -1495,13 +1495,6 @@ export const Settings = () => {
         );
       }
 
-      // Parse the JSON response
-      const responseData = await response.json();
-      console.log("📊 API Response Data:", responseData);
-
-      const apiData = responseData;
-      console.log("API Response:", apiData);
-
       const result = await response.json();
 
       if (result.success || result.valid) {
@@ -1583,17 +1576,16 @@ export const Settings = () => {
         //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
         //       ...result.account_info,
         //     },
-        if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-          const businessData = apiData[0];
+        //   })
+        // );
 
-          toast.success("HubSpot connection verified successfully");
-          setHubspotToken(""); // Clear the input field
-        } else {
-          setHubspotError(
-            "Invalid HubSpot token. Please check your token and try again."
-          );
-          toast.error("HubSpot connection is invalid");
-        }
+        toast.success("HubSpot connection verified successfully");
+        setHubspotToken(""); // Clear the input field
+      } else {
+        setHubspotError(
+          "Invalid HubSpot token. Please check your token and try again."
+        );
+        toast.error("HubSpot connection is invalid");
       }
     } catch (error) {
       console.error("Error checking HubSpot connection:", error);

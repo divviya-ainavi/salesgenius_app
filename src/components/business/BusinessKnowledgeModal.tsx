@@ -167,7 +167,6 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     for (let i = 0; i < pathArray?.length - 1; i++) {
       current = current[pathArray[i]];
     }
-
     const array = current[pathArray[pathArray?.length - 1]];
     if (Array.isArray(array)) {
       array.push("");
@@ -253,13 +252,32 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     title: string,
     path: string,
     items: string[],
-    placeholder: string = "Enter item..."
+    placeholder: string = "Enter item...",
+    tooltip: string
   ) => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span>{title}</span>
+          {tooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{title}</span>
+                </TooltipTrigger>
+                <TooltipContent
+                  className="bg-gray-900 text-white border-gray-700"
+                  side="right"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span>{title}</span>
+          )}
         </Label>
         {isEditing && (
           <Button
@@ -322,40 +340,72 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
     path: string,
     value: string,
     multiline: boolean = false,
-    placeholder: string = ""
-  ) => (
-    <div className="space-y-3">
-      <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <span>{title}</span>
-      </Label>
-      {isEditing ? (
-        multiline ? (
-          <Textarea
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
+    placeholder: string = "",
+    icon?: React.ComponentType<{ className?: string }>,
+    tooltip?: string
+  ) => {
+    const IconComponent = icon;
+    const label = title;
+
+    return (
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
+          {tooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label className="flex items-center space-x-2 cursor-help">
+                    {IconComponent && <IconComponent className="w-4 h-4" />}
+                    <span>{label}</span>
+                  </Label>
+                </TooltipTrigger>
+                <TooltipContent
+                  className="bg-gray-900 text-white border-gray-700"
+                  side="right"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Label className="flex items-center space-x-2">
+              {IconComponent && <IconComponent className="w-4 h-4" />}
+              <span>{label}</span>
+            </Label>
+          )}
+        </Label>
+        {isEditing ? (
+          multiline ? (
+            <Textarea
+              value={value}
+              onChange={(e) => handleInputChange(path, e.target.value)}
+              placeholder={placeholder}
+              className="min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+            />
+          ) : (
+            <Input
+              value={value}
+              onChange={(e) => handleInputChange(path, e.target.value)}
+              placeholder={placeholder}
+              className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+            />
+          )
         ) : (
-          <Input
-            value={value}
-            onChange={(e) => handleInputChange(path, e.target.value)}
-            placeholder={placeholder}
-            className="border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
-          />
-        )
-      ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {value || (
-              <span className="italic text-gray-500">No content available</span>
-            )}
-          </p>
-        </div>
-      )}
-    </div>
-  );
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {value || (
+                <span className="italic text-gray-500">
+                  No content available
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!editedData) return null;
 
@@ -863,7 +913,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Current Adaptations & Pivots",
                     "dynamic_supply_elements.currentAdaptationsPivots",
                     editedData?.dynamic_supply_elements
-                      .currentAdaptationsPivots,
+                      ?.currentAdaptationsPivots,
                     "Enter adaptation or pivot..."
                   )}
 
@@ -872,7 +922,7 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                   {renderArrayField(
                     "Response to Market Trends",
                     "dynamic_supply_elements.responseToTrends",
-                    editedData.dynamic_supply_elements.responseToTrends,
+                    editedData?.dynamic_supply_elements?.responseToTrends,
                     "Enter trend response..."
                   )}
 
@@ -1005,7 +1055,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "pricing_and_objections.prizeCriteria",
                     editedData?.pricing_and_objections?.prizeCriteria,
                     true,
-                    "What criteria determine success..."
+                    "What criteria determine success...",
+                    undefined,
+                    "Focuses on the necessary ingredients on a mutual victory, not just qualification"
                   )}
 
                   <Separator className="my-6" />
@@ -1014,7 +1066,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "Phrases that diminish",
                     "pricing_and_objections.lowStatusTriggers",
                     editedData?.pricing_and_objections?.lowStatusTriggers,
-                    "Enter status trigger..."
+                    "Enter status trigger...",
+                    "Name the prospect's tactic, coach reps to avoid being commoditized"
                   )}
 
                   <Separator className="my-6" />
@@ -1024,7 +1077,8 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "pricing_and_objections.commonProspectAssumptions",
                     editedData?.pricing_and_objections
                       ?.commonProspectAssumptions,
-                    "Enter prospect assumption..."
+                    "Enter prospect assumption...",
+                    "Frames unstated beliefs as active obstacles proactively uncovered and addressed."
                   )}
                 </CardContent>
               </Card>
@@ -1113,7 +1167,9 @@ export const BusinessKnowledgeModal: React.FC<BusinessKnowledgeModalProps> = ({
                     "sales_methodology.keyQualificationInfo",
                     editedData?.sales_methodology?.keyQualificationInfo,
                     true,
-                    "How do you qualify prospects..."
+                    "How do you qualify prospects...",
+                    undefined,
+                    "What must be accomplished to move the deal throught the different stages"
                   )}
 
                   <Separator className="my-6" />
