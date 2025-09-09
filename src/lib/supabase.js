@@ -2072,26 +2072,28 @@ export const dbHelpers = {
   // Save business knowledge data to database
   async saveBusinessKnowledgeData(data, organizationId, userId, fileIds = []) {
     try {
+      const insertData = {
+        organization_id: organizationId,
+        user_id: userId,
+        organization_name: data.organizationName,
+        static_supply_elements: data.staticSupplyElements,
+        dynamic_supply_elements: data.dynamicSupplyElements,
+        offer_definition: data.offerDefinition,
+        pricing_and_objections: data.prizingAndObjections,
+        icp: data.ICP,
+        reframe_narratives: data.reframeNarratives,
+        sales_methodology: data.salesMethodology,
+        brand_voice_guidelines: data.brandVoiceGuidelines,
+        assets_detected: data.assetsDetected,
+        sources: data.sources,
+        summary_note: data.summaryNote,
+        processed_file_ids: fileIds,
+        others: data.others || null
+      }
+
       const { data: savedData, error } = await supabase
         .from('business_knowledge_org')
-        .upsert([{
-          organization_id: organizationId,
-          user_id: userId,
-          organization_name: data.organizationName,
-          static_supply_elements: data.staticSupplyElements,
-          dynamic_supply_elements: data.dynamicSupplyElements,
-          offer_definition: data.offerDefinition,
-          pricing_and_objections: data.pricingAndObjections,
-          icp: data.icp,
-          reframe_narratives: data.reframeNarratives,
-          sales_methodology: data.salesMethodology,
-          brand_voice_guidelines: data.brandVoiceGuidelines,
-          assets_detected: data.assetsDetected,
-          sources: data.sources,
-          summary_note: data.summaryNote,
-          processed_file_ids: fileIds,
-          others: data.others || null
-        }])
+        .upsert([insertData])
         .select()
         .single();
 
@@ -4334,8 +4336,8 @@ export const dbHelpers = {
         static_supply_elements: businessData.static_supply_elements,
         dynamic_supply_elements: businessData.dynamic_supply_elements,
         offer_definition: businessData.offer_definition,
-        pricing_and_objections: businessData.pricing_and_objections,
-        icp: businessData.icp,
+        pricing_and_objections: businessData.prizingAndObjections,
+        icp: businessData.ICP,
         reframe_narratives: businessData.reframe_narratives,
         sales_methodology: businessData.sales_methodology,
         brand_voice_guidelines: businessData.brand_voice_guidelines,

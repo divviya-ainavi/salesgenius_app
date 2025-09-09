@@ -510,18 +510,61 @@ export const SalesCalls = () => {
 
   DEMAND SIDE: PROSPECT NEED's
   Static Demand Elements
+  Industry Requirements
   ${
-    selectedCompanyResearch?.demand_side?.staticElements
-      ?.map((trend, index) => `${index + 1}. ${trend}`)
-      .join("\n") || "None listed"
-  }
-  Dynamic Demand Elements
-  ${
-    selectedCompanyResearch?.demand_side?.dynamicElements
+    selectedCompanyResearch?.demand_side?.staticElements?.industryRequirements
       ?.map((trend, index) => `${index + 1}. ${trend}`)
       .join("\n") || "None listed"
   }
 
+  Operational Needs
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.operationalNeeds
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Recurring Problems
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.recurringProblems
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Geo Size Requirements
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.recurringProblems
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Dynamic Demand Elements
+  Market Pressures
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.marketPressures
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Technology Disruptions
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.technologyDisruptions
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Competitive Threats
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.competitiveThreats
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Growth Phase Demands
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.growthPhaseDemands
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
       `.trim();
       // Format the research result as readable text
       const formattedText = `
