@@ -145,6 +145,23 @@ interface StoredResearch {
 const Research = () => {
   usePageTimer("Research");
 
+
+  // Function to render dynamic content with SC- Supply context replacement
+  const renderDynamicContent = (text) => {
+    if (!researchResult?.is_new || !text.startsWith("SC- Supply context")) {
+      return text;
+    }
+    
+    return (
+      <>
+        <span className="bg-blue-50/80 text-blue-700 px-3 py-1.5 rounded-full text-xs font-medium border border-blue-200/50 shadow-sm mr-2">
+          Organisations value
+        </span>
+        {text.substring("SC- Supply context".length)}
+      </>
+    );
+  };
+
   const [currentView, setCurrentView] = useState<
     "form" | "results" | "history"
   >("form");
