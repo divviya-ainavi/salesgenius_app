@@ -586,7 +586,7 @@ export const Settings = () => {
         user?.organization_id,
         user?.id
       );
-      console.log(data, "check business knowledge data");
+      // console.log(data, "check business knowledge data");
       setBusinessOrgData(data);
       const cleanedData = data.map(
         ({
@@ -700,6 +700,89 @@ export const Settings = () => {
     });
   };
 
+  // const handleFirefliesConnect = async () => {
+  //   if (!firefliesToken.trim()) {
+  //     toast.error("Please enter a valid Fireflies API token");
+  //     return;
+  //   }
+
+  //   const payload = {
+  //     pat: firefliesToken.trim(),
+  //   };
+
+  //   // Encrypt the token using JWT
+  //   const jwtToken = createJWT(payload);
+  //   const formData = new FormData();
+  //   formData.append("token", jwtToken);
+  //   setIsConnectingFireflies(true);
+
+  //   try {
+  //     // Validate token with Fireflies API
+  //     // const response = await fetch(`${config.api.baseUrl}FF-check`, {
+  //     //   method: "POST",
+  //     //   headers: {
+  //     //     "Content-Type": "application/json",
+  //     //   },
+  //     //   body: formData,
+  //     // });
+  //     const response = await fetch(
+  //       `${config.api.baseUrl}${config.api.endpoints.firefliesConnectionCheck}`,
+  //       {
+  //         method: "POST",
+  //         body: formData,
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("Invalid Fireflies token or API error");
+  //     }
+
+  //     const result = await response.json();
+
+  //     // Check if the token validation was successful
+  //     // Extract others data from API response
+  //     const othersData = result.others || null;
+  //     console.log("📋 Others data extracted:", othersData);
+
+  //     if (!result.success && !result.valid) {
+  //       throw new Error("Invalid Fireflies token");
+  //     }
+
+  //     // Encrypt the token before saving
+  //     const encryptedToken = CryptoJS.AES.encrypt(
+  //       firefliesToken.trim(),
+  //       "SG"
+  //     ).toString();
+
+  //     const savedData = await dbHelpers.saveBusinessKnowledgeWithOthers(
+  //       user.organization_id,
+  //       user.id,
+  //       result,
+  //       othersData
+  //     );
+
+  //     // Save encrypted token to database
+  //     await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
+  //     const updatedUser = {
+  //       ...user,
+  //       fireflies_connected: true,
+  //     };
+
+  //     dispatch(setUser(updatedUser)); // update Redux store
+  //     // Update local state
+  //     setFirefliesStatus({ connected: true, hasToken: true });
+  //     setFirefliesToken("");
+
+  //     toast.success("Fireflies integration connected successfully!");
+  //   } catch (error) {
+  //     console.error("Error connecting Fireflies:", error);
+  //     toast.error(`Failed to connect Fireflies: ${error.message}`);
+  //   } finally {
+  //     setIsConnectingFireflies(false);
+  //   }
+  // };
+  // console.log(user, "check settings");
+
   const handleFirefliesConnect = async () => {
     if (!firefliesToken.trim()) {
       toast.error("Please enter a valid Fireflies API token");
@@ -740,26 +823,12 @@ export const Settings = () => {
       const result = await response.json();
 
       // Check if the token validation was successful
-      // Extract others data from API response
-      const othersData = result.others || null;
-      console.log("📋 Others data extracted:", othersData);
-
       if (!result.success && !result.valid) {
         throw new Error("Invalid Fireflies token");
       }
 
-      // Encrypt the token before saving
-      const encryptedToken = CryptoJS.AES.encrypt(
-        firefliesToken.trim(),
-        "SG"
-      ).toString();
-
-      const savedData = await dbHelpers.saveBusinessKnowledgeWithOthers(
-        user.organization_id,
-        user.id,
-        result,
-        othersData
-      );
+      // Encrypt the token using the same method as HubSpot
+      const encryptedToken = jwtToken;
 
       // Save encrypted token to database
       await dbHelpers.saveUserFirefliesToken(user?.id, encryptedToken);
@@ -781,7 +850,7 @@ export const Settings = () => {
       setIsConnectingFireflies(false);
     }
   };
-  // console.log(user, "check settings");
+
   const handleFirefliesDisconnect = async () => {
     setIsDisconnectingFireflies(true);
 

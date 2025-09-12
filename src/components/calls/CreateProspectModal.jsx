@@ -99,6 +99,7 @@ export const CreateProspectModal = ({
                 id: user.organization_id,
                 company_id: selectedCompany?.hubspot_company_id,
                 deal_name: formData.name.trim(),
+                dealstage: "appointmentscheduled",
               }),
             }
           );
@@ -110,11 +111,11 @@ export const CreateProspectModal = ({
           }
 
           const hubspotApiData = await hubspotResponse.json();
-          console.log(
-            hubspotApiData,
-            hubspotApiData?.[0],
-            "HubSpot API Response Data"
-          );
+          // console.log(
+          //   hubspotApiData,
+          //   hubspotApiData?.[0],
+          //   "HubSpot API Response Data"
+          // );
 
           // Extract HubSpot company data from API response
           if (hubspotApiData && hubspotApiData.length > 0) {
@@ -139,6 +140,7 @@ export const CreateProspectModal = ({
       console.log(hubspotDealData, "HubSpot Deal Data");
       // Add HubSpot-specific fields if HubSpot creation was successful
       if (hubspotDealData) {
+        dealData.deal_stage = hubspotDealData?.deal?.properties?.dealstage;
         dealData.hubspot_deal_id = hubspotDealData?.deal.id;
         dealData.is_hubspot = true;
         dealData.hubspot_created_at = hubspotDealData?.deal?.createdAt
