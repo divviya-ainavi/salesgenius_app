@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -33,6 +39,26 @@ import {
   Trash2,
   ChevronRight,
   ChevronLeft,
+  Users,
+  Briefcase,
+  Globe,
+  DollarSign,
+  Rocket,
+  ArrowRight,
+  ShieldOff,
+  Shield,
+  PieChart,
+  Activity,
+  Compass,
+  Star,
+  Brain,
+  Zap,
+  HelpCircle,
+  Package,
+  Award,
+  Clock,
+  Network,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
@@ -119,6 +145,22 @@ interface StoredResearch {
 const Research = () => {
   usePageTimer("Research");
 
+  // Function to render dynamic content with SC- Supply context replacement
+  const renderDynamicContent = (text) => {
+    if (!researchResult?.is_new || !text.startsWith("SC- Supply context")) {
+      return text;
+    }
+
+    return (
+      <span className="bg-blue-50/60 px-2 py-1 rounded-md">
+        <span className="bg-blue-100/90 text-blue-800 px-2 py-1 rounded-full text-xs font-medium border border-blue-300/40 shadow-sm mr-1">
+          Organisation's Proposition
+        </span>
+        <span className="text-xs">{text.substring("SC- Supply context".length)}</span>
+      </span>
+    );
+  };
+
   const [currentView, setCurrentView] = useState<
     "form" | "results" | "history"
   >("form");
@@ -148,6 +190,20 @@ const Research = () => {
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({});
+  const { businessKnowledge, personalInsightKnowledge } = useSelector(
+    (state) => state.org
+  );
+
+  console.log("business knowledge data", businessKnowledge);
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  };
 
   const [historySearch, setHistorySearch] = useState("");
   const filteredHistory =
@@ -304,11 +360,59 @@ const Research = () => {
     if (!isFormValid) return;
 
     setIsLoading(true);
+
+    const fieldsToRemove = [
+      "id",
+      "organization_id",
+      "user_id",
+      "processed_file_ids",
+      "is_active",
+      "updated_at",
+      "created_at",
+    ];
+
+    // const cleanedData = businessKnowledge.map(
+    //   ({
+    //     id,
+    //     organization_id,
+    //     user_id,
+    //     processed_file_ids,
+    //     is_active,
+    //     updated_at,
+    //     created_at,
+    //     ...rest
+    //   }) => rest
+    // );
     try {
       // Create FormData for API request with proper file handling
+      const organization_context =
+        businessKnowledge?.length > 0
+          ? JSON.stringify(businessKnowledge)
+          : null;
+      const orgContext =
+        businessKnowledge?.length > 0 && businessKnowledge != null
+          ? "Seller Organization Contexts:" + JSON.stringify(businessKnowledge)
+          : "";
+      const repContext =
+        personalInsightKnowledge?.length > 0 && personalInsightKnowledge != null
+          ? "Seller Rep Contexts:" + JSON.stringify(personalInsightKnowledge)
+          : "";
+      const contextData =
+        businessKnowledge?.length > 0 &&
+        businessKnowledge != null &&
+        personalInsightKnowledge?.length > 0 &&
+        personalInsightKnowledge != null
+          ? orgContext + repContext
+          : businessKnowledge?.length > 0 && businessKnowledge != null
+          ? orgContext
+          : personalInsightKnowledge?.length > 0 &&
+            personalInsightKnowledge != null
+          ? repContext
+          : "";
       const apiFormData = new FormData();
       apiFormData.append("companyName", formData.companyName);
       apiFormData.append("companyUrl", formData.companyWebsite);
+      apiFormData.append("org_context", organization_context);
 
       // Add files to FormData with consistent naming
       uploadedFiles.forEach((file, index) => {
@@ -398,9 +502,11 @@ const Research = () => {
 
       const apiResponseData = await response.json();
       const data = apiResponseData;
-      const result = data[0]?.output;
+      // const result = data[0]?.output;
+      const result = data?.[0];
 
-      const output = result.output || result;
+      // const output = result.output || result;
+      const output = result;
 
       for (const fileItem of uploadedFiles) {
         try {
@@ -441,6 +547,11 @@ const Research = () => {
         recommendations: output.recommendations || {},
         prospectProfiles: output?.prospectProfiles || [],
         profiles: uploadedFileData || [],
+        executiveSummary: output?.executiveSummary,
+        companyAnalysisDetails: output?.companyAnalysisDetails,
+        marketAnalysis: output?.marketAnalysis,
+        demandSide: output?.demandSide,
+        is_new: true,
       });
 
       await dbHelpers.saveResearchCompany({
@@ -448,7 +559,7 @@ const Research = () => {
         company_name: formData.companyName,
         company_url: formData.companyWebsite,
         prospect_urls: uploadedFileUrls || [],
-        company_analysis: output.companyOverview,
+        // company_analysis: output.companyOverview,
         prospect_analysis: "",
         sources: output.sources || [],
         recommendations: JSON.stringify(output.recommendations || {}),
@@ -462,6 +573,12 @@ const Research = () => {
         sector: output.sector || "",
         prospectProfiles: output?.prospectProfiles || [],
         profiles: uploadedFileData,
+        executive_summary: output?.executiveSummary || {},
+        company_overview: output?.companyOverview || "",
+        company_analysis_details: output?.companyAnalysisDetails || {},
+        market_analysis: output?.marketAnalysis || {},
+        demand_side: output?.demandSide || {},
+        is_new: true,
       });
       await refreshHistory();
       setCurrentView("results");
@@ -526,7 +643,6 @@ const Research = () => {
     // Convert stored research back to ResearchResult format
     const result: ResearchResult = {
       companyName: storedResearch.company_name,
-      companyOverview: storedResearch.company_analysis,
       sector: storedResearch.sector,
       size: storedResearch.size,
       geographicScope: storedResearch.geographic_scope,
@@ -543,6 +659,14 @@ const Research = () => {
         ? storedResearch.prospectProfiles.map((profile) => JSON.parse(profile))
         : [],
       profiles: [], // Will be loaded separately if needed
+      executiveSummary: storedResearch?.executive_summary,
+      companyOverview: storedResearch?.is_new
+        ? storedResearch?.company_overview
+        : storedResearch?.company_analysis,
+      companyAnalysisDetails: storedResearch?.company_analysis_details,
+      marketAnalysis: storedResearch?.market_analysis,
+      demandSide: storedResearch?.demand_side,
+      is_new: storedResearch?.is_new || false,
     };
 
     setResearchResult(result);
@@ -603,157 +727,370 @@ Generated by SalesGenius.ai on ${new Date().toLocaleDateString()}`;
   const handleCopy = async () => {
     if (!researchResult) return;
 
-    try {
-      // Helper function to format recommendations object as readable text
-      const formatRecommendations = (recommendations) => {
-        if (typeof recommendations === "string") {
-          return recommendations;
-        }
+    // ---------- helpers ----------
+    const formatList = (arr?: any[], bullet = "•") =>
+      Array.isArray(arr) && arr.length
+        ? arr
+            .map((v, i) =>
+              typeof v === "string"
+                ? `${bullet} ${v}`
+                : `${bullet} ${JSON.stringify(v)}`
+            )
+            .join("\n")
+        : "None listed";
 
-        if (!recommendations || typeof recommendations !== "object") {
-          return "No recommendations available";
-        }
+    const numbered = (arr?: any[]) =>
+      Array.isArray(arr) && arr.length
+        ? arr.map((v, i) => `${i + 1}. ${v}`).join("\n")
+        : "None listed";
 
-        let formatted = "";
+    const normalizeTitle = (s: string) =>
+      s
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/_/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
 
-        if (recommendations.primaryMeetingGoal) {
-          formatted += `PRIMARY MEETING GOAL\n${recommendations.primaryMeetingGoal}\n\n`;
-        }
-
+    const formatKeyValBlock = (
+      obj: Record<string, any>,
+      knownKeys: string[] = []
+    ) => {
+      let out = "";
+      Object.keys(obj || {}).forEach((key) => {
+        if (knownKeys.includes(key)) return;
+        const val = obj[key];
         if (
-          recommendations.keyTalkingPoints &&
-          Array.isArray(recommendations.keyTalkingPoints)
-        ) {
-          formatted += `KEY TALKING POINTS\n`;
-          recommendations.keyTalkingPoints.forEach((point, index) => {
-            formatted += `${index + 1}. ${point}\n`;
-          });
-          formatted += "\n";
-        }
+          val == null ||
+          val === "" ||
+          (Array.isArray(val) && val.length === 0)
+        )
+          return;
 
-        if (
-          recommendations.highImpactSalesQuestions &&
-          Array.isArray(recommendations.highImpactSalesQuestions)
-        ) {
-          formatted += `HIGH-IMPACT SALES QUESTIONS\n`;
-          recommendations.highImpactSalesQuestions.forEach(
-            (question, index) => {
-              formatted += `${index + 1}. ${question}\n`;
-            }
-          );
-          formatted += "\n";
-        }
+        out += `${normalizeTitle(key)}\n`;
+        out += Array.isArray(val)
+          ? `${numbered(val)}\n\n`
+          : `${String(val)}\n\n`;
+      });
+      return out.trimEnd();
+    };
 
-        if (
-          recommendations.anticipatedObjections &&
-          Array.isArray(recommendations.anticipatedObjections)
-        ) {
-          formatted += `ANTICIPATED OBJECTIONS\n`;
-          recommendations.anticipatedObjections.forEach((objection, index) => {
-            formatted += `${index + 1}. ${objection}\n`;
-          });
-          formatted += "\n";
-        }
+    // ---------- legacy formatter (your existing structure) ----------
+    const formatRecommendationsLegacy = (recommendations: any) => {
+      if (typeof recommendations === "string") return recommendations;
+      if (!recommendations || typeof recommendations !== "object")
+        return "No recommendations available";
 
-        if (
-          recommendations.meetingChecklist &&
-          Array.isArray(recommendations.meetingChecklist)
-        ) {
-          formatted += `MEETING PREPARATION CHECKLIST\n`;
-          recommendations.meetingChecklist.forEach((item, index) => {
-            formatted += `${index + 1}. ${item}\n`;
-          });
-          formatted += "\n";
-        }
+      let formatted = "";
 
-        // Handle any other properties
-        Object.keys(recommendations).forEach((key) => {
-          if (
-            ![
-              "primaryMeetingGoal",
-              "keyTalkingPoints",
-              "highImpactSalesQuestions",
-              "anticipatedObjections",
-              "meetingChecklist",
-            ].includes(key)
-          ) {
-            formatted += `${key
-              .toUpperCase()
-              .replace(/([A-Z])/g, " $1")
-              .trim()}\n${recommendations[key]}\n\n`;
-          }
-        });
+      if (recommendations.primaryMeetingGoal) {
+        formatted += `PRIMARY MEETING GOAL\n${recommendations.primaryMeetingGoal}\n\n`;
+      }
 
-        return formatted;
-      };
+      if (Array.isArray(recommendations.keyTalkingPoints)) {
+        formatted += `KEY TALKING POINTS\n${numbered(
+          recommendations.keyTalkingPoints
+        )}\n\n`;
+      }
 
-      // Format the research result as readable text
-      const formattedText = `
+      if (Array.isArray(recommendations.highImpactSalesQuestions)) {
+        formatted += `HIGH-IMPACT SALES QUESTIONS\n${numbered(
+          recommendations.highImpactSalesQuestions
+        )}\n\n`;
+      }
+
+      if (Array.isArray(recommendations.anticipatedObjections)) {
+        formatted += `ANTICIPATED OBJECTIONS\n${numbered(
+          recommendations.anticipatedObjections
+        )}\n\n`;
+      }
+
+      if (Array.isArray(recommendations.meetingChecklist)) {
+        formatted += `MEETING PREPARATION CHECKLIST\n${numbered(
+          recommendations.meetingChecklist
+        )}\n\n`;
+      }
+
+      // any remaining keys
+      const known = [
+        "primaryMeetingGoal",
+        "keyTalkingPoints",
+        "highImpactSalesQuestions",
+        "anticipatedObjections",
+        "meetingChecklist",
+      ];
+      formatted += formatKeyValBlock(recommendations, known);
+
+      return formatted.trimEnd();
+    };
+
+    const buildFormattedTextLegacy = (d: any) => {
+      const growth = Array.isArray(d.growthOpportunities)
+        ? d.growthOpportunities
+            .map((x: string, i: number) => `${i + 1}. ${x}`)
+            .join("\n")
+        : "None listed";
+
+      const trends = Array.isArray(d.marketTrends)
+        ? d.marketTrends
+            .map((x: string, i: number) => `${i + 1}. ${x}`)
+            .join("\n")
+        : "None listed";
+
+      const profiles =
+        Array.isArray(d.prospectProfiles) && d.prospectProfiles.length > 0
+          ? `Prospect Profiles\n${d.prospectProfiles
+              .map(
+                (p: any) =>
+                  `${p.name}\nCommunication Style:\n${p.communicationStyle}\nPersonality Type:\n${p.personalityType}`
+              )
+              .join("\n\n")}`
+          : "";
+
+      const sources = Array.isArray(d.sources)
+        ? d.sources.map((s: string, i: number) => `${i + 1}. ${s}`).join("\n")
+        : "None listed";
+
+      return `
 COMPANY RESEARCH ANALYSIS
 ========================
 
-Company: ${researchResult.companyName}
+Company: ${d.companyName}
 
 COMPANY OVERVIEW
 ----------------
-${researchResult.companyOverview}
+${d.companyOverview || "—"}
 
 KEY DETAILS
 -----------
-• Sector: ${researchResult.sector}
-• Company Size: ${researchResult.size}
-• Geographic Scope: ${researchResult.geographicScope}
-• Nature of Business: ${researchResult.natureOfBusiness}
-• Key Positioning: ${researchResult.keyPositioning}
+• Sector: ${d.sector}
+• Company Size: ${d.size}
+• Geographic Scope: ${d.geographicScope}
+• Nature of Business: ${d.natureOfBusiness}
+• Key Positioning: ${d.keyPositioning}
 
 GROWTH OPPORTUNITIES
 --------------------
-${
-  researchResult.growthOpportunities
-    ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
-    .join("\n") || "None listed"
-}
+${growth}
 
 MARKET TRENDS
 -------------
-${
-  researchResult.marketTrends
-    ?.map((trend, index) => `${index + 1}. ${trend}`)
-    .join("\n") || "None listed"
-}
+${trends}
 
 SUMMARY NOTE
 ------------
-${researchResult.summaryNote}
+${d.summaryNote || "—"}
 
 PROFILES
-----------
-${
-  researchResult.prospectProfiles && researchResult.prospectProfiles.length > 0
-    ? `Prospect Profiles\n${researchResult.prospectProfiles
-        .map(
-          (profile, index) =>
-            `${profile.name}\nCommunication Style:\n${profile.communicationStyle}\nPersonality Type:\n${profile.personalityType}`
-        )
-        .join("\n\n")}`
-    : ""
-}
-
-SOURCES
--------
-${
-  researchResult.sources
-    ?.map((source, index) => `${index + 1}. ${source}`)
-    .join("\n") || "None listed"
-}
+--------
+${profiles}
 
 SALES RECOMMENDATIONS
 ---------------------
-${formatRecommendations(researchResult.recommendations)}
+${formatRecommendationsLegacy(d.recommendations)}
+
+SOURCES
+-------
+${sources}
 
 Generated by SalesGenius.ai
-      `.trim();
+`.trim();
+    };
 
+    // ---------- new formatter (for is_new === true structure) ----------
+    const formatRecommendationsNew = (recs: any) => {
+      if (!recs || typeof recs !== "object")
+        return "No recommendations available";
+      let out = "";
+
+      // map common/known sections to friendly titles
+      const map: Record<string, string> = {
+        primaryMeetingGoal: "PRIMARY MEETING GOAL",
+        keyTalkingPoints: "KEY TALKING POINTS",
+        discoveryQuestions: "DISCOVERY QUESTIONS",
+        highImpactSalesQuestions: "HIGH-IMPACT SALES QUESTIONS",
+        anticipatedObjections: "ANTICIPATED OBJECTIONS",
+        positioningLevers: "POSITIONING LEVERS",
+        scarcityAndPrizingAngles: "SCARCITY & PRIZING ANGLES",
+        engagementMomentum: "ENGAGEMENT MOMENTUM",
+        offerPackagingGuidance: "OFFER PACKAGING GUIDANCE",
+        leadGenerationLeverage: "LEAD GENERATION LEVERAGE",
+        meetingPreparationChecklist: "MEETING PREPARATION CHECKLIST",
+        meetingChecklist: "MEETING PREPARATION CHECKLIST",
+      };
+
+      const handledKeys: string[] = [];
+
+      Object.keys(map).forEach((k) => {
+        if (recs[k] == null) return;
+        handledKeys.push(k);
+        const title = map[k];
+        const val = recs[k];
+        out += `${title}\n`;
+        out += Array.isArray(val)
+          ? `${numbered(val)}\n\n`
+          : `${String(val)}\n\n`;
+      });
+
+      // anything else, nicely printed
+      out += formatKeyValBlock(recs, handledKeys);
+
+      return out.trimEnd();
+    };
+
+    const formatDemandSide = (demandSide: any) => {
+      if (!demandSide || typeof demandSide !== "object") return "None listed";
+
+      const formatSection = (title: string, data: Record<string, any[]>) => {
+        if (!data || typeof data !== "object") return "";
+
+        return Object.keys(data)
+          .map((key) => {
+            const normalizedKey = normalizeTitle(key); // e.g., "operationalNeeds" → "OPERATIONAL NEEDS"
+            const items = data[key];
+            return `${normalizedKey}\n${numbered(items)}\n`;
+          })
+          .join("\n");
+      };
+      console.log(
+        demandSide,
+        demandSide.staticElements,
+        "static elements",
+        demandSide.dynamicElements,
+        "DYNAMIC ELEMENTS"
+      );
+      const staticText = formatSection(
+        "STATIC ELEMENTS",
+        demandSide.staticElements
+      );
+      const dynamicText = formatSection(
+        "DYNAMIC ELEMENTS",
+        demandSide.dynamicElements
+      );
+
+      return `DEMAND-SIDE: PROSPECT'S NEEDS
+-------------------
+
+STATIC ELEMENTS
+--------------
+${staticText.trim() || "None listed"}
+
+DYNAMIC ELEMENTS
+---------------
+${dynamicText.trim() || "None listed"}`;
+    };
+    const buildFormattedTextNew = (d: any) => {
+      const exec = d.executiveSummary || {};
+      const company = d.companyAnalysisDetails || {};
+      const market = d.marketAnalysis || {};
+      const demand = d.demandSide || {};
+
+      const profiles =
+        Array.isArray(d.prospectProfiles) && d.prospectProfiles.length
+          ? d.prospectProfiles
+              .map((p: any, i: number) => {
+                const lines = [
+                  `Name: ${p.name || "—"}`,
+                  p.title ? `Title: ${p.title}` : null,
+                  p.seniorityLevel ? `Seniority: ${p.seniorityLevel}` : null,
+                  p.roleInDecisionMaking
+                    ? `Buying Role: ${p.roleInDecisionMaking}`
+                    : null,
+                  p.publicProfessionalBackground
+                    ? `Background: ${p.publicProfessionalBackground}`
+                    : null,
+                  p.communicationStyle
+                    ? `Communication Style: ${p.communicationStyle}`
+                    : null,
+                  p.personalityType
+                    ? `Personality Type: ${p.personalityType}`
+                    : null,
+                  p.influencePatterns
+                    ? `Influence: ${p.influencePatterns}`
+                    : null,
+                ].filter(Boolean);
+                return `PROSPECT ${i + 1}\n${lines.join("\n")}`;
+              })
+              .join("\n\n")
+          : "None listed";
+
+      const sources =
+        Array.isArray(d.sources) && d.sources.length
+          ? d.sources.map((s: string, i: number) => `${i + 1}. ${s}`).join("\n")
+          : "None listed";
+
+      return `
+COMPANY RESEARCH ANALYSIS
+========================
+
+Company: ${d.companyName}
+
+EXECUTIVE SUMMARY
+-----------------
+${exec.overview || "—"}
+
+AHA INSIGHTS
+------------
+${formatList(exec.ahaInsights, "•")}
+
+COMPANY SNAPSHOT
+----------------
+• Sector: ${d.sector || company.sector || "—"}
+• Company Size: ${d.size || "—"}
+• Geographic Scope: ${d.geographicScope || company.geographicScope || "—"}
+• Nature of Business: ${d.natureOfBusiness || company.natureOfBusiness || "—"}
+• Market Position: ${company.marketPosition || "—"}
+• Financial Health: ${company.financialHealth || "—"}
+• Key Positioning: ${d.keyPositioning || company.competitivePositioning || "—"}
+
+COMPETITIVE ANALYSIS
+--------------------
+${numbered(company.competitiveAnalysis)}
+
+STRATEGIC INITIATIVES
+---------------------
+${numbered(company.strategicInitiatives)}
+
+KEY BUSINESS CHALLENGES
+-----------------------
+${numbered(company.keyBusinessChallenges)}
+
+MARKET ANALYSIS
+---------------
+TAM/SAM & TRENDS
+${market.tamSamTrends || "—"}
+
+MACROECONOMIC FORCES
+${numbered(market.macroeconomicForces)}
+
+GROWTH OPPORTUNITIES
+${numbered(market.growthOpportunities || d.growthOpportunities)}
+
+THREATS & DISRUPTIONS
+${numbered(market.threatsAndDisruptions)}
+
+${formatDemandSide(d?.demandSide)}
+
+PROFILES
+--------
+${profiles}
+
+SOURCES
+-------
+${sources}
+
+SALES RECOMMENDATIONS
+---------------------
+${formatRecommendationsNew(d.recommendations)}
+
+Generated by SalesGenius.ai
+`.trim();
+    };
+
+    try {
+      const formattedText = researchResult.is_new
+        ? buildFormattedTextNew(researchResult)
+        : buildFormattedTextLegacy(researchResult);
       await navigator.clipboard.writeText(formattedText);
       toast.success("Analysis copied to clipboard");
     } catch (error) {
@@ -774,7 +1111,7 @@ Generated by SalesGenius.ai
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
-  console.log("");
+  console.log(researchResult, "research result");
   // Render form view
   if (currentView === "form") {
     return (
@@ -814,7 +1151,7 @@ Generated by SalesGenius.ai
                     id="companyName"
                     type="text"
                     placeholder="Enter company name"
-                    value={formData.companyName}
+                    value={formData?.companyName}
                     onChange={(e) =>
                       handleInputChange("companyName", e.target.value)
                     }
@@ -835,7 +1172,7 @@ Generated by SalesGenius.ai
                     id="companyWebsite"
                     type="url"
                     placeholder="e.g., https://www.salesgenius.ai"
-                    value={formData.companyWebsite}
+                    value={formData?.companyWebsite}
                     onChange={(e) =>
                       handleInputChange("companyWebsite", e.target.value)
                     }
@@ -879,20 +1216,20 @@ Generated by SalesGenius.ai
                   </div>
 
                   {/* Uploaded Files List */}
-                  {uploadedFiles.length > 0 && (
+                  {uploadedFiles?.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium">Uploaded Files:</h4>
                       <div className="space-y-2">
-                        {uploadedFiles.map((fileItem) => (
+                        {uploadedFiles?.map((fileItem) => (
                           <div
-                            key={fileItem.id}
+                            key={fileItem?.id}
                             className="flex items-center justify-between p-3 border border-border rounded-lg"
                           >
                             <div className="flex items-center space-x-3">
                               <FileText className="w-4 h-4 text-muted-foreground" />
                               <div>
                                 <p className="text-sm font-medium">
-                                  {fileItem.name}
+                                  {fileItem?.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatFileSize(fileItem.size)}
@@ -900,21 +1237,21 @@ Generated by SalesGenius.ai
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              {fileItem.uploading && (
+                              {fileItem?.uploading && (
                                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
                               )}
-                              {fileItem.uploaded && (
+                              {fileItem?.uploaded && (
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                               )}
-                              {fileItem.error && (
+                              {fileItem?.error && (
                                 <AlertCircle className="w-4 h-4 text-red-600" />
                               )}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeFile(fileItem.id)}
-                                disabled={fileItem.uploading}
+                                onClick={() => removeFile(fileItem?.id)}
+                                disabled={fileItem?.uploading}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -1082,7 +1419,7 @@ Generated by SalesGenius.ai
                       <span className="flex items-center space-x-2">
                         <Building className="w-5 h-5 text-primary" />
                         <span className="truncate">
-                          {research.company_name}
+                          {research?.company_name}
                         </span>
                       </span>
 
@@ -1095,17 +1432,18 @@ Generated by SalesGenius.ai
                     <div className="flex items-center space-x-2 text-sm">
                       <ExternalLink className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground truncate">
-                        {research.company_url}
+                        {research?.company_url}
                       </span>
                     </div>
 
                     {research?.prospect_profiles &&
-                      research.prospect_profiles.length > 0 && (
+                      research?.prospect_profiles?.length > 0 && (
                         <div className="flex items-center space-x-2 text-sm">
                           <User className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
-                            {research.prospect_profiles.length} prospect profile
-                            {research.prospect_profiles.length > 1
+                            {research?.prospect_profiles?.length} prospect
+                            profile
+                            {research?.prospect_profiles?.length > 1
                               ? "s"
                               : ""}{" "}
                             analyzed
@@ -1120,26 +1458,26 @@ Generated by SalesGenius.ai
                       </span>
 
                       {/* Show prospect profiles preview in history cards */}
-                      {research.prospect_profiles &&
-                        research.prospect_profiles.length > 0 && (
+                      {research?.prospect_profiles &&
+                        research?.prospect_profiles?.length > 0 && (
                           <div className="pt-2 border-t border-border">
                             <h5 className="text-xs font-medium text-muted-foreground mb-1">
                               Prospect Profiles:
                             </h5>
                             <div className="space-y-1">
-                              {research.prospect_profiles
-                                .slice(0, 2)
-                                .map((profile, index) => (
+                              {research?.prospect_profiles
+                                ?.slice(0, 2)
+                                ?.map((profile, index) => (
                                   <p
                                     key={index}
                                     className="text-xs text-muted-foreground truncate"
                                   >
-                                    • {profile.name}
+                                    • {profile?.name}
                                   </p>
                                 ))}
-                              {research.prospect_profiles.length > 2 && (
+                              {research?.prospect_profiles?.length > 2 && (
                                 <p className="text-xs text-muted-foreground">
-                                  +{research.prospect_profiles.length - 2}{" "}
+                                  +{research.prospect_profiles?.length - 2}{" "}
                                   more...
                                 </p>
                               )}
@@ -1149,15 +1487,15 @@ Generated by SalesGenius.ai
                     </div>
                   </div>
 
-                  {research.sector && (
+                  {research?.sector && (
                     <Badge variant="outline" className="text-xs">
-                      {research.sector}
+                      {research?.sector}
                     </Badge>
                   )}
 
-                  {research.summary_note && (
+                  {research?.summary_note && (
                     <p className="text-sm text-muted-foreground line-clamp-3">
-                      {research.summary_note}
+                      {research?.summary_note}
                     </p>
                   )}
                 </CardContent>
@@ -1168,8 +1506,46 @@ Generated by SalesGenius.ai
       </div>
     );
   }
+
+  // Detect "SC- Supply context", case/spacing/punctuation tolerant
+  const SC_PREFIX = /^\s*SC-\s*Supply\s+context\s*[:\-—]\s*/i;
+
+  /**
+   * renderWithTag(text)
+   * - Splits into sentences
+   * - If a sentence starts with "SC- Supply context", replace that prefix with a Badge("Organisations value")
+   * - Returns an array of <span> so it can be dropped anywhere we used a string before
+   */
+  function renderWithTag(input?: string) {
+    if (!input) return null;
+
+    // Split sentences but keep punctuation; re-join spaces in render to preserve spacing
+    const parts = String(input).split(/(?<=[.?!])\s+/);
+
+    return parts.map((sent, i) => {
+      if (SC_PREFIX.test(sent)) {
+        const rest = sent.replace(SC_PREFIX, "");
+        return (
+          <span key={`sc-${i}`} className="inline">
+            <Badge variant="secondary" className="mr-2 align-[2px]">
+              Organisations value
+            </Badge>
+            {rest}
+            {i < parts.length - 1 ? " " : ""}
+          </span>
+        );
+      }
+      return (
+        <span key={`t-${i}`}>
+          {sent}
+          {i < parts.length - 1 ? " " : ""}
+        </span>
+      );
+    });
+  }
+
   // Render results view
-  return (
+  return !researchResult?.is_new ? (
     <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
       {/* Fixed Top Bar */}
       <div className="bg-background border-b border-border p-6">
@@ -1274,6 +1650,7 @@ Generated by SalesGenius.ai
                         <FileText className="w-4 h-4 mr-2" />
                         Company Overview
                       </h3>
+
                       <p
                         className="text-sm leading-relaxed text-muted-foreground"
                         dangerouslySetInnerHTML={{
@@ -1437,7 +1814,7 @@ Generated by SalesGenius.ai
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center space-x-2">
                           <User className="w-5 h-5 text-primary" />
-                          <span className="truncate">{profile.name}</span>
+                          <span className="truncate">{profile?.name}</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -1447,7 +1824,7 @@ Generated by SalesGenius.ai
                             Communication Style
                           </h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.communicationStyle}
+                            {profile?.communicationStyle}
                           </p>
                         </div>
 
@@ -1457,7 +1834,7 @@ Generated by SalesGenius.ai
                             Personality Type
                           </h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            {profile.personalityType}
+                            {profile?.personalityType}
                           </p>
                         </div>
                       </CardContent>
@@ -1488,9 +1865,9 @@ Generated by SalesGenius.ai
               </CardHeader>
               <CardContent className="p-6">
                 {researchResult?.sources &&
-                researchResult.sources.length > 0 ? (
+                researchResult?.sources?.length > 0 ? (
                   <ol className="space-y-2 list-decimal list-inside">
-                    {researchResult.sources.map((source, index) => (
+                    {researchResult?.sources?.map((source, index) => (
                       <li key={index} className="text-sm leading-relaxed">
                         {source}
                       </li>
@@ -1528,7 +1905,7 @@ Generated by SalesGenius.ai
                     </h3>
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                       <p className="text-sm leading-relaxed">
-                        {DOMPurify.sanitize(
+                        {DOMPurify?.sanitize(
                           researchResult?.recommendations?.primaryMeetingGoal ||
                             ""
                         )}
@@ -1652,6 +2029,1281 @@ Generated by SalesGenius.ai
               </CardContent>
             </Card>
           )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
+      {/* Fixed Top Bar */}
+      <div className="bg-background border-b border-border p-6">
+        <div className="flex items-center justify-between">
+          {/* Left: Page Title */}
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={handleBackToHistory}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to History
+            </Button>
+            {/* <h1 className="text-2xl font-bold text-foreground">Research</h1> */}
+          </div>
+
+          {/* Middle: Tab Navigation */}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            // className="flex-1 mx-8" // ⬅ removed max-w-md so the list can grow
+          >
+            <TabsList
+              className="
+              inline-flex items-center
+              rounded-md bg-muted p-1 text-muted-foreground
+              whitespace-nowrap overflow-x-auto
+              gap-2 sm:gap-0
+              no-scrollbar
+            "
+            >
+              <TabsTrigger
+                value="analysis"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Company Analysis</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="prospects"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
+              >
+                <Users className="w-4 h-4" />
+                <span>Stakeholder Intelligence</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="recommendation"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
+              >
+                <Target className="w-4 h-4" />
+                <span>Recommendations</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="source"
+                className="flex items-center gap-1 px-3 whitespace-nowrap"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Source</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Right: Controls */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Prospect in CRM:</span>
+              <Switch
+                checked={prospectInCRM}
+                onCheckedChange={setProspectInCRM}
+              />
+              <span className="text-sm text-muted-foreground">
+                {prospectInCRM ? "On" : "Off"}
+              </span>
+            </div>
+            {/* <Button variant="outline" onClick={handleViewHistory}>
+              <Search className="w-4 h-4 mr-1" />
+              View History
+            </Button> */}
+            <Button variant="outline" onClick={handleNewResearch}>
+              <Plus className="w-4 h-4 mr-1" />
+              New Research
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsContent value="analysis" className="space-y-6">
+              {researchResult && (
+                <div className="space-y-6">
+                  {/* Executive Summary */}
+                  <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Eye className="w-6 h-6 text-blue-600" />
+                        Executive Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-gray-700 leading-relaxed">
+                        {researchResult?.executiveSummary?.overview}
+                      </p>
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-yellow-500" />
+                          Key Insights
+                        </h4>
+                        {researchResult?.executiveSummary?.ahaInsights.map(
+                          (insight, index) => (
+                            <div
+                              key={index}
+                              className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg"
+                            >
+                              <p className="text-gray-800 font-medium">
+                                {renderDynamicContent(insight)}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Company Deep Dive */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Building className="w-6 h-6 text-gray-600" />
+                        Company Deep Dive
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Briefcase className="w-4 h-4 text-blue-500" />
+                              Sector & Business Nature
+                            </h4>
+                            <p className="text-gray-700">
+                              {renderDynamicContent(
+                                researchResult?.companyAnalysisDetails?.sector
+                              )}
+                            </p>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {renderDynamicContent(
+                                researchResult?.companyAnalysisDetails
+                                  ?.natureOfBusiness
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Globe className="w-4 h-4 text-green-500" />
+                              Geographic Scope
+                            </h4>
+                            <p className="text-gray-700">
+                              {renderDynamicContent(
+                                researchResult?.companyAnalysisDetails
+                                  ?.geographicScope
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Target className="w-4 h-4 text-purple-500" />
+                              Market Position
+                            </h4>
+                            <p className="text-gray-700">
+                              {renderDynamicContent(
+                                researchResult?.companyAnalysisDetails
+                                  ?.marketPosition
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <DollarSign className="w-4 h-4 text-green-600" />
+                              Financial Health
+                            </h4>
+                            <p className="text-gray-700">
+                              {renderDynamicContent(
+                                researchResult?.companyAnalysisDetails
+                                  ?.financialHealth
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                              <Rocket className="w-4 h-4 text-orange-500" />
+                              Strategic Initiatives
+                            </h4>
+                            <ul className="space-y-1">
+                              {researchResult?.companyAnalysisDetails?.strategicInitiatives.map(
+                                (initiative, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-gray-700 text-sm flex items-start gap-2"
+                                  >
+                                    <ArrowRight className="w-3 h-3 text-orange-500 mt-1 flex-shrink-0" />
+                                    {renderDynamicContent(initiative)}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Collapsible
+                        open={expandedSections["challenges"]}
+                        onOpenChange={() => toggleSection("challenges")}
+                      >
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                          >
+                            {expandedSections["challenges"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                            <AlertTriangle className="w-4 h-4 text-red-500 ml-1" />
+                            <span className="font-semibold text-gray-900">
+                              Key Business Challenges & Vulnerabilities
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.companyAnalysisDetails?.keyBusinessChallenges?.map(
+                                (challenge, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-red-800 flex items-start gap-2"
+                                  >
+                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                    {renderDynamicContent(challenge)}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                          <Shield className="w-4 h-4 text-indigo-500" />
+                          Competitive Positioning
+                        </h4>
+                        <p className="text-gray-700">
+                          {renderDynamicContent(
+                            researchResult?.companyAnalysisDetails
+                              ?.competitivePositioning
+                          )}
+                        </p>
+                      </div>
+                      <Collapsible
+                        open={expandedSections["threats"]}
+                        onOpenChange={() => toggleSection("threats")}
+                      >
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                          >
+                            {expandedSections["analysis"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                            <Shield className="w-4 h-4 text-indigo-500" />
+                            <span className="font-semibold text-gray-900">
+                              Comptetitive Analysis
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.companyAnalysisDetails?.competitiveAnalysis?.map(
+                                (threat, index) => (
+                                  // <li
+                                  //   key={index}
+                                  //   className="text-orange-800 flex items-start gap-2"
+                                  // >
+                                  //   <Shield className="w-4 h-4 text-indigo-500" />
+                                  //   {/* <ShieldOff className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" /> */}
+                                  //   {threat}
+                                  // </li>
+                                  <li
+                                    key={index}
+                                    className="text-blue-800 text-sm flex items-start gap-2"
+                                  >
+                                    <CheckCircle className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
+                                    {renderDynamicContent(threat)}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+
+                  {/* Market Analysis & Growth Opportunities */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <TrendingUp className="w-6 h-6 text-green-600" />
+                        Market Analysis & Growth Opportunities
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                          <PieChart className="w-4 h-4 text-blue-500" />
+                          Total Addressable Market (TAM/SAM) Trends
+                        </h4>
+                        <p className="text-gray-700">
+                          {renderDynamicContent(
+                            researchResult?.marketAnalysis?.tamSamTrends
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Activity className="w-4 h-4 text-purple-500" />
+                            Macroeconomic Forces
+                          </h4>
+                          <ul className="space-y-2">
+                            {researchResult?.marketAnalysis?.macroeconomicForces?.map(
+                              (force, index) => (
+                                <li
+                                  key={index}
+                                  className="text-gray-700 text-sm flex items-start gap-2"
+                                >
+                                  <Compass className="w-3 h-3 text-purple-500 mt-1 flex-shrink-0" />
+                                  {renderDynamicContent(force)}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                            <Star className="w-4 h-4 text-yellow-500" />
+                            Growth Opportunities
+                          </h4>
+                          <ul className="space-y-2">
+                            {researchResult?.marketAnalysis?.growthOpportunities?.map(
+                              (opportunity, index) => (
+                                <li
+                                  key={index}
+                                  className="text-gray-700 text-sm flex items-start gap-2"
+                                >
+                                  <Star className="w-3 h-3 text-yellow-500 mt-1 flex-shrink-0" />
+                                  {renderDynamicContent(opportunity)}
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <Collapsible
+                        open={expandedSections["threats"]}
+                        onOpenChange={() => toggleSection("threats")}
+                      >
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                          >
+                            {expandedSections["threats"] ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                            <ShieldOff className="w-4 h-4 text-red-500 ml-1" />
+                            <span className="font-semibold text-gray-900">
+                              Threats & Disruptive Trends
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <ul className="space-y-2">
+                              {researchResult?.marketAnalysis?.threatsAndDisruptions?.map(
+                                (threat, index) => (
+                                  <li
+                                    key={index}
+                                    className="text-orange-800 flex items-start gap-2"
+                                  >
+                                    <ShieldOff className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                    {renderDynamicContent(threat)}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+
+                  {/* Demand Side: Prospect's Needs */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Brain className="w-6 h-6 text-indigo-600" />
+                        Demand Side: Prospect's Needs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid lg:grid-cols-2 gap-6 lg:grid-rows-4 lg:items-stretch">
+                        {/* Static Demand Elements */}
+                      </div>
+                      <div className="space-y-6">
+                        {/* Column Headers */}
+                        <div className="grid lg:grid-cols-2 gap-6">
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            Static Demand Elements
+                          </h4>
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            Dynamic Demand Elements
+                          </h4>
+                        </div>
+
+                        {/* Paired Rows */}
+                        <div className="space-y-4">
+                          {/* Row 1: Industry Requirements ↔ Market Pressures */}
+                          <div className="grid lg:grid-cols-2 gap-6 lg:items-stretch">
+                            {/* Industry Requirements */}
+                            {researchResult?.demandSide?.staticElements
+                              ?.industryRequirements && (
+                              <div className=" border border-blue-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 px-5 py-4 border-b border-blue-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-blue-900 flex items-center space-x-2">
+                                    <span className="text-blue-600 text-lg">
+                                      📋
+                                    </span>
+                                    <span>Industry Requirements</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.staticElements?.industryRequirements.map(
+                                      (req, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-blue-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-blue-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ✓
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(req)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Market Pressures */}
+                            {researchResult?.demandSide?.dynamicElements
+                              ?.marketPressures && (
+                              <div className="border border-red-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-red-50 to-red-100/50 px-5 py-4 border-b border-red-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-red-900 flex items-center space-x-2">
+                                    <span className="text-red-600 text-lg">
+                                      ⚡
+                                    </span>
+                                    <span>Market Pressures</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.dynamicElements?.marketPressures?.map(
+                                      (pressure, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-red-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-red-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ⚡
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(pressure)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 2: Operational Needs ↔ Technology Disruptions */}
+                          <div className="grid lg:grid-cols-2 gap-6 lg:items-stretch">
+                            {/* Operational Needs */}
+                            {researchResult?.demandSide?.staticElements
+                              ?.operationalNeeds && (
+                              <div className="border border-green-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-green-50 to-green-100/50 px-5 py-4 border-b border-green-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-green-900 flex items-center space-x-2">
+                                    <span className="text-green-600 text-lg">
+                                      ⚙️
+                                    </span>
+                                    <span>Operational Needs</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.staticElements?.operationalNeeds?.map(
+                                      (need, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-green-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-green-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ✓
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(need)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Technology Disruptions */}
+                            {researchResult?.demandSide?.dynamicElements
+                              ?.technologyDisruptions && (
+                              <div className=" border border-indigo-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className=" bg-gradient-to-br from-indigo-50 to-indigo-100/50px-5 py-4 border-b border-indigo-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-indigo-900 flex items-center space-x-2">
+                                    <span className="text-indigo-600 text-lg">
+                                      ⚡
+                                    </span>
+                                    <span>Technology Disruptions</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.dynamicElements?.technologyDisruptions?.map(
+                                      (disruption, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-indigo-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-indigo-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ⚡
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(disruption)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 3: Recurring Problems ↔ Competitive Threats */}
+                          <div className="grid lg:grid-cols-2 gap-6 lg:items-stretch">
+                            {/* Recurring Problems */}
+                            {researchResult?.demandSide?.staticElements
+                              ?.recurringProblems && (
+                              <div className="border border-orange-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-orange-50 to-orange-100/50  px-5 py-4 border-b border-orange-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-orange-900 flex items-center space-x-2">
+                                    <span className="text-orange-600 text-lg">
+                                      ⚠️
+                                    </span>
+                                    <span>Recurring Problems</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.staticElements?.recurringProblems?.map(
+                                      (problem, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-orange-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-orange-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ✓
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(problem)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Competitive Threats */}
+                            {researchResult?.demandSide?.dynamicElements
+                              ?.competitiveThreats && (
+                              <div className="border border-yellow-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 px-5 py-4 border-b border-yellow-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-yellow-900 flex items-center space-x-2">
+                                    <span className="text-yellow-600 text-lg">
+                                      ⚡
+                                    </span>
+                                    <span>Competitive Threats</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.dynamicElements?.competitiveThreats?.map(
+                                      (threat, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-yellow-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-yellow-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ⚡
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(threat)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 4: Geo Size Requirements ↔ Growth Phase Demands */}
+                          <div className="grid lg:grid-cols-2 gap-6 lg:items-stretch">
+                            {/* Geographic & Size Requirements */}
+                            {researchResult?.demandSide?.staticElements
+                              ?.geoSizeRequirements && (
+                              <div className=" border border-purple-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 px-5 py-4 border-b border-purple-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-purple-900 flex items-center space-x-2">
+                                    <span className="text-purple-600 text-lg">
+                                      🌍
+                                    </span>
+                                    <span>Geo Size Requirements</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.staticElements?.geoSizeRequirements?.map(
+                                      (req, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-purple-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-purple-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ✓
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(req)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Growth Phase Demands */}
+                            {researchResult?.demandSide?.dynamicElements
+                              ?.growthPhaseDemands && (
+                              <div className=" border border-teal-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full">
+                                <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 px-5 py-4 border-b border-teal-200/50 flex-shrink-0">
+                                  <h5 className="font-semibold text-teal-900 flex items-center space-x-2">
+                                    <span className="text-teal-600 text-lg">
+                                      ⚡
+                                    </span>
+                                    <span>Growth Phase Demands</span>
+                                  </h5>
+                                </div>
+                                <div className="p-5 flex-1">
+                                  <ul className="space-y-3">
+                                    {researchResult?.demandSide?.dynamicElements?.growthPhaseDemands?.map(
+                                      (demand, index) => (
+                                        <li
+                                          key={index}
+                                          className="text-sm text-teal-800 flex items-start space-x-3"
+                                        >
+                                          <span className="text-teal-600 mt-0.5 flex-shrink-0 font-medium">
+                                            ⚡
+                                          </span>
+                                          <span className="leading-relaxed font-medium">
+                                            {renderDynamicContent(demand)}
+                                          </span>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {researchResult?.demandSide?.staticElements?.length >
+                          0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                              <Building className="w-4 h-4 text-blue-500" />
+                              Static Demand Elements
+                            </h4>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <ul className="space-y-2">
+                                {researchResult?.demandSide?.staticElements?.map(
+                                  (element, index) => (
+                                    <li
+                                      key={index}
+                                      className="text-blue-800 text-sm flex items-start gap-2"
+                                    >
+                                      <CheckCircle className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
+                                      {renderDynamicContent(element)}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                        {researchResult?.demandSide?.dynamicElements?.length >
+                          0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                              <Zap className="w-4 h-4 text-red-500" />
+                              Dynamic Demand Elements
+                            </h4>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                              <ul className="space-y-2">
+                                {researchResult?.demandSide?.dynamicElements?.map(
+                                  (element, index) => (
+                                    <li
+                                      key={index}
+                                      className="text-red-800 text-sm flex items-start gap-2"
+                                    >
+                                      <Zap className="w-3 h-3 text-red-500 mt-1 flex-shrink-0" />
+                                      {renderDynamicContent(element)}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="recommendation" className="space-y-6">
+              {researchResult && (
+                <div className="space-y-6">
+                  {/* Primary Meeting Goal */}
+                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Target className="w-6 h-6 text-green-600" />
+                        Primary Meeting Goal
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-green-100 border border-green-300 rounded-lg p-4">
+                        <p className="text-green-900 font-medium text-lg">
+                          {renderDynamicContent(
+                            researchResult?.recommendations?.primaryMeetingGoal
+                          )}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Key Talking Points */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-blue-600" />
+                        Key Talking Points
+                      </CardTitle>
+                      <CardDescription>
+                        Map prospect's needs to your value equation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {researchResult?.recommendations?.keyTalkingPoints.map(
+                          (point, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg"
+                            >
+                              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-800">
+                                {renderDynamicContent(point)}
+                              </span>
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  {/* Discovery Questions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <HelpCircle className="w-5 h-5 text-purple-600" />
+                        High-Impact Discovery Questions
+                      </CardTitle>
+                      <CardDescription>
+                        Test for urgency and quantify demand
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {researchResult?.recommendations?.discoveryQuestions?.map(
+                          (question, index) => (
+                            <div
+                              key={index}
+                              className="border-l-4 border-purple-400 bg-purple-50 p-4 rounded-r-lg"
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className="bg-purple-600 text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
+                                  {index + 1}
+                                </span>
+                                <p className="text-purple-900 font-medium">
+                                  {renderDynamicContent(question)}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Anticipated Objections & Rebuttals */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ShieldOff className="w-5 h-5 text-red-600" />
+                        Anticipated Objections & Rebuttals
+                      </CardTitle>
+                      <CardDescription>
+                        Pre-emptive responses with proof and differentiators
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {researchResult?.recommendations?.anticipatedObjections?.map(
+                          (objection, index) => (
+                            <div
+                              key={index}
+                              className="border border-red-200 rounded-lg p-4 bg-red-50"
+                            >
+                              <p className="text-red-900 leading-relaxed">
+                                {renderDynamicContent(objection)}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Advanced Sales Strategy */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Zap className="w-5 h-5 text-yellow-600" />
+                          Positioning Levers
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {researchResult?.recommendations?.positioningLevers?.map(
+                            (lever, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <Star className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-gray-700">
+                                  {renderDynamicContent(lever)}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Package className="w-5 h-5 text-indigo-600" />
+                          Scarcity & Prizing Angles
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {(
+                            researchResult?.recommendations
+                              ?.scarcityAndPrizingAngles ||
+                            researchResult?.recommendations
+                              ?.scarcityPrizingAngles ||
+                            []
+                          ).map((angle, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 text-sm"
+                            >
+                              <Award className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">
+                                {renderDynamicContent(angle)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Engagement & Execution */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {researchResult?.recommendations?.engagementMomentum
+                      ?.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-green-600" />
+                            Engagement Momentum
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {researchResult?.recommendations?.engagementMomentum?.map(
+                              (item, index) => (
+                                <li
+                                  key={index}
+                                  className="flex items-start gap-2 text-sm"
+                                >
+                                  <ArrowRight className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  <span className="text-gray-700">
+                                    {renderDynamicContent(item)}
+                                  </span>
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Package className="w-5 h-5 text-purple-600" />
+                          Offer Packaging Guidance
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {(
+                            researchResult?.recommendations
+                              ?.offerPackagingGuidance ||
+                            researchResult?.recommendations?.offerPackaging ||
+                            []
+                          )?.map((guidance, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 text-sm"
+                            >
+                              <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">
+                                {renderDynamicContent(guidance)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Lead Generation & Meeting Prep */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-blue-600" />
+                          Lead Generation Leverage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {/* {console.log(
+                            researchResult?.recommendations,
+                            "researchResult?.recommendations"
+                          )} */}
+                          {(
+                            researchResult?.recommendations
+                              ?.leadGenerationLeverage ||
+                            researchResult?.recommendations?.leadGenLeverage ||
+                            []
+                          ).map((strategy, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 text-sm"
+                            >
+                              <Target className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">
+                                {renderDynamicContent(strategy)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          Meeting Preparation Checklist
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {(
+                            researchResult?.recommendations
+                              ?.meetingPreparationChecklist ||
+                            researchResult?.recommendations?.meetingChecklist ||
+                            []
+                          )?.map((item, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 text-sm"
+                            >
+                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-700">
+                                {renderDynamicContent(item)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="prospects" className="space-y-6">
+              {researchResult && (
+                <div className="space-y-6">
+                  {/* Stakeholder Profiles */}
+                  {researchResult?.prospectProfiles &&
+                  researchResult?.prospectProfiles?.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        Stakeholder Profiles
+                      </h3>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {researchResult?.prospectProfiles?.map(
+                          (profile, index) => (
+                            <Card
+                              key={index}
+                              className="hover:shadow-md transition-shadow"
+                            >
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center space-x-2">
+                                  <User className="w-5 h-5 text-primary" />
+                                  <span className="truncate">
+                                    {profile?.name}
+                                  </span>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-2">
+                                    Overt Information
+                                  </h4>
+                                  <div className="space-y-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center space-x-2">
+                                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        {profile?.title} (
+                                        {profile?.seniorityLevel || "N/A"})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Users className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Role:{" "}
+                                        {profile?.roleInDecisionMaking ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Globe className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Background:{" "}
+                                        {profile?.publicProfessionalBackground ||
+                                          "Not available"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-2">
+                                    Covert Insights
+                                  </h4>
+                                  <div className="space-y-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center space-x-2">
+                                      <Lightbulb className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Motivations:{" "}
+                                        {profile?.personalMotivations ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Company Stage Awareness:{" "}
+                                        {profile?.companyStageAwareness ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Communication Style:{" "}
+                                        {profile?.communicationStyle ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Eye className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Personality Type:{" "}
+                                        {profile?.personalityType ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Network className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        Influence Patterns:{" "}
+                                        {profile?.influencePatterns ||
+                                          "Not specified"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    // Updated empty state for Stakeholder Intelligence
+                    <Card>
+                      <CardContent className="text-center py-12">
+                        <Users className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">
+                          No Stakeholder Intelligence Available
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          To generate detailed stakeholder intelligence, please
+                          upload PDF files containing prospect information when
+                          initiating a new research.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="source" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sources</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {researchResult?.sources &&
+                  researchResult?.sources?.length > 0 ? (
+                    <ol className="space-y-2 list-decimal list-inside">
+                      {researchResult?.sources?.map((source, index) => (
+                        <li key={index} className="text-sm leading-relaxed">
+                          {renderDynamicContent(source)}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No sources available for this research</p>
+                      <p>
+                        Upload PDF files and complete your first research to see
+                        results here
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Interaction Bar */}
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm">
+                <ThumbsUp className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm">
+                <ThumbsDown className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleCopy}>
+                <Copy className="w-4 h-4 mr-1" />
+                Copy
+              </Button>
+            </div>
+
+            {!prospectInCRM && (
+              <Button onClick={handlePushToHubSpot} disabled={true}>
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Push to HubSpot
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

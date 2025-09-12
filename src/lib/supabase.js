@@ -1131,6 +1131,58 @@ export const dbHelpers = {
           file_url: urlData.publicUrl,
           storage_path: uploadData.path,
           organization_id: orgId,
+          type: "org"
+          // is_processed: false,
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error saving uploaded file:', error)
+      throw error
+    }
+  },
+
+  async savePersonalUploadedFile(userId, file, orgId) {
+    try {
+      // First, upload file to Supabase Storage
+      const timestamp = Date.now()
+      const fileExtension = file.name.split('.').pop()
+      const uniqueFileName = `${userId}/${timestamp}_${file.name}`
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('personal_knowledge')
+        .upload(uniqueFileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('personal_knowledge')
+        .getPublicUrl(uniqueFileName)
+
+      // Save file metadata to database
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .insert([{
+          uploaded_by: userId,
+          filename: uniqueFileName,
+          original_filename: file.name,
+          // file_type: file.type,
+          file_size: file.size,
+          content_type: file.type,
+          // file_content: content,
+          file_url: urlData.publicUrl,
+          storage_path: uploadData.path,
+          organization_id: orgId,
+          type: "personal"
           // is_processed: false,
         }])
         .select()
@@ -1849,6 +1901,320 @@ export const dbHelpers = {
     }
   },
 
+  // Link business knowledge files to business knowledge data
+  async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
+    try {
+      console.log('🔗 Linking files to business knowledge data...');
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .update({ business_knowledge_data_id: businessKnowledgeDataId })
+        .in('id', fileIds)
+        .select();
+
+      if (error) throw error;
+
+      console.log('✅ Files linked successfully:', data.length);
+      return data;
+    } catch (error) {
+      console.error('❌ Error linking files to business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get business knowledge data for user/organization
+  async getBusinessKnowledgeData(userId, organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
+
+
+  // Update business knowledge data
+  async updateBusinessKnowledgeData(updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          organization_name: updates?.organization_name,
+          static_supply_elements: updates?.static_supply_elements,
+          dynamic_supply_elements: updates?.dynamic_supply_elements,
+          offer_definition: updates?.offer_definition,
+          pricing_and_objections: updates?.pricing_and_objections,
+          icp: updates?.icp,
+          reframe_narratives: updates?.reframe_narratives,
+          sales_methodology: updates?.sales_methodology,
+          brand_voice_guidelines: updates?.brand_voice_guidelines,
+          assets_detected: updates?.assets_detected,
+          sources: updates?.sources,
+          summary_note: updates?.summary_note,
+          updated_at: new Date().toISOString(),
+          others: updates?.others || null,
+        })
+        .eq('id', updates.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get processed files by IDs
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
+      throw error;
+    }
+  },
+
+  // Delete business knowledge data
+  async deleteBusinessKnowledgeData(id) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          is_active: false
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  async deletePersonalKnowledgeData(id) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_personal')
+        .update({
+          is_active: false
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Get processed files by IDs from business_knowledge_files table
+  async getProcessedFilesByIds(fileIds) {
+    try {
+      if (!fileIds || fileIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('business_knowledge_files')
+        .select('*')
+        .in('id', fileIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching processed files:', error);
+      throw error;
+    }
+  },
+
+  // Get business knowledge data for organization
+  async getBusinessKnowledgeData(organizationId, userId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Save business knowledge data to database
+  async saveBusinessKnowledgeData(data, organizationId, userId, fileIds = []) {
+    try {
+      const insertData = {
+        organization_id: organizationId,
+        user_id: userId,
+        organization_name: data.organizationName,
+        static_supply_elements: data.staticSupplyElements,
+        dynamic_supply_elements: data.dynamicSupplyElements,
+        offer_definition: data.offerDefinition,
+        pricing_and_objections: data.prizingAndObjections,
+        icp: data.ICP,
+        reframe_narratives: data.reframeNarratives,
+        sales_methodology: data.salesMethodology,
+        brand_voice_guidelines: data.brandVoiceGuidelines,
+        assets_detected: data.assetsDetected,
+        sources: data.sources,
+        summary_note: data.summaryNote,
+        processed_file_ids: fileIds,
+        others: data.others || null
+      }
+
+      const { data: savedData, error } = await supabase
+        .from('business_knowledge_org')
+        .upsert([insertData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return savedData;
+    } catch (error) {
+      console.error('Error saving business knowledge data:', error);
+      throw error;
+    }
+  },
+
+
+  async updatePersonalKnowledgeData(updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_personal')
+        .update({
+          rep_name: updates.repName,
+          role_title: updates.roleTitle,
+          territory: updates.territory,
+          vertical_focus: updates.verticalFocus,
+          quota: updates.quota,
+          time_horizon: updates.timeHorizon,
+          active_pipeline: updates.activePipeline,
+          personal_proof_bank: updates.personalProofBank,
+          relationship_capital: updates.relationshipCapital,
+          selling_style_strengths: updates.sellingStyleStrengths,
+          common_objections_encountered: updates.commonObjectionsEncountered,
+          preferred_advance_per_account: updates.preferredAdvancePerAccount,
+          availability_windows: updates.availabilityWindows,
+          product_certifications: updates.productCertifications,
+          brand_voice_tone: updates.brandVoiceTone,
+          sources: updates.sources,
+          summary_note: updates.summaryNote,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', updates?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge data:', error);
+      throw error;
+    }
+  },
+  // Get personal insights data
+  async getPersonalInsights(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_personal')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting personal insights:', error);
+      return null;
+    }
+  },
+
+  async savePersonalKnowledgeData(personalKnowledgeData, organizationId, userId, fileIds) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_personal')
+        .insert([{
+          user_id: userId,
+          organization_id: organizationId,
+          rep_name: personalKnowledgeData.repName,
+          role_title: personalKnowledgeData.roleTitle,
+          territory: personalKnowledgeData.territory,
+          vertical_focus: Array.isArray(personalKnowledgeData.verticalFocus) ? personalKnowledgeData.verticalFocus : [],
+          quota: personalKnowledgeData.quota,
+          time_horizon: personalKnowledgeData.timeHorizon,
+          active_pipeline: Array.isArray(personalKnowledgeData.activePipeline) ? personalKnowledgeData.activePipeline : [],
+          personal_proof_bank: Array.isArray(personalKnowledgeData.personalProofBank) ? personalKnowledgeData.personalProofBank : [],
+          relationship_capital: Array.isArray(personalKnowledgeData.relationshipCapital) ? personalKnowledgeData.relationshipCapital : [],
+          selling_style_strengths: Array.isArray(personalKnowledgeData.sellingStyleStrengths) ? personalKnowledgeData.sellingStyleStrengths : [],
+          common_objections_encountered: Array.isArray(personalKnowledgeData.commonObjectionsEncountered) ? personalKnowledgeData.commonObjectionsEncountered : [],
+          preferred_advance_per_account: Array.isArray(personalKnowledgeData.preferredAdvancePerAccount) ? personalKnowledgeData.preferredAdvancePerAccount : [],
+          availability_windows: Array.isArray(personalKnowledgeData.availabilityWindows) ? personalKnowledgeData.availabilityWindows : [],
+          product_certifications: Array.isArray(personalKnowledgeData.productCertifications) ? personalKnowledgeData.productCertifications : [],
+          brand_voice_tone: personalKnowledgeData.brandVoiceTone,
+          sources: personalKnowledgeData.sources,
+          summary_note: personalKnowledgeData.summaryNote,
+          processed_file_ids: fileIds
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge data:', error);
+      throw error;
+    }
+  },
+
+  // Update business knowledge files with data ID
+  async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
+    try {
+      const { error } = await supabase
+        .from('business_knowledge_files')
+        .update({ business_knowledge_data_id: businessKnowledgeDataId })
+        .in('id', fileIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error linking business knowledge files:', error);
+      throw error;
+    }
+  },
+
+  // Get user's Fireflies status
   async getUserFirefliesStatus(userId) {
     try {
       const { data, error } = await supabase
@@ -3403,96 +3769,144 @@ export const dbHelpers = {
   },
 
   // Store cumulative insights response and update prospect
-  async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId) {
+  // async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId, insightTypes) {
+  //   try {
+
+  //     // Start a transaction-like operation
+  //     const insertedInsightIds = [];
+
+  //     // Process and store each insight from the API response
+  //     if (apiResponse && Array.isArray(apiResponse)) {
+
+  //       for (const insight of apiResponse) {
+  //         try {
+
+  //           const insightType = insightTypes?.find((x) => x.key == insight.type)
+
+  //           // Insert the insight
+  //           const { data: insertedInsight, error: insertError } = await supabase
+  //             .from('sales_insights')
+  //             .insert([{
+  //               type_id: insightType.id,
+  //               content: insight.content,
+  //               relevance_score: insight.relevance_score || 50,
+  //               speaker: insight.speaker || null,
+  //               source: insight.source || 'api',
+  //               user_id: userId,
+  //               is_selected: true,
+  //               is_active: true
+  //             }])
+  //             .select('id')
+  //             .single();
+
+  //           if (insertError) {
+  //             console.error("❌ Error inserting insight:", insertError);
+  //             continue;
+  //           }
+
+  //           insertedInsightIds.push(insertedInsight.id);
+  //           console.log("✅ Inserted insight with ID:", insertedInsight.id);
+  //         } catch (insightError) {
+  //           console.error("❌ Error processing individual insight:", insightError);
+  //           continue;
+  //         }
+  //       }
+  //     }
+
+  //     console.log("📝 Total insights inserted:", insertedInsightIds.length);
+
+  //     // Update the prospect with the new insight IDs
+  //     if (insertedInsightIds.length > 0) {
+
+  //       // Update the prospect
+  //       const { data: updatedProspect, error: updateError } = await supabase
+  //         .from('prospect')
+  //         .update({ sales_insight_ids: insertedInsightIds })
+  //         .eq('id', prospectId)
+  //         .select()
+  //         .single();
+
+  //       if (updateError) {
+  //         console.error("❌ Error updating prospect with insight IDs:", updateError);
+  //         throw updateError;
+  //       }
+
+  //       console.log("✅ Successfully updated prospect with insight IDs");
+
+  //       return {
+  //         success: true,
+  //         insertedInsights: insertedInsightIds.length
+  //       };
+  //     } else {
+  //       console.log("⚠️ No insights were inserted, skipping prospect update");
+  //       return {
+  //         success: false,
+  //         message: "No insights were processed from the API response"
+  //       };
+  //     }
+  //   } catch (error) {
+  //     console.error("❌ Error in storeCumulativeInsightsAndUpdateProspect:", error);
+  //     throw error;
+  //   }
+  // },
+
+  async storeCumulativeInsightsAndUpdateProspect(apiResponse, prospectId, userId, insightTypes) {
     try {
-      // console.log("💾 Starting to store cumulative insights and update prospect...", {
-      //   prospectId,
-      //   userId,
-      //   responseKeys: Object.keys(apiResponse)
-      // });
-
-      // Start a transaction-like operation
-      const insertedInsightIds = [];
-
-      // Process and store each insight from the API response
-      if (apiResponse && Array.isArray(apiResponse)) {
-        // console.log("📊 Processing", apiResponse.insights.length, "insights from API response");
-
-        for (const insight of apiResponse) {
-          try {
-            // Get the type_id for this insight type
-            const { data: insightType, error: typeError } = await supabase
-              .from('sales_insight_types')
-              .select('id')
-              .eq('key', insight.type)
-              .single();
-
-            if (typeError) {
-              console.warn("⚠️ Could not find insight type for:", insight.type, "- skipping");
-              continue;
-            }
-
-            // Insert the insight
-            const { data: insertedInsight, error: insertError } = await supabase
-              .from('sales_insights')
-              .insert([{
-                type_id: insightType.id,
-                content: insight.content,
-                relevance_score: insight.relevance_score || 50,
-                speaker: insight.speaker || null,
-                source: insight.source || 'api',
-                user_id: userId,
-                is_selected: true,
-                is_active: true
-              }])
-              .select('id')
-              .single();
-
-            if (insertError) {
-              console.error("❌ Error inserting insight:", insertError);
-              continue;
-            }
-
-            insertedInsightIds.push(insertedInsight.id);
-            console.log("✅ Inserted insight with ID:", insertedInsight.id);
-          } catch (insightError) {
-            console.error("❌ Error processing individual insight:", insightError);
-            continue;
-          }
-        }
+      if (!apiResponse || !Array.isArray(apiResponse) || apiResponse.length === 0) {
+        return { success: false, message: "No insights were processed from the API response" };
       }
 
-      console.log("📝 Total insights inserted:", insertedInsightIds.length);
-
-      // Update the prospect with the new insight IDs
-      if (insertedInsightIds.length > 0) {
-
-        // Update the prospect
-        const { data: updatedProspect, error: updateError } = await supabase
-          .from('prospect')
-          .update({ sales_insight_ids: insertedInsightIds })
-          .eq('id', prospectId)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error("❌ Error updating prospect with insight IDs:", updateError);
-          throw updateError;
-        }
-
-        console.log("✅ Successfully updated prospect with insight IDs");
+      // Map insights to rows for bulk insert
+      const rowsToInsert = apiResponse.map((insight) => {
+        const insightType = insightTypes?.find((x) => x.key === insight.type);
 
         return {
-          success: true,
-          insertedInsights: insertedInsightIds.length
+          type_id: insightType?.id || null,
+          content: insight.content,
+          relevance_score: insight.relevance_score || 50,
+          speaker: insight.speaker || null,
+          source: insight.source || "api",
+          user_id: userId,
+          is_selected: true,
+          is_active: true,
         };
-      } else {
-        console.log("⚠️ No insights were inserted, skipping prospect update");
-        return {
-          success: false,
-          message: "No insights were processed from the API response"
-        };
+      });
+
+      // Bulk insert in one query
+      const { data: insertedInsights, error: insertError } = await supabase
+        .from("sales_insights")
+        .insert(rowsToInsert?.filter((x) => x.type_id != null))
+        .select("id");
+
+      if (insertError) {
+        console.error("❌ Error inserting insights:", insertError);
+        throw insertError;
       }
+
+      const insertedInsightIds = insertedInsights.map((ins) => ins.id);
+      console.log("✅ Inserted insights:", insertedInsightIds);
+
+      if (insertedInsightIds.length === 0) {
+        return { success: false, message: "No insights inserted" };
+      }
+
+      // Update prospect in a single query
+      const { error: updateError } = await supabase
+        .from("prospect")
+        .update({ sales_insight_ids: insertedInsightIds })
+        .eq("id", prospectId);
+
+      if (updateError) {
+        console.error("❌ Error updating prospect:", updateError);
+        throw updateError;
+      }
+
+      console.log("✅ Successfully updated prospect with insight IDs");
+
+      return {
+        success: true,
+        insertedInsights: insertedInsightIds.length,
+      };
     } catch (error) {
       console.error("❌ Error in storeCumulativeInsightsAndUpdateProspect:", error);
       throw error;
@@ -3865,6 +4279,87 @@ export const dbHelpers = {
     }
 
     return data;
+  },
+
+  // Business Knowledge Operations
+  async getBusinessKnowledgeByOrgId(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw error;
+      }
+      console.log(data, "business knowledge data 2213")
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching business knowledge:', error);
+      if (error.code === 'PGRST116') {
+        return null; // No data found
+      }
+      throw error;
+    }
+  },
+
+  async updateBusinessKnowledge(id, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating business knowledge:', error);
+      throw error;
+    }
+  },
+
+  // Save business knowledge with others data
+  async saveBusinessKnowledgeWithOthers(organizationId, userId, businessData, othersData = null) {
+    try {
+      const dataToSave = {
+        organization_id: organizationId,
+        user_id: userId,
+        organization_name: businessData.organization_name,
+        static_supply_elements: businessData.static_supply_elements,
+        dynamic_supply_elements: businessData.dynamic_supply_elements,
+        offer_definition: businessData.offer_definition,
+        pricing_and_objections: businessData.prizingAndObjections,
+        icp: businessData.ICP,
+        reframe_narratives: businessData.reframe_narratives,
+        sales_methodology: businessData.sales_methodology,
+        brand_voice_guidelines: businessData.brand_voice_guidelines,
+        assets_detected: businessData.assets_detected,
+        sources: businessData.sources,
+        summary_note: businessData.summary_note,
+        others: othersData, // Store the additional data
+        is_active: true
+      };
+
+      const { data, error } = await supabase
+        .from('business_knowledge_org')
+        .insert([dataToSave])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving business knowledge with others:', error);
+      throw error;
+    }
   },
 
   // Tour Steps Management
@@ -4423,8 +4918,8 @@ export const dbHelpers = {
     }
   },
 
-  // Save feedback to database
-  saveFeedback: async (feedbackData) => {
+  // Save user feedback
+  async saveFeedback(feedbackData) {
     try {
       const { data, error } = await supabase
         .from('user_feedback')

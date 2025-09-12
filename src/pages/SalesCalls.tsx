@@ -127,6 +127,9 @@ export const SalesCalls = () => {
     firefliesData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
+  const { businessKnowledge, personalInsightKnowledge } = useSelector(
+    (state) => state.org
+  );
 
   // Load initial data
   useEffect(() => {
@@ -441,6 +444,128 @@ export const SalesCalls = () => {
       "check selectedCompanyResearch in formatResearchData"
     );
     try {
+      const newFormattedText = `
+  Company: ${selectedCompanyResearch?.company_name || ""}
+  Executive Summary
+  ${selectedCompanyResearch?.executive_summary?.overview || ""}
+   AHA Insights
+  ${
+    selectedCompanyResearch?.executive_summary?.ahaInsights
+      ?.map((opportunity, index) => `${index + 1}. ${opportunity}`)
+      .join("\n") || "None listed"
+  }
+  COMPANY DEEPDIVE
+  • Sector: ${selectedCompanyResearch?.sector || ""}
+  • Nature of Business: ${selectedCompanyResearch?.natureOfBusiness || ""}
+  • Geographic Scope: ${selectedCompanyResearch?.geographicScope || ""}
+  • Financial Health: ${
+    selectedCompanyResearch.company_analysis_details?.financialHealth || ""
+  }
+
+  STRATEGIC INITIATIVES
+  ${
+    selectedCompanyResearch?.company_analysis_details?.strategicInitiatives
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  KEY BUSINESS CHALLENGES & VULNERABILITIES
+  ${
+    selectedCompanyResearch?.company_analysis_details?.keyBusinessChallenges
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  
+  COMPETITIVE POSITIONING
+  ${selectedCompanyResearch?.company_analysis_details?.competitivePositioning}
+
+  COMPETITIVE ANALYSIS
+  ${
+    selectedCompanyResearch?.company_analysis_details?.competitiveAnalysis
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  MARKET ANALYSIS & GROWTH OPPORTUNITIES
+  Total Addressable Market (TAM/SAM) Trends
+  ${selectedCompanyResearch?.market_analysis?.tam_sam_trends || ""}
+  Macroeconomic Forces
+  ${
+    selectedCompanyResearch?.market_analysis?.macroeconomicForces
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Growth Opportunities
+  ${
+    selectedCompanyResearch?.market_analysis?.growthOpportunities
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Threats & Disruptive Trends
+  ${
+    selectedCompanyResearch?.market_analysis?.threatsAndDisruptions
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  DEMAND SIDE: PROSPECT NEED's
+  Static Demand Elements
+  Industry Requirements
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.industryRequirements
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Operational Needs
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.operationalNeeds
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Recurring Problems
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.recurringProblems
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Geo Size Requirements
+  ${
+    selectedCompanyResearch?.demand_side?.staticElements?.recurringProblems
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+  Dynamic Demand Elements
+  Market Pressures
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.marketPressures
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Technology Disruptions
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.technologyDisruptions
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Competitive Threats
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.competitiveThreats
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+
+  Growth Phase Demands
+  ${
+    selectedCompanyResearch?.demand_side?.dynamicElements?.growthPhaseDemands
+      ?.map((trend, index) => `${index + 1}. ${trend}`)
+      .join("\n") || "None listed"
+  }
+      `.trim();
       // Format the research result as readable text
       const formattedText = `
   Company: ${selectedCompanyResearch.company_name || ""}
@@ -467,12 +592,13 @@ export const SalesCalls = () => {
   SUMMARY NOTE
   ${selectedCompanyResearch?.summary_note || ""}
           `.trim();
-      return formattedText;
+      return selectedCompanyResearch?.is_new ? newFormattedText : formattedText;
     } catch (error) {
       toast.error("Failed to pass research data");
     }
   };
 
+  // console.log(insightTypes, "check insight types");
   // Function to generate cumulative sales insights
   const generateCummulativesalesinsights = async (
     selectedCompanyResearch,
@@ -551,10 +677,11 @@ export const SalesCalls = () => {
         const result = await dbHelpers.storeCumulativeInsightsAndUpdateProspect(
           apiResponse?.[0]?.output,
           prospectDetails.id,
-          user?.id
+          user?.id,
+          insightTypes
         );
 
-        return result;
+        return apiResponse?.[0]?.output;
       } else {
         return "";
       }
@@ -708,7 +835,7 @@ export const SalesCalls = () => {
         );
         // console.log(result, "check result");
         if (result?.status === "success") {
-          await generateCummulativesalesinsights(
+          const cummulativeInsights = await generateCummulativesalesinsights(
             chosendata?.researchCompany,
             chosendata?.dealNotes,
             prospectDetails,
@@ -718,6 +845,128 @@ export const SalesCalls = () => {
           // console.log(result, "check result after processing");
           // console.log(savedInsight, "check saved insight");
           try {
+            try {
+              // if (prospectDetails?.communication_style_ids != null) {
+              dispatch(setCummulativeSpin(true));
+              const [existingStyles, call_summariesRaw] = await Promise.all([
+                dbHelpers.getCommunicationStylesData(
+                  prospectDetails?.communication_style_ids,
+                  user?.id
+                ),
+                dbHelpers.getCallSummaryByProspectId(prospectId),
+              ]);
+
+              const existing = existingStyles || [];
+              const call_summaries =
+                call_summariesRaw?.length > 0
+                  ? call_summariesRaw
+                  : [processedData?.call_summary || ""];
+
+              // 2. Call cumulative-comm API with existing + current styles
+              const cumulativeRes = await fetch(
+                `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    previous_communication_styles: existing,
+                    current_communication_styles:
+                      processedData?.communication_styles,
+                    combined_calls_summary: call_summaries,
+                    cumulative_insights:
+                      cummulativeInsights?.length > 0
+                        ? JSON.stringify(cummulativeInsights)
+                        : JSON.stringify(processedData?.sales_insights),
+                    rep_context:
+                      personalInsightKnowledge?.length > 0 &&
+                      personalInsightKnowledge != null
+                        ? JSON.stringify(personalInsightKnowledge)
+                        : "",
+                    supply_context:
+                      businessKnowledge?.length > 0 && businessKnowledge != null
+                        ? JSON.stringify(businessKnowledge)
+                        : "",
+                    crm_context: JSON.stringify({
+                      stage: prospectDetails?.deal_stage,
+                      deal_name: prospectDetails?.name,
+                      deal_amount: prospectDetails?.deal_value,
+                      created_date: prospectDetails?.hubspot_created_at,
+                      close_date: prospectDetails?.close_date,
+                    }),
+                  }),
+                }
+              );
+
+              if (!cumulativeRes.ok) {
+                dispatch(setCummulativeSpin(false));
+                throw new Error("Failed to call cumulative-comm API");
+              }
+
+              const rawText = await cumulativeRes.text();
+
+              if (!rawText) {
+                throw new Error("Empty response from cumulative-comm API");
+              }
+
+              const cumulativeData = JSON.parse(rawText);
+              const newStyles = cumulativeData?.[0]?.communication_styles || [];
+
+              // 3. Insert new styles into Supabase
+              const newStyleIds =
+                prospectDetails?.communication_style_ids != null
+                  ? await dbHelpers.insertCommunicationStyles(
+                      newStyles,
+                      prospectId,
+                      user?.id
+                    )
+                  : [];
+
+              // 4. Update prospect with the new style IDs
+              // if (newStyleIds.length) {
+              const updateData =
+                prospectDetails?.communication_style_ids != null
+                  ? {
+                      communication_style_ids: newStyleIds,
+                      sales_play: cumulativeData?.[0]?.recommended_sales_play,
+                      call_summary: cumulativeData?.[0]?.cumulative_summary,
+                      secondary_objectives:
+                        cumulativeData?.[0]?.recommended_objective,
+                      dominant_context: cumulativeData?.[0]?.dominant_context,
+                      next_best_move_statement:
+                        cumulativeData?.[0]?.next_best_move_statement,
+                      deal_health: cumulativeData?.[0]?.deal_health,
+                    }
+                  : {
+                      sales_play: cumulativeData?.[0]?.recommended_sales_play,
+                      call_summary: cumulativeData?.[0]?.cumulative_summary,
+                      secondary_objectives:
+                        cumulativeData?.[0]?.recommended_objective,
+                      dominant_context: cumulativeData?.[0]?.dominant_context,
+                      next_best_move_statement:
+                        cumulativeData?.[0]?.next_best_move_statement,
+                      deal_health: cumulativeData?.[0]?.deal_health,
+                    };
+              await dbHelpers.updateProspectWithNewStyles(
+                prospectId,
+                updateData
+              );
+              dispatch(setCummulativeSpin(false));
+              // ✅ 5. Replace the styles in processedData for UI usage
+              processedData.communication_styles = newStyles.map((s, i) => ({
+                ...s,
+                id: newStyleIds[i],
+              }));
+              // } else {
+              //   dispatch(setCummulativeSpin(false));
+              // }
+              // } else {
+              //   dispatch(setCummulativeSpin(false));
+              // }
+            } catch (err) {
+              dispatch(setCummulativeSpin(false));
+              console.error("Invalid JSON response from cumulative-comm:");
+              throw new Error("Failed to parse cumulative-comm API response");
+            }
             const processedCall = {
               id: savedInsight?.id || "",
               callId: `Call ${savedInsight?.id?.slice(-5)}`,
@@ -734,7 +983,6 @@ export const SalesCalls = () => {
               aiProcessedData: processedData,
               uploaded_file_id: file.id,
             };
-
             setPastCalls((prev) => [pastCalls, ...prev]);
 
             toast.success("File processed successfully!");
@@ -748,88 +996,6 @@ export const SalesCalls = () => {
                 aiProcessedData: processedData,
               },
             });
-            try {
-              if (prospectDetails?.communication_style_ids != null) {
-                dispatch(setCummulativeSpin(true));
-                const [existingStyles, call_summariesRaw] = await Promise.all([
-                  dbHelpers.getCommunicationStylesData(
-                    prospectDetails?.communication_style_ids,
-                    user?.id
-                  ),
-                  dbHelpers.getCallSummaryByProspectId(prospectId),
-                ]);
-
-                const existing = existingStyles || [];
-                const call_summaries =
-                  call_summariesRaw?.length > 0
-                    ? call_summariesRaw
-                    : [processedData?.call_summary || ""];
-
-                // 2. Call cumulative-comm API with existing + current styles
-                const cumulativeRes = await fetch(
-                  `${config.api.baseUrl}${config.api.endpoints.cummulativeSalesData}`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      previous_communication_styles: existing,
-                      current_communication_styles:
-                        processedData?.communication_styles,
-                      combined_calls_summary: call_summaries,
-                    }),
-                  }
-                );
-
-                if (!cumulativeRes.ok) {
-                  dispatch(setCummulativeSpin(false));
-                  throw new Error("Failed to call cumulative-comm API");
-                }
-
-                const rawText = await cumulativeRes.text();
-
-                if (!rawText) {
-                  throw new Error("Empty response from cumulative-comm API");
-                }
-
-                const cumulativeData = JSON.parse(rawText);
-                const newStyles =
-                  cumulativeData?.[0]?.communication_styles || [];
-
-                // 3. Insert new styles into Supabase
-                const newStyleIds = await dbHelpers.insertCommunicationStyles(
-                  newStyles,
-                  prospectId,
-                  user?.id
-                );
-
-                // 4. Update prospect with the new style IDs
-                if (newStyleIds.length) {
-                  await dbHelpers.updateProspectWithNewStyles(prospectId, {
-                    communication_style_ids: newStyleIds,
-                    sales_play: cumulativeData?.[0]?.recommended_sales_play,
-                    call_summary: cumulativeData?.[0]?.cumulative_summary,
-                    secondary_objectives:
-                      cumulativeData?.[0]?.recommended_objective,
-                  });
-                  dispatch(setCummulativeSpin(false));
-                  // ✅ 5. Replace the styles in processedData for UI usage
-                  processedData.communication_styles = newStyles.map(
-                    (s, i) => ({
-                      ...s,
-                      id: newStyleIds[i],
-                    })
-                  );
-                } else {
-                  dispatch(setCummulativeSpin(false));
-                }
-              } else {
-                dispatch(setCummulativeSpin(false));
-              }
-            } catch (err) {
-              dispatch(setCummulativeSpin(false));
-              console.error("Invalid JSON response from cumulative-comm:");
-              throw new Error("Failed to parse cumulative-comm API response");
-            }
           } catch (e) {
             console.error("Cumulative communication style handling failed:", e);
             toast.error("Failed to update communication styles");

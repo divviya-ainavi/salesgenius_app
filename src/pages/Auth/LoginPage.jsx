@@ -24,7 +24,13 @@ import {
   setTitleName,
 } from "../../store/slices/authSlice";
 import { dbHelpers } from "../../lib/supabase";
-import { setAllTitles } from "../../store/slices/orgSlice";
+import {
+  setAllTitles,
+  setBusinessKnowledge,
+  setBusinessKnowledgeError,
+  setBusinessKnowledgeLoading,
+  setPersonalInsightKnowledge,
+} from "../../store/slices/orgSlice";
 import { checkIntegrationStatus } from "../../services/hubspotService";
 
 const LoginPage = () => {
@@ -222,6 +228,72 @@ const LoginPage = () => {
           console.warn("⚠️ Failed to load onboarding tour status:", error);
           // Default to false if we can't load the status
           dispatch(setHasSeenOnboardingTour(false));
+        }
+
+        // Load business knowledge data for the organization
+        if (profile.organization_id) {
+          try {
+            console.log(
+              "🔍 Loading business knowledge for organization:",
+              profile.organization_id
+            );
+            dispatch(setBusinessKnowledgeLoading(true));
+            dispatch(setBusinessKnowledgeError(null));
+
+            const businessKnowledge =
+              await dbHelpers.getBusinessKnowledgeByOrgId(
+                profile.organization_id
+              );
+            console.log("business knowledge", businessKnowledge);
+            if (businessKnowledge) {
+              const cleanedData = businessKnowledge.map(
+                ({
+                  id,
+                  organization_id,
+                  user_id,
+                  processed_file_ids,
+                  is_active,
+                  updated_at,
+                  created_at,
+                  ...rest
+                }) => rest
+              );
+              dispatch(setBusinessKnowledge(cleanedData));
+              console.log("✅ Business knowledge loaded successfully");
+            } else {
+              dispatch(setBusinessKnowledge(null));
+              console.log("📭 No business knowledge found for organization");
+            }
+            const personalKnowledge = await dbHelpers.getPersonalInsights(
+              profile.id
+            );
+            // console.log("business knowledge", businessKnowledge);
+            if (personalKnowledge) {
+              const cleanedData = personalKnowledge.map(
+                ({
+                  id,
+                  organization_id,
+                  user_id,
+                  processed_file_ids,
+                  is_active,
+                  updated_at,
+                  created_at,
+                  ...rest
+                }) => rest
+              );
+              dispatch(setPersonalInsightKnowledge(cleanedData));
+              console.log("✅ Business knowledge loaded successfully");
+            } else {
+              dispatch(setPersonalInsightKnowledge(null));
+              console.log("📭 No business knowledge found for organization");
+            }
+          } catch (error) {
+            console.error("❌ Error loading business knowledge:", error);
+            dispatch(setBusinessKnowledgeError(error.message));
+            dispatch(setBusinessKnowledge(null));
+          } finally {
+            dispatch(setBusinessKnowledgeLoading(false));
+          }
         }
 
         // Check HubSpot integration status for the organization

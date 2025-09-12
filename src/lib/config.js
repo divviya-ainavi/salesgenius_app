@@ -33,7 +33,7 @@ export const config = {
     baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://salesgenius.ainavi.co.uk/n8n/webhook/',
     // Specific endpoints
     endpoints: {
-      companyResearch: 'company-research-v3',
+      companyResearch: 'company-research-v4',
       generatePrompt: 'generate-propmt-v2',
       generateFollowupEmail: 'generate-followup-email-v2',
       refinePresentationPrompt: 'refine-presentation-prompt',
@@ -60,7 +60,8 @@ export const config = {
       updateCompanyName: 'update-company',
       hubspotGetCompanyDetail: 'hub-get-company-detail',
       hubspotGetDealInfo: 'hub-get-deal-info',
-      sendSlack: "Send-slack"
+      sendSlack: "Send-slack",
+      fileUpload: 'upload-file-ai '
     }
   }
 };
