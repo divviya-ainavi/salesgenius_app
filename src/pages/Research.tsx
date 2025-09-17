@@ -152,11 +152,11 @@ const Research = () => {
     }
 
     return (
-      <span className="bg-blue-50/40 px-2 py-1 rounded-md">
-        <span className="bg-blue-100/80 text-blue-700 px-2 py-1 rounded-full text-xs font-medium border border-blue-200/50 shadow-sm mr-1">
+      <span className="bg-blue-50/60 px-2 py-1 rounded-md">
+        <span className="bg-blue-100/90 text-blue-800 px-2 py-1 rounded-full text-xs font-medium border border-blue-300/40 shadow-sm mr-1">
           Organisation's Proposition
         </span>
-        <span className="text-xs text-gray-700">{text.substring("SC- Supply context".length)}</span>
+        <span className="text-xs">{text.substring("SC- Supply context".length)}</span>
       </span>
     );
   };
