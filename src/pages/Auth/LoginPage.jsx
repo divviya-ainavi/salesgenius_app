@@ -551,28 +551,12 @@ const LoginPage = () => {
             <div className="mt-6 text-center space-y-2">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <button
+                <Link
+                  to="/auth/signup"
                   className="text-blue-600 hover:text-blue-800 font-medium"
-                  onClick={() => {
-                    const email = "admin@ainavi.co.uk";
-                    const subject = encodeURIComponent(
-                      "Issue with SalesGenius.ai Access"
-                    );
-                    const body = encodeURIComponent(`Hello Admin,
-
-I'm currently facing an issue while trying to access or use SalesGenius.ai.
-
-Could you please assist or look into it?
-
-Thank you,
-[Your Name]`);
-
-                    const gmailLink = `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`;
-                    window.open(gmailLink, "_blank");
-                  }}
                 >
-                  Contact your administrator
-                </button>
+                  Sign up here
+                </Link>
               </p>
               <button
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
