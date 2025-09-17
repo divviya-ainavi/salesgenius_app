@@ -33,13 +33,14 @@ const SignupPage = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('email')
-        .eq('email', email.toLowerCase());
+        .eq('email', email.toLowerCase())
+        .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         throw error;
       }
 
-      return data && data.length > 0; // Returns true if email exists
+      return !!data; // Returns true if email exists
     } catch (error) {
       console.error('Error checking email existence:', error);
       return false; // Assume email doesn't exist on error
