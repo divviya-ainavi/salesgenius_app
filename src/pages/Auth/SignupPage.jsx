@@ -109,7 +109,8 @@ const SignupPage = () => {
         null,
         null,
         token,
-        null
+        null,
+        'beta'  // Add type as 'beta' for self-signup
       );
 
       if (result.status === "invited" || result.status === "re-invited") {
