@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Loader2,
   User,
@@ -20,7 +19,6 @@ import {
   Shield,
   Users,
   Mail,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,13 +35,8 @@ const AccountSetup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [inviteData, setInviteData] = useState(null);
-  const [currentStep, setCurrentStep] = useState(1);
   const [displayRoleLabel, setDisplayRoleLabel] = useState("User");
-  const [stepperConfig, setStepperConfig] = useState({
-    showOrgStep: false,
-    showUserStep: true,
-    totalSteps: 1,
-  });
+  const [showOrgFields, setShowOrgFields] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -165,40 +158,12 @@ const AccountSetup = () => {
 
         setInviteData(invite);
 
-        // Determine stepper configuration based on invite data
+        // Determine if organization fields should be shown
         const hasOrgId = !!invite.organization_id;
         const hasTitleId = !!invite.title_id;
-        // console.log(hasOrgId, hasTitleId, "has org id", invite);
-        let config = {
-          showOrgStep: false,
-          showUserStep: true,
-          totalSteps: 1,
-        };
-        console.log(hasOrgId, hasTitleId, "has org id", invite);
-        if (hasOrgId && hasTitleId) {
-          // Case 1: Both organization_id and title_id present - Show only User Details
-          config = {
-            showOrgStep: false,
-            showUserStep: true,
-            totalSteps: 1,
-          };
-        } else if (!hasOrgId && !hasTitleId) {
-          // Case 2: Neither organization_id nor title_id - Show Organization Details + User Details
-          config = {
-            showOrgStep: true,
-            showUserStep: true,
-            totalSteps: 2,
-          };
-        } else if (hasOrgId && !hasTitleId) {
-          // Case 3: Only organization_id present - Show only User Details
-          config = {
-            showOrgStep: false,
-            showUserStep: true,
-            totalSteps: 1,
-          };
-        }
-        // console.log(config, "195");
-        setStepperConfig(config);
+        
+        // Show organization fields only if neither organization_id nor title_id are present
+        setShowOrgFields(!hasOrgId && !hasTitleId);
 
         // Set the display role label
         const roleLabel = await getRoleLabel(invite);
@@ -236,14 +201,9 @@ const AccountSetup = () => {
     if (error) setError("");
   };
 
-  const validateCurrentStep = () => {
-    const isOrgStep = stepperConfig.showOrgStep && currentStep === 1;
-    const isUserStep =
-      (stepperConfig.showOrgStep && currentStep === 2) ||
-      (!stepperConfig.showOrgStep && currentStep === 1);
-
-    if (isOrgStep) {
-      // Validate Organization Details
+  const validateForm = () => {
+    // Validate Organization Details (if shown)
+    if (showOrgFields) {
       if (!formData.companyName.trim()) {
         setError("Company name is required");
         return false;
@@ -260,46 +220,32 @@ const AccountSetup = () => {
       }
     }
 
-    if (isUserStep) {
-      // Validate User Details
-      if (!formData.username.trim()) {
-        setError("Username is required");
-        return false;
-      }
-      if (!formData.password) {
-        setError("Password is required");
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match");
-        return false;
-      }
-      const isPasswordValid = Object.values(passwordValidation).every(Boolean);
-      if (!isPasswordValid) {
-        setError("Password does not meet security requirements");
-        return false;
-      }
+    // Validate User Details
+    if (!formData.username.trim()) {
+      setError("Username is required");
+      return false;
+    }
+    if (!formData.password) {
+      setError("Password is required");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+    if (!isPasswordValid) {
+      setError("Password does not meet security requirements");
+      return false;
     }
 
     return true;
   };
 
-  const handleNext = () => {
-    if (validateCurrentStep()) {
-      setError("");
-      setCurrentStep(2);
-    }
-  };
-
-  const handleBack = () => {
-    setError("");
-    setCurrentStep(1);
-  };
-  // console.log(inviteData, "check invite data");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateCurrentStep()) return;
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
@@ -307,7 +253,7 @@ const AccountSetup = () => {
       let organizationId = inviteData.organization_id;
 
       // Step 1: Create organization if needed
-      if (stepperConfig.showOrgStep && !organizationId) {
+      if (showOrgFields && !organizationId) {
         const { data: newOrg, error: orgError } = await supabase
           .from("organizations")
           .insert([
@@ -369,22 +315,10 @@ const AccountSetup = () => {
       // Step 2: Create Supabase Auth user
       let supabaseAuthUserId = null;
       try {
-        // Create a unique email for Supabase Auth using username
-        const uniqueEmail = `${formData.username
-          .toLowerCase()
-          .replace(/\s+/g, "")}@${organizationId}.local`;
-
         const { data: authData, error: authError } = await supabase.auth.signUp(
           {
             email: inviteData.email,
             password: formData.password,
-            // options: {
-            //   emailRedirectTo: `${window.location.origin}/auth/login`,
-            //   data: {
-            //     email_confirm: false,
-            //     skip_confirmation: true,
-            //   },
-            // },
           }
         );
 
@@ -499,31 +433,12 @@ const AccountSetup = () => {
     }
   };
 
-  const getStepTitle = () => {
-    if (stepperConfig.showOrgStep) {
-      return currentStep === 1 ? "Organization Details" : "User Details";
-    } else {
-      return "User Details";
-    }
-  };
-
-  const getStepDescription = () => {
-    if (stepperConfig.showOrgStep) {
-      return currentStep === 1
-        ? "Set up your organization information"
-        : "Create your secure login credentials";
-    } else {
-      return "Create your secure login credentials";
-    }
-  };
-
   const getRoleLabel = async (invite = inviteData) => {
     if (invite?.title_id) {
       const title = await dbHelpers.getRoleIdByTitleName(
         invite.title_id,
         invite?.organization_id
       );
-      console.log(title, "title");
       return title || "User";
     } else if (invite?.organization_id && !invite?.title_id) {
       return "Organization Member";
@@ -593,8 +508,6 @@ const AccountSetup = () => {
     );
   }
 
-  const progressPercentage = (currentStep / stepperConfig.totalSteps) * 100;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -606,27 +519,9 @@ const AccountSetup = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
             Welcome to SalesGenius.ai
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-600">
             Let's set up your account and get you started
           </p>
-
-          {/* Progress Bar */}
-          <div className="max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                Step {currentStep} of {stepperConfig.totalSteps}
-              </span>
-              <span className="text-sm text-gray-500">
-                {Math.round(progressPercentage)}% Complete
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -664,10 +559,10 @@ const AccountSetup = () => {
         <Card className="shadow-xl border-0">
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl font-bold text-center">
-              {getStepTitle()}
+              Complete Your Account Setup
             </CardTitle>
             <p className="text-center text-gray-600 mt-2">
-              {getStepDescription()}
+              Fill in the details below to create your account
             </p>
           </CardHeader>
 
@@ -686,9 +581,16 @@ const AccountSetup = () => {
                 </Alert>
               )}
 
-              {/* Step 1: Organization Details (when needed) */}
-              {stepperConfig.showOrgStep && currentStep === 1 && (
-                <div className="space-y-6">
+              {/* Organization Details (conditional) */}
+              {showOrgFields && (
+                <div className="space-y-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Building className="w-5 h-5 text-gray-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Organization Details
+                    </h3>
+                  </div>
+
                   {/* Company Name */}
                   <div className="space-y-2">
                     <Label
@@ -709,7 +611,7 @@ const AccountSetup = () => {
                         }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
-                        required
+                        required={showOrgFields}
                       />
                     </div>
                   </div>
@@ -734,7 +636,7 @@ const AccountSetup = () => {
                         }
                         className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
-                        required
+                        required={showOrgFields}
                       />
                     </div>
                     <p className="text-sm text-gray-500">
@@ -745,253 +647,231 @@ const AccountSetup = () => {
                 </div>
               )}
 
-              {/* User Details Step */}
-              {((stepperConfig.showOrgStep && currentStep === 2) ||
-                (!stepperConfig.showOrgStep && currentStep === 1)) && (
-                <div className="space-y-6">
-                  {/* Username */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="username"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Full Name
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        autoComplete="off"
-                        id="username"
-                        type="text"
-                        placeholder="Choose a username"
-                        value={formData.username}
-                        onChange={(e) =>
-                          handleInputChange("username", e.target.value)
-                        }
-                        className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                      />
-                    </div>
-                  </div>
+              {/* User Details */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <User className="w-5 h-5 text-gray-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    User Details
+                  </h3>
+                </div>
 
-                  {/* Password */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="password"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      New Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        autoComplete="off"
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
-                        value={formData.password}
-                        onChange={(e) =>
-                          handleInputChange("password", e.target.value)
-                        }
-                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                        disabled={isLoading}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Password Strength Indicator */}
-                    {formData.password && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            Password strength:
-                          </span>
-                          <span
-                            className={cn(
-                              "text-sm font-medium",
-                              passwordStrength <= 2
-                                ? "text-red-600"
-                                : passwordStrength <= 3
-                                ? "text-yellow-600"
-                                : passwordStrength <= 4
-                                ? "text-blue-600"
-                                : "text-green-600"
-                            )}
-                          >
-                            {getPasswordStrengthLabel()}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={cn(
-                              "h-2 rounded-full transition-all duration-300",
-                              getPasswordStrengthColor()
-                            )}
-                            style={{ width: `${passwordStrengthPercentage}%` }}
-                          />
-                        </div>
-
-                        {/* Password Requirements */}
-                        <div className="grid grid-cols-1 gap-2 text-sm">
-                          {[
-                            {
-                              key: "minLength",
-                              label: "At least 8 characters",
-                            },
-                            {
-                              key: "hasUppercase",
-                              label: "One uppercase letter",
-                            },
-                            {
-                              key: "hasLowercase",
-                              label: "One lowercase letter",
-                            },
-                            { key: "hasNumber", label: "One number" },
-                            {
-                              key: "hasSpecialChar",
-                              label: "One special character",
-                            },
-                          ].map(({ key, label }) => (
-                            <div
-                              key={key}
-                              className="flex items-center space-x-2"
-                            >
-                              {passwordValidation[key] ? (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                              )}
-                              <span
-                                className={
-                                  passwordValidation[key]
-                                    ? "text-green-600"
-                                    : "text-gray-500"
-                                }
-                              >
-                                {label}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="confirmPassword"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Confirm Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        autoComplete="off"
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        value={formData.confirmPassword}
-                        onChange={(e) =>
-                          handleInputChange("confirmPassword", e.target.value)
-                        }
-                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                        disabled={isLoading}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                    {formData.confirmPassword &&
-                      formData.password !== formData.confirmPassword && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>Passwords do not match</span>
-                        </p>
-                      )}
-                    {formData.confirmPassword &&
-                      formData.password === formData.confirmPassword &&
-                      formData.password && (
-                        <p className="text-sm text-green-600 flex items-center space-x-1">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Passwords match</span>
-                        </p>
-                      )}
+                {/* Username */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="username"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Full Name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      autoComplete="off"
+                      id="username"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={formData.username}
+                      onChange={(e) =>
+                        handleInputChange("username", e.target.value)
+                      }
+                      className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isLoading}
+                      required
+                    />
                   </div>
                 </div>
-              )}
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-6">
-                {currentStep > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={isLoading}
-                    className="px-6"
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-semibold text-gray-700"
                   >
-                    Back
-                  </Button>
-                ) : (
-                  <div />
-                )}
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      autoComplete="off"
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isLoading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
 
-                {currentStep < stepperConfig.totalSteps ? (
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={isLoading}
-                    className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  {/* Password Strength Indicator */}
+                  {formData.password && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Password strength:
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            passwordStrength <= 2
+                              ? "text-red-600"
+                              : passwordStrength <= 3
+                              ? "text-yellow-600"
+                              : passwordStrength <= 4
+                              ? "text-blue-600"
+                              : "text-green-600"
+                          )}
+                        >
+                          {getPasswordStrengthLabel()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={cn(
+                            "h-2 rounded-full transition-all duration-300",
+                            getPasswordStrengthColor()
+                          )}
+                          style={{ width: `${passwordStrengthPercentage}%` }}
+                        />
+                      </div>
+
+                      {/* Password Requirements */}
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        {[
+                          {
+                            key: "minLength",
+                            label: "At least 8 characters",
+                          },
+                          {
+                            key: "hasUppercase",
+                            label: "One uppercase letter",
+                          },
+                          {
+                            key: "hasLowercase",
+                            label: "One lowercase letter",
+                          },
+                          { key: "hasNumber", label: "One number" },
+                          {
+                            key: "hasSpecialChar",
+                            label: "One special character",
+                          },
+                        ].map(({ key, label }) => (
+                          <div
+                            key={key}
+                            className="flex items-center space-x-2"
+                          >
+                            {passwordValidation[key] ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                            )}
+                            <span
+                              className={
+                                passwordValidation[key]
+                                  ? "text-green-600"
+                                  : "text-gray-500"
+                              }
+                            >
+                              {label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-semibold text-gray-700"
                   >
-                    Continue
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Account...
-                      </>
-                    ) : (
-                      <>
-                        Complete Setup
-                        <CheckCircle className="w-4 h-4 ml-2" />
-                      </>
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      autoComplete="off"
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                      }
+                      className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isLoading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {formData.confirmPassword &&
+                    formData.password !== formData.confirmPassword && (
+                      <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Passwords do not match</span>
+                      </p>
                     )}
-                  </Button>
-                )}
+                  {formData.confirmPassword &&
+                    formData.password === formData.confirmPassword &&
+                    formData.password && (
+                      <p className="text-sm text-green-600 flex items-center space-x-1">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Passwords match</span>
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-6">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Complete Setup
+                    </>
+                  )}
+                </Button>
               </div>
             </form>
 
