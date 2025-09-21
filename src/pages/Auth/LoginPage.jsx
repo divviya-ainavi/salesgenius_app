@@ -241,11 +241,10 @@ const LoginPage = () => {
             .select("plan_name")
             .eq("user_id", userId)
             .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
 
-          if (!planError && planData) {
-            const isBeta = planData.plan_name === "Beta Trial";
+          if (!planError && planData && planData.length > 0) {
+            const isBeta = planData[0].plan_name === "Beta Trial";
             dispatch(setIsBetaUser(isBeta));
             console.log("✅ Beta user status set:", isBeta);
           } else {
