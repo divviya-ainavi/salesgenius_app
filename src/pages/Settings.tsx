@@ -438,7 +438,7 @@ export const Settings = () => {
     allStatus,
   } = useSelector((state) => state.org);
 
-  console.log(isBetaUser, "check beta user");
+  // console.log(isBetaUser, "check beta user");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const isSuperAdmin = userRole?.key === "super_admin";
@@ -1164,7 +1164,8 @@ export const Settings = () => {
       organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
       token,
-      user?.id
+      user?.id,
+      isBetaUser ? "beta" : null
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
