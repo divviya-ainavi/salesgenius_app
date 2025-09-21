@@ -25,7 +25,7 @@ const initialState = {
     ishavefirefliesData: false,
     firefliesData: [],
     hasSeenOnboardingTour: false,
-    callCompanyAPI: true
+    callCompanyAPI: true,
     isBetaUser: false,
 };
 
