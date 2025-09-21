@@ -19,6 +19,7 @@ import {
   setHubspotIntegration,
   setHubspotUserDetails,
 } from "@/store/slices/authSlice"; // adjust import path as needed
+import { setIsBetaUser } from "@/store/slices/authSlice";
 import {
   setOrganizationDetails,
   setTitleName,
@@ -232,6 +233,30 @@ const LoginPage = () => {
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
+
+        // Check if user is a beta user by looking at their plan
+        try {
+          const { data: planData, error: planError } = await supabase
+            .from("plan")
+            .select("plan_name")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (!planError && planData) {
+            const isBeta = planData.plan_name === "Beta Trial";
+            dispatch(setIsBetaUser(isBeta));
+            console.log("✅ Beta user status set:", isBeta);
+          } else {
+            // If no plan found, assume not beta (legacy user)
+            dispatch(setIsBetaUser(false));
+            console.log("📭 No plan found, setting as non-beta user");
+          }
+        } catch (error) {
+          console.warn("⚠️ Failed to check beta user status:", error);
+          dispatch(setIsBetaUser(false)); // Default to false on error
+        }
 
         // Load onboarding tour status
         let tourStatus = false;
