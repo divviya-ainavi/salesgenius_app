@@ -211,6 +211,7 @@ export const authHelpers = {
           planName: 'Legacy User',
           daysRemaining: null
         };
+      }
       const currentDate = new Date();
       const endDate = new Date(plan.end_date);
       const isExpired = currentDate > endDate;
