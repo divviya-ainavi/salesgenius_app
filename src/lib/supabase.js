@@ -201,14 +201,16 @@ export const authHelpers = {
     try {
       const plan = await this.getUserPlan(userId);
       
+      // If no plan exists, allow login (for existing users without plan entries)
       if (!plan) {
+        console.log('ℹ️ No plan found for user, allowing login');
         return {
-          isExpired: true,
-          message: "No active plan found. Please contact your administrator.",
-          planType: null
+          isExpired: false,
+          message: null,
+          planType: 'legacy',
+          planName: 'Legacy User',
+          daysRemaining: null
         };
-      }
-
       const currentDate = new Date();
       const endDate = new Date(plan.end_date);
       const isExpired = currentDate > endDate;
