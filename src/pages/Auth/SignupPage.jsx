@@ -110,7 +110,7 @@ const SignupPage = () => {
         null,
         token,
         null,
-        'beta'  // Add type as 'beta' for self-signup
+        "beta" // Add type as 'beta' for self-signup
       );
 
       if (result.status === "invited" || result.status === "re-invited") {
@@ -132,17 +132,21 @@ const SignupPage = () => {
         setIsLoading(false);
         // console.log("Invite ID:", result.id); // optional for webhook trigger
       } else if (result.status === "registered") {
-        toast.info("This email is already registered. Please use the login page instead.");
+        toast.info(
+          "This email is already registered. Please use the login page instead."
+        );
         setIsLoading(false);
       } else if (result.status === "already-invited") {
-        toast.info("Account setup link was already sent to this email within the last 24 hours. Please check your email.");
+        toast.info(
+          "Account setup link was already sent to this email within the last 24 hours. Please check your email."
+        );
         setIsLoading(false);
       } else {
         toast.error(result.message || "Failed to send account setup link");
         setIsLoading(false);
       }
-      console.log("✅ Email is available for registration");
-      toast.success("Account setup link sent! Please check your email to complete registration.");
+      // console.log("✅ Email is available for registration");
+      // toast.success("Account setup link sent! Please check your email to complete registration.");
 
       // Here you would typically send a verification email
       // For now, we'll just show a success message

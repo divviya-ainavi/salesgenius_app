@@ -181,8 +181,8 @@ const LoginPage = () => {
 
         // Check plan expiry before proceeding with login
         console.log("🔍 Checking user plan expiry for user:", userId);
-        const planStatus = await dbHelpers.checkPlanExpiry(userId);
-        
+        const planStatus = await authHelpers.checkPlanExpiry(userId);
+
         if (planStatus.isExpired) {
           console.log("❌ User plan is expired:", planStatus);
           setError(planStatus.message);
@@ -191,7 +191,7 @@ const LoginPage = () => {
           console.log("✅ User plan is active:", {
             planType: planStatus.planType,
             planName: planStatus.planName,
-            daysRemaining: planStatus.daysRemaining
+            daysRemaining: planStatus.daysRemaining,
           });
         }
 
