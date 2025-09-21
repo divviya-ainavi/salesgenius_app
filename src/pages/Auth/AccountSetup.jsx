@@ -853,36 +853,7 @@ const AccountSetup = () => {
           </Card>
 
           {/* Features Preview */}
-          <Card className="shadow-lg border-0 bg-white/60 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                What's included in your account
-              </h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-100">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
-                  <p className="text-sm text-gray-600">Smart call insights and recommendations</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-green-50 border border-green-100">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Mail className="w-5 h-5 text-green-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-1">Email Generation</h4>
-                  <p className="text-sm text-gray-600">Automated follow-up emails</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-100">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Shield className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-1">CRM Integration</h4>
-                  <p className="text-sm text-gray-600">Seamless HubSpot sync</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
 
           {/* Footer */}
           <div className="text-center">
