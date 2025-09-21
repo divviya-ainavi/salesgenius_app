@@ -4,16 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Loader2, 
-  Mail, 
-  ArrowLeft, 
-  AlertCircle, 
+import {
+  Loader2,
+  Mail,
+  ArrowLeft,
+  AlertCircle,
   CheckCircle,
-  Send 
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { config } from "../../lib/config";
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -29,9 +31,9 @@ const SignupPage = () => {
     try {
       // Check if email exists in profiles table
       const { data, error } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email.toLowerCase());
+        .from("profiles")
+        .select("email")
+        .eq("email", email.toLowerCase());
 
       if (error) {
         throw error;
@@ -39,14 +41,45 @@ const SignupPage = () => {
 
       return data && data.length > 0; // Returns true if email exists
     } catch (error) {
-      console.error('Error checking email existence:', error);
+      console.error("Error checking email existence:", error);
       return false; // Assume email doesn't exist on error
     }
   };
 
+  const createJWT = (payload, secret = "SG", type) => {
+    const header = {
+      alg: "HS256",
+      typ: "JWT",
+    };
+
+    const base64UrlEncode = (obj) => {
+      return btoa(JSON.stringify(obj))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+    };
+
+    // Set expiration time for 24 hours if type is 'invite'
+    const now = Math.floor(Date.now() / 1000);
+    const payloadWithExp = {
+      ...payload,
+      ...(type === "invite" && { exp: now + 86400 }), // 86400 seconds = 24 hours
+    };
+
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payloadWithExp);
+
+    const signature = btoa(`${encodedHeader}.${encodedPayload}.${secret}`)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isFormValid) {
       setError("Please enter a valid email address");
       return;
@@ -57,60 +90,61 @@ const SignupPage = () => {
 
     try {
       console.log("🔄 Checking if email exists:", email);
-      
+
       // Check if email is already registered
       const emailExists = await checkEmailExists(email);
-      
+
       if (emailExists) {
         setError("Email is already in use.");
-        toast.error("Email is already in use. Please try a different email or login instead.");
+        toast.error(
+          "Email is already in use. Please try a different email or login instead."
+        );
         return;
       }
 
       const token = createJWT({ email }, "SG", "invite");
 
-    const result = await dbHelpers.inviteUserByEmail(
-      email,
-      organizationDetails?.id || CURRENT_USER.organization_id || null,
-      newUserRole,
-      token,
-      user?.id
-    );
+      const result = await dbHelpers.inviteUserByEmail(
+        email,
+        null,
+        null,
+        token,
+        null
+      );
 
-    if (result.status === "invited" || result.status === "re-invited") {
-      const formData = new FormData();
-      formData.append("id", result?.id);
-      const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      // console.log(response, "check response");
-      toast.success(
-        `Invitation ${
-          result.status === "re-invited" ? "re-" : ""
-        }sent to ${email}`
-      );
-      setIsLoading(false);
-      // console.log("Invite ID:", result.id); // optional for webhook trigger
-    } else if (result.status === "registered") {
-      toast.info("User is already registered.");
-      setIsLoading(false);
-    } else if (result.status === "already-invited") {
-      toast.info("User was already invited within the last 24 hours");
-      setIsLoading(false);
-    } else {
-      toast.error(result.message || "Failed to invite user");
-      setIsLoading(false);
-    }
+      if (result.status === "invited" || result.status === "re-invited") {
+        const formData = new FormData();
+        formData.append("id", result?.id);
+        const response = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+        // console.log(response, "check response");
+        toast.success(
+          `Invitation ${
+            result.status === "re-invited" ? "re-" : ""
+          }sent to ${email}`
+        );
+        setIsLoading(false);
+        // console.log("Invite ID:", result.id); // optional for webhook trigger
+      } else if (result.status === "registered") {
+        toast.info("User is already registered.");
+        setIsLoading(false);
+      } else if (result.status === "already-invited") {
+        toast.info("User was already invited within the last 24 hours");
+        setIsLoading(false);
+      } else {
+        toast.error(result.message || "Failed to invite user");
+        setIsLoading(false);
+      }
       console.log("✅ Email is available for registration");
       toast.success("Email is available! You can proceed with registration.");
-      
+
       // Here you would typically send a verification email
       // For now, we'll just show a success message
-      
     } catch (error) {
       console.error("❌ Signup error:", error);
       setError("An error occurred while checking email. Please try again.");
