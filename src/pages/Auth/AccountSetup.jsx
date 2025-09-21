@@ -19,6 +19,9 @@ import {
   Shield,
   Mail,
   UserCheck,
+  Sparkles,
+  Clock,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -465,11 +468,13 @@ const AccountSetup = () => {
   // Loading state
   if (isLoading && !inviteData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md shadow-xl border-0">
           <CardContent className="p-8">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Loading Invitation
               </h3>
@@ -486,11 +491,13 @@ const AccountSetup = () => {
   // Error state
   if (error && !inviteData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md shadow-xl border-0">
           <CardContent className="p-8">
             <div className="text-center">
-              <AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Invalid Invitation
               </h3>
@@ -498,6 +505,7 @@ const AccountSetup = () => {
               <Button 
                 onClick={() => navigate("/auth/login")} 
                 variant="outline"
+                className="w-full"
               >
                 Go to Login
               </Button>
@@ -509,39 +517,60 @@ const AccountSetup = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-6 py-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Complete Your Account Setup
+      <div className="pt-12 pb-8">
+        <div className="max-w-2xl mx-auto text-center px-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-6">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+            Welcome to SalesGenius.ai
           </h1>
-          <p className="text-gray-600">
-            Welcome to SalesGenius.ai - let's get you started
+          <p className="text-xl text-gray-600">
+            Complete your account setup to get started
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="space-y-8">
-          {/* Invitation Info */}
-          <Card>
+      <div className="max-w-2xl mx-auto px-6 pb-12">
+        <div className="space-y-6">
+          {/* Invitation Info Card */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Mail className="w-6 h-6 text-gray-600" />
+                <div className={cn(
+                  "w-14 h-14 rounded-xl flex items-center justify-center",
+                  userType === 'beta' 
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500" 
+                    : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                )}>
+                  {userType === 'beta' ? (
+                    <Sparkles className="w-7 h-7 text-white" />
+                  ) : (
+                    <Crown className="w-7 h-7 text-white" />
+                  )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900">
                     {inviteData?.email}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-gray-600 mb-2">
                     Setting up as {displayRoleLabel}
                   </p>
-                  <div className="mt-2">
-                    <Badge variant="outline" className="text-xs">
-                      {userType === 'beta' ? 'Beta Trial (30 days)' : 'Full Access'}
+                  <div className="flex items-center space-x-2">
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-xs font-medium",
+                        userType === 'beta' 
+                          ? "bg-purple-50 text-purple-700 border-purple-200" 
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      )}
+                    >
+                      <Clock className="w-3 h-3 mr-1" />
+                      {userType === 'beta' ? 'Beta Trial (30 days)' : 'Full Access (1 year)'}
                     </Badge>
                   </div>
                 </div>
@@ -550,33 +579,43 @@ const AccountSetup = () => {
           </Card>
 
           {/* Setup Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold text-center">
+                Create Your Account
+              </CardTitle>
+              <p className="text-center text-gray-600 mt-2">
+                Fill in your details to complete the setup
+              </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+
+            <CardContent className="px-8 pb-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Error Alert */}
                 {error && (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" className="border-red-200 bg-red-50">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription className="text-red-800">{error}</AlertDescription>
                   </Alert>
                 )}
 
                 {/* Organization Section (conditional) */}
                 {showOrgFields && (
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <Building className="w-5 h-5 text-gray-600" />
-                      <h3 className="font-semibold text-gray-900">
+                  <div className="space-y-4 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Building className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
                         Organization Details
                       </h3>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="companyName">Company Name</Label>
+                        <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700">
+                          Company Name
+                        </Label>
                         <Input
                           id="companyName"
                           type="text"
@@ -585,20 +624,27 @@ const AccountSetup = () => {
                           onChange={(e) => handleInputChange("companyName", e.target.value)}
                           disabled={isLoading}
                           required={showOrgFields}
+                          className="h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="domain">Company Domain</Label>
-                        <Input
-                          id="domain"
-                          type="text"
-                          placeholder="company.com"
-                          value={formData.domain}
-                          onChange={(e) => handleInputChange("domain", e.target.value)}
-                          disabled={isLoading}
-                          required={showOrgFields}
-                        />
+                        <Label htmlFor="domain" className="text-sm font-semibold text-gray-700">
+                          Company Domain
+                        </Label>
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                          <Input
+                            id="domain"
+                            type="text"
+                            placeholder="company.com"
+                            value={formData.domain}
+                            onChange={(e) => handleInputChange("domain", e.target.value)}
+                            disabled={isLoading}
+                            required={showOrgFields}
+                            className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -606,32 +652,43 @@ const AccountSetup = () => {
 
                 {/* Personal Information */}
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <User className="w-5 h-5 text-gray-600" />
-                    <h3 className="font-semibold text-gray-900">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">
                       Personal Information
                     </h3>
                   </div>
 
                   {/* Full Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="username">Full Name</Label>
-                    <Input
-                      autoComplete="off"
-                      id="username"
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={formData.username}
-                      onChange={(e) => handleInputChange("username", e.target.value)}
-                      disabled={isLoading}
-                      required
-                    />
+                    <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
+                      Full Name
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Input
+                        autoComplete="off"
+                        id="username"
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={formData.username}
+                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        disabled={isLoading}
+                        required
+                        className="pl-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
+                      />
+                    </div>
                   </div>
 
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password">Create Password</Label>
+                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                      Create Password
+                    </Label>
                     <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
                         autoComplete="off"
                         id="password"
@@ -639,27 +696,27 @@ const AccountSetup = () => {
                         placeholder="Create a strong password"
                         value={formData.password}
                         onChange={(e) => handleInputChange("password", e.target.value)}
-                        className="pr-10"
+                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
                         {showPassword ? (
-                          <EyeOff className="w-4 h-4" />
+                          <EyeOff className="w-5 h-5" />
                         ) : (
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-5 h-5" />
                         )}
                       </button>
                     </div>
 
                     {/* Password Strength Indicator */}
                     {formData.password && (
-                      <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">
                             Password strength:
@@ -723,8 +780,11 @@ const AccountSetup = () => {
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                      Confirm Password
+                    </Label>
                     <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <Input
                         autoComplete="off"
                         id="confirmPassword"
@@ -732,20 +792,20 @@ const AccountSetup = () => {
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
                         onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                        className="pr-10"
+                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className="w-4 h-4" />
+                          <EyeOff className="w-5 h-5" />
                         ) : (
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-5 h-5" />
                         )}
                       </button>
                     </div>
@@ -756,12 +816,12 @@ const AccountSetup = () => {
                         {formData.password === formData.confirmPassword ? (
                           <>
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-green-600">Passwords match</span>
+                            <span className="text-sm text-green-600 font-medium">Passwords match</span>
                           </>
                         ) : (
                           <>
                             <AlertCircle className="w-4 h-4 text-red-600" />
-                            <span className="text-sm text-red-600">Passwords do not match</span>
+                            <span className="text-sm text-red-600 font-medium">Passwords do not match</span>
                           </>
                         )}
                       </div>
@@ -773,19 +833,54 @@ const AccountSetup = () => {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full"
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
                   size="lg"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Creating Your Account...
                     </>
                   ) : (
-                    "Complete Setup"
+                    <>
+                      <UserCheck className="w-5 h-5 mr-2" />
+                      Complete Setup
+                    </>
                   )}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Features Preview */}
+          <Card className="shadow-lg border-0 bg-white/60 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                What's included in your account
+              </h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-100">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
+                  <p className="text-sm text-gray-600">Smart call insights and recommendations</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-green-50 border border-green-100">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Mail className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900 mb-1">Email Generation</h4>
+                  <p className="text-sm text-gray-600">Automated follow-up emails</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-purple-50 border border-purple-100">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Shield className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900 mb-1">CRM Integration</h4>
+                  <p className="text-sm text-gray-600">Seamless HubSpot sync</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -793,11 +888,11 @@ const AccountSetup = () => {
           <div className="text-center">
             <p className="text-sm text-gray-500">
               By creating an account, you agree to our{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 underline">
+              <a href="#" className="text-blue-600 hover:text-blue-700 underline font-medium">
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 underline">
+              <a href="#" className="text-blue-600 hover:text-blue-700 underline font-medium">
                 Privacy Policy
               </a>
             </p>
