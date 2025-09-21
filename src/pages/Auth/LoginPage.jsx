@@ -179,6 +179,22 @@ const LoginPage = () => {
 
         if (!profile) throw new Error("User profile not found");
 
+        // Check plan expiry before proceeding with login
+        console.log("🔍 Checking user plan expiry for user:", userId);
+        const planStatus = await dbHelpers.checkPlanExpiry(userId);
+        
+        if (planStatus.isExpired) {
+          console.log("❌ User plan is expired:", planStatus);
+          setError(planStatus.message);
+          return;
+        } else {
+          console.log("✅ User plan is active:", {
+            planType: planStatus.planType,
+            planName: planStatus.planName,
+            daysRemaining: planStatus.daysRemaining
+          });
+        }
+
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
 

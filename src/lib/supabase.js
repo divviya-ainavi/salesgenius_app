@@ -173,6 +173,79 @@ export const authHelpers = {
     }
   },
 
+  // Get user plan details
+  async getUserPlan(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('plan')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user plan:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in getUserPlan:', error);
+      return null;
+    }
+  },
+
+  // Check if user plan is expired
+  async checkPlanExpiry(userId) {
+    try {
+      const plan = await this.getUserPlan(userId);
+      
+      if (!plan) {
+        return {
+          isExpired: true,
+          message: "No active plan found. Please contact your administrator.",
+          planType: null
+        };
+      }
+
+      const currentDate = new Date();
+      const endDate = new Date(plan.end_date);
+      const isExpired = currentDate > endDate;
+
+      if (isExpired) {
+        // Check if this was a beta user
+        const isBetaUser = plan.plan_name === 'Beta Trial';
+        
+        return {
+          isExpired: true,
+          message: isBetaUser 
+            ? "Your trial period has ended. If you want to upgrade, please contact the super admin."
+            : "Your plan has expired. Please contact the super admin to renew your subscription.",
+          planType: isBetaUser ? 'beta' : 'standard',
+          planName: plan.plan_name,
+          endDate: plan.end_date
+        };
+      }
+
+      return {
+        isExpired: false,
+        message: null,
+        planType: plan.plan_name === 'Beta Trial' ? 'beta' : 'standard',
+        planName: plan.plan_name,
+        endDate: plan.end_date,
+        daysRemaining: Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24))
+      };
+    } catch (error) {
+      console.error('Error checking plan expiry:', error);
+      return {
+        isExpired: true,
+        message: "Unable to verify plan status. Please contact your administrator.",
+        planType: null
+      };
+    }
+  },
+
   // Get user profile from database
   async getUserProfile(userId) {
     try {
