@@ -2463,7 +2463,7 @@ export const dbHelpers = {
     return data;
   },
 
-  async inviteUserByEmail(email, organizationId, roleId, token, invitedBy) {
+  async inviteUserByEmail(email, organizationId, roleId, token, invitedBy, type = null) {
     try {
       const trimmedEmail = email.trim().toLowerCase();
       const now = new Date();
@@ -2492,6 +2492,7 @@ export const dbHelpers = {
             invited_at: now.toISOString(),
             status: "pending",
             invited_by: invitedBy || null,
+            type: type
           })
           .select("id")
           .single();
@@ -2513,6 +2514,8 @@ export const dbHelpers = {
             .update({
               token,
               invited_at: now.toISOString(),
+              invited_by: invitedBy,
+              type: type
             })
             .eq("email", trimmedEmail)
             .select("id")
