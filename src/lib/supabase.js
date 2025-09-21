@@ -196,6 +196,99 @@ export const authHelpers = {
     }
   },
 
+  // Check if user's plan is expired
+  async checkPlanExpiry(userId) {
+    try {
+      console.log('🔍 Checking plan expiry for user:', userId);
+      
+      // Get the most recent plan for the user
+      const { data: planData, error } = await supabase
+        .from('plan')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching user plan:', error);
+        // Allow login on database error
+        return {
+          isExpired: false,
+          planType: 'unknown',
+          planName: 'Unknown Plan',
+          daysRemaining: null,
+          message: 'Unable to verify plan status'
+        };
+      }
+
+      // If no plan found, allow login (legacy users)
+      if (!planData || planData.length === 0) {
+        console.log('📭 No plan found for user - treating as legacy user');
+        return {
+          isExpired: false,
+          planType: 'legacy',
+          planName: 'Legacy User',
+          daysRemaining: null,
+          message: 'No plan required'
+        };
+      }
+
+      const plan = planData[0];
+      const currentDate = new Date();
+      const endDate = new Date(plan.end_date);
+      const isExpired = currentDate > endDate;
+
+      // Calculate days remaining
+      const timeDiff = endDate.getTime() - currentDate.getTime();
+      const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+      console.log('📊 Plan check result:', {
+        planName: plan.plan_name,
+        endDate: plan.end_date,
+        isExpired,
+        daysRemaining
+      });
+
+      if (isExpired) {
+        // Determine message based on plan type
+        let message;
+        if (plan.plan_name === 'Beta Trial') {
+          message = 'Your trial period has ended. If you want to upgrade, please contact the super admin.';
+        } else {
+          message = 'Your plan has expired. Please contact the super admin to renew your subscription.';
+        }
+
+        return {
+          isExpired: true,
+          planType: plan.plan_name === 'Beta Trial' ? 'beta' : 'standard',
+          planName: plan.plan_name,
+          daysRemaining: daysRemaining,
+          message: message
+        };
+      }
+
+      // Plan is active
+      return {
+        isExpired: false,
+        planType: plan.plan_name === 'Beta Trial' ? 'beta' : 'standard',
+        planName: plan.plan_name,
+        daysRemaining: daysRemaining,
+        message: 'Plan is active'
+      };
+
+    } catch (error) {
+      console.error('Error checking plan expiry:', error);
+      // Allow login on error to prevent lockouts
+      return {
+        isExpired: false,
+        planType: 'unknown',
+        planName: 'Unknown Plan',
+        daysRemaining: null,
+        message: 'Error checking plan status'
+      };
+    }
+  },
+
   // Check if user plan is expired
   async checkPlanExpiry(userId) {
     try {
