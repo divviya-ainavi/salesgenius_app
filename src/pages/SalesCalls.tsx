@@ -364,14 +364,14 @@ export const SalesCalls = () => {
 
       // Validate file type
       const validTypes = ["text/plain", "text/vtt", "application/pdf"];
-      const validExtensions = [".txt", ".vtt", ".pdf"];
+      const validExtensions = [".txt", ".pdf"];
       const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
 
       if (
         !validTypes.includes(file.type) &&
         !validExtensions.includes(fileExtension)
       ) {
-        toast.error("Please upload only .txt, .vtt, or .pdf files");
+        toast.error("Please upload only .txt, or .pdf files");
         trackFileUpload(file.name, file.size, file.type, "failed");
         return;
       }
@@ -418,7 +418,6 @@ export const SalesCalls = () => {
     onDrop,
     accept: {
       "text/plain": [".txt"],
-      "text/vtt": [".vtt"],
       "application/pdf": [".pdf"],
     },
     maxFiles: 1,
@@ -1285,8 +1284,7 @@ export const SalesCalls = () => {
                           : "Drop your transcript here"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Drag and drop your .txt, .vtt, or .pdf file, or click to
-                        browse
+                        Drag and drop your .txt or .pdf file, or click to browse
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Supported formats are TXT, VTT or PDF (Max 10MB)
