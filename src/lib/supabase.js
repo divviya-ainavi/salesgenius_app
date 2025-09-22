@@ -1588,6 +1588,7 @@ export const dbHelpers = {
         .from('ResearchCompany')
         .select('*')
         .eq('user_id', userId)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
