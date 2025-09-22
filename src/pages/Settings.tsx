@@ -36,7 +36,6 @@ import {
   Brain,
   Upload,
   Download,
-  Trash2,
   Edit,
   Save,
   X,
