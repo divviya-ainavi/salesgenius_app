@@ -425,6 +425,7 @@ export const Settings = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    isBetaUser,
   } = useSelector((state) => state.auth);
   const {
     company_size,
@@ -436,10 +437,12 @@ export const Settings = () => {
     getOrgList,
     allStatus,
   } = useSelector((state) => state.org);
+
+  // console.log(isBetaUser, "check beta user");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const isSuperAdmin = userRole?.key === "super_admin";
-  console.log(isSuperAdmin, "check super admin");
+  // console.log(isSuperAdmin, "check super admin");
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -1161,7 +1164,8 @@ export const Settings = () => {
       organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
       token,
-      user?.id
+      user?.id,
+      isBetaUser ? "beta" : null
     );
 
     if (result.status === "invited" || result.status === "re-invited") {

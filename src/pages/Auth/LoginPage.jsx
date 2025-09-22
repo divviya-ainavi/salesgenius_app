@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
   setHubspotIntegration,
   setHubspotUserDetails,
 } from "@/store/slices/authSlice"; // adjust import path as needed
+import { setIsBetaUser } from "@/store/slices/authSlice";
 import {
   setOrganizationDetails,
   setTitleName,
@@ -179,6 +180,22 @@ const LoginPage = () => {
 
         if (!profile) throw new Error("User profile not found");
 
+        // Check plan expiry before proceeding with login
+        console.log("🔍 Checking user plan expiry for user:", userId);
+        const planStatus = await authHelpers.checkPlanExpiry(userId);
+
+        if (planStatus.isExpired) {
+          console.log("❌ User plan is expired:", planStatus);
+          setError(planStatus.message);
+          return;
+        } else {
+          console.log("✅ User plan is active:", {
+            planType: planStatus.planType,
+            planName: planStatus.planName,
+            daysRemaining: planStatus.daysRemaining,
+          });
+        }
+
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
 
@@ -216,6 +233,29 @@ const LoginPage = () => {
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
+
+        // Check if user is a beta user by looking at their plan
+        try {
+          const { data: planData, error: planError } = await supabase
+            .from("plan")
+            .select("plan_name")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (!planError && planData && planData.length > 0) {
+            const isBeta = planData[0].plan_name === "Beta Trial";
+            dispatch(setIsBetaUser(isBeta));
+            console.log("✅ Beta user status set:", isBeta);
+          } else {
+            // If no plan found, assume not beta (legacy user)
+            dispatch(setIsBetaUser(false));
+            console.log("📭 No plan found, setting as non-beta user");
+          }
+        } catch (error) {
+          console.warn("⚠️ Failed to check beta user status:", error);
+          dispatch(setIsBetaUser(false)); // Default to false on error
+        }
 
         // Load onboarding tour status
         let tourStatus = false;
@@ -551,28 +591,12 @@ const LoginPage = () => {
             <div className="mt-6 text-center space-y-2">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <button
+                <Link
+                  to="/auth/signup"
                   className="text-blue-600 hover:text-blue-800 font-medium"
-                  onClick={() => {
-                    const email = "admin@ainavi.co.uk";
-                    const subject = encodeURIComponent(
-                      "Issue with SalesGenius.ai Access"
-                    );
-                    const body = encodeURIComponent(`Hello Admin,
-
-I'm currently facing an issue while trying to access or use SalesGenius.ai.
-
-Could you please assist or look into it?
-
-Thank you,
-[Your Name]`);
-
-                    const gmailLink = `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`;
-                    window.open(gmailLink, "_blank");
-                  }}
                 >
-                  Contact your administrator
-                </button>
+                  Sign up here
+                </Link>
               </p>
               <button
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
