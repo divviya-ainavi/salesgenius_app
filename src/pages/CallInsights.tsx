@@ -56,6 +56,7 @@ import {
   Info,
   Brain,
   Phone,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -2878,6 +2879,26 @@ const CallInsights = () => {
 
           {/* Consolidated "How To Engage" Summary */}
           {/* {howToEngageSummary && (
+  // Handle copy sales insights
+  const handleCopySalesInsights = async () => {
+    if (!selectedInsight?.sales_insights || selectedInsight.sales_insights.length === 0) {
+      toast.error("No sales insights to copy");
+      return;
+    }
+
+    try {
+      // Format sales insights for copying
+      const insightsText = selectedInsight.sales_insights
+        .map((insight, index) => `${index + 1}. ${insight.content}`)
+        .join('\n\n');
+
+      await navigator.clipboard.writeText(insightsText);
+      toast.success("Sales insights copied to clipboard");
+    } catch (error) {
+      console.error("Error copying sales insights:", error);
+      toast.error("Failed to copy sales insights");
+    }
+  };</parameter>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
