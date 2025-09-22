@@ -2788,6 +2788,7 @@ const CallInsights = () => {
                               <span>Preferred Communication Modality:</span>
                               <p className="font-medium text-sm">
                                 {stakeholder.style
+  Copy,
                                   ? stakeholder.style.charAt(0).toUpperCase() +
                                     stakeholder.style.slice(1)
                                   : ""}
