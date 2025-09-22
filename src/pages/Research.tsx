@@ -200,6 +200,9 @@ const Research = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [researchToDelete, setResearchToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [researchToDelete, setResearchToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState<ResearchFormData>({
     companyName: "",
     companyWebsite: "",
