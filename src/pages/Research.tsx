@@ -195,9 +195,6 @@ const Research = () => {
     null
   );
   const [researchHistory, setResearchHistory] = useState<StoredResearch[]>([]);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [researchToDelete, setResearchToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
