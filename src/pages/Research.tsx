@@ -72,7 +72,7 @@ import {
   Award,
   Clock,
   Network,
-  ChevronUp,
+  ChevronUp
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -197,9 +197,6 @@ const Research = () => {
   >("form");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [researchToDelete, setResearchToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [researchToDelete, setResearchToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -649,7 +646,9 @@ const Research = () => {
     setIsLoadingHistory(true);
     try {
       const history = await dbHelpers.getResearchHistory(user?.id);
-      setResearchHistory(history);
+      // Filter to only show active research
+      const activeHistory = (history || []).filter(item => item.is_active !== false);
+      setResearchHistory(activeHistory);
       setCurrentView("history");
     } catch (error) {
       console.error("Failed to load research history:", error);
@@ -664,7 +663,9 @@ const Research = () => {
     setIsLoadingHistory(true);
     try {
       const history = await dbHelpers.getResearchHistory(user?.id);
-      setResearchHistory(history);
+      // Filter to only show active research
+      const activeHistory = (history || []).filter(item => item.is_active !== false);
+      setResearchHistory(activeHistory);
       // setCurrentView("history");
     } catch (error) {
       console.error("Failed to load research history:", error);
