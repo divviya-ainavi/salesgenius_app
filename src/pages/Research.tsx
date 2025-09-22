@@ -197,6 +197,9 @@ const Research = () => {
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [researchToDelete, setResearchToDelete] = useState<StoredResearch | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const {
     userProfileInfo,
     userRole,
