@@ -26,6 +26,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Search,
   ThumbsUp,
   ThumbsDown,
@@ -197,6 +211,9 @@ const Research = () => {
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [researchToDelete, setResearchToDelete] = useState<StoredResearch | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [researchToDelete, setResearchToDelete] = useState<StoredResearch | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
