@@ -59,6 +59,7 @@ import {
   Clock,
   Network,
   ChevronUp,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
