@@ -13,6 +13,20 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
   ThumbsUp,
   ThumbsDown,
   ChevronDown,
@@ -181,12 +195,6 @@ const Research = () => {
   const [activeTab, setActiveTab] = useState("analysis");
   const [prospectInCRM, setProspectInCRM] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
-  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
-    isOpen: false,
-    researchId: null,
-    companyName: "",
-  });
-  const [isDeletingResearch, setIsDeletingResearch] = useState(false);
   const {
     userProfileInfo,
     userRole,
