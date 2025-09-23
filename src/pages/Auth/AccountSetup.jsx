@@ -165,7 +165,7 @@ const AccountSetup = () => {
         // Determine if organization fields should be shown
         const hasOrgId = !!invite.organization_id;
         const hasTitleId = !!invite.title_id;
-        
+
         // Show organization fields only if neither organization_id nor title_id are present
         setShowOrgFields(!hasOrgId && !hasTitleId);
 
@@ -382,18 +382,18 @@ const AccountSetup = () => {
       try {
         const today = new Date();
         const userType = inviteData.type; // 'beta' for self-signup, null for admin invite
-        
+
         let planName, endDate, numberOfDays;
-        
-        if (userType === 'beta') {
+
+        if (userType === "beta") {
           // Beta user: 30-day trial
-          planName = 'Beta Trial';
-          endDate = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from today
+          planName = "Beta Trial";
+          endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
           numberOfDays = 30;
         } else {
           // Admin invited user: 1-year plan
-          planName = 'Standard Plan';
-          endDate = new Date(today.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year from today
+          planName = "Standard Plan";
+          endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from today
           numberOfDays = 365;
         }
 
@@ -403,8 +403,8 @@ const AccountSetup = () => {
             {
               user_id: profile.id,
               plan_name: planName,
-              start_date: today.toISOString().split('T')[0], // YYYY-MM-DD format
-              end_date: endDate.toISOString().split('T')[0], // YYYY-MM-DD format
+              start_date: today.toISOString().split("T")[0], // YYYY-MM-DD format
+              end_date: endDate.toISOString().split("T")[0], // YYYY-MM-DD format
               no_of_days: numberOfDays,
             },
           ])
@@ -437,14 +437,21 @@ const AccountSetup = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              email: inviteData.email,
-              name: formData.username,
+              EMAIL: inviteData.email,
+              FIRSTNAME: formData.username,
+              LASTNAME: "",
+              PLANTYPE: "Free",
+              PLANID: "1",
+              CONTACT: "",
             }),
           }
         );
 
         if (!brevoResponse.ok) {
-          console.warn("Failed to add contact to Brevo:", brevoResponse.statusText);
+          console.warn(
+            "Failed to add contact to Brevo:",
+            brevoResponse.statusText
+          );
           // Don't show error to user - Brevo contact creation is optional
         } else {
           console.log("✅ Contact added to Brevo successfully");
@@ -529,8 +536,8 @@ const AccountSetup = () => {
                 Invalid Invitation
               </h3>
               <p className="text-gray-600 mb-6">{error}</p>
-              <Button 
-                onClick={() => navigate("/auth/login")} 
+              <Button
+                onClick={() => navigate("/auth/login")}
                 variant="outline"
                 className="w-full"
               >
@@ -567,13 +574,15 @@ const AccountSetup = () => {
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center",
-                  userType === 'beta' 
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500" 
-                    : "bg-gradient-to-r from-blue-500 to-indigo-500"
-                )}>
-                  {userType === 'beta' ? (
+                <div
+                  className={cn(
+                    "w-14 h-14 rounded-xl flex items-center justify-center",
+                    userType === "beta"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                      : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                  )}
+                >
+                  {userType === "beta" ? (
                     <Sparkles className="w-7 h-7 text-white" />
                   ) : (
                     <Crown className="w-7 h-7 text-white" />
@@ -587,17 +596,19 @@ const AccountSetup = () => {
                     Setting up as {displayRoleLabel}
                   </p>
                   <div className="flex items-center space-x-2">
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={cn(
                         "text-xs font-medium",
-                        userType === 'beta' 
-                          ? "bg-purple-50 text-purple-700 border-purple-200" 
+                        userType === "beta"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
                           : "bg-blue-50 text-blue-700 border-blue-200"
                       )}
                     >
                       <Clock className="w-3 h-3 mr-1" />
-                      {userType === 'beta' ? 'Beta Trial (30 days)' : 'Full Access (1 year)'}
+                      {userType === "beta"
+                        ? "Beta Trial (30 days)"
+                        : "Full Access (1 year)"}
                     </Badge>
                   </div>
                 </div>
@@ -620,9 +631,14 @@ const AccountSetup = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Error Alert */}
                 {error && (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50">
+                  <Alert
+                    variant="destructive"
+                    className="border-red-200 bg-red-50"
+                  >
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
+                    <AlertDescription className="text-red-800">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 )}
 
@@ -640,7 +656,10 @@ const AccountSetup = () => {
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700">
+                        <Label
+                          htmlFor="companyName"
+                          className="text-sm font-semibold text-gray-700"
+                        >
                           Company Name
                         </Label>
                         <Input
@@ -648,7 +667,9 @@ const AccountSetup = () => {
                           type="text"
                           placeholder="Enter your company name"
                           value={formData.companyName}
-                          onChange={(e) => handleInputChange("companyName", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("companyName", e.target.value)
+                          }
                           disabled={isLoading}
                           required={showOrgFields}
                           className="h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
@@ -656,7 +677,10 @@ const AccountSetup = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="domain" className="text-sm font-semibold text-gray-700">
+                        <Label
+                          htmlFor="domain"
+                          className="text-sm font-semibold text-gray-700"
+                        >
                           Company Domain
                         </Label>
                         <div className="relative">
@@ -666,7 +690,9 @@ const AccountSetup = () => {
                             type="text"
                             placeholder="company.com"
                             value={formData.domain}
-                            onChange={(e) => handleInputChange("domain", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("domain", e.target.value)
+                            }
                             disabled={isLoading}
                             required={showOrgFields}
                             className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
@@ -690,7 +716,10 @@ const AccountSetup = () => {
 
                   {/* Full Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Full Name
                     </Label>
                     <div className="relative">
@@ -701,7 +730,9 @@ const AccountSetup = () => {
                         type="text"
                         placeholder="Enter your full name"
                         value={formData.username}
-                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
                         disabled={isLoading}
                         required
                         className="pl-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
@@ -711,7 +742,10 @@ const AccountSetup = () => {
 
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="password"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Create Password
                     </Label>
                     <div className="relative">
@@ -722,7 +756,9 @@ const AccountSetup = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
                         value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
@@ -763,7 +799,7 @@ const AccountSetup = () => {
                             {getPasswordStrengthLabel()}
                           </span>
                         </div>
-                        
+
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className={cn(
@@ -777,13 +813,28 @@ const AccountSetup = () => {
                         {/* Password Requirements */}
                         <div className="grid grid-cols-1 gap-2 text-sm">
                           {[
-                            { key: "minLength", label: "At least 8 characters" },
-                            { key: "hasUppercase", label: "One uppercase letter" },
-                            { key: "hasLowercase", label: "One lowercase letter" },
+                            {
+                              key: "minLength",
+                              label: "At least 8 characters",
+                            },
+                            {
+                              key: "hasUppercase",
+                              label: "One uppercase letter",
+                            },
+                            {
+                              key: "hasLowercase",
+                              label: "One lowercase letter",
+                            },
                             { key: "hasNumber", label: "One number" },
-                            { key: "hasSpecialChar", label: "One special character" },
+                            {
+                              key: "hasSpecialChar",
+                              label: "One special character",
+                            },
                           ].map(({ key, label }) => (
-                            <div key={key} className="flex items-center space-x-2">
+                            <div
+                              key={key}
+                              className="flex items-center space-x-2"
+                            >
                               {passwordValidation[key] ? (
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                               ) : (
@@ -807,7 +858,10 @@ const AccountSetup = () => {
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-sm font-semibold text-gray-700"
+                    >
                       Confirm Password
                     </Label>
                     <div className="relative">
@@ -818,14 +872,18 @@ const AccountSetup = () => {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
                         className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                         disabled={isLoading}
                       >
@@ -836,19 +894,23 @@ const AccountSetup = () => {
                         )}
                       </button>
                     </div>
-                    
+
                     {/* Password Match Indicator */}
                     {formData.confirmPassword && (
                       <div className="flex items-center space-x-2">
                         {formData.password === formData.confirmPassword ? (
                           <>
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-green-600 font-medium">Passwords match</span>
+                            <span className="text-sm text-green-600 font-medium">
+                              Passwords match
+                            </span>
                           </>
                         ) : (
                           <>
                             <AlertCircle className="w-4 h-4 text-red-600" />
-                            <span className="text-sm text-red-600 font-medium">Passwords do not match</span>
+                            <span className="text-sm text-red-600 font-medium">
+                              Passwords do not match
+                            </span>
                           </>
                         )}
                       </div>
@@ -880,17 +942,22 @@ const AccountSetup = () => {
           </Card>
 
           {/* Features Preview */}
-          
 
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-gray-500">
               By creating an account, you agree to our{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 underline font-medium">
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 underline font-medium">
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
                 Privacy Policy
               </a>
             </p>
