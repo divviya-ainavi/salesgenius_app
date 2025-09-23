@@ -268,7 +268,8 @@ export const authHelpers = {
         fireflies_connected,
         timezone,
         language,
-        email_client_preference
+        email_client_preference,
+        phone_number
       `)
         .eq("id", userId)
         .single();
@@ -2381,7 +2382,8 @@ export const dbHelpers = {
           full_name: updates.name,
           email: updates.email,
           timezone: updates.timezone,
-          language: updates.language
+          language: updates.language,
+          phone_number: updates.phone_number || null,
         })
         .eq('id', userId)
         .select();

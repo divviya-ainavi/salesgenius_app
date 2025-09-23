@@ -515,6 +515,7 @@ export const Settings = () => {
     email: user?.email,
     timezone: user?.timezone || "Europe/London",
     language: user?.language || "en",
+    phoneNumber: user?.phone_number || "",
     notifications: {
       email: true,
       push: true,
@@ -1004,6 +1005,7 @@ export const Settings = () => {
         email: profileSettings.email,
         timezone: profileSettings.timezone,
         language: profileSettings.language,
+        phone_number: profileSettings.phoneNumber,
       });
 
       // 🔄 Update Redux state
@@ -1014,6 +1016,7 @@ export const Settings = () => {
           email: updatedProfile.email,
           timezone: updatedProfile.timezone,
           language: updatedProfile.language,
+          phoneNumber: updatedProfile.phone_number,
         })
       );
 
@@ -1865,52 +1868,55 @@ export const Settings = () => {
                     disabled={!isEditing}
                   />
                 </div>
-                {/* Phone Number */}
-                <div className="space-y-2">
-                  <Label className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4" />
-                    <span>Phone Number</span>
-                  </Label>
-                  {isEditing ? (
-                    <div className="phone-input">
-                      <PhoneInput
-                        placeholder="Enter phone number"
-                        value={profileSettings.phoneNumber}
-                        onChange={(value) =>
-                          setProfileSettings((prev) => ({
-                            ...prev,
-                            phoneNumber: value || "",
-                          }))
-                        }
-                        defaultCountry="US"
-                        international
-                        countryCallingCodeEditable={false}
-                      />
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-muted rounded-md">
-                      <span className="text-foreground">
-                        {profileSettings.phoneNumber || "Not provided"}
-                      </span>
-                    </div>
-                  )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Email Address
+                    </label>
+                    <Input
+                      value={profileSettings.email}
+                      onChange={(e) =>
+                        setProfileSettings((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      disabled={true}
+                      type="email"
+                    />
+                  </div>
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4" />
+                      <span>Phone Number</span>
+                    </Label>
+                    {isEditing ? (
+                      <div className="phone-input">
+                        <PhoneInput
+                          placeholder="Enter phone number"
+                          value={profileSettings.phoneNumber}
+                          onChange={(value) =>
+                            setProfileSettings((prev) => ({
+                              ...prev,
+                              phoneNumber: value || "",
+                            }))
+                          }
+                          defaultCountry="US"
+                          international
+                          countryCallingCodeEditable={false}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-muted rounded-md">
+                        <span className="text-foreground">
+                          {profileSettings.phoneNumber || "Not provided"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Email Address
-                  </label>
-                  <Input
-                    value={profileSettings.email}
-                    onChange={(e) =>
-                      setProfileSettings((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    disabled={true}
-                    type="email"
-                  />
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">
