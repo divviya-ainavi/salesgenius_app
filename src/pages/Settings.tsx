@@ -1891,44 +1891,23 @@ export const Settings = () => {
                       <Phone className="w-4 h-4" />
                       <span>Phone Number</span>
                     </Label>
-                    {isEditing ? (
-                      <div className="phone-input-v2">
-                        <PhoneInput
-                          country={'us'}
-                          placeholder="Enter phone number"
-                          value={profileSettings.phoneNumber}
-                          onChange={(value, country, e, formattedValue) =>
-                            setProfileSettings((prev) => ({
-                              ...prev,
-                              phoneNumber: formattedValue || "",
-                            }))
-                          }
-                          inputStyle={{
-                            width: '100%',
-                            height: '40px',
-                            fontSize: '14px',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px',
-                            paddingLeft: '48px'
-                          }}
-                          buttonStyle={{
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '6px 0 0 6px',
-                            backgroundColor: 'hsl(var(--background))'
-                          }}
-                          dropdownStyle={{
-                            maxHeight: '120px',
-                            overflowY: 'auto'
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-muted rounded-md">
-                        <span className="text-foreground">
-                          {profileSettings.phoneNumber || "Not provided"}
-                        </span>
-                      </div>
-                    )}
+
+                    <div className="phone-input">
+                      <PhoneInput
+                        placeholder="Enter phone number"
+                        value={profileSettings.phoneNumber}
+                        onChange={(value) =>
+                          setProfileSettings((prev) => ({
+                            ...prev,
+                            phoneNumber: value || "",
+                          }))
+                        }
+                        defaultCountry="US"
+                        international
+                        countryCallingCodeEditable={false}
+                        disabled={!isEditing}
+                      />
+                    </div>
                   </div>
                 </div>
 
