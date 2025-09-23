@@ -1872,6 +1872,7 @@ export const Settings = () => {
                     <span>Phone Number</span>
                   </Label>
                   {isEditing ? (
+                    <div className="phone-input">
                       <PhoneInput
                         placeholder="Enter phone number"
                         value={profileSettings.phoneNumber}
