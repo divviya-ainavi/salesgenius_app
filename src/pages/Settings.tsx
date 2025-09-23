@@ -1892,7 +1892,7 @@ export const Settings = () => {
                       <span>Phone Number</span>
                     </Label>
                     {isEditing ? (
-                      <div className="phone-input">
+                      <div className="phone-input-compact">
                         <PhoneInput
                           placeholder="Enter phone number"
                           value={profileSettings.phoneNumber}
