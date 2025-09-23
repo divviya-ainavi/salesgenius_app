@@ -78,8 +78,8 @@ import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import {
   setBusinessKnowledge,
   setCompany_size,
@@ -1892,19 +1892,34 @@ export const Settings = () => {
                       <span>Phone Number</span>
                     </Label>
                     {isEditing ? (
-                      <div className="phone-input-compact">
+                      <div className="phone-input-v2">
                         <PhoneInput
+                          country={'us'}
                           placeholder="Enter phone number"
                           value={profileSettings.phoneNumber}
-                          onChange={(value) =>
+                          onChange={(value, country, e, formattedValue) =>
                             setProfileSettings((prev) => ({
                               ...prev,
-                              phoneNumber: value || "",
+                              phoneNumber: formattedValue || "",
                             }))
                           }
-                          defaultCountry="US"
-                          international
-                          countryCallingCodeEditable={false}
+                          inputStyle={{
+                            width: '100%',
+                            height: '40px',
+                            fontSize: '14px',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            paddingLeft: '48px'
+                          }}
+                          buttonStyle={{
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px 0 0 6px',
+                            backgroundColor: 'hsl(var(--background))'
+                          }}
+                          dropdownStyle={{
+                            maxHeight: '120px',
+                            overflowY: 'auto'
+                          }}
                         />
                       </div>
                     ) : (
