@@ -1,5 +1,4 @@
 import { analytics } from './analytics';
-import CryptoJS from 'crypto-js';
 
 // API Configuration
 const API_CONFIG = {
@@ -9,56 +8,13 @@ const API_CONFIG = {
   retryDelay: 1000, // 1 second
 };
 
-// JWT Token Generation
-const generateJWTToken = (userId, email) => {
-  const header = {
-    alg: "HS256",
-    typ: "JWT",
-  };
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    userId: userId,
-    email: email,
-    iat: now,
-    exp: now + (3 * 60 * 60), // 3 hours from now
-  };
-
-  const secret = "S-G2025Ai";
-
-  const base64UrlEncode = (obj) => {
-    return btoa(JSON.stringify(obj))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
-  };
-
-  const encodedHeader = base64UrlEncode(header);
-  const encodedPayload = base64UrlEncode(payload);
-
-  // Create signature using HMAC SHA256
-  const signature = CryptoJS.HmacSHA256(`${encodedHeader}.${encodedPayload}`, secret)
-    .toString(CryptoJS.enc.Base64)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
-};
-
 // Token management
 class TokenManager {
   constructor() {
     this.token = null;
     this.refreshToken = null;
-    this.jwtToken = null;
-    this.jwtTokenExpiry = null;
-    this.userInfo = null;
     this.tokenKey = 'salesgenius_auth_token';
     this.refreshTokenKey = 'salesgenius_refresh_token';
-    this.jwtTokenKey = 'salesgenius_jwt_token';
-    this.jwtExpiryKey = 'salesgenius_jwt_expiry';
-    this.userInfoKey = 'salesgenius_user_info';
 
     // Load token from localStorage on initialization
     this.loadTokenFromStorage();
@@ -79,46 +35,6 @@ class TokenManager {
     }
   }
 
-  setUserInfo(userId, email) {
-    this.userInfo = { userId, email };
-    localStorage.setItem(this.userInfoKey, JSON.stringify({ userId, email }));
-    
-    // Generate new JWT token
-    this.generateJWTToken();
-  }
-
-  generateJWTToken() {
-    if (!this.userInfo) return null;
-    
-    const token = generateJWTToken(this.userInfo.userId, this.userInfo.email);
-    const expiry = Date.now() + (3 * 60 * 60 * 1000); // 3 hours from now
-    
-    this.jwtToken = token;
-    this.jwtTokenExpiry = expiry;
-    
-    localStorage.setItem(this.jwtTokenKey, token);
-    localStorage.setItem(this.jwtExpiryKey, expiry.toString());
-    
-    return token;
-  }
-
-  getJWTToken() {
-    // Check if token exists and is not expired
-    if (!this.jwtToken || !this.jwtTokenExpiry) {
-      return this.generateJWTToken();
-    }
-    
-    // Check if token is expired (with 5 minute buffer)
-    const now = Date.now();
-    const bufferTime = 5 * 60 * 1000; // 5 minutes
-    
-    if (now >= (this.jwtTokenExpiry - bufferTime)) {
-      console.log('JWT token expired, generating new one');
-      return this.generateJWTToken();
-    }
-    
-    return this.jwtToken;
-  }
   getToken() {
     return this.token;
   }
@@ -130,24 +46,13 @@ class TokenManager {
   clearToken() {
     this.token = null;
     this.refreshToken = null;
-    this.jwtToken = null;
-    this.jwtTokenExpiry = null;
-    this.userInfo = null;
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.refreshTokenKey);
-    localStorage.removeItem(this.jwtTokenKey);
-    localStorage.removeItem(this.jwtExpiryKey);
-    localStorage.removeItem(this.userInfoKey);
   }
 
   loadTokenFromStorage() {
     this.token = localStorage.getItem(this.tokenKey);
     this.refreshToken = localStorage.getItem(this.refreshTokenKey);
-    this.jwtToken = localStorage.getItem(this.jwtTokenKey);
-    const expiryStr = localStorage.getItem(this.jwtExpiryKey);
-    this.jwtTokenExpiry = expiryStr ? parseInt(expiryStr) : null;
-    const userInfoStr = localStorage.getItem(this.userInfoKey);
-    this.userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
   }
 
   isAuthenticated() {
@@ -161,14 +66,9 @@ const tokenManager = new TokenManager();
 // Request interceptor to add authentication headers
 const addAuthHeaders = (headers = {}) => {
   const token = tokenManager.getToken();
-  const jwtToken = tokenManager.getJWTToken();
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  if (jwtToken) {
-    headers['X-JWT-Token'] = jwtToken;
   }
 
   return headers;
