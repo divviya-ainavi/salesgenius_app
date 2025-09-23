@@ -333,3 +333,14 @@
 .phone-input .PhoneInputCountrySelectArrow {
   color: hsl(var(--muted-foreground));
 }
+
+/* Reduce height of country code dropdown */
+.phone-input .PhoneInputCountrySelect {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.phone-input .PhoneInputCountrySelectDropdown {
+  max-height: 200px;
+  overflow-y: auto;
+}
