@@ -233,6 +233,11 @@ const LoginPage = () => {
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
+        
+        // Set user info for JWT token generation
+        import('@/lib/api').then(({ tokenManager }) => {
+          tokenManager.setUserInfo(profile.id, profile.email);
+        });
 
         // Check if user is a beta user by looking at their plan
         try {
