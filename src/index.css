@@ -377,7 +377,8 @@
   overflow-y: auto !important;
 }
 /* Phone input styling to match our design system */
-.phone-input .PhoneInputInput {
+.phone-input .PhoneInputInput,
+.phone-input-compact .PhoneInputInput {
   flex: 1;
   min-width: 0;
   border-radius: calc(var(--radius) - 2px);
@@ -390,17 +391,20 @@
   transition: border-color 0.2s;
 }
 
-.phone-input .PhoneInputInput:focus {
+.phone-input .PhoneInputInput:focus,
+.phone-input-compact .PhoneInputInput:focus {
   outline: none;
   border-color: hsl(var(--ring));
   box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
 }
 
-.phone-input .PhoneInputInput::placeholder {
+.phone-input .PhoneInputInput::placeholder,
+.phone-input-compact .PhoneInputInput::placeholder {
   color: hsl(var(--muted-foreground));
 }
 
-.phone-input .PhoneInputCountrySelect {
+.phone-input .PhoneInputCountrySelect,
+.phone-input-compact .PhoneInputCountrySelect {
   border: 1px solid hsl(var(--border));
   border-radius: calc(var(--radius) - 2px);
   background-color: hsl(var(--background));
@@ -409,13 +413,79 @@
   color: hsl(var(--foreground));
 }
 
-.phone-input .PhoneInputCountrySelect:focus {
+.phone-input .PhoneInputCountrySelect:focus,
+.phone-input-compact .PhoneInputCountrySelect:focus {
   outline: none;
   border-color: hsl(var(--ring));
   box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
 }
 
-.phone-input .PhoneInputCountrySelectArrow {
+.phone-input .PhoneInputCountrySelectArrow,
+.phone-input-compact .PhoneInputCountrySelectArrow {
   color: hsl(var(--muted-foreground));
+}
+
+/* Aggressive targeting for PhoneInput dropdown height reduction */
+.phone-input-compact select,
+.phone-input-compact .PhoneInputCountrySelect,
+.phone-input-compact .PhoneInputCountrySelect select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target the dropdown options directly */
+.phone-input-compact select option {
+  max-height: 30px !important;
+}
+
+/* Force height on any select within the phone input wrapper */
+.phone-input-compact * {
+  max-height: unset;
+}
+
+.phone-input-compact select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+  height: auto !important;
+}
+
+/* Override any inline styles */
+.phone-input-compact select[style] {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target the actual dropdown when opened */
+.phone-input-compact .PhoneInputCountrySelect[aria-expanded="true"] {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Additional targeting for different possible structures */
+.phone-input-compact .PhoneInputCountrySelect > * {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Force override any component styles */
+.phone-input-compact [class*="PhoneInput"] {
+  max-height: unset !important;
+}
+
+.phone-input-compact [class*="PhoneInput"] select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target by element type within the wrapper */
+.phone-input-compact select[multiple] {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Last resort - target any select element in the component */
+.phone-input-compact select:not([multiple]) {
+  max-height: 120px !important;
+  overflow-y: auto !important;
 }
 
