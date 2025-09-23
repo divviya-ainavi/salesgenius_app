@@ -34,6 +34,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
 import { supabase } from "../../lib/supabase";
+import jwtManager from "@/lib/jwtUtils";
 
 // Constants
 const THREE_HOURS_IN_MS = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
@@ -208,6 +209,9 @@ export const UserDropdown = () => {
         // Clear storage
         localStorage.clear(); // ✅ Clears all localStorage
         sessionStorage.clear(); // ✅ Clears all sessionStorage
+
+        // Clear JWT token
+        jwtManager.clearToken();
 
         // Optionally clear Redux state
         dispatch(resetOrgState());

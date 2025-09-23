@@ -9,6 +9,7 @@ import { supabase, authHelpers } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { config } from "@/lib/config";
+import jwtManager from "@/lib/jwtUtils";
 import {
   setUser,
   setUserProfileInfo,
@@ -233,6 +234,15 @@ const LoginPage = () => {
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
+
+        // Generate JWT token for API calls
+        try {
+          const jwtToken = jwtManager.setUserInfo(profile.id, profile.email);
+          console.log('✅ JWT token generated for API calls');
+        } catch (jwtError) {
+          console.error('❌ Error generating JWT token:', jwtError);
+          // Don't block login if JWT generation fails
+        }
 
         // Check if user is a beta user by looking at their plan
         try {
