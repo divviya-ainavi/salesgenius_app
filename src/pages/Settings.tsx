@@ -78,13 +78,13 @@ import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import {
   setBusinessKnowledge,
   setCompany_size,
   setGetOrgList,
   setGetUsersList,
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
   setIndustry,
   setPersonalInsightKnowledge,
   setSales_methodology,
