@@ -334,13 +334,13 @@
   color: hsl(var(--muted-foreground));
 }
 
-/* Reduce height of country code dropdown to 150px */
-.phone-input .PhoneInputCountrySelectDropdown {
-  max-height: 150px !important;
+/* Reduce height of country code dropdown */
+.phone-input .PhoneInputCountrySelect {
+  max-height: 200px;
   overflow-y: auto;
 }
 
-.phone-input .PhoneInputCountrySelect {
-  max-height: 150px;
+.phone-input .PhoneInputCountrySelectDropdown {
+  max-height: 200px;
   overflow-y: auto;
 }

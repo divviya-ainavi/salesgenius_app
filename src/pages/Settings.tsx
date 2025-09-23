@@ -3545,57 +3545,55 @@ export const Settings = () => {
                       </div>
                       <Progress
                         value={businessUploadProgress}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="flex items-center space-x-2">
-                          <User className="w-4 h-4" />
-                          <span>Full Name</span>
-                        </Label>
-                        {isEditingProfile ? (
-                          <Input
-                            value={profileData.fullName}
-                            onChange={(e) =>
-                              setProfileData((prev) => ({
-                                ...prev,
-                                fullName: e.target.value,
-                              }))
-                            }
-                            placeholder="Enter your full name"
-                          />
-                        ) : (
-                          <div className="p-3 bg-muted rounded-md">
-                            {profileData.fullName || "Not set"}
-                          </div>
-                        )}
-                      </div>
+                        className="w-full"
+                      />
+                      <p className="text-sm text-blue-700 mt-2">
+                        {businessUploadProgress < 50
+                          ? "Uploading file..."
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
 
-                      <div className="space-y-2">
-                        <Label className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4" />
-                          <span>Phone Number</span>
-                        </Label>
-                        {isEditingProfile ? (
-                          <div className="phone-input">
-                            <PhoneInput
-                              placeholder="Enter phone number"
-                              value={profileData.phoneNumber}
-                              onChange={(value) =>
-                                setProfileData((prev) => ({
-                                  ...prev,
-                                  phoneNumber: value || "",
-                                }))
-                              }
-                              defaultCountry="US"
-                              international
-                              countryCallingCodeEditable={false}
-                            />
-                          </div>
-                        ) : (
-                          <div className="p-3 bg-muted rounded-md">
-                            {profileData.phoneNumber || "Not set"}
-                          </div>
-                        )}
-                      </div>
+                  <div className="space-y-4">
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
+                      {isUploadingBusiness ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Materials"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop multiple files here"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, TXT (Max 10MB each, multiple files supported)
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div className="space-y-2">
