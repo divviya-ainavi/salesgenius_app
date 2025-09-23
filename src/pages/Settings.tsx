@@ -63,6 +63,7 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  Phone,
   Check,
   ChevronsUpDown,
   Loader2,
@@ -82,6 +83,8 @@ import {
   setCompany_size,
   setGetOrgList,
   setGetUsersList,
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
   setIndustry,
   setPersonalInsightKnowledge,
   setSales_methodology,
