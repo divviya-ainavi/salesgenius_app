@@ -2193,9 +2193,6 @@ export const Settings = () => {
 
             {/* Fireflies Integration */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">
-                Fireflies Integration
-              </h3>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
