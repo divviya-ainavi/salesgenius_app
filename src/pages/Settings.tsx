@@ -63,6 +63,7 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  Phone,
   Check,
   ChevronsUpDown,
   Loader2,
@@ -71,7 +72,6 @@ import {
   Clock,
   Target,
   AlertTriangle,
-  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,8 @@ import {
   setCompany_size,
   setGetOrgList,
   setGetUsersList,
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
   setIndustry,
   setPersonalInsightKnowledge,
   setSales_methodology,
@@ -106,7 +108,6 @@ import {
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
-import PhoneInput from "react-phone-number-input";
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -514,7 +515,6 @@ export const Settings = () => {
     email: user?.email,
     timezone: user?.timezone || "Europe/London",
     language: user?.language || "en",
-    phoneNumber: user?.phone_number || "",
     notifications: {
       email: true,
       push: true,
@@ -1004,7 +1004,6 @@ export const Settings = () => {
         email: profileSettings.email,
         timezone: profileSettings.timezone,
         language: profileSettings.language,
-        phone_number: profileSettings.phoneNumber,
       });
 
       // 🔄 Update Redux state
@@ -1015,7 +1014,6 @@ export const Settings = () => {
           email: updatedProfile.email,
           timezone: updatedProfile.timezone,
           language: updatedProfile.language,
-          phone_number: updatedProfile.phone_number,
         })
       );
 
@@ -1494,4 +1492,2772 @@ export const Settings = () => {
           (material) => material.id !== materialId
         ),
       }));
-      
+      toast.success("Training material deleted");
+    }
+  };
+
+  const handleDeleteBusinessMaterial = async (materialId) => {
+    try {
+      // Update is_active to false in database
+      await dbHelpers.updateInternalUploadedFileStatus(materialId, false);
+      await dbHelpers.updateIsActiveFalseByUploadedId(materialId);
+
+      // Update UI by removing the file from the list
+      setInternalUploadedFiles((prev) =>
+        prev.filter((file) => file.id !== materialId)
+      );
+
+      toast.success("Business material deleted successfully");
+    } catch (error) {
+      console.error("Error deleting business material:", error);
+      toast.error("Failed to delete business material");
+    }
+  };
+
+  const generateApiKey = () => {
+    const apiKey =
+      "sk-" +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    navigator.clipboard.writeText(apiKey);
+    toast.success("New API key generated and copied to clipboard");
+  };
+
+  const getOwnerDetails = async () => {
+    const formData = new FormData();
+    formData.append("id", organizationDetails.id);
+    const response = await fetch(
+      `${config.api.baseUrl}${config.api.endpoints.getOwnersDetails}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+    const finalResponse = await response.json();
+    return finalResponse?.length > 0 ? finalResponse : [];
+  };
+  const validateHubspotToken = async () => {
+    if (!hubspotToken) {
+      toast.error("No HubSpot access token found");
+      return;
+    }
+
+    setIsCheckingHubSpot(true);
+    setHubspotError("");
+
+    try {
+      // Create JWT payload with the access token
+      const payload = {
+        pat: hubspotToken,
+      };
+
+      // Encrypt the token using JWT
+      const jwtToken = createJWT(payload);
+      const formData = new FormData();
+      formData.append("token", jwtToken);
+
+      // Send encrypted token to n8n API
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.hubspotConnectionCheck}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+
+      if (result.success || result.valid) {
+        await authHelpers.updateOrganizationHubSpotToken(
+          organizationDetails.id,
+          { hubspot_encrypted_token: jwtToken }
+        );
+        // Get owner details and save to separate table
+        const ownersData = await getOwnerDetails();
+        if (ownersData.length > 0) {
+          // Extract the actual owners array from the response
+          const actualOwners = ownersData[0]?.Owners || [];
+
+          if (actualOwners.length > 0) {
+            console.log(
+              "👥 Processing HubSpot owners:",
+              actualOwners.length,
+              "owners"
+            );
+
+            // Save/update HubSpot users in separate table
+            const saveResult = await dbHelpers.saveOrUpdateHubSpotUsers(
+              organizationDetails.id,
+              actualOwners
+            );
+
+            console.log("💾 HubSpot users save result:", saveResult.summary);
+
+            // Show summary toast
+            const { successful, failed, matched_profiles } = saveResult.summary;
+            if (successful > 0) {
+              toast.success(
+                `HubSpot users synced: ${successful} saved, ${matched_profiles} matched with existing profiles`
+              );
+            }
+            if (failed > 0) {
+              toast.warning(`${failed} HubSpot users failed to sync`);
+            }
+          } else {
+            console.warn("⚠️ No owners found in HubSpot response");
+            toast.warning("No HubSpot owners found to sync");
+          }
+        } else {
+          console.warn("⚠️ Empty owners data received");
+          toast.warning("No HubSpot owner data received");
+        }
+
+        // const ownersData = await getOwnerDetails();
+        // await authHelpers.updateOrganizationHubSpotToken(
+        //   organizationDetails.id,
+        //   {
+        //     hubspot_user_details: ownersData,
+        //   }
+        // );
+        // Update Redux state
+
+        const hubspotUserDetails = await dbHelpers.getHubSpotUserDetails(
+          user?.id,
+          organizationDetails?.id
+        );
+
+        dispatch(
+          setHubspotIntegration({
+            connected: true,
+            hubspotUserId: hubspotUserDetails?.hubspot_user_id || null,
+            hubspotUserDetails: hubspotUserDetails,
+            lastSync: new Date().toISOString(),
+            accountInfo: {
+              maskedToken: "xxxxx" + hubspotToken.slice(-4),
+              ...result.account_info,
+            },
+          })
+        );
+        // dispatch(
+        //   setHubspotIntegration({
+        //     connected: true,
+        //     lastSync: new Date().toISOString(),
+        //     accountInfo: {
+        //       maskedToken: "xxxxx" + hubspotToken.slice(-4),
+        //       ...result.account_info,
+        //     },
+        //   })
+        // );
+
+        toast.success("HubSpot connection verified successfully");
+        setHubspotToken(""); // Clear the input field
+      } else {
+        setHubspotError(
+          "Invalid HubSpot token. Please check your token and try again."
+        );
+        toast.error("HubSpot connection is invalid");
+      }
+    } catch (error) {
+      console.error("Error checking HubSpot connection:", error);
+      setHubspotError(`Failed to verify HubSpot connection: ${error.message}`);
+      toast.error(`Failed to verify HubSpot connection: ${error.message}`);
+    } finally {
+      setIsCheckingHubSpot(false);
+    }
+  };
+
+  const disconnectHubSpot = async () => {
+    try {
+      await authHelpers.updateOrganizationHubSpotToken(organizationDetails.id, {
+        hubspot_encrypted_token: null,
+      });
+
+      dispatch(
+        setHubspotIntegration({
+          connected: false,
+          lastSync: null,
+          accountInfo: null,
+        })
+      );
+
+      toast.success("HubSpot disconnected successfully");
+    } catch (error) {
+      console.error("Error disconnecting HubSpot:", error);
+      toast.error("Failed to disconnect HubSpot");
+    }
+  };
+
+  const handleEditHubspotToken = () => {
+    setIsEditingHubspot(true);
+    setHubspotToken(""); // Clear the input field
+  };
+
+  const handleCancelEditHubspot = () => {
+    setIsEditingHubspot(false);
+    setHubspotToken(""); // Clear the input field
+  };
+
+  // console.log(
+  //   user,
+  //   organizationDetails,
+  //   "user and org details in settings page"
+  // );
+
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      const result = await dbHelpers.getOrgDropdownOptions();
+      if (result) {
+        dispatch(setIndustry(result.industry));
+        dispatch(setCompany_size(result.company_size));
+        dispatch(setSales_methodology(result.sales_methodology));
+      }
+    };
+    fetchDropdowns();
+  }, []);
+
+  // Check if organization has existing HubSpot token
+  useEffect(() => {
+    if (organizationDetails?.hubspot_encrypted_token) {
+      setHasExistingToken(true);
+    }
+  }, [organizationDetails]);
+
+  const countries = getCountries();
+  // const isOrgAdmin = roles
+  // console.log(roles, titles)
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center space-x-3">
+            <SettingsIcon className="w-8 h-8 text-primary" />
+            <span>Settings</span>
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your account, organization, and AI training configurations
+          </p>
+        </div>
+
+        {/* User Role Badge */}
+        <div className="flex items-center space-x-3">
+          <Badge
+            variant="outline"
+            className={cn("text-sm", currentUserRole.color)}
+          >
+            <currentUserRole.icon className="w-4 h-4 mr-2" />
+            {user?.title_name || ""}
+          </Badge>
+          <div className="text-right">
+            <p className="text-sm font-medium">
+              {organizationDetails?.name || "Your Organization"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {user?.email || "No email provided"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger
+            value="profile"
+            className="flex items-center space-x-2"
+            data-tour="settings-tab-profile"
+          >
+            <User className="w-4 h-4" />
+            <span>Profile</span>
+          </TabsTrigger>
+          {canManageOrgSettings && userRoleId == 2 && (
+            <TabsTrigger
+              value="organization"
+              className="flex items-center space-x-2"
+              data-tour="settings-tab-organization"
+            >
+              <Building className="w-4 h-4" />
+              <span>Organization</span>
+            </TabsTrigger>
+          )}
+          {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
+            <TabsTrigger
+              value="users"
+              className="flex items-center space-x-2"
+              data-tour="settings-tab-users"
+            >
+              <Users className="w-4 h-4" />
+              <span>Users</span>
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="tour-management">Tour Management</TabsTrigger>
+          )}
+          <TabsTrigger value="security" className="flex items-center space-x-2">
+            <Shield className="w-4 h-4" />
+            <span>Security</span>
+          </TabsTrigger>
+          {userRoleId !== 1 && (
+            <TabsTrigger
+              value="ai-training"
+              className="flex items-center space-x-2"
+              data-tour="settings-tab-ai-training"
+            >
+              <Brain className="w-4 h-4" />
+              <span>AI Training</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="analytics"
+            className="flex items-center space-x-2"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Analytics</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Profile Settings */}
+        <TabsContent value="profile" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Personal Information</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      isEditing ? handleSaveProfile() : setIsEditing(true)
+                    }
+                  >
+                    {isEditing ? (
+                      <>
+                        <Save className="w-4 h-4 mr-1" />
+                        Save
+                      </>
+                    ) : (
+                      <>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </>
+                    )}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Full Name
+                  </label>
+                  <Input
+                    value={profileSettings.name}
+                    onChange={(e) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Email Address
+                  </label>
+                  <Input
+                    value={profileSettings.email}
+                    onChange={(e) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    disabled={true}
+                    type="email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Timezone
+                    </label>
+                    <Select
+                      value={profileSettings.timezone}
+                      onValueChange={(value) =>
+                        setProfileSettings((prev) => ({
+                          ...prev,
+                          timezone: value,
+                        }))
+                      }
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Europe/London">
+                          London (GMT)
+                        </SelectItem>
+                        <SelectItem value="America/New_York">
+                          New York (EST)
+                        </SelectItem>
+                        <SelectItem value="America/Los_Angeles">
+                          Los Angeles (PST)
+                        </SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Language
+                    </label>
+                    <Select
+                      value={profileSettings.language}
+                      onValueChange={(value) =>
+                        setProfileSettings((prev) => ({
+                          ...prev,
+                          language: value,
+                        }))
+                      }
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Spanish</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                        <SelectItem value="de">German</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Bell className="w-5 h-5" />
+                  <span>Notification Preferences</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Email Notifications</p>
+                    <p className="text-xs text-muted-foreground">
+                      Receive updates via email
+                    </p>
+                  </div>
+                  <Switch
+                    checked={profileSettings.notifications.email}
+                    onCheckedChange={(checked) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        notifications: {
+                          ...prev.notifications,
+                          email: checked,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Push Notifications</p>
+                    <p className="text-xs text-muted-foreground">
+                      Browser notifications
+                    </p>
+                  </div>
+                  <Switch
+                    checked={profileSettings.notifications.push}
+                    onCheckedChange={(checked) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, push: checked },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Weekly Reports</p>
+                    <p className="text-xs text-muted-foreground">
+                      Performance summaries
+                    </p>
+                  </div>
+                  <Switch
+                    checked={profileSettings.notifications.weekly_reports}
+                    onCheckedChange={(checked) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        notifications: {
+                          ...prev.notifications,
+                          weekly_reports: checked,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">AI Insights</p>
+                    <p className="text-xs text-muted-foreground">
+                      New AI-generated insights
+                    </p>
+                  </div>
+                  <Switch
+                    checked={profileSettings.notifications.ai_insights}
+                    onCheckedChange={(checked) =>
+                      setProfileSettings((prev) => ({
+                        ...prev,
+                        notifications: {
+                          ...prev.notifications,
+                          ai_insights: checked,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Password Change Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5" />
+                  <span>Change Password</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Current Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.currentPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.currentPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          currentPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your current password"
+                    className={
+                      passwordErrors.currentPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.currentPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.currentPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.newPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.newPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          newPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Enter your new password"
+                    className={
+                      passwordErrors.newPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.newPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.newPassword}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Password must be at least 8 characters with uppercase,
+                    lowercase, and number
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Confirm New Password *
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordChange.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordChange((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }));
+                      // Clear error when user starts typing
+                      if (passwordErrors.confirmPassword) {
+                        setPasswordErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: "",
+                        }));
+                      }
+                    }}
+                    placeholder="Confirm your new password"
+                    className={
+                      passwordErrors.confirmPassword ? "border-red-500" : ""
+                    }
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {passwordErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handlePasswordChange}
+                  disabled={
+                    isChangingPassword ||
+                    !passwordChange.currentPassword ||
+                    !passwordChange.newPassword ||
+                    !passwordChange.confirmPassword
+                  }
+                  className="w-full"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Changing Password...
+                    </>
+                  ) : (
+                    <>Save Changes</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Fireflies Integration */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">
+                Fireflies Integration
+              </h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Mic className="w-5 h-5" />
+                    <span>Fireflies.ai</span>
+                    {firefliesStatus?.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Connect your Fireflies.ai account to automatically sync
+                    meeting transcripts and recordings.
+                  </p>
+
+                  {!firefliesStatus?.connected ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fireflies-token">
+                          Fireflies API Token
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="fireflies-token"
+                            type={showFirefliesToken ? "text" : "password"}
+                            placeholder="Enter your Fireflies API token"
+                            value={firefliesToken}
+                            onChange={(e) => setFirefliesToken(e.target.value)}
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() =>
+                              setShowFirefliesToken(!showFirefliesToken)
+                            }
+                          >
+                            {showFirefliesToken ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <p className="mb-1">
+                            <strong>Note:</strong> You can find your Fireflies
+                            API key in your Fireflies account under:
+                          </p>
+                          <p>
+                            Settings → Developer Settings → Generate/View API
+                            Key
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handleFirefliesConnect}
+                        disabled={
+                          isConnectingFireflies || !firefliesToken.trim()
+                        }
+                        className="w-full"
+                      >
+                        {isConnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Connect Fireflies
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            Fireflies Integration Active
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          Your Fireflies.ai account is connected and ready to
+                          sync meeting data.
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={handleFirefliesDisconnect}
+                        disabled={isDisconnectingFireflies}
+                        className="w-full"
+                      >
+                        {isDisconnectingFireflies ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          "Disconnect Fireflies"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Organization Settings */}
+        {canManageOrgSettings && (
+          <TabsContent value="organization" className="mt-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Organization Details</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveOrgSettings}
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Changes
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Organization Name
+                    </label>
+                    <Input
+                      value={orgSettings.name}
+                      onChange={(e) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Domain
+                    </label>
+                    <Input
+                      value={orgSettings.domain}
+                      onChange={(e) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          domain: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Industry
+                      </label>
+                      <Select
+                        value={orgSettings.industry}
+                        onValueChange={(value) =>
+                          setOrgSettings((prev) => ({
+                            ...prev,
+                            industry: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {industry?.length > 0 &&
+                            industry.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+
+                          {/* <SelectItem value="technology">Technology</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="healthcare">Healthcare</SelectItem>
+                          <SelectItem value="manufacturing">
+                          Manufacturing
+                          </SelectItem>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="other">Other</SelectItem> */}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Company Size
+                      </label>
+                      <Select
+                        value={orgSettings.size}
+                        onValueChange={(value) =>
+                          setOrgSettings((prev) => ({ ...prev, size: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {company_size?.length > 0 &&
+                            company_size.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          {/* <SelectItem value="1-10">1-10 employees</SelectItem>
+                          <SelectItem value="11-50">11-50 employees</SelectItem>
+                          <SelectItem value="50-200">
+                            50-200 employees
+                          </SelectItem>
+                          <SelectItem value="200-1000">
+                            200-1000 employees
+                          </SelectItem>
+                          <SelectItem value="1000+">1000+ employees</SelectItem> */}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium mb-2 block">
+                        Country
+                      </label>
+                      <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={countryOpen}
+                            className="w-full justify-between"
+                          >
+                            {orgSettings.country || "Select country..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search country..."
+                              value={countrySearchValue}
+                              onValueChange={setCountrySearchValue}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No country found.</CommandEmpty>
+                              <CommandGroup>
+                                {getCountries()
+                                  .filter((country) =>
+                                    country
+                                      .toLowerCase()
+                                      .includes(
+                                        countrySearchValue.toLowerCase()
+                                      )
+                                  )
+                                  .map((country) => (
+                                    <CommandItem
+                                      key={country}
+                                      value={country}
+                                      onSelect={(currentValue) => {
+                                        setOrgSettings((prev) => ({
+                                          ...prev,
+                                          country:
+                                            currentValue === orgSettings.country
+                                              ? ""
+                                              : currentValue,
+                                          city: "", // Reset city when country changes
+                                        }));
+                                        setCountryOpen(false);
+                                        setCountrySearchValue("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          orgSettings.country === country
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      {country}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium mb-2 block">
+                        City
+                      </label>
+                      <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={cityOpen}
+                            className="w-full justify-between"
+                            disabled={!orgSettings.country}
+                          >
+                            {orgSettings.city ||
+                              (orgSettings.country
+                                ? "Select city..."
+                                : "Select country first")}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search city..."
+                              value={citySearchValue}
+                              onValueChange={setCitySearchValue}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No city found.</CommandEmpty>
+                              <CommandGroup>
+                                {orgSettings.country &&
+                                  getCitiesForCountry(orgSettings.country)
+                                    .filter((city) =>
+                                      city
+                                        .toLowerCase()
+                                        .includes(citySearchValue.toLowerCase())
+                                    )
+                                    .map((city) => (
+                                      <CommandItem
+                                        key={city}
+                                        value={city}
+                                        onSelect={(currentValue) => {
+                                          setOrgSettings((prev) => ({
+                                            ...prev,
+                                            city:
+                                              currentValue === orgSettings.city
+                                                ? ""
+                                                : currentValue,
+                                          }));
+                                          setCityOpen(false);
+                                          setCitySearchValue("");
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            orgSettings.city === city
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                        {city}
+                                      </CommandItem>
+                                    ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Default Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Default Sales Methodology
+                    </label>
+                    <Select
+                      value={orgSettings.default_methodology}
+                      onValueChange={(value) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          default_methodology: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sales_methodology?.length > 0 &&
+                          sales_methodology.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Data Retention (Days)
+                    </label>
+                    <Input
+                      type="number"
+                      value={orgSettings.data_retention_days}
+                      onChange={(e) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          data_retention_days: parseInt(e.target.value),
+                        }))
+                      }
+                    />
+                  </div> */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">AI Training Enabled</p>
+                      <p className="text-xs text-muted-foreground">
+                        Allow AI to learn from organization data
+                      </p>
+                    </div>
+                    <Switch
+                      checked={orgSettings.ai_training_enabled}
+                      disabled
+                      onCheckedChange={(checked) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          ai_training_enabled: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Require 2FA</p>
+                      <p className="text-xs text-muted-foreground">
+                        Mandatory two-factor authentication
+                      </p>
+                    </div>
+                    <Switch
+                      checked={orgSettings.require_2fa}
+                      disabled
+                      onCheckedChange={(checked) =>
+                        setOrgSettings((prev) => ({
+                          ...prev,
+                          require_2fa: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="w-5 h-5" />
+                    <span>Hubspot</span>
+                    {hubspotIntegration.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-100 text-gray-800 border-gray-200"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Not Connected
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center justify-between">
+                    <span>HubSpot Integration</span>
+                    {hubspotIntegration.connected && (
+                      <Badge
+                        variant="default"
+                        className="bg-green-100 text-green-800 border-green-200"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    )}
+                  </CardTitle> */}
+                </CardHeader>
+                {console.log(hubspotIntegration, "check hubspot integration")}
+                <CardContent className="space-y-4">
+                  {hubspotIntegration.connected ? (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            HubSpot Successfully Connected
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          Your Hubspot is connected and ready to sync crm data.
+                        </p>
+                        {hubspotIntegration.accountInfo?.userName && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Connected as:{" "}
+                            {hubspotIntegration.accountInfo.userName}
+                            {hubspotIntegration.accountInfo.userEmail && (
+                              <span>
+                                {" "}
+                                ({hubspotIntegration.accountInfo.userEmail})
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleEditHubspotToken}
+                          className="flex-1"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Update Token
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={disconnectHubSpot}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Disconnect
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Connect your HubSpot account to sync CRM data and
+                        enhance AI insights.
+                      </p>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="hubspot-token">
+                          HubSpot Access Token
+                        </Label>
+                        <Input
+                          id="hubspot-token"
+                          type="password"
+                          placeholder="Enter your HubSpot access token"
+                          value={hubspotToken}
+                          onChange={(e) => setHubspotToken(e.target.value)}
+                          className={hubspotError ? "border-red-500" : ""}
+                        />
+                        {hubspotError && (
+                          <p className="text-sm text-red-600">{hubspotError}</p>
+                        )}
+                      </div>
+
+                      <Button
+                        onClick={validateHubspotToken}
+                        disabled={!hubspotToken.trim() || isCheckingHubSpot}
+                        className="w-full"
+                      >
+                        {isCheckingHubSpot ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                            Validating Token...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Connect HubSpot
+                          </>
+                        )}
+                      </Button>
+                      <div className="text-xs text-muted-foreground">
+                        <p className="mb-1">
+                          <strong>Note:</strong> You can find your HubSpot
+                          Access Token in your HubSpot account under:
+                        </p>
+                        <p>
+                          Settings → Integrations → Legacy Apps → Create App →
+                          Add scopes → Token
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isEditingHubspot && (
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-hubspot-token">
+                          New HubSpot Access Token
+                        </Label>
+                        <Input
+                          id="new-hubspot-token"
+                          type="password"
+                          placeholder="Enter your new HubSpot access token"
+                          value={hubspotToken}
+                          onChange={(e) => setHubspotToken(e.target.value)}
+                          className={hubspotError ? "border-red-500" : ""}
+                        />
+                        {hubspotError && (
+                          <p className="text-sm text-red-600">{hubspotError}</p>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={validateHubspotToken}
+                          disabled={!hubspotToken.trim() || isCheckingHubSpot}
+                          className="flex-1"
+                        >
+                          {isCheckingHubSpot ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 mr-1" />
+                              Update Token
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelEditHubspot}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
+
+        {/* User Management */}
+        {canManageUsers && (
+          <TabsContent value="users" className="mt-6">
+            <div className="space-y-6">
+              {/* Invite User */}
+              {/* {console.log(
+                userRoleId,
+                userRole,
+                "check details from settings",
+                user
+              )} */}
+              {(userRole?.id == 2 || user?.title_id == 45) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Plus className="w-5 h-5" />
+                      <span>Invite New User</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-end space-x-4">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium mb-2 block">
+                          Email Address
+                        </label>
+                        <Input
+                          value={newUserEmail}
+                          onChange={(e) => setNewUserEmail(e.target.value)}
+                          placeholder="user@acmecorp.com"
+                          type="email"
+                        />
+                      </div>
+                      {user?.title_id != 45 && (
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Role
+                          </label>
+                          {/* {console.log(
+                            newUserRole,
+                            "check new user role",
+                            allTitles
+                          )} */}
+                          <Select
+                            value={newUserRole?.toString()}
+                            onValueChange={(value) =>
+                              setNewUserRole(Number(value))
+                            }
+                          >
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allTitles
+                                ?.filter((f) => f.role_id != 2)
+                                ?.map((x) => (
+                                  <SelectItem
+                                    key={x.id}
+                                    value={x.id.toString()}
+                                  >
+                                    {x.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <Button onClick={handleInviteUser} disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Sending invite ...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Send Invite
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {/* Users List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>
+                      {user?.title_id == 45
+                        ? "Organizations"
+                        : "Organization Users"}
+                    </span>
+                    <Badge variant="secondary">
+                      {user?.title_id == 45
+                        ? getOrgList?.length + " organizations"
+                        : getUserslist?.length + " users"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {user?.title_id == 45 ? (
+                    <div className="space-y-4">
+                      {getOrgList?.length > 0 &&
+                        getOrgList?.map((org) => {
+                          const role = userRoles[org.role] || {
+                            label: "Unknown",
+                            icon: User,
+                            color: "bg-gray-100 text-gray-700 border-gray-200",
+                          };
+
+                          return (
+                            <div
+                              key={org.id}
+                              className="flex items-center justify-between p-4 border border-border rounded-lg"
+                            >
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                  <User className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">{org.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {org.domain}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    {org.industry_id && (
+                                      <Badge
+                                        variant="outline"
+                                        className={cn("text-xs", role.color)}
+                                      >
+                                        <role.icon className="w-3 h-3 mr-1" />
+                                        {
+                                          industry?.find(
+                                            (x) => x.id == org.industry_id
+                                          )?.label
+                                        }
+                                      </Badge>
+                                    )}
+
+                                    {org.status_id && (
+                                      <Badge
+                                        variant={
+                                          allStatus?.find(
+                                            (x) => x?.id == org.status_id
+                                          )?.label === "active"
+                                            ? "default"
+                                            : "secondary"
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {
+                                          allStatus?.find(
+                                            (x) => x?.id == org.status_id
+                                          )?.label
+                                        }
+                                      </Badge>
+                                    )}
+                                    {org.organization && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-muted"
+                                      >
+                                        {org.organization}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="text-right text-sm text-muted-foreground">
+                                  {/* <p>
+                                    Last login:{" "}
+                                    {user.lastLogin
+                                      ? new Date(
+                                          org.created_at
+                                        ).toLocaleDateString()
+                                      : "Never"}
+                                  </p> */}
+                                  <p>
+                                    Joined:{" "}
+                                    {org.created_at
+                                      ? new Date(
+                                          org.created_at
+                                        ).toLocaleDateString()
+                                      : "-"}
+                                  </p>
+                                </div>
+                                {/* <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRemoveUser(user.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button> */}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {getUserslist?.length > 0 &&
+                        getUserslist
+                          ?.filter((u) => u.id != user?.id)
+                          ?.map((user) => {
+                            const getId = allTitles?.find(
+                              (x) => x.id == user?.title_id
+                            )?.role_id;
+                            const role = {
+                              label: allTitles?.find(
+                                (x) => x.id == user?.title_id
+                              )?.name,
+                              icon: User,
+                              color:
+                                getId == 3
+                                  ? "bg-purple-100 text-purple-800 border-purple-200"
+                                  : getId == 4
+                                  ? "bg-blue-100 text-blue-800 border-blue-200"
+                                  : "bg-green-100 text-green-800 border-green-200",
+                            };
+
+                            return (
+                              <div
+                                key={user.id}
+                                className="flex items-center justify-between p-4 border border-border rounded-lg"
+                              >
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                    <User className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">
+                                      {user.full_name}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {user.email}
+                                    </p>
+                                    <div className="flex items-center space-x-2 mt-1">
+                                      <Badge
+                                        variant="outline"
+                                        className={cn("text-xs", role.color)}
+                                      >
+                                        <role.icon className="w-3 h-3 mr-1" />
+                                        {role?.label}
+                                      </Badge>
+                                      {user.status_id && (
+                                        <Badge
+                                          variant={
+                                            allStatus?.find(
+                                              (x) => x?.id == user.status_id
+                                            )?.label === "active"
+                                              ? "default"
+                                              : "secondary"
+                                          }
+                                          className="text-xs"
+                                        >
+                                          {
+                                            allStatus?.find(
+                                              (x) => x?.id == user.status_id
+                                            )?.label
+                                          }
+                                        </Badge>
+                                      )}
+                                      {user.organization && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-muted"
+                                        >
+                                          {user.organization}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="text-right text-sm text-muted-foreground">
+                                    {/* <p>
+                                      Last login:{" "}
+                                      {user.lastLogin
+                                        ? new Date(
+                                            user.lastLogin
+                                          ).toLocaleDateString()
+                                        : "Never"}
+                                    </p> */}
+                                    <p>
+                                      Joined:{" "}
+                                      {user.created_at
+                                        ? new Date(
+                                            user.created_at
+                                          ).toLocaleDateString()
+                                        : "-"}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    // onClick={() => handleDeleteClick(user)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
+
+        {isSuperAdmin && (
+          <TabsContent value="tour-management" className="space-y-6">
+            <TourManagement />
+          </TabsContent>
+        )}
+        {/* Security Settings */}
+        <TabsContent value="security" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="items-center ">
+                    <span className="space-x-2">Authentication & Access</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveSecurity}
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    Save Changes
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">
+                      Two-Factor Authentication
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Add extra security to your account
+                    </p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.two_factor_enabled}
+                    onCheckedChange={(checked) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        two_factor_enabled: checked,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Session Timeout (minutes)
+                  </label>
+                  <Input
+                    type="number"
+                    value={securitySettings.session_timeout}
+                    onChange={(e) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        session_timeout: parseInt(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Password Policy
+                  </label>
+                  <Select
+                    value={securitySettings.password_policy}
+                    onValueChange={(value) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        password_policy: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">
+                        Basic (8+ characters)
+                      </SelectItem>
+                      <SelectItem value="strong">
+                        Strong (12+ chars, mixed case, numbers)
+                      </SelectItem>
+                      <SelectItem value="enterprise">
+                        Enterprise (16+ chars, symbols required)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">API Access</p>
+                    <p className="text-xs text-muted-foreground">
+                      Allow API key generation
+                    </p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.api_access_enabled}
+                    onCheckedChange={(checked) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        api_access_enabled: checked,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Audit Logging</p>
+                    <p className="text-xs text-muted-foreground">
+                      Track all administrative actions
+                    </p>
+                  </div>
+                  <Switch
+                    checked={securitySettings.audit_logging}
+                    onCheckedChange={(checked) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        audit_logging: checked,
+                      }))
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-5 h-5" />
+                    <span>API Keys</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+                {/* <CardTitle className="flex items-center space-x-2">
+                  <Key className="w-5 h-5" />
+                  <span>API Keys</span>
+                </CardTitle> */}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Current API Key</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                    >
+                      {showApiKey ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="font-mono text-sm bg-background p-2 rounded border">
+                    {showApiKey
+                      ? "sk-1234567890abcdef1234567890abcdef"
+                      : "••••••••••••••••••••••••••••••••"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Created: January 15, 2024 • Last used: 2 hours ago
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={generateApiKey}
+                    className="flex-1"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Generate New Key
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => toast.success("API key copied to clipboard")}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <p>⚠️ Generating a new key will invalidate the current one</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Training Materials */}
+        <TabsContent value="ai-training" className="mt-6">
+          <div className="space-y-6">
+            {/* Upload Progress */}
+            {isUploading && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Upload className="w-5 h-5 text-primary" />
+                    <span className="font-medium">
+                      Uploading training material...
+                    </span>
+                  </div>
+                  <Progress value={uploadProgress} className="w-full" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {uploadProgress < 50
+                      ? "Uploading file..."
+                      : uploadProgress < 90
+                      ? "Processing content..."
+                      : "Finalizing..."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* General B2B Sales Knowledge */}
+            {mockCurrentUser.role === "super_admin" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Globe className="w-5 h-5" />
+                    <span>General B2B Sales Knowledge</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-100 text-purple-800 border-purple-200"
+                    >
+                      Super Admin Only
+                    </Badge>
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Platform-level resources for all organizations (industry
+                    best practices, expert insights)
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        id="general-upload"
+                        className="hidden"
+                        onChange={(e) =>
+                          e.target.files?.[0] &&
+                          handleFileUpload(e.target.files[0], "general")
+                        }
+                        // accept=".pdf,.doc,.docx,.txt,.mp4,.mov,.ppt,.pptx"
+                        accept=".pdf,.txt"
+                      />
+                      <label
+                        htmlFor="general-upload"
+                        className="cursor-pointer"
+                      >
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">
+                          Upload General Training Material
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          PDF, TXT(Max 10MB)
+                        </p>
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      {trainingMaterials.general.map((material) => (
+                        <div
+                          key={material.id}
+                          className="flex items-center justify-between p-3 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">
+                                {material.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {material.size} • {material.uploadedAt}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge
+                              variant={
+                                material.status === "processed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className="text-xs"
+                            >
+                              {material.status === "processed" ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Processed
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                  Processing
+                                </>
+                              )}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleDeleteMaterial(material.id, "general")
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {/* {console.log(userRoleId, "check user role id")} */}
+            {/* Business-Specific Knowledge */}
+            {canUploadOrgMaterials && userRoleId == 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Building className="w-5 h-5" />
+                      <span>Business-Specific Knowledge</span>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 border-blue-200"
+                      >
+                        Organization Level
+                      </Badge>
+                    </div>
+                    {/* <Badge
+                      variant="outline"
+                      className="bg-orange-50 text-orange-700 border-orange-200"
+                    >
+                      Coming Soon for Your Organization
+                    </Badge> */}
+                  </CardTitle>
+                  {/* <CardTitle className="flex items-center space-x-2">
+                    <Building className="w-5 h-5" />
+                    <span>Business-Specific Knowledge</span>
+                  </CardTitle> */}
+                  <p className="text-sm text-muted-foreground">
+                    Company playbooks, product documentation, presentations, and
+                    unique selling propositions
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {/* Upload Progress for Business Files */}
+                  {isUploadingBusiness && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium text-blue-800">
+                          Uploading business material...
+                        </span>
+                      </div>
+                      <Progress
+                        value={businessUploadProgress}
+                        className="w-full"
+                      />
+                      <p className="text-sm text-blue-700 mt-2">
+                        {businessUploadProgress < 50
+                          ? "Uploading file..."
+                          : businessUploadProgress < 90
+                          ? "Processing content..."
+                          : "Finalizing..."}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div
+                      {...getBusinessRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                        isBusinessDragActive
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                        isUploadingBusiness && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <input {...getBusinessInputProps()} />
+                      {isUploadingBusiness ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                          <p className="text-sm font-medium text-blue-800">
+                            Uploading...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {isBusinessDragActive
+                              ? "Drop the file here"
+                              : "Upload Business Materials"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isBusinessDragActive
+                              ? "Release to upload"
+                              : "Click to browse or drag and drop multiple files here"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, TXT (Max 10MB each, multiple files supported)
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {console.log(businessOrgData, "businessKnowledgeData")}
+                      {businessOrgData ? (
+                        businessOrgData?.length > 0 ? (
+                          businessOrgData?.map((knowledge) => (
+                            <Card
+                              key={knowledge.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() =>
+                                handleViewBusinessKnowledge(knowledge)
+                              }
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-3 flex-1">
+                                    <Building className="w-5 h-5 text-primary mt-1" />
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-lg mb-1">
+                                        {knowledge.organization_name ||
+                                          "Unnamed Organization"}
+                                      </h3>
+                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+                                        {knowledge.static_supply_elements?.coreBusinessOffering?.substring(
+                                          0,
+                                          100
+                                        ) + "..." || "No summary available"}
+                                      </p>
+                                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                        <span>
+                                          Created:{" "}
+                                          {new Date(
+                                            knowledge.created_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                        <span>
+                                          Updated:{" "}
+                                          {new Date(
+                                            knowledge.updated_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewProcessedFiles(knowledge);
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      <FileText className="w-3 h-3 mr-1" />
+                                      View Files
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleViewBusinessKnowledge(knowledge)
+                                      }
+                                      className="text-black hover:text-black"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // handleDeleteBusinessKnowledge(
+                                        //   knowledge
+                                        // );
+                                        handleDeleteClick(
+                                          knowledge,
+                                          "business"
+                                        );
+                                      }}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          ""
+                        )
+                      ) : (
+                        // (
+                        //   <div className="text-center py-8">
+                        //     <p className="text-muted-foreground">
+                        //       No business knowledge profiles yet
+                        //     </p>
+                        //     <p className="text-sm text-muted-foreground mt-1">
+                        //       Upload business knowledge files to create your
+                        //       first profile
+                        //     </p>
+                        //   </div>
+                        // )
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            Loading business knowledge...
+                          </p>
+                        </div>
+                      )}
+                      {/* {internalUploadedFiles?.length > 0 &&
+                        internalUploadedFiles.map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex items-center justify-between p-3 border border-border rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="w-5 h-5 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {material.original_filename}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(material.file_size)} •{" "}
+                                  {formatDate(material.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge
+                                variant={
+                                  material.status === "processed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {material.status === "processed" ? (
+                                  <>
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Processed
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    Processing
+                                  </>
+                                )}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  // handleDeleteMaterial(material.id, "business")
+                                  handleDeleteClick(material)
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewBusinessKnowledge(item)}
+                                className="text-green-600 hover:bg-green-50"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))} */}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Personal Insights */}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Personal Insights</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-800 border-green-200"
+                    >
+                      Personal Level
+                    </Badge>
+                  </div>
+                </CardTitle>
+
+                <p className="text-sm text-muted-foreground">
+                  Your personal sales knowledge, experiences, and preferred
+                  approaches
+                </p>
+              </CardHeader>
+              <CardContent>
+                {isUploadingPersonal && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Upload className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-800">
+                        Uploading personal material...
+                      </span>
+                    </div>
+                    <Progress
+                      value={personalUploadProgress}
+                      className="w-full"
+                    />
+                    <p className="text-sm text-blue-700 mt-2">
+                      {personalUploadProgress < 50
+                        ? "Uploading file..."
+                        : personalUploadProgress < 90
+                        ? "Processing content..."
+                        : "Finalizing..."}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div
+                    {...getPersonalRootProps()}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                      isPersonalDragActive
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-border hover:border-blue-400 hover:bg-blue-50/50",
+                      isUploadingPersonal && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <input {...getPersonalInputProps()} />
+                    {isUploadingPersonal ? (
+                      <>
+                        <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-600 animate-spin" />
+                        <p className="text-sm font-medium text-blue-800">
+                          Uploading...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium">
+                          {isPersonalDragActive
+                            ? "Drop the file here"
+                            : "Upload Personal Materials"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isPersonalDragActive
+                            ? "Release to upload"
+                            : "Click to browse or drag and drop multiple files here"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PDF, TXT (Max 10MB each, multiple files supported)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {console.log(
+                    processedPersonalData,
+                    "processed personal data"
+                  )}
+                  <div className="space-y-2">
+                    {processedPersonalData?.length > 0
+                      ? processedPersonalData?.map((knowledge) => (
+                          <Card
+                            key={knowledge.id}
+                            className="cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() =>
+                              handleViewPersonalKnowledge(knowledge)
+                            }
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start space-x-3 flex-1">
+                                  <Building className="w-5 h-5 text-primary mt-1" />
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-lg mb-1">
+                                      {knowledge.rep_name ||
+                                        "Unnamed Organization"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
+                                      {knowledge.summary_note?.substring(
+                                        0,
+                                        100
+                                      ) + "..." || "No summary available"}
+                                    </p>
+                                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                      <span>
+                                        Created:{" "}
+                                        {new Date(
+                                          knowledge.created_at
+                                        ).toLocaleDateString()}
+                                      </span>
+                                      {knowledge.updated_at != null && (
+                                        <span>
+                                          Updated:{" "}
+                                          {new Date(
+                                            knowledge.updated_at
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewProcessedFiles(knowledge);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    <FileText className="w-3 h-3 mr-1" />
+                                    View Files
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleViewPersonalKnowledge(knowledge)
+                                    }
+                                    className="text-black hover:text-black"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // handleDeleteBusinessKnowledge(
+                                      //   knowledge
+                                      // );
+                                      handleDeleteClick(knowledge, "personal");
+                                    }}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      : ""}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Analytics Access */}
+        <TabsContent value="analytics" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>Analytics Access</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {mockCurrentUser.role === "super_admin" && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Globe className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            Platform Analytics
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            All organizations and users
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  )}
+
+                  {canViewOrgAnalytics && (
+                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            Organization Analytics
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {organizationDetails?.name} only
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          Personal Analytics
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Your individual performance
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span>Data Export</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200"
+                  >
+                    Coming Soon for Your Organization
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Export Personal Data
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Download your data in JSON format
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-1" />
+                      Export
+                    </Button>
+                  </div>
+
+                  {canViewOrgAnalytics && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Export Organization Data
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Download organization analytics
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        Export
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div className="text-xs text-muted-foreground">
+                  <p className="mb-2">Data Retention Policy:</p>
+                  <ul className="space-y-1">
+                    <li>• Personal data: Retained until account deletion</li>
+                    <li>
+                      • Call transcripts: {orgSettings.data_retention_days} days
+                    </li>
+                    <li>• Analytics data: 2 years</li>
+                    <li>• Audit logs: 7 years</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Processed Files Modal */}
+      <Dialog
+        open={showProcessedFilesModal}
+        onOpenChange={setShowProcessedFilesModal}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="w-5 h-5" />
+              <span>Processed Files</span>
+              {selectedBusinessKnowledgeForFiles && (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-200"
+                >
+                  {selectedBusinessKnowledgeForFiles.organization_name}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Files that were processed to create this business knowledge
+              profile
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {processedFiles.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-2">No processed files found</p>
+                <p className="text-sm">
+                  This business knowledge profile has no associated files
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {processedFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3 flex-1">
+                        <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">
+                            {file.original_filename || file.filename}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {file.description || "No description available"}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-2">
+                            <span>
+                              Size: {(file.file_size / 1024).toFixed(1)} KB
+                            </span>
+                            <span>Type: {file.content_type}</span>
+                            <span>
+                              Uploaded:{" "}
+                              {new Date(file.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewFile(file)}
+                          disabled={!file.file_url}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View File
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowProcessedFilesModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Knowledge Modal */}
+      <BusinessKnowledgeModal
+        isOpen={showBusinessKnowledgeModal}
+        onClose={() => setShowBusinessKnowledgeModal(false)}
+        data={businessKnowledgeData}
+        onSave={handleUpdateBusinessKnowledge}
+      />
+
+      <PersonalInsightsModal
+        isOpen={showPersonalInsightsModal}
+        onClose={() => setShowPersonalInsightsModal(false)}
+        data={personalInsightsData}
+        onSave={handleUpdatePersonalInsights}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}
+      >
+        <DialogContent className="sm:max-w-lg border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              <span>Confirm Delete</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this item?
+            </DialogDescription>
+          </DialogHeader>
+
+          {fileToDelete && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mx-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Building className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-red-900 truncate">
+                    {fileToDelete.organization_name || fileToDelete?.rep_name}
+                  </h4>
+                  <p className="text-sm text-red-700">
+                    Created:{" "}
+                    {new Date(fileToDelete.created_at).toLocaleDateString()}
+                  </p>
+                  {fileToDelete.processed_file_ids && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {fileToDelete.processed_file_ids.length} associated files
+                      will also be affected
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Warning Message */}
+          {/* <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mx-6">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-900 mb-1">
+                  This action cannot be undone
+                </h4>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Deleting this business knowledge profile will permanently
+                  remove all associated data, insights, and file references.
+                  This may affect AI processing quality for future calls.
+                </p>
+              </div>
+            </div>
+          </div> */}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmDialog(false)}
+              className="mt-2 sm:mt-0 border-gray-300 hover:bg-gray-50 px-6 py-2.5"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeletingBusinessFile}
+            >
+              {isDeletingBusinessFile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Settings;
