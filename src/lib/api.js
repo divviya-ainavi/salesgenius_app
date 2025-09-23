@@ -1,5 +1,4 @@
 import { analytics } from './analytics';
-import jwtManager from './jwtUtils';
 
 // API Configuration
 const API_CONFIG = {
@@ -67,15 +66,9 @@ const tokenManager = new TokenManager();
 // Request interceptor to add authentication headers
 const addAuthHeaders = (headers = {}) => {
   const token = tokenManager.getToken();
-  const jwtToken = jwtManager.getToken();
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  // Add JWT token for N8N API calls
-  if (jwtToken) {
-    headers['Authorization'] = `Bearer ${jwtToken}`;
   }
 
   return headers;

@@ -4,7 +4,7 @@
 export const config = {
   // Authentication & Security
   passwordSalt: import.meta.env.VITE_PASSWORD_SALT || 'SG_2025',
-  jwtSecret: import.meta.env.VITE_JWT_SECRET || 'S-G2025Ai',
+  jwtSecret: import.meta.env.VITE_JWT_SECRET || 'SG',
 
   // HubSpot Integration
   hubspot: {
