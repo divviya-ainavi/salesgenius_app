@@ -316,6 +316,66 @@
   overflow-y: auto !important;
 }
 
+/* More comprehensive PhoneInput dropdown height control */
+.PhoneInput .PhoneInputCountrySelect {
+  max-height: 120px !important;
+}
+
+.PhoneInput .PhoneInputCountrySelectDropdown {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target the select element directly */
+.PhoneInputCountrySelect select {
+  max-height: 120px !important;
+}
+
+/* Target dropdown options container */
+.PhoneInputCountrySelect__dropdown {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target the actual dropdown menu */
+.PhoneInputCountrySelect__menu {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* More specific targeting for the dropdown list */
+.PhoneInputCountrySelect__menu-list {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target any select dropdown within phone input */
+.phone-input select {
+  max-height: 120px !important;
+}
+
+/* Universal override for any phone input dropdown */
+[class*="PhoneInput"] [class*="dropdown"],
+[class*="PhoneInput"] [class*="menu"],
+[class*="PhoneInput"] [class*="list"],
+[class*="PhoneInput"] select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Target the native select element if it's being used */
+.PhoneInputCountrySelect > select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+/* Additional targeting for different component structures */
+.react-phone-number-input .PhoneInputCountrySelect,
+.react-phone-number-input .PhoneInputCountrySelectDropdown,
+.react-phone-number-input select {
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
 /* Phone input styling to match our design system */
 .phone-input .PhoneInputInput {
   flex: 1;
