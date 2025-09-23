@@ -1494,4 +1494,16 @@ export const Settings = () => {
           (material) => material.id !== materialId
         ),
       }));
+    }
+
+    toast.success("Material deleted successfully");
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Settings content would go here */}
+      <div>Settings Page Content</div>
+    </div>
+  );
+};
       
