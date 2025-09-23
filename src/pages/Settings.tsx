@@ -92,7 +92,6 @@ import {
   setHubspotIntegration,
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
-import { getCountryCodes, validatePhoneNumber } from "@/data/countryCodes";
 import { config } from "@/lib/config";
 import CryptoJS from "crypto-js";
 import {
@@ -2208,6 +2207,60 @@ export const Settings = () => {
                           />
                           <Button
                             type="button"
+                        {/* Phone Number */}
+                        <div className="space-y-2">
+                          <Label htmlFor="phone-number" className="flex items-center space-x-2">
+                            <Phone className="w-4 h-4" />
+                            <span>Phone Number</span>
+                          </Label>
+                          {isEditingProfile ? (
+                            <div className="flex space-x-2">
+                              <Select
+                                value={profileData.countryCode}
+                                onValueChange={(value) =>
+                                  setProfileData(prev => ({ ...prev, countryCode: value }))
+                                }
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60">
+                                  {getCountryCodes().map((item) => (
+                                    <SelectItem key={`${item.code}-${item.country}`} value={item.code}>
+                                      <span className="flex items-center space-x-2">
+                                        <span>{item.flag}</span>
+                                        <span>{item.code}</span>
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                id="phone-number"
+                                type="tel"
+                                placeholder="Enter phone number"
+                                value={profileData.phoneNumber}
+                                onChange={(e) => {
+                                  // Allow only digits, spaces, dashes, and parentheses
+                                  const value = e.target.value.replace(/[^\d\s\-\(\)]/g, '');
+                                  setProfileData(prev => ({ ...prev, phoneNumber: value }));
+                                }}
+                                className="flex-1"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 p-3 bg-muted rounded-md">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {profileData.phoneNumber 
+                                  ? `${profileData.countryCode} ${profileData.phoneNumber}`
+                                  : "Not provided"
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
