@@ -980,8 +980,6 @@ export const Settings = () => {
 
       if (!userId) {
         toast.error(
-        phone_number: profileData.phoneNumber,
-        country_code: profileData.countryCode,
           "Unable to update profile: User session not found. Please try logging out and logging back in."
         );
         return;
