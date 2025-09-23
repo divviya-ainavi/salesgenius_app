@@ -1000,6 +1000,9 @@ export const Settings = () => {
         return;
       }
 
+      // Check if phone number was updated
+      const phoneNumberChanged = profileSettings.phoneNumber !== user?.phone_number;
+
       const updatedProfile = await dbHelpers.updateUserProfile(userId, {
         name: profileSettings.name,
         email: profileSettings.email,
@@ -1007,6 +1010,37 @@ export const Settings = () => {
         language: profileSettings.language,
         phone_number: profileSettings.phoneNumber,
       });
+
+      // Call updateContact API if phone number was changed
+      if (phoneNumberChanged && profileSettings.phoneNumber) {
+        try {
+          console.log("📞 Phone number updated, calling updateContact API...");
+          
+          const updateContactResponse = await fetch(
+            `${config.api.baseUrl}${config.api.endpoints.updateContact}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                EMAIL: profileSettings.email,
+                CONTACT: profileSettings.phoneNumber,
+              }),
+            }
+          );
+
+          if (!updateContactResponse.ok) {
+            console.warn("Failed to update contact:", updateContactResponse.statusText);
+            // Don't show error to user - contact update is optional
+          } else {
+            console.log("✅ Contact updated successfully");
+          }
+        } catch (contactError) {
+          console.warn("Error updating contact:", contactError);
+          // Don't show error to user - contact update is optional
+        }
+      }
 
       // 🔄 Update Redux state
       dispatch(
@@ -1016,7 +1050,7 @@ export const Settings = () => {
           email: updatedProfile.email,
           timezone: updatedProfile.timezone,
           language: updatedProfile.language,
-          phoneNumber: updatedProfile.phone_number,
+          phone_number: updatedProfile.phone_number,
         })
       );
 
