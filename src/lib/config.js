@@ -62,7 +62,8 @@ export const config = {
       hubspotGetDealInfo: 'hub-get-deal-info',
       sendSlack: "Send-slack",
       fileUpload: 'upload-file-ai',
-      brevoContact: 'User-contact'
+      brevoContact: 'User-contact',
+      updateContact:'Update_brevo-contact'
     }
   }
 };
