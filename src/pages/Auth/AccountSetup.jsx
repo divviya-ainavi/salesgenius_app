@@ -427,6 +427,33 @@ const AccountSetup = () => {
         await supabase.auth.signOut();
       }
 
+      // Step 7: Call Brevo Contact API
+      try {
+        const brevoResponse = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.brevoContact}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: inviteData.email,
+              name: formData.username,
+            }),
+          }
+        );
+
+        if (!brevoResponse.ok) {
+          console.warn("Failed to add contact to Brevo:", brevoResponse.statusText);
+          // Don't show error to user - Brevo contact creation is optional
+        } else {
+          console.log("✅ Contact added to Brevo successfully");
+        }
+      } catch (brevoError) {
+        console.warn("Error adding contact to Brevo:", brevoError);
+        // Don't show error to user - Brevo contact creation is optional
+      }
+
       toast.success("Account created successfully!");
       navigate("/auth/login");
     } catch (err) {
