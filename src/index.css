@@ -11,7 +11,3 @@
 /* Additional targeting for react-phone-input-2 */
 
 }
-  overflow-y: auto !important;
-  max-height: 120px !important;
-.phone-input-v2 .country-list {
-/* react-phone-input-2 dropdown height control */
