@@ -341,6 +341,16 @@
 }
 
 .phone-input .PhoneInputCountrySelectDropdown {
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
+}
+
+.PhoneInputCountrySelect {
+  max-height: 150px !important;
+  overflow-y: auto !important;
+}
+
+.PhoneInputCountrySelectDropdown {
+  max-height: 150px !important;
+  overflow-y: auto !important;
 }
