@@ -319,7 +319,7 @@ export const FeedbackWidget = () => {
               <span>Share Your Feedback</span>
             </DialogTitle>
             <DialogDescription>
-              Help us improve SalesGenius.ai by sharing your thoughts and
+              Help us improve SalesGenius Ai by sharing your thoughts and
               suggestions. Your feedback is valuable to us!
             </DialogDescription>
           </DialogHeader>
@@ -334,7 +334,7 @@ export const FeedbackWidget = () => {
                 Thank You for Your Feedback!
               </h3>
               <p className="text-sm text-center text-muted-foreground max-w-md">
-                Your insights help us make SalesGenius.ai better for everyone.
+                Your insights help us make SalesGenius Ai better for everyone.
                 We'll review your feedback and use it to improve the platform.
               </p>
             </div>
@@ -348,7 +348,7 @@ export const FeedbackWidget = () => {
                   className="flex items-center space-x-2 text-sm font-medium"
                 >
                   <ThumbsUp className="w-4 h-4 text-green-600" />
-                  <span>What do you like about SalesGenius.ai?</span>
+                  <span>What do you like about SalesGenius Ai?</span>
                 </Label>
                 <Textarea
                   id="what-you-like"

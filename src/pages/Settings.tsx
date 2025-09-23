@@ -78,8 +78,8 @@ import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import {
   setBusinessKnowledge,
   setCompany_size,
@@ -1864,6 +1864,35 @@ export const Settings = () => {
                     }
                     disabled={!isEditing}
                   />
+                </div>
+                {/* Phone Number */}
+                <div className="space-y-2">
+                  <Label className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4" />
+                    <span>Phone Number</span>
+                  </Label>
+                  {isEditing ? (
+                      <PhoneInput
+                        placeholder="Enter phone number"
+                        value={profileSettings.phoneNumber}
+                        onChange={(value) =>
+                          setProfileSettings((prev) => ({
+                            ...prev,
+                            phoneNumber: value || "",
+                          }))
+                        }
+                        defaultCountry="US"
+                        international
+                        countryCallingCodeEditable={false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-muted rounded-md">
+                      <span className="text-foreground">
+                        {profileSettings.phoneNumber || "Not provided"}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -3819,36 +3848,6 @@ export const Settings = () => {
                     )}
                   </div>
 
-                  {/* Phone Number */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4" />
-                      <span>Phone Number</span>
-                    </Label>
-                    {isEditingProfile ? (
-                      <div className="phone-input">
-                        <PhoneInput
-                          placeholder="Enter phone number"
-                          value={profileData.phoneNumber}
-                          onChange={(value) =>
-                            setProfileData(prev => ({
-                              ...prev,
-                              phoneNumber: value || ""
-                            }))
-                          }
-                          defaultCountry="US"
-                          international
-                          countryCallingCodeEditable={false}
-                        />
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-muted rounded-md">
-                        <span className="text-foreground">
-                          {profileData.phoneNumber || "Not provided"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
                   {console.log(
                     processedPersonalData,
                     "processed personal data"
