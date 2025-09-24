@@ -363,7 +363,7 @@ export const SalesCalls = () => {
       trackFileUpload(file.name, file.size, file.type, "started");
 
       // Validate file type
-      const validTypes = ["text/plain", "text/vtt", "application/pdf"];
+      const validTypes = ["text/plain", "application/pdf"];
       const validExtensions = [".txt", ".pdf"];
       const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
 
@@ -1287,7 +1287,7 @@ export const SalesCalls = () => {
                         Drag and drop your .txt or .pdf file, or click to browse
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Supported formats are TXT, VTT or PDF (Max 10MB)
+                        Supported formats are TXT or PDF (Max 10MB)
                       </p>
                     </div>
                   </div>
