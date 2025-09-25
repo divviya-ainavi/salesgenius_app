@@ -1001,7 +1001,8 @@ export const Settings = () => {
       }
 
       // Check if phone number was updated
-      const phoneNumberChanged = profileSettings.phoneNumber !== user?.phone_number;
+      const phoneNumberChanged =
+        profileSettings.phoneNumber !== user?.phone_number;
 
       const updatedProfile = await dbHelpers.updateUserProfile(userId, {
         name: profileSettings.name,
@@ -1015,7 +1016,7 @@ export const Settings = () => {
       if (phoneNumberChanged && profileSettings.phoneNumber) {
         try {
           console.log("📞 Phone number updated, calling updateContact API...");
-          
+
           const updateContactResponse = await fetch(
             `${config.api.baseUrl}${config.api.endpoints.updateContact}`,
             {
@@ -1031,7 +1032,10 @@ export const Settings = () => {
           );
 
           if (!updateContactResponse.ok) {
-            console.warn("Failed to update contact:", updateContactResponse.statusText);
+            console.warn(
+              "Failed to update contact:",
+              updateContactResponse.statusText
+            );
             // Don't show error to user - contact update is optional
           } else {
             console.log("✅ Contact updated successfully");
@@ -1212,7 +1216,7 @@ export const Settings = () => {
       const formData = new FormData();
       formData.append("id", result?.id);
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+        `${config.api.baseUrl}${config.api.endpoints.userInviteProd}`,
         {
           method: "POST",
           body: formData,
