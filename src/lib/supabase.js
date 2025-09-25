@@ -173,6 +173,83 @@ export const authHelpers = {
     }
   },
 
+  // Get user plan details
+  async getUserPlan(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('plan')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user plan:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in getUserPlan:', error);
+      return null;
+    }
+  },
+
+
+  // Check if user plan is expired
+  async checkPlanExpiry(userId) {
+    try {
+      const plan = await this.getUserPlan(userId);
+
+      // If no plan exists, allow login (for existing users without plan entries)
+      if (!plan) {
+        console.log('ℹ️ No plan found for user, allowing login');
+        return {
+          isExpired: false,
+          message: null,
+          planType: 'legacy',
+          planName: 'Legacy User',
+          daysRemaining: null
+        };
+      }
+      const currentDate = new Date();
+      const endDate = new Date(plan.end_date);
+      const isExpired = currentDate > endDate;
+
+      if (isExpired) {
+        // Check if this was a beta user
+        const isBetaUser = plan.plan_name === 'Beta Trial';
+
+        return {
+          isExpired: true,
+          message: isBetaUser
+            ? "Your trial period has ended. If you want to upgrade, please contact the super admin."
+            : "Your plan has expired. Please contact the super admin to renew your subscription.",
+          planType: isBetaUser ? 'beta' : 'standard',
+          planName: plan.plan_name,
+          endDate: plan.end_date
+        };
+      }
+
+      return {
+        isExpired: false,
+        message: null,
+        planType: plan.plan_name === 'Beta Trial' ? 'beta' : 'standard',
+        planName: plan.plan_name,
+        endDate: plan.end_date,
+        daysRemaining: Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24))
+      };
+    } catch (error) {
+      console.error('Error checking plan expiry:', error);
+      return {
+        isExpired: true,
+        message: "Unable to verify plan status. Please contact your administrator.",
+        planType: null
+      };
+    }
+  },
+
   // Get user profile from database
   async getUserProfile(userId) {
     try {
@@ -191,7 +268,8 @@ export const authHelpers = {
         fireflies_connected,
         timezone,
         language,
-        email_client_preference
+        email_client_preference,
+        phone_number
       `)
         .eq("id", userId)
         .single();
@@ -1511,6 +1589,7 @@ export const dbHelpers = {
         .from('ResearchCompany')
         .select('*')
         .eq('user_id', userId)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -2303,7 +2382,8 @@ export const dbHelpers = {
           full_name: updates.name,
           email: updates.email,
           timezone: updates.timezone,
-          language: updates.language
+          language: updates.language,
+          phone_number: updates.phone_number || null,
         })
         .eq('id', userId)
         .select();
@@ -2463,7 +2543,7 @@ export const dbHelpers = {
     return data;
   },
 
-  async inviteUserByEmail(email, organizationId, roleId, token, invitedBy) {
+  async inviteUserByEmail(email, organizationId, roleId, token, invitedBy, type = null) {
     try {
       const trimmedEmail = email.trim().toLowerCase();
       const now = new Date();
@@ -2492,6 +2572,7 @@ export const dbHelpers = {
             invited_at: now.toISOString(),
             status: "pending",
             invited_by: invitedBy || null,
+            type: type
           })
           .select("id")
           .single();
@@ -2513,6 +2594,8 @@ export const dbHelpers = {
             .update({
               token,
               invited_at: now.toISOString(),
+              invited_by: invitedBy,
+              type: type
             })
             .eq("email", trimmedEmail)
             .select("id")

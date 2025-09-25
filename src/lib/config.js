@@ -61,7 +61,9 @@ export const config = {
       hubspotGetCompanyDetail: 'hub-get-company-detail',
       hubspotGetDealInfo: 'hub-get-deal-info',
       sendSlack: "Send-slack",
-      fileUpload: 'upload-file-ai '
+      fileUpload: 'upload-file-ai',
+      brevoContact: 'User-contact',
+      updateContact:'Update_brevo-contact'
     }
   }
 };

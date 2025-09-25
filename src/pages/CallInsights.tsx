@@ -56,6 +56,7 @@ import {
   Info,
   Brain,
   Phone,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1468,6 +1469,49 @@ const CallInsights = () => {
     setEditRoleValue("");
   };
 
+  // Handle copy sales insights
+  const handleCopySalesInsights = async () => {
+    if (!insights || insights.length === 0) {
+      toast.error("No sales insights to copy");
+      return;
+    }
+
+    try {
+      // Format all sales insights for copying
+      let insightsText = `Sales Insights for ${selectedProspect?.companyName}\n`;
+      insightsText += `Generated on: ${new Date().toLocaleDateString()}\n\n`;
+
+      insights.forEach((category, categoryIndex) => {
+        if (category.insights && category.insights.length > 0) {
+          const categoryTitle = category.type
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+          
+          insightsText += `${categoryIndex + 1}. ${categoryTitle} (Score: ${category.average_score || 0})\n`;
+          
+          category.insights.forEach((insight, index) => {
+            insightsText += `   ${String.fromCharCode(97 + index)}. ${insight.content}\n`;
+            if (insight.speaker) {
+              insightsText += `      Speaker: ${insight.speaker}\n`;
+            }
+            if (insight.relevance_score) {
+              insightsText += `      Relevance Score: ${insight.relevance_score}\n`;
+            }
+            insightsText += '\n';
+          });
+          
+          insightsText += '\n';
+        }
+      });
+
+      await navigator.clipboard.writeText(insightsText);
+      toast.success("Sales insights copied to clipboard");
+    } catch (error) {
+      console.error("Error copying sales insights:", error);
+      toast.error("Failed to copy sales insights");
+    }
+  };
+
   // Handle salesperson checkbox change
   const handleSalespersonToggle = async (stakeholderId, isChecked) => {
     setIsUpdatingSalesperson(true);
@@ -2016,6 +2060,16 @@ const CallInsights = () => {
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Insight
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopySalesInsights}
+                    disabled={!insights || insights.length === 0 || totalInsightsCount === 0}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
                   </Button>
                 </div>
               </CardTitle>
@@ -2878,6 +2932,8 @@ const CallInsights = () => {
 
           {/* Consolidated "How To Engage" Summary */}
           {/* {howToEngageSummary && (
+  // Handle copy sales insights
+ ;</parameter>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">

@@ -63,6 +63,7 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  Phone,
   Check,
   ChevronsUpDown,
   Loader2,
@@ -77,6 +78,8 @@ import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
 import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import {
   setBusinessKnowledge,
   setCompany_size,
@@ -425,6 +428,7 @@ export const Settings = () => {
     organizationDetails,
     user,
     hubspotIntegration,
+    isBetaUser,
   } = useSelector((state) => state.auth);
   const {
     company_size,
@@ -436,10 +440,12 @@ export const Settings = () => {
     getOrgList,
     allStatus,
   } = useSelector((state) => state.org);
+
+  // console.log(isBetaUser, "check beta user");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const isSuperAdmin = userRole?.key === "super_admin";
-  console.log(isSuperAdmin, "check super admin");
+  // console.log(isSuperAdmin, "check super admin");
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -509,6 +515,7 @@ export const Settings = () => {
     email: user?.email,
     timezone: user?.timezone || "Europe/London",
     language: user?.language || "en",
+    phoneNumber: user?.phone_number || "",
     notifications: {
       email: true,
       push: true,
@@ -993,12 +1000,47 @@ export const Settings = () => {
         return;
       }
 
+      // Check if phone number was updated
+      const phoneNumberChanged = profileSettings.phoneNumber !== user?.phone_number;
+
       const updatedProfile = await dbHelpers.updateUserProfile(userId, {
         name: profileSettings.name,
         email: profileSettings.email,
         timezone: profileSettings.timezone,
         language: profileSettings.language,
+        phone_number: profileSettings.phoneNumber,
       });
+
+      // Call updateContact API if phone number was changed
+      if (phoneNumberChanged && profileSettings.phoneNumber) {
+        try {
+          console.log("📞 Phone number updated, calling updateContact API...");
+          
+          const updateContactResponse = await fetch(
+            `${config.api.baseUrl}${config.api.endpoints.updateContact}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                EMAIL: profileSettings.email,
+                CONTACT: profileSettings.phoneNumber,
+              }),
+            }
+          );
+
+          if (!updateContactResponse.ok) {
+            console.warn("Failed to update contact:", updateContactResponse.statusText);
+            // Don't show error to user - contact update is optional
+          } else {
+            console.log("✅ Contact updated successfully");
+          }
+        } catch (contactError) {
+          console.warn("Error updating contact:", contactError);
+          // Don't show error to user - contact update is optional
+        }
+      }
 
       // 🔄 Update Redux state
       dispatch(
@@ -1008,6 +1050,7 @@ export const Settings = () => {
           email: updatedProfile.email,
           timezone: updatedProfile.timezone,
           language: updatedProfile.language,
+          phone_number: updatedProfile.phone_number,
         })
       );
 
@@ -1161,7 +1204,8 @@ export const Settings = () => {
       organizationDetails?.id || CURRENT_USER.organization_id || null,
       newUserRole,
       token,
-      user?.id
+      user?.id,
+      isBetaUser ? "beta" : null
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
@@ -1858,22 +1902,49 @@ export const Settings = () => {
                     disabled={!isEditing}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Email Address
-                  </label>
-                  <Input
-                    value={profileSettings.email}
-                    onChange={(e) =>
-                      setProfileSettings((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    disabled={true}
-                    type="email"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Email Address
+                    </label>
+                    <Input
+                      value={profileSettings.email}
+                      onChange={(e) =>
+                        setProfileSettings((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      disabled={true}
+                      type="email"
+                    />
+                  </div>
+                  {/* Phone Number */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4" />
+                      <span>Phone Number</span>
+                    </Label>
+
+                    <div className="phone-input">
+                      <PhoneInput
+                        placeholder="Enter phone number"
+                        value={profileSettings.phoneNumber}
+                        onChange={(value) =>
+                          setProfileSettings((prev) => ({
+                            ...prev,
+                            phoneNumber: value || "",
+                          }))
+                        }
+                        defaultCountry="US"
+                        international
+                        countryCallingCodeEditable={false}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">
@@ -2156,9 +2227,6 @@ export const Settings = () => {
 
             {/* Fireflies Integration */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">
-                Fireflies Integration
-              </h3>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -3811,6 +3879,7 @@ export const Settings = () => {
                       </>
                     )}
                   </div>
+
                   {console.log(
                     processedPersonalData,
                     "processed personal data"

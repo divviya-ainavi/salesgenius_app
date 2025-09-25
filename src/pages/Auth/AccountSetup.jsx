@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Loader2,
   User,
@@ -18,10 +17,11 @@ import {
   AlertCircle,
   CheckCircle,
   Shield,
-  Users,
   Mail,
-  ArrowRight,
+  UserCheck,
   Sparkles,
+  Clock,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -37,13 +37,9 @@ const AccountSetup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [inviteData, setInviteData] = useState(null);
-  const [currentStep, setCurrentStep] = useState(1);
   const [displayRoleLabel, setDisplayRoleLabel] = useState("User");
-  const [stepperConfig, setStepperConfig] = useState({
-    showOrgStep: false,
-    showUserStep: true,
-    totalSteps: 1,
-  });
+  const [showOrgFields, setShowOrgFields] = useState(false);
+  const [userType, setUserType] = useState(null);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -164,41 +160,14 @@ const AccountSetup = () => {
         }
 
         setInviteData(invite);
+        setUserType(invite.type); // Store user type
 
-        // Determine stepper configuration based on invite data
+        // Determine if organization fields should be shown
         const hasOrgId = !!invite.organization_id;
         const hasTitleId = !!invite.title_id;
-        // console.log(hasOrgId, hasTitleId, "has org id", invite);
-        let config = {
-          showOrgStep: false,
-          showUserStep: true,
-          totalSteps: 1,
-        };
-        console.log(hasOrgId, hasTitleId, "has org id", invite);
-        if (hasOrgId && hasTitleId) {
-          // Case 1: Both organization_id and title_id present - Show only User Details
-          config = {
-            showOrgStep: false,
-            showUserStep: true,
-            totalSteps: 1,
-          };
-        } else if (!hasOrgId && !hasTitleId) {
-          // Case 2: Neither organization_id nor title_id - Show Organization Details + User Details
-          config = {
-            showOrgStep: true,
-            showUserStep: true,
-            totalSteps: 2,
-          };
-        } else if (hasOrgId && !hasTitleId) {
-          // Case 3: Only organization_id present - Show only User Details
-          config = {
-            showOrgStep: false,
-            showUserStep: true,
-            totalSteps: 1,
-          };
-        }
-        // console.log(config, "195");
-        setStepperConfig(config);
+
+        // Show organization fields only if neither organization_id nor title_id are present
+        setShowOrgFields(!hasOrgId && !hasTitleId);
 
         // Set the display role label
         const roleLabel = await getRoleLabel(invite);
@@ -236,14 +205,9 @@ const AccountSetup = () => {
     if (error) setError("");
   };
 
-  const validateCurrentStep = () => {
-    const isOrgStep = stepperConfig.showOrgStep && currentStep === 1;
-    const isUserStep =
-      (stepperConfig.showOrgStep && currentStep === 2) ||
-      (!stepperConfig.showOrgStep && currentStep === 1);
-
-    if (isOrgStep) {
-      // Validate Organization Details
+  const validateForm = () => {
+    // Validate Organization Details (if shown)
+    if (showOrgFields) {
       if (!formData.companyName.trim()) {
         setError("Company name is required");
         return false;
@@ -260,46 +224,32 @@ const AccountSetup = () => {
       }
     }
 
-    if (isUserStep) {
-      // Validate User Details
-      if (!formData.username.trim()) {
-        setError("Username is required");
-        return false;
-      }
-      if (!formData.password) {
-        setError("Password is required");
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match");
-        return false;
-      }
-      const isPasswordValid = Object.values(passwordValidation).every(Boolean);
-      if (!isPasswordValid) {
-        setError("Password does not meet security requirements");
-        return false;
-      }
+    // Validate User Details
+    if (!formData.username.trim()) {
+      setError("Full name is required");
+      return false;
+    }
+    if (!formData.password) {
+      setError("Password is required");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+    if (!isPasswordValid) {
+      setError("Password does not meet security requirements");
+      return false;
     }
 
     return true;
   };
 
-  const handleNext = () => {
-    if (validateCurrentStep()) {
-      setError("");
-      setCurrentStep(2);
-    }
-  };
-
-  const handleBack = () => {
-    setError("");
-    setCurrentStep(1);
-  };
-  // console.log(inviteData, "check invite data");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateCurrentStep()) return;
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
@@ -307,7 +257,7 @@ const AccountSetup = () => {
       let organizationId = inviteData.organization_id;
 
       // Step 1: Create organization if needed
-      if (stepperConfig.showOrgStep && !organizationId) {
+      if (showOrgFields && !organizationId) {
         const { data: newOrg, error: orgError } = await supabase
           .from("organizations")
           .insert([
@@ -369,22 +319,10 @@ const AccountSetup = () => {
       // Step 2: Create Supabase Auth user
       let supabaseAuthUserId = null;
       try {
-        // Create a unique email for Supabase Auth using username
-        const uniqueEmail = `${formData.username
-          .toLowerCase()
-          .replace(/\s+/g, "")}@${organizationId}.local`;
-
         const { data: authData, error: authError } = await supabase.auth.signUp(
           {
             email: inviteData.email,
             password: formData.password,
-            // options: {
-            //   emailRedirectTo: `${window.location.origin}/auth/login`,
-            //   data: {
-            //     email_confirm: false,
-            //     skip_confirmation: true,
-            //   },
-            // },
           }
         );
 
@@ -440,9 +378,87 @@ const AccountSetup = () => {
         console.warn("Failed to update invite status:", updateError);
       }
 
-      // Step 5: Sign out from Supabase Auth (user will login manually)
+      // Step 5: Create plan based on user type
+      try {
+        const today = new Date();
+        const userType = inviteData.type; // 'beta' for self-signup, null for admin invite
+
+        let planName, endDate, numberOfDays;
+
+        if (userType === "beta") {
+          // Beta user: 30-day trial
+          planName = "Beta Trial";
+          endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
+          numberOfDays = 30;
+        } else {
+          // Admin invited user: 1-year plan
+          planName = "Standard Plan";
+          endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from today
+          numberOfDays = 365;
+        }
+
+        const { data: planData, error: planError } = await supabase
+          .from("plan")
+          .insert([
+            {
+              user_id: profile.id,
+              plan_name: planName,
+              start_date: today.toISOString().split("T")[0], // YYYY-MM-DD format
+              end_date: endDate.toISOString().split("T")[0], // YYYY-MM-DD format
+              no_of_days: numberOfDays,
+            },
+          ])
+          .select()
+          .single();
+
+        if (planError) {
+          console.warn("Failed to create user plan:", planError);
+          // Don't show error to user - Slack notification is optional
+        } else {
+          console.log("✅ User plan created successfully:", planData);
+        }
+      } catch (planCreationError) {
+        console.warn("Error creating user plan:", planCreationError);
+        // Don't show error to user - Slack notification is optional
+      }
+
+      // Step 6: Sign out from Supabase Auth (user will login manually)
       if (supabaseAuthUserId) {
         await supabase.auth.signOut();
+      }
+
+      // Step 7: Call Brevo Contact API
+      try {
+        const brevoResponse = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.brevoContact}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              EMAIL: inviteData.email,
+              FIRSTNAME: formData.username,
+              LASTNAME: "",
+              PLANTYPE: "Free",
+              PLANID: "1",
+              CONTACT: "",
+            }),
+          }
+        );
+
+        if (!brevoResponse.ok) {
+          console.warn(
+            "Failed to add contact to Brevo:",
+            brevoResponse.statusText
+          );
+          // Don't show error to user - Brevo contact creation is optional
+        } else {
+          console.log("✅ Contact added to Brevo successfully");
+        }
+      } catch (brevoError) {
+        console.warn("Error adding contact to Brevo:", brevoError);
+        // Don't show error to user - Brevo contact creation is optional
       }
 
       toast.success("Account created successfully!");
@@ -455,31 +471,12 @@ const AccountSetup = () => {
     }
   };
 
-  const getStepTitle = () => {
-    if (stepperConfig.showOrgStep) {
-      return currentStep === 1 ? "Organization Details" : "User Details";
-    } else {
-      return "User Details";
-    }
-  };
-
-  const getStepDescription = () => {
-    if (stepperConfig.showOrgStep) {
-      return currentStep === 1
-        ? "Set up your organization information"
-        : "Create your secure login credentials";
-    } else {
-      return "Create your secure login credentials";
-    }
-  };
-
   const getRoleLabel = async (invite = inviteData) => {
     if (invite?.title_id) {
       const title = await dbHelpers.getRoleIdByTitleName(
         invite.title_id,
         invite?.organization_id
       );
-      console.log(title, "title");
       return title || "User";
     } else if (invite?.organization_id && !invite?.title_id) {
       return "Organization Member";
@@ -538,8 +535,12 @@ const AccountSetup = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Invalid Invitation
               </h3>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={() => navigate("/auth/login")} variant="outline">
+              <p className="text-gray-600 mb-6">{error}</p>
+              <Button
+                onClick={() => navigate("/auth/login")}
+                variant="outline"
+                className="w-full"
+              >
                 Go to Login
               </Button>
             </div>
@@ -548,8 +549,6 @@ const AccountSetup = () => {
       </div>
     );
   }
-
-  const progressPercentage = (currentStep / stepperConfig.totalSteps) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -560,152 +559,162 @@ const AccountSetup = () => {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            Welcome to SalesGenius.ai
+            Welcome to SalesGenius Ai
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Let's set up your account and get you started
+          <p className="text-xl text-gray-600">
+            Complete your account setup to get started
           </p>
-
-          {/* Progress Bar */}
-          <div className="max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                Step {currentStep} of {stepperConfig.totalSteps}
-              </span>
-              <span className="text-sm text-gray-500">
-                {Math.round(progressPercentage)}% Complete
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-6 pb-12">
-        {/* Invitation Info Card */}
-        <Card className="mb-8 border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6">
+          {/* Invitation Info Card */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                  <Mail className="w-6 h-6 text-blue-600" />
+                <div
+                  className={cn(
+                    "w-14 h-14 rounded-xl flex items-center justify-center",
+                    userType === "beta"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                      : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                  )}
+                >
+                  {userType === "beta" ? (
+                    <Sparkles className="w-7 h-7 text-white" />
+                  ) : (
+                    <Crown className="w-7 h-7 text-white" />
+                  )}
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-lg">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
                     {inviteData?.email}
-                  </p>
-                  <p className="text-gray-600">
+                  </h3>
+                  <p className="text-gray-600 mb-2">
                     Setting up as {displayRoleLabel}
                   </p>
+                  <div className="flex items-center space-x-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs font-medium",
+                        userType === "beta"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      )}
+                    >
+                      <Clock className="w-3 h-3 mr-1" />
+                      {userType === "beta"
+                        ? "Beta Trial (30 days)"
+                        : "Full Access (1 year)"}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-              <Badge
-                variant="outline"
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-800 border-blue-200"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                {displayRoleLabel}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Setup Form */}
-        <Card className="shadow-xl border-0">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-bold text-center">
-              {getStepTitle()}
-            </CardTitle>
-            <p className="text-center text-gray-600 mt-2">
-              {getStepDescription()}
-            </p>
-          </CardHeader>
+          {/* Setup Form */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold text-center">
+                Create Your Account
+              </CardTitle>
+              <p className="text-center text-gray-600 mt-2">
+                Fill in your details to complete the setup
+              </p>
+            </CardHeader>
 
-          <CardContent className="px-8 pb-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Error Alert */}
-              {error && (
-                <Alert
-                  variant="destructive"
-                  className="border-red-200 bg-red-50"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-red-800">
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
+            <CardContent className="px-8 pb-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Error Alert */}
+                {error && (
+                  <Alert
+                    variant="destructive"
+                    className="border-red-200 bg-red-50"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-red-800">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              {/* Step 1: Organization Details (when needed) */}
-              {stepperConfig.showOrgStep && currentStep === 1 && (
-                <div className="space-y-6">
-                  {/* Company Name */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="companyName"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Company Name
-                    </Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        id="companyName"
-                        type="text"
-                        placeholder="Enter your company name"
-                        value={formData.companyName}
-                        onChange={(e) =>
-                          handleInputChange("companyName", e.target.value)
-                        }
-                        className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                      />
+                {/* Organization Section (conditional) */}
+                {showOrgFields && (
+                  <div className="space-y-4 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Building className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Organization Details
+                      </h3>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="companyName"
+                          className="text-sm font-semibold text-gray-700"
+                        >
+                          Company Name
+                        </Label>
+                        <Input
+                          id="companyName"
+                          type="text"
+                          placeholder="Enter your company name"
+                          value={formData.companyName}
+                          onChange={(e) =>
+                            handleInputChange("companyName", e.target.value)
+                          }
+                          disabled={isLoading}
+                          required={showOrgFields}
+                          className="h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="domain"
+                          className="text-sm font-semibold text-gray-700"
+                        >
+                          Company Domain
+                        </Label>
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                          <Input
+                            id="domain"
+                            type="text"
+                            placeholder="company.com"
+                            value={formData.domain}
+                            onChange={(e) =>
+                              handleInputChange("domain", e.target.value)
+                            }
+                            disabled={isLoading}
+                            required={showOrgFields}
+                            className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Domain */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="domain"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Company Domain
-                    </Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        id="domain"
-                        type="text"
-                        placeholder="company.com"
-                        value={formData.domain}
-                        onChange={(e) =>
-                          handleInputChange("domain", e.target.value)
-                        }
-                        className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={isLoading}
-                        required
-                      />
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-green-600" />
                     </div>
-                    <p className="text-sm text-gray-500">
-                      This will be used for email domain verification and team
-                      member invitations
-                    </p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Personal Information
+                    </h3>
                   </div>
-                </div>
-              )}
 
-              {/* User Details Step */}
-              {((stepperConfig.showOrgStep && currentStep === 2) ||
-                (!stepperConfig.showOrgStep && currentStep === 1)) && (
-                <div className="space-y-6">
-                  {/* Username */}
+                  {/* Full Name */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="username"
@@ -719,14 +728,14 @@ const AccountSetup = () => {
                         autoComplete="off"
                         id="username"
                         type="text"
-                        placeholder="Choose a username"
+                        placeholder="Enter your full name"
                         value={formData.username}
                         onChange={(e) =>
                           handleInputChange("username", e.target.value)
                         }
-                        className="pl-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={isLoading}
                         required
+                        className="pl-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                       />
                     </div>
                   </div>
@@ -737,7 +746,7 @@ const AccountSetup = () => {
                       htmlFor="password"
                       className="text-sm font-semibold text-gray-700"
                     >
-                      New Password
+                      Create Password
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -750,7 +759,7 @@ const AccountSetup = () => {
                         onChange={(e) =>
                           handleInputChange("password", e.target.value)
                         }
-                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
                       />
@@ -770,7 +779,7 @@ const AccountSetup = () => {
 
                     {/* Password Strength Indicator */}
                     {formData.password && (
-                      <div className="space-y-3">
+                      <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">
                             Password strength:
@@ -790,6 +799,7 @@ const AccountSetup = () => {
                             {getPasswordStrengthLabel()}
                           </span>
                         </div>
+
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className={cn(
@@ -865,7 +875,7 @@ const AccountSetup = () => {
                         onChange={(e) =>
                           handleInputChange("confirmPassword", e.target.value)
                         }
-                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="pl-11 pr-11 h-12 text-base border-gray-200 focus:border-green-500 focus:ring-green-500"
                         disabled={isLoading}
                         required
                       />
@@ -884,94 +894,75 @@ const AccountSetup = () => {
                         )}
                       </button>
                     </div>
-                    {formData.confirmPassword &&
-                      formData.password !== formData.confirmPassword && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>Passwords do not match</span>
-                        </p>
-                      )}
-                    {formData.confirmPassword &&
-                      formData.password === formData.confirmPassword &&
-                      formData.password && (
-                        <p className="text-sm text-green-600 flex items-center space-x-1">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Passwords match</span>
-                        </p>
-                      )}
+
+                    {/* Password Match Indicator */}
+                    {formData.confirmPassword && (
+                      <div className="flex items-center space-x-2">
+                        {formData.password === formData.confirmPassword ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-green-600 font-medium">
+                              Passwords match
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-sm text-red-600 font-medium">
+                              Passwords do not match
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-6">
-                {currentStep > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={isLoading}
-                    className="px-6"
-                  >
-                    Back
-                  </Button>
-                ) : (
-                  <div />
-                )}
-
-                {currentStep < stepperConfig.totalSteps ? (
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={isLoading}
-                    className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    Continue
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Account...
-                      </>
-                    ) : (
-                      <>
-                        Complete Setup
-                        <CheckCircle className="w-4 h-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </form>
-
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-              <p className="text-sm text-gray-500">
-                By creating an account, you agree to our{" "}
-                <a
-                  href="#"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                  size="lg"
                 >
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a
-                  href="#"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Privacy Policy
-                </a>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Your Account...
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-5 h-5 mr-2" />
+                      Complete Setup
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Features Preview */}
+
+          {/* Footer */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              By creating an account, you agree to our{" "}
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
+                Privacy Policy
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

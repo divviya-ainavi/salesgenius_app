@@ -32,7 +32,7 @@ export const MainLayout = () => {
           {/* Application Logo/Brand */}
           <div>
             <h1 className="text-xl font-bold text-foreground">
-              SalesGenius.ai
+              SalesGenius Ai
             </h1>
             <p className="text-sm text-muted-foreground">
               AI-Powered Sales Assistant

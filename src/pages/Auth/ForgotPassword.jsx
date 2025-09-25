@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Loader2, 
-  Mail, 
-  ArrowLeft, 
-  AlertCircle, 
+import {
+  Loader2,
+  Mail,
+  ArrowLeft,
+  AlertCircle,
   CheckCircle,
-  Send 
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -28,7 +28,7 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isFormValid) {
       setError("Please enter a valid email address");
       return;
@@ -39,14 +39,17 @@ const ForgotPassword = () => {
 
     try {
       console.log("🔄 Starting password reset for email:", email);
-      
+
       // Use Supabase Auth password reset
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/reset-password`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/reset-password`,
+          },
         }
-      });
+      );
 
       if (resetError) {
         console.error("❌ Supabase password reset failed:", resetError);
@@ -56,18 +59,21 @@ const ForgotPassword = () => {
       console.log("✅ Password reset email sent successfully");
       setIsSubmitted(true);
       toast.success("Password reset email sent! Please check your inbox.");
-      
     } catch (error) {
       console.error("❌ Password reset error:", error);
-      
+
       // Handle specific Supabase errors
       if (error.message?.includes("rate limit")) {
-        setError("Too many requests. Please wait a few minutes before trying again.");
+        setError(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
       } else if (error.message?.includes("invalid email")) {
         setError("Please enter a valid email address.");
       } else {
         // For security, don't reveal if email exists or not
-        setError("If an account with this email exists, you will receive a password reset link.");
+        setError(
+          "If an account with this email exists, you will receive a password reset link."
+        );
       }
     } finally {
       setIsLoading(false);
@@ -95,7 +101,7 @@ const ForgotPassword = () => {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                
+
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     Check Your Email
@@ -115,7 +121,7 @@ const ForgotPassword = () => {
                       </p>
                       <ul className="text-sm text-blue-800 mt-1 space-y-1">
                         <li>• Check your email inbox</li>
-                        <li>• Look for an email from SalesGenius.ai</li>
+                        <li>• Look for an email from SalesGenius Ai</li>
                         <li>• Click the "Reset Password" link</li>
                         <li>• Check your spam folder if you don't see it</li>
                       </ul>
@@ -132,7 +138,7 @@ const ForgotPassword = () => {
                     <Send className="w-4 h-4 mr-2" />
                     Send Another Email
                   </Button>
-                  
+
                   <Button
                     onClick={handleBackToLogin}
                     variant="ghost"
@@ -161,7 +167,7 @@ const ForgotPassword = () => {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            SalesGenius.ai
+            SalesGenius Ai
           </h1>
           <p className="text-gray-600">AI-Powered Sales Assistant</p>
         </div>
@@ -169,9 +175,12 @@ const ForgotPassword = () => {
         {/* Forgot Password Form */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Reset Your Password</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Reset Your Password
+            </CardTitle>
             <p className="text-gray-600 mt-2">
-              Enter your email address and we'll send you a link to reset your password
+              Enter your email address and we'll send you a link to reset your
+              password
             </p>
           </CardHeader>
 
