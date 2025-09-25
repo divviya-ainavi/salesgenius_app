@@ -117,7 +117,7 @@ const SignupPage = () => {
         const formData = new FormData();
         formData.append("id", result?.id);
         const response = await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+          `${config.api.baseUrl}${config.api.endpoints.userInviteProd}`,
           {
             method: "POST",
             body: formData,
