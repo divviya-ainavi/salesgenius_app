@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Shield,
   Star,
-  Plus
+  Plus,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
