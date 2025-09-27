@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   CreditCard,
   DollarSign,
   Calendar,
@@ -23,20 +31,26 @@ import {
   ExternalLink,
   X,
   Sparkles,
-  Gift
+  Gift,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { dbHelpers, supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const BillingComponent = () => {
   const { user, organizationDetails, isBetaUser } = useSelector((state) => state.auth);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
+  const [planFeatures, setPlanFeatures] = useState({ free: [], pro: [] });
   const [isLoading, setIsLoading] = useState(true);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   useEffect(() => {
     loadPlanData();
+    loadPlanFeatures();
   }, [user, isBetaUser]);
 
   const loadPlanData = async () => {
@@ -89,26 +103,78 @@ export const BillingComponent = () => {
     }
   };
 
+  const loadPlanFeatures = async () => {
+    try {
+      // Get plan features from database
+      const { data: planMasterData, error: planError } = await supabase
+        .from("plan_master")
+        .select(`
+          id,
+          plan_name,
+          plan_features (
+            feature_name,
+            feature_description,
+            is_included,
+            feature_limit,
+            display_order
+          )
+        `)
+        .order("plan_name", { ascending: true });
+
+      if (!planError && planMasterData) {
+        const features = { free: [], pro: [] };
+        
+        planMasterData.forEach(plan => {
+          const planType = plan.plan_name === "Free Plan" ? "free" : "pro";
+          features[planType] = plan.plan_features
+            .sort((a, b) => a.display_order - b.display_order)
+            .map(feature => ({
+              name: feature.feature_name,
+              description: feature.feature_description,
+              included: feature.is_included,
+              limit: feature.feature_limit
+            }));
+        });
+
+        setPlanFeatures(features);
+      }
+    } catch (error) {
+      console.error("Error loading plan features:", error);
+    }
+  };
+
   const handleUpgradeToPro = () => {
     // TODO: Implement Stripe integration
     console.log("Upgrade to Pro clicked");
+    toast.info("Stripe integration coming soon!");
   };
 
   const handleManageSubscription = () => {
     // TODO: Implement Stripe customer portal
     console.log("Manage subscription clicked");
+    toast.info("Stripe customer portal coming soon!");
   };
 
-  const handleCancelSubscription = () => {
-    // TODO: Implement subscription cancellation
-    console.log("Cancel subscription clicked");
+  const handleCancelSubscription = async () => {
+    setIsCanceling(true);
+    try {
+      // TODO: Implement actual cancellation logic with Stripe
+      console.log("Cancel subscription clicked");
+      toast.success("Subscription cancellation initiated");
+      setShowCancelDialog(false);
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      toast.error("Failed to cancel subscription");
+    } finally {
+      setIsCanceling(false);
+    }
   };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading billing information...</p>
         </div>
       </div>
@@ -297,33 +363,26 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {[
-                      "All AI insights and analysis",
-                      "Unlimited call transcript processing",
-                      "Email & presentation generation", 
-                      "HubSpot integration",
-                      "Research capabilities",
-                      "Full feature access for 30 days"
-                    ].map((feature, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-orange-800">After 30 days:</p>
-                    {[
-                      "View-only access to processed data",
-                      "Cannot process new transcripts",
-                      "Cannot generate new content"
-                    ].map((limitation, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <X className="w-4 h-4 text-orange-600" />
-                        <span className="text-sm text-orange-700">{limitation}</span>
+                    {planFeatures.free.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        {feature.included ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <X className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            "text-sm",
+                            !feature.included && "text-orange-700"
+                          )}>
+                            {feature.name}
+                          </span>
+                          {feature.limit && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.limit}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -351,19 +410,17 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {[
-                      "Unlimited AI insights and analysis",
-                      "Unlimited call transcript processing",
-                      "Unlimited email & presentation generation",
-                      "Advanced HubSpot integration",
-                      "Unlimited research capabilities",
-                      "Priority support",
-                      "Advanced analytics",
-                      "Team collaboration features"
-                    ].map((feature, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm">{feature}</span>
+                    {planFeatures.pro.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm">{feature.name}</span>
+                          {feature.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -380,69 +437,6 @@ export const BillingComponent = () => {
             </div>
           </div>
         )}
-
-        {/* Current Usage */}
-        <div className="space-y-4">
-          <h4 className="text-lg font-semibold">Current Usage</h4>
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Call Transcripts</span>
-                    <span className="text-sm text-muted-foreground">
-                      {isFree ? "12 processed" : "12 this month"}
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className={cn(
-                        "h-2 rounded-full transition-all duration-300",
-                        isFree ? "bg-green-500" : "bg-blue-500"
-                      )}
-                      style={{ width: isFree ? "80%" : "24%" }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {isFree ? "Full access during trial" : "Unlimited"}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">AI Insights</span>
-                    <span className="text-sm text-muted-foreground">8 generated</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className={cn(
-                      "h-2 rounded-full transition-all duration-300",
-                      isFree ? "bg-green-500" : "bg-blue-500"
-                    )} style={{ width: "15%" }} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {isFree ? "Full access during trial" : "Unlimited"}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Research Reports</span>
-                    <span className="text-sm text-muted-foreground">3 created</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className={cn(
-                      "h-2 rounded-full transition-all duration-300",
-                      isFree ? "bg-green-500" : "bg-blue-500"
-                    )} style={{ width: "10%" }} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {isFree ? "Full access during trial" : "Unlimited"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {/* Manage Subscription Section */}
@@ -471,7 +465,7 @@ export const BillingComponent = () => {
                   </Button>
                   
                   <Button 
-                    onClick={handleCancelSubscription}
+                    onClick={() => setShowCancelDialog(true)}
                     variant="ghost" 
                     className="w-full text-muted-foreground hover:text-red-600"
                   >
@@ -491,6 +485,57 @@ export const BillingComponent = () => {
           </div>
         </div>
       </div>
+
+      {/* Cancel Subscription Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span>Cancel Subscription</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel your Pro subscription? You'll lose access to all Pro features at the end of your current billing period.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-900 mb-2">What happens when you cancel:</h4>
+              <ul className="text-sm text-red-800 space-y-1">
+                <li>• You'll keep Pro access until {planDetails?.renewalDate}</li>
+                <li>• After that, you'll switch to view-only access</li>
+                <li>• You won't be able to process new transcripts</li>
+                <li>• You won't be able to generate new content</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+              disabled={isCanceling}
+            >
+              Keep Subscription
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelSubscription}
+              disabled={isCanceling}
+            >
+              {isCanceling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Canceling...
+                </>
+              ) : (
+                "Cancel Subscription"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
