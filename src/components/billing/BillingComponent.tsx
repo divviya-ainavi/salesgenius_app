@@ -43,14 +43,13 @@ export const BillingComponent = () => {
   const { user, organizationDetails, isBetaUser } = useSelector((state) => state.auth);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
-  const [planFeatures, setPlanFeatures] = useState({ free: [], pro: [] });
+  const [planFeatures, setPlanFeatures] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
 
   useEffect(() => {
     loadPlanData();
-    loadPlanFeatures();
   }, [user, isBetaUser]);
 
   const loadPlanData = async () => {
@@ -103,44 +102,77 @@ export const BillingComponent = () => {
     }
   };
 
-  const loadPlanFeatures = async () => {
+  const loadPlanFeatures = async (planMasterData) => {
     try {
-      // Get plan features from database
-      const { data: planMasterData, error: planError } = await supabase
-        .from("plan_master")
-        .select(`
-          id,
-          plan_name,
-          plan_features (
-            feature_name,
-            feature_description,
-            is_included,
-            feature_limit,
-            display_order
-          )
-        `)
-        .order("plan_name", { ascending: true });
-
-      if (!planError && planMasterData) {
-        const features = { free: [], pro: [] };
-        
-        planMasterData.forEach(plan => {
-          const planType = plan.plan_name === "Free Plan" ? "free" : "pro";
-          features[planType] = plan.plan_features
-            .sort((a, b) => a.display_order - b.display_order)
-            .map(feature => ({
-              name: feature.feature_name,
-              description: feature.feature_description,
-              included: feature.is_included,
-              limit: feature.feature_limit
-            }));
-        });
-
-        setPlanFeatures(features);
+      console.log('📊 Loading plan features from data:', planMasterData);
+      
+      if (planMasterData && planMasterData.length > 0) {
+        setPlanFeatures(planMasterData);
+        console.log('✅ Plan features loaded:', planMasterData);
+      } else {
+        console.warn('⚠️ No plan features data available');
+        setPlanFeatures([]);
       }
     } catch (error) {
       console.error("Error loading plan features:", error);
+      setPlanFeatures([]);
     }
+  };
+
+  // Load plan features when component mounts
+  useEffect(() => {
+    const fetchPlanFeatures = async () => {
+      try {
+        console.log('🔄 Fetching plan features from database...');
+        
+        const { data: planMasterData, error: planError } = await supabase
+          .from("plan_master")
+          .select(`
+            id,
+            plan_name,
+            description,
+            price,
+            plan_features (
+              feature_name,
+              feature_description,
+              is_included,
+              feature_limit,
+              display_order
+            )
+          `)
+          .order("plan_name", { ascending: true });
+
+        if (planError) {
+          console.error('❌ Error fetching plan features:', planError);
+          return;
+        }
+
+        console.log('📊 Raw plan data from database:', planMasterData);
+        await loadPlanFeatures(planMasterData);
+      } catch (error) {
+        console.error('❌ Error in fetchPlanFeatures:', error);
+      }
+    };
+
+    fetchPlanFeatures();
+  }, []);
+
+  // Helper function to get features for a specific plan
+  const getFeaturesForPlan = (planName) => {
+    const plan = planFeatures.find(p => p.plan_name === planName);
+    if (!plan || !plan.plan_features) {
+      console.warn(`⚠️ No features found for plan: ${planName}`);
+      return [];
+    }
+    
+    return plan.plan_features
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(feature => ({
+        name: feature.feature_name,
+        description: feature.feature_description,
+        included: feature.is_included,
+        limit: feature.feature_limit
+      }));
   };
 
   const handleUpgradeToPro = () => {
@@ -363,7 +395,7 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planFeatures.free.map((feature, index) => (
+                    {getFeaturesForPlan("Free Plan").map((feature, index) => (
                       <div key={index} className="flex items-start space-x-2">
                         {feature.included ? (
                           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -410,7 +442,7 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planFeatures.pro.map((feature, index) => (
+                    {getFeaturesForPlan("Pro Plan").map((feature, index) => (
                       <div key={index} className="flex items-start space-x-2">
                         <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
