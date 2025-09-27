@@ -108,6 +108,7 @@ import {
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
+import { BillingComponent } from "@/components/billing/BillingComponent";
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -1854,11 +1855,11 @@ export const Settings = () => {
             </TabsTrigger>
           )}
           <TabsTrigger
-            value="analytics"
+            value="billing"
             className="flex items-center space-x-2"
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>Analytics</span>
+            <DollarSign className="w-4 h-4" />
+            <span>Billing</span>
           </TabsTrigger>
         </TabsList>
 
@@ -3982,151 +3983,8 @@ export const Settings = () => {
         </TabsContent>
 
         {/* Analytics Access */}
-        <TabsContent value="analytics" className="mt-6">
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <BarChart3 className="w-5 h-5" />
-                    <span>Analytics Access</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-50 text-orange-700 border-orange-200"
-                  >
-                    Coming Soon for Your Organization
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {mockCurrentUser.role === "super_admin" && (
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Globe className="w-5 h-5 text-purple-600" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            Platform Analytics
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            All organizations and users
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  )}
-
-                  {canViewOrgAnalytics && (
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Building className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            Organization Analytics
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {organizationDetails?.name} only
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <User className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          Personal Analytics
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Your individual performance
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span>Data Export</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-50 text-orange-700 border-orange-200"
-                  >
-                    Coming Soon for Your Organization
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">
-                        Export Personal Data
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Download your data in JSON format
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-1" />
-                      Export
-                    </Button>
-                  </div>
-
-                  {canViewOrgAnalytics && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">
-                          Export Organization Data
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Download organization analytics
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-1" />
-                        Export
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div className="text-xs text-muted-foreground">
-                  <p className="mb-2">Data Retention Policy:</p>
-                  <ul className="space-y-1">
-                    <li>• Personal data: Retained until account deletion</li>
-                    <li>
-                      • Call transcripts: {orgSettings.data_retention_days} days
-                    </li>
-                    <li>• Analytics data: 2 years</li>
-                    <li>• Audit logs: 7 years</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="billing" className="mt-6">
+          <BillingComponent />
         </TabsContent>
       </Tabs>
 
