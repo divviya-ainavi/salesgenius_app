@@ -27,56 +27,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
-import { dbHelpers } from "@/lib/supabase";
+import { dbHelpers, supabase } from "@/lib/supabase";
 
 export const BillingComponent = () => {
   const { user, organizationDetails, isBetaUser } = useSelector((state) => state.auth);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Plan configurations
-  const planConfigs = {
-    free: {
-      name: "Free Plan",
-      price: 0,
-      period: "30 days",
-      description: "Full access for 30 days, then view-only",
-      color: "from-green-500 to-emerald-600",
-      icon: Gift,
-      features: [
-        "All AI insights and analysis",
-        "Unlimited call transcript processing",
-        "Email & presentation generation", 
-        "HubSpot integration",
-        "Research capabilities",
-        "Full feature access for 30 days"
-      ],
-      limitations: [
-        "After 30 days: View-only access",
-        "Cannot process new transcripts after trial",
-        "Cannot generate new content after trial"
-      ]
-    },
-    pro: {
-      name: "Pro",
-      price: 49,
-      period: "user/month",
-      description: "Unlimited access to all features",
-      color: "from-blue-500 to-indigo-600", 
-      icon: Crown,
-      features: [
-        "Unlimited AI insights and analysis",
-        "Unlimited call transcript processing",
-        "Unlimited email & presentation generation",
-        "Advanced HubSpot integration",
-        "Unlimited research capabilities",
-        "Priority support",
-        "Advanced analytics",
-        "Team collaboration features"
-      ]
-    }
-  };
 
   useEffect(() => {
     loadPlanData();
@@ -86,7 +43,7 @@ export const BillingComponent = () => {
     try {
       setIsLoading(true);
       
-      // Get user's plan from database
+      // Get user's current plan from the old plan table
       if (user?.id) {
         const { data: planData, error } = await supabase
           .from("plan")
@@ -113,20 +70,20 @@ export const BillingComponent = () => {
             })
           });
 
-          // Determine current plan type
+          // Determine current plan type based on plan_name
           if (plan.plan_name === "Beta Trial" || plan.plan_name === "Free Plan") {
-            setCurrentPlan(planConfigs.free);
+            setCurrentPlan("free");
           } else {
-            setCurrentPlan(planConfigs.pro);
+            setCurrentPlan("pro");
           }
         } else {
           // Default to free plan if no plan found
-          setCurrentPlan(planConfigs.free);
+          setCurrentPlan("free");
         }
       }
     } catch (error) {
       console.error("Error loading plan data:", error);
-      setCurrentPlan(planConfigs.free);
+      setCurrentPlan("free");
     } finally {
       setIsLoading(false);
     }
@@ -158,9 +115,8 @@ export const BillingComponent = () => {
     );
   }
 
-  const isPro = currentPlan?.name === "Pro";
-  const isFree = currentPlan?.name === "Free Plan";
-  const PlanIcon = currentPlan?.icon || Gift;
+  const isPro = currentPlan === "pro";
+  const isFree = currentPlan === "free";
 
   return (
     <div className="space-y-8">
@@ -178,7 +134,7 @@ export const BillingComponent = () => {
               <p className="text-muted-foreground mb-1">
                 Your workspace is currently subscribed to the{" "}
                 <span className="font-semibold text-foreground">
-                  {currentPlan?.name}
+                  {isPro ? "Pro" : "Free Plan"}
                 </span>{" "}
                 plan.
               </p>
@@ -197,10 +153,14 @@ export const BillingComponent = () => {
               <Card className="w-80 overflow-hidden border-0 shadow-lg">
                 <div className={cn(
                   "h-32 flex items-center justify-center text-white relative",
-                  `bg-gradient-to-br ${currentPlan?.color}`
+                  isPro 
+                    ? "bg-gradient-to-br from-blue-500 to-indigo-600"
+                    : "bg-gradient-to-br from-green-500 to-emerald-600"
                 )}>
                   <div className="text-center">
-                    <h2 className="text-3xl font-bold mb-1">{currentPlan?.name}</h2>
+                    <h2 className="text-3xl font-bold mb-1">
+                      {isPro ? "Pro" : "Free Plan"}
+                    </h2>
                     {isPro && <p className="text-lg opacity-90">Monthly</p>}
                     {isFree && (
                       <div className="flex items-center justify-center space-x-2">
@@ -212,7 +172,11 @@ export const BillingComponent = () => {
                   
                   {/* Plan Icon */}
                   <div className="absolute top-4 right-4">
-                    <PlanIcon className="w-8 h-8 opacity-80" />
+                    {isPro ? (
+                      <Crown className="w-8 h-8 opacity-80" />
+                    ) : (
+                      <Gift className="w-8 h-8 opacity-80" />
+                    )}
                   </div>
                 </div>
 
@@ -235,7 +199,7 @@ export const BillingComponent = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Price</span>
                       <span className="font-semibold">
-                        {isFree ? "Free" : `$${currentPlan?.price}/${currentPlan?.period}`}
+                        {isFree ? "Free" : "$49/user/month"}
                       </span>
                     </div>
 
@@ -257,29 +221,23 @@ export const BillingComponent = () => {
                       </div>
                     )}
 
-                    {/* Trial Warning */}
-                    {isFree && planDetails?.daysRemaining <= 7 && (
-                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <AlertCircle className="w-4 h-4 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-800">
-                            Trial ending soon
-                          </span>
-                        </div>
-                        <p className="text-xs text-orange-700">
-                          Upgrade to Pro to continue processing new content after your trial expires.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Upgrade Button */}
-                    {isFree && (
+                    {/* Action Button */}
+                    {isFree ? (
                       <Button 
                         onClick={handleUpgradeToPro}
                         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                       >
                         <Crown className="w-4 h-4 mr-2" />
                         Upgrade to Pro
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleManageSubscription}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Manage subscription in Stripe
                       </Button>
                     )}
                   </div>
@@ -289,7 +247,35 @@ export const BillingComponent = () => {
           </div>
         </div>
 
-        {/* Plan Comparison */}
+        {/* Trial Expiration Warning */}
+        {isFree && planDetails?.daysRemaining <= 7 && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-orange-900 mb-2">
+                    Your trial expires in {planDetails.daysRemaining} days
+                  </h4>
+                  <p className="text-sm text-orange-800 mb-4">
+                    After your trial expires, you'll still be able to view your existing data, but you won't be able to process new transcripts, generate emails, or create presentations. Upgrade to Pro to continue using all features.
+                  </p>
+                  <Button 
+                    onClick={handleUpgradeToPro}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    Upgrade to Pro - $49/month
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Plan Comparison for Free Users */}
         {isFree && (
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Available Plans</h4>
@@ -311,7 +297,14 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planConfigs.free.features.map((feature, index) => (
+                    {[
+                      "All AI insights and analysis",
+                      "Unlimited call transcript processing",
+                      "Email & presentation generation", 
+                      "HubSpot integration",
+                      "Research capabilities",
+                      "Full feature access for 30 days"
+                    ].map((feature, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <CheckCircle className="w-4 h-4 text-green-600" />
                         <span className="text-sm">{feature}</span>
@@ -323,7 +316,11 @@ export const BillingComponent = () => {
                   
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-orange-800">After 30 days:</p>
-                    {planConfigs.free.limitations.map((limitation, index) => (
+                    {[
+                      "View-only access to processed data",
+                      "Cannot process new transcripts",
+                      "Cannot generate new content"
+                    ].map((limitation, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <X className="w-4 h-4 text-orange-600" />
                         <span className="text-sm text-orange-700">{limitation}</span>
@@ -354,7 +351,16 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planConfigs.pro.features.map((feature, index) => (
+                    {[
+                      "Unlimited AI insights and analysis",
+                      "Unlimited call transcript processing",
+                      "Unlimited email & presentation generation",
+                      "Advanced HubSpot integration",
+                      "Unlimited research capabilities",
+                      "Priority support",
+                      "Advanced analytics",
+                      "Team collaboration features"
+                    ].map((feature, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <CheckCircle className="w-4 h-4 text-blue-600" />
                         <span className="text-sm">{feature}</span>
@@ -483,93 +489,6 @@ export const BillingComponent = () => {
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Trial Expiration Warning */}
-      {isFree && planDetails?.daysRemaining <= 7 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-orange-900 mb-2">
-                  Your trial expires in {planDetails.daysRemaining} days
-                </h4>
-                <p className="text-sm text-orange-800 mb-4">
-                  After your trial expires, you'll still be able to view your existing data, but you won't be able to process new transcripts, generate emails, or create presentations. Upgrade to Pro to continue using all features.
-                </p>
-                <Button 
-                  onClick={handleUpgradeToPro}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Pro - $49/month
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Features Comparison */}
-      <div className="space-y-4">
-        <h4 className="text-lg font-semibold">What's included</h4>
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Gift className="w-5 h-5 text-green-600" />
-                <span>Free Plan (30 days)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {planConfigs.free.features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">{feature}</span>
-                </div>
-              ))}
-              
-              <Separator className="my-3" />
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-orange-800">After trial:</p>
-                {planConfigs.free.limitations.map((limitation, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <X className="w-4 h-4 text-orange-600" />
-                    <span className="text-sm text-orange-700">{limitation}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-200 bg-blue-50/50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Crown className="w-5 h-5 text-blue-600" />
-                <span>Pro Plan</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {planConfigs.pro.features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm">{feature}</span>
-                </div>
-              ))}
-              
-              <div className="pt-3">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">$49</div>
-                  <p className="text-sm text-muted-foreground">per user/month</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
