@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -12,64 +11,49 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  CreditCard,
-  DollarSign,
   Calendar,
   CheckCircle,
-  AlertCircle,
   Crown,
+  Gift,
+  Star,
+  Loader2,
+  X,
+  ArrowUp,
   Zap,
   Users,
-  Clock,
-  Download,
-  Receipt,
-  TrendingUp,
   Shield,
-  Star,
-  Plus,
-  BarChart3,
-  ExternalLink,
-  X,
   Sparkles,
-  Gift,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
-import { dbHelpers, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export const BillingComponent = () => {
-  const { user, organizationDetails, isBetaUser } = useSelector(
-    (state) => state.auth
-  );
+  const { user, organizationDetails } = useSelector((state) => state.auth);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
   const [availablePlans, setAvailablePlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [isCanceling, setIsCanceling] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     loadPlanData();
     loadAvailablePlans();
-  }, [user, isBetaUser]);
+  }, [user]);
 
   const loadAvailablePlans = async () => {
     try {
-      console.log("🔍 Loading all available plans from plan_master...");
-
       const { data: plansData, error: plansError } = await supabase
         .from("plan_master")
         .select("*")
         .order("price", { ascending: true });
 
       if (plansError) {
-        console.error("❌ Error loading plans:", plansError);
+        console.error("Error loading plans:", plansError);
         return;
       }
 
-      console.log("✅ Available plans loaded:", plansData);
       setAvailablePlans(plansData || []);
     } catch (error) {
       console.error("Error loading available plans:", error);
@@ -81,10 +65,8 @@ export const BillingComponent = () => {
     try {
       setIsLoading(true);
 
-      // Get user's current plan from user_plan table with plan_master and features
       if (user?.id) {
-        console.log("🔍 Loading plan data for user:", user.id);
-
+        // Get user's current plan from user_plan table with plan_master details
         const { data: userPlanData, error: userPlanError } = await supabase
           .from("user_plan")
           .select(
@@ -105,23 +87,10 @@ export const BillingComponent = () => {
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1);
-        console.log(
-          !userPlanError && userPlanData && userPlanData.length > 0,
-          userPlanError,
-          userPlanData,
-          userPlanData.length > 0,
-          userPlanData,
-          userPlanError,
-          "check user plan data"
-        );
 
         if (!userPlanError && userPlanData && userPlanData.length > 0) {
           const userPlan = userPlanData[0];
           const planMaster = userPlan.plan_master;
-
-          console.log("📊 User plan data 113:", userPlan);
-          console.log("📋 Plan master data:", planMaster);
-          console.log("🎯 Current plan features:", planMaster?.features);
 
           const endDate = new Date(userPlan.end_date);
           const today = new Date();
@@ -131,6 +100,7 @@ export const BillingComponent = () => {
             Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
           );
 
+          setCurrentPlan(planMaster);
           setPlanDetails({
             ...userPlan,
             ...planMaster,
@@ -141,29 +111,9 @@ export const BillingComponent = () => {
               month: "long",
               day: "numeric",
             }),
-            features: planMaster?.features || [],
-            planMasterId: planMaster?.id,
           });
-
-          if (
-            planMaster?.plan_name?.toLowerCase().includes("free") ||
-            planMaster?.plan_name?.toLowerCase().includes("trial") ||
-            planMaster?.plan_name?.toLowerCase().includes("beta")
-          ) {
-            setCurrentPlan("free");
-            console.log("📋 User is on Free Plan");
-          } else if (
-            planMaster?.plan_name?.toLowerCase().includes("pro") ||
-            planMaster?.plan_name?.toLowerCase().includes("standard") ||
-            planMaster?.plan_name?.toLowerCase().includes("premium")
-          ) {
-            setCurrentPlan("pro");
-            console.log("📋 User is on Pro Plan");
-          }
-          console.log("📋 Current plan set to:", planMaster?.plan_name);
         } else {
           // Check old plan table for backward compatibility
-          console.log("⚠️ No user_plan found, checking old plan table...");
           const { data: oldPlanData, error: oldPlanError } = await supabase
             .from("plan")
             .select("*")
@@ -181,9 +131,21 @@ export const BillingComponent = () => {
               Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
             );
 
+            // Create a mock plan master object for old plans
+            const mockPlanMaster = {
+              id: null,
+              plan_name: plan.plan_name,
+              description: null,
+              price: plan.plan_name === "Beta Trial" ? 0 : 49,
+              currency: "usd",
+              duration_days: plan.no_of_days,
+              features: [],
+            };
+
+            setCurrentPlan(mockPlanMaster);
             setPlanDetails({
               ...plan,
-              plan_name: plan.plan_name,
+              ...mockPlanMaster,
               isExpired,
               daysRemaining,
               renewalDate: endDate.toLocaleDateString("en-US", {
@@ -191,62 +153,14 @@ export const BillingComponent = () => {
                 month: "long",
                 day: "numeric",
               }),
-              features: [],
-              planMasterId: null,
             });
-
-            if (
-              plan.plan_name === "Beta Trial" ||
-              plan.plan_name === "Free Plan"
-            ) {
-              setCurrentPlan("free");
-              console.log("📋 User is on Free Plan (from old table)");
-            } else {
-              setCurrentPlan("pro");
-              console.log("📋 User is on Pro Plan (from old table)");
-            }
-            console.log("📋 Current plan set from old table:", plan.plan_name);
-          } else {
-            // No plan found
-            console.log("⚠️ No plan found");
-            setCurrentPlan("free");
           }
         }
       }
     } catch (error) {
       console.error("Error loading plan data:", error);
-      setCurrentPlan("free");
     } finally {
       setIsLoading(false);
-    }
-  };
-  console.log(currentPlan, "check current plan");
-  const handleUpgradeToPro = () => {
-    console.log("Upgrade to Pro clicked");
-    toast.info("Stripe integration coming soon!");
-  };
-
-  const handleManageSubscription = () => {
-    console.log("Manage subscription clicked");
-    toast.info("Stripe customer portal coming soon!");
-  };
-
-  const handleCancelSubscription = async () => {
-    setIsCanceling(true);
-    try {
-      console.log("Cancel subscription clicked");
-      // TODO: Implement actual cancellation logic with Stripe
-      // This would typically:
-      // 1. Cancel the Stripe subscription
-      // 2. Update user_plan status to 'canceled'
-      // 3. Set canceled_at timestamp
-      toast.success("Subscription cancellation initiated");
-      setShowCancelDialog(false);
-    } catch (error) {
-      console.error("Error canceling subscription:", error);
-      toast.error("Failed to cancel subscription");
-    } finally {
-      setIsCanceling(false);
     }
   };
 
@@ -256,30 +170,52 @@ export const BillingComponent = () => {
     return (
       planName.includes("free") ||
       planName.includes("trial") ||
-      planName.includes("beta")
-    );
-  };
-
-  const isProPlan = (plan) => {
-    if (!plan) return false;
-    const planName = plan.plan_name?.toLowerCase() || "";
-    return (
-      planName.includes("pro") ||
-      planName.includes("standard") ||
-      planName.includes("premium")
+      planName.includes("beta") ||
+      plan.price === 0
     );
   };
 
   const getPlanIcon = (plan) => {
+    if (!plan) return Gift;
     if (isFreePlan(plan)) return Gift;
-    if (isProPlan(plan)) return Crown;
+    if (plan.plan_name?.toLowerCase().includes("pro")) return Crown;
+    if (plan.plan_name?.toLowerCase().includes("business")) return Users;
+    if (plan.plan_name?.toLowerCase().includes("enterprise")) return Shield;
     return Star;
   };
 
   const getPlanGradient = (plan) => {
+    if (!plan) return "from-gray-500 to-gray-600";
     if (isFreePlan(plan)) return "from-green-500 to-emerald-600";
-    if (isProPlan(plan)) return "from-blue-500 to-indigo-600";
-    return "from-purple-500 to-pink-600";
+    if (plan.plan_name?.toLowerCase().includes("pro")) return "from-blue-500 to-indigo-600";
+    if (plan.plan_name?.toLowerCase().includes("business")) return "from-purple-500 to-violet-600";
+    if (plan.plan_name?.toLowerCase().includes("enterprise")) return "from-gray-800 to-black";
+    return "from-blue-500 to-indigo-600";
+  };
+
+  const getDurationText = (durationDays) => {
+    if (durationDays === 30) return "Monthly";
+    if (durationDays === 365) return "Annual";
+    if (durationDays <= 31) return "Trial";
+    return `${durationDays} days`;
+  };
+
+  const getNextTierPlan = () => {
+    if (!currentPlan || !availablePlans.length) return null;
+    
+    // Find plans with higher price than current plan
+    const higherPlans = availablePlans.filter(plan => plan.price > currentPlan.price);
+    
+    // Return the cheapest higher plan (next tier)
+    return higherPlans.length > 0 
+      ? higherPlans.reduce((min, plan) => plan.price < min.price ? plan : min)
+      : null;
+  };
+
+  const handleUpgrade = (plan) => {
+    console.log("Upgrading to plan:", plan.plan_name);
+    toast.info("Stripe integration coming soon!");
+    setShowUpgradeModal(false);
   };
 
   if (isLoading) {
@@ -287,26 +223,14 @@ export const BillingComponent = () => {
       <div className="space-y-6">
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-          <p className="text-muted-foreground">
-            Loading billing information...
-          </p>
+          <p className="text-muted-foreground">Loading billing information...</p>
         </div>
       </div>
     );
   }
 
-  const isPro = isProPlan(currentPlan);
-  const isFree = isFreePlan(currentPlan);
-
-  // Get other available plans (excluding current plan)
-  const otherPlans = availablePlans.filter(
-    (plan) => plan.id !== planDetails?.planMasterId
-  );
-
-  console.log("🎯 Current plan:", currentPlan);
-  console.log("🎯 Available plans:", availablePlans);
-  console.log("🎯 Other plans:", otherPlans);
-  console.log("🎯 Plan details:", planDetails);
+  const nextTierPlan = getNextTierPlan();
+  const showUpgradeOption = isFreePlan(currentPlan) && nextTierPlan;
 
   return (
     <div className="space-y-8">
@@ -320,336 +244,223 @@ export const BillingComponent = () => {
       {/* Workspace Subscription Section */}
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-6">
             Workspace subscription
           </h3>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-muted-foreground mb-1">
-                Your workspace is currently subscribed to the{" "}
-                <span className="font-semibold text-foreground">
-                  {currentPlan?.plan_name || "No Plan"}
-                </span>{" "}
-                plan.
-              </p>
+          
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            {/* Left Column - Text Content */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-muted-foreground text-base">
+                  Your workspace is currently subscribed to the{" "}
+                  <span className="font-semibold text-foreground">
+                    {currentPlan?.plan_name || "Unknown Plan"}
+                  </span>{" "}
+                  plan.
+                </p>
+              </div>
+              
               {planDetails && (
-                <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  <span>
-                    {planDetails.isExpired
-                      ? "Expired"
-                      : isProPlan(currentPlan)
-                      ? "Renews"
-                      : "Expires"}{" "}
-                    on {planDetails.renewalDate}.
+                  <span className="text-sm">
+                    {planDetails.isExpired ? "Expired" : "Renews"} on {planDetails.renewalDate}.
                   </span>
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Trial Expiration Warning */}
-        {isFree && (
-          // && planDetails?.daysRemaining <= 7
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-orange-900 mb-2">
-                    Your trial expires in {planDetails.daysRemaining} days
-                  </h4>
-                  <p className="text-sm text-orange-800 mb-4">
-                    After your trial expires, you'll still be able to view your
-                    existing data, but you won't be able to process new
-                    transcripts, generate emails, or create presentations.
-                    Upgrade to Pro to continue using all features.
+            {/* Right Column - Plan Card and Actions */}
+            <div className="space-y-4">
+              {/* Current Plan Card */}
+              <div 
+                className={cn(
+                  "relative rounded-2xl p-8 text-white overflow-hidden",
+                  `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
+                )}
+              >
+                <div className="relative z-10">
+                  <h3 className="text-3xl font-bold mb-2">
+                    {currentPlan?.plan_name || "Unknown"}
+                  </h3>
+                  <p className="text-white/80 text-lg">
+                    {getDurationText(currentPlan?.duration_days)}
                   </p>
-                  <Button
-                    onClick={handleUpgradeToPro}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    Upgrade to Pro - $49/month
-                  </Button>
+                </div>
+                
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+                  {React.createElement(getPlanIcon(currentPlan), {
+                    className: "w-full h-full"
+                  })}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Available Plans Section */}
-        {otherPlans.length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">
-              {isFree ? "Available Plans" : "Other Plans"}
-            </h4>
-            <div
-              className={cn(
-                "grid gap-6",
-                otherPlans.length === 1
-                  ? "md:grid-cols-1 max-w-md mx-auto"
-                  : "md:grid-cols-2"
+              {/* Upgrade Button */}
+              {showUpgradeOption && (
+                <Button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
+                  size="lg"
+                >
+                  <ArrowUp className="w-4 h-4 mr-2" />
+                  Upgrade to {nextTierPlan.plan_name}
+                </Button>
               )}
-            >
-              {otherPlans.map((plan) => {
-                const PlanIcon = getPlanIcon(plan);
-                const isUpgrade = plan.price > (currentPlan?.price || 0);
-
-                return (
-                  <Card
-                    key={plan.id}
-                    className={cn(
-                      "relative border-2",
-                      isFreePlan(plan)
-                        ? "border-green-200 bg-green-50/50"
-                        : isProPlan(plan)
-                        ? "border-blue-200 bg-blue-50/50"
-                        : "border-purple-200 bg-purple-50/50"
-                    )}
-                  >
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge
-                        className={cn(
-                          "px-3 py-1",
-                          isFreePlan(plan)
-                            ? "bg-green-100 text-green-800 border-green-200"
-                            : isProPlan(plan)
-                            ? "bg-blue-100 text-blue-800 border-blue-200"
-                            : "bg-purple-100 text-purple-800 border-purple-200"
-                        )}
-                      >
-                        {isUpgrade ? "Upgrade Available" : "Downgrade Option"}
-                      </Badge>
-                    </div>
-
-                    <CardHeader className="text-center pt-8">
-                      <div
-                        className={cn(
-                          "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3",
-                          isFreePlan(plan)
-                            ? "bg-green-100"
-                            : isProPlan(plan)
-                            ? "bg-blue-100"
-                            : "bg-purple-100"
-                        )}
-                      >
-                        <PlanIcon
-                          className={cn(
-                            "w-6 h-6",
-                            isFreePlan(plan)
-                              ? "text-green-600"
-                              : isProPlan(plan)
-                              ? "text-blue-600"
-                              : "text-purple-600"
-                          )}
-                        />
-                      </div>
-                      <CardTitle className="text-xl">
-                        {plan.plan_name}
-                      </CardTitle>
-                      <div
-                        className={cn(
-                          "text-2xl font-bold",
-                          isFreePlan(plan)
-                            ? "text-green-600"
-                            : isProPlan(plan)
-                            ? "text-blue-600"
-                            : "text-purple-600"
-                        )}
-                      >
-                        ${plan.price}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {plan.price === 0
-                          ? `${plan.duration_days}-day trial`
-                          : `per user/${
-                              plan.duration_days === 30 ? "month" : "year"
-                            }`}
-                      </p>
-                      {plan.description && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {plan.description}
-                        </p>
-                      )}
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        {plan.features?.map((feature, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start space-x-2"
-                          >
-                            <CheckCircle
-                              className={cn(
-                                "w-4 h-4 mt-0.5 flex-shrink-0",
-                                isFreePlan(plan)
-                                  ? "text-green-600"
-                                  : isProPlan(plan)
-                                  ? "text-blue-600"
-                                  : "text-purple-600"
-                              )}
-                            />
-                            <span className="text-sm">{feature}</span>
-                          </div>
-                        )) || (
-                          <div className="text-center py-4 text-muted-foreground">
-                            <p className="text-sm">No features listed</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <Button
-                        onClick={
-                          isUpgrade
-                            ? handleUpgradeToPro
-                            : handleManageSubscription
-                        }
-                        className={cn(
-                          "w-full",
-                          isUpgrade
-                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                            : "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800"
-                        )}
-                      >
-                        {isUpgrade ? (
-                          <>
-                            <Crown className="w-4 h-4 mr-2" />
-                            Upgrade to {plan.plan_name} - ${plan.price}/
-                            {plan.duration_days === 30 ? "month" : "year"}
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Change to {plan.plan_name}
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
             </div>
           </div>
-        )}
-
-        {/* Current Plan Features */}
-        {currentPlan?.features && currentPlan.features.length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">
-              Your {currentPlan.plan_name} Features
-            </h4>
-            <Card
-              className={cn(
-                isFreePlan(currentPlan)
-                  ? "border-green-200 bg-green-50/50"
-                  : isProPlan(currentPlan)
-                  ? "border-blue-200 bg-blue-50/50"
-                  : "border-purple-200 bg-purple-50/50"
-              )}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  {React.createElement(getPlanIcon(currentPlan), {
-                    className: cn(
-                      "w-5 h-5",
-                      isFreePlan(currentPlan)
-                        ? "text-green-600"
-                        : isProPlan(currentPlan)
-                        ? "text-blue-600"
-                        : "text-purple-600"
-                    ),
-                  })}
-                  <span>{currentPlan.plan_name} Benefits</span>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Everything included in your {currentPlan.plan_name}{" "}
-                  subscription
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {currentPlan.features.map((feature, index) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <CheckCircle
-                        className={cn(
-                          "w-4 h-4 mt-0.5 flex-shrink-0",
-                          isFreePlan(currentPlan)
-                            ? "text-green-600"
-                            : isProPlan(currentPlan)
-                            ? "text-blue-600"
-                            : "text-purple-600"
-                        )}
-                      />
-                      <span className="text-sm font-medium">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Cancel Subscription Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent className="sm:max-w-md">
+      {/* Upgrade Modal */}
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <span>Cancel Subscription</span>
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel your Pro subscription? You'll lose
-              access to all Pro features and return to the Free Plan at the end
-              of your current billing period.
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-2xl font-bold">
+                  Upgrade your plan
+                </DialogTitle>
+                <DialogDescription className="text-base mt-2">
+                  Choose the plan that best fits your needs
+                </DialogDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+                Close
+              </Button>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h4 className="font-medium text-red-900 mb-2">
-                What happens when you cancel:
-              </h4>
-              <ul className="text-sm text-red-800 space-y-1">
-                <li>
-                  • You'll keep Pro access until {planDetails?.renewalDate}
-                </li>
-                <li>• After that, you'll return to the Free Plan</li>
-                <li>• Limited access to transcript processing</li>
-                <li>• Limited email and presentation generation</li>
-                <li>• You can resubscribe anytime</li>
-              </ul>
-            </div>
-          </div>
+          <div className="grid md:grid-cols-3 gap-6 py-6">
+            {availablePlans.map((plan) => {
+              const PlanIcon = getPlanIcon(plan);
+              const isCurrentPlan = plan.id === currentPlan?.id;
+              const isUpgrade = plan.price > (currentPlan?.price || 0);
+              
+              return (
+                <Card
+                  key={plan.id}
+                  className={cn(
+                    "relative border-2 transition-all duration-200",
+                    isCurrentPlan 
+                      ? "border-blue-500 bg-blue-50/50" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  {isCurrentPlan && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
+                        Your current plan
+                      </Badge>
+                    </div>
+                  )}
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelDialog(false)}
-              disabled={isCanceling}
-            >
-              Keep Subscription
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleCancelSubscription}
-              disabled={isCanceling}
-            >
-              {isCanceling ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Canceling...
-                </>
-              ) : (
-                "Cancel Subscription"
-              )}
-            </Button>
-          </DialogFooter>
+                  <CardHeader className="text-center pb-4">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-full flex items-center justify-center",
+                        isFreePlan(plan) ? "bg-green-100" : "bg-blue-100"
+                      )}>
+                        <PlanIcon className={cn(
+                          "w-6 h-6",
+                          isFreePlan(plan) ? "text-green-600" : "text-blue-600"
+                        )} />
+                      </div>
+                    </div>
+                    
+                    <CardTitle className="text-xl mb-2">
+                      {plan.plan_name}
+                    </CardTitle>
+                    
+                    <div className="mb-2">
+                      <span className="text-3xl font-bold">
+                        ${plan.price}
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-1">
+                        /{plan.duration_days === 30 ? "month" : plan.duration_days === 365 ? "year" : `${plan.duration_days} days`}
+                      </span>
+                      {plan.duration_days === 365 && (
+                        <div className="text-xs text-muted-foreground">
+                          (inclusive of GST)
+                        </div>
+                      )}
+                    </div>
+                    
+                    {plan.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {plan.description}
+                      </p>
+                    )}
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Action Button */}
+                    <Button
+                      onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
+                      disabled={isCurrentPlan}
+                      className={cn(
+                        "w-full",
+                        isCurrentPlan
+                          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                          : isUpgrade
+                          ? "bg-black text-white hover:bg-gray-800"
+                          : "bg-white text-gray-900 border border-gray-200 hover:bg-gray-50"
+                      )}
+                      size="lg"
+                    >
+                      {isCurrentPlan 
+                        ? "Your current plan"
+                        : isUpgrade 
+                        ? `Switch to ${plan.plan_name}`
+                        : `Downgrade to ${plan.plan_name}`
+                      }
+                    </Button>
+
+                    {/* Features List */}
+                    {plan.features && plan.features.length > 0 && (
+                      <div className="space-y-3 pt-4 border-t border-gray-100">
+                        {plan.features.map((feature, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                            </div>
+                            <span className="text-sm text-gray-700 leading-relaxed">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Additional Info for certain plans */}
+                    {plan.plan_name?.toLowerCase().includes("go") && (
+                      <div className="pt-4 border-t border-gray-100">
+                        <p className="text-xs text-muted-foreground">
+                          Only available in certain regions. Limits apply.
+                        </p>
+                      </div>
+                    )}
+
+                    {plan.plan_name?.toLowerCase().includes("business") && (
+                      <div className="pt-4 border-t border-gray-100">
+                        <p className="text-xs text-muted-foreground">
+                          For 2+ users, billed annually.
+                          GST excluded at checkout with a valid GST ID.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
