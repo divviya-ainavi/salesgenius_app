@@ -88,7 +88,7 @@ export const BillingComponent = () => {
 
           console.log("📊 User plan data:", userPlan);
           console.log("📋 Plan master data:", planMaster);
-          console.log("🎯 Plan features from plan_master:", planMaster?.features);
+          console.log("🎯 Plan features data:", planMaster?.features);
 
           const endDate = new Date(userPlan.end_date);
           const today = new Date();
@@ -108,20 +108,20 @@ export const BillingComponent = () => {
               month: "long",
               day: "numeric",
             }),
-            features: planMaster?.features || [], // Features from plan_master table
+            features: planMaster?.features || [],
           });
 
-          // Set current plan type based on plan_name from plan_master
-          if (planMaster?.plan_name?.toLowerCase().includes("free") ||
+          // Set current plan type based on plan_name  
+          if (planMaster?.plan_name?.toLowerCase().includes("free") || 
               planMaster?.plan_name?.toLowerCase().includes("trial") ||
               planMaster?.plan_name?.toLowerCase().includes("beta")) {
             setCurrentPlan("free");
-            console.log("📋 User is on Free Plan:", planMaster.plan_name);
+            console.log("📋 User is on Free Plan");
           } else if (planMaster?.plan_name?.toLowerCase().includes("pro") ||
                      planMaster?.plan_name?.toLowerCase().includes("standard") ||
                      planMaster?.plan_name?.toLowerCase().includes("premium")) {
             setCurrentPlan("pro");
-            console.log("📋 User is on Pro Plan:", planMaster.plan_name);
+            console.log("📋 User is on Pro Plan");
           }
         } else {
           // Check old plan table for backward compatibility
@@ -153,7 +153,7 @@ export const BillingComponent = () => {
                 month: "long",
                 day: "numeric",
               }),
-              features: [], // Old plan table doesn't have features - will load from plan_master
+              features: [], // Old plan table doesn't have features
             });
 
             // Determine current plan type based on plan_name
@@ -171,13 +171,6 @@ export const BillingComponent = () => {
             // Default to free plan if no plan found
             console.log("⚠️ No plan found, defaulting to free");
             setCurrentPlan("free");
-            setPlanDetails({
-              plan_name: "Free Plan",
-              price: 0,
-              features: [],
-              isExpired: false,
-              daysRemaining: 0,
-            });
           }
         }
       }
@@ -189,50 +182,22 @@ export const BillingComponent = () => {
     }
   };
 
-  // Load features from plan_master if not already loaded
-  const loadPlanFeatures = async () => {
+  const loadPlanFeatures = async (planMasterData) => {
     try {
-      if (planDetails?.features && planDetails.features.length > 0) {
-        console.log("✅ Features already loaded from user plan");
-        return;
-      }
+      console.log("📊 Loading plan features from data:", planMasterData);
 
-      console.log("🔍 Loading features from plan_master for plan type:", currentPlan);
-      
-      // Query plan_master to get features for current plan type
-      let query = supabase.from("plan_master").select("features, plan_name");
-      
-      if (currentPlan === "free") {
-        query = query.or("plan_name.ilike.%free%,plan_name.ilike.%trial%,plan_name.ilike.%beta%");
-      } else if (currentPlan === "pro") {
-        query = query.or("plan_name.ilike.%pro%,plan_name.ilike.%standard%,plan_name.ilike.%premium%");
-      }
-      
-      const { data: planMasterData, error } = await query.limit(1);
-      
-      if (!error && planMasterData && planMasterData.length > 0) {
-        const features = planMasterData[0].features || [];
-        console.log("📊 Loaded features from plan_master:", features);
-        
-        // Update planDetails with features
-        setPlanDetails(prev => ({
-          ...prev,
-          features: features
-        }));
+      if (planMasterData && planMasterData.length > 0) {
+        setPlanFeatures(planMasterData);
+        console.log("✅ Plan features loaded:", planMasterData);
       } else {
-        console.warn("⚠️ No plan_master features found for plan type:", currentPlan);
+        console.warn("⚠️ No plan features data available");
+        setPlanFeatures([]);
       }
     } catch (error) {
       console.error("Error loading plan features:", error);
+      setPlanFeatures([]);
     }
   };
-
-  // Load features when plan details are available but features are missing
-  useEffect(() => {
-    if (planDetails && (!planDetails.features || planDetails.features.length === 0)) {
-      loadPlanFeatures();
-    }
-  }, [planDetails, currentPlan]);
 
   const handleUpgradeToPro = () => {
     console.log("Upgrade to Pro clicked");
@@ -496,14 +461,12 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planDetails?.features && planDetails.features.length > 0 ? (
-                      planDetails.features.map((feature, index) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
-                        </div>
-                      ))
-                    ) : (
+                    {planDetails?.features?.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    )) || (
                       <div className="text-center py-4 text-muted-foreground">
                         <p className="text-sm">Loading features...</p>
                       </div>
@@ -539,34 +502,28 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {/* Load Pro plan features from database */}
-                    {(() => {
-                      // Get Pro plan features from plan_master
-                      const proFeatures = [
-                        'Unlimited call transcript processing',
-                        'Unlimited follow-up email generation', 
-                        'Unlimited presentation prompt creation',
-                        'Advanced AI insights and recommendations',
-                        'HubSpot CRM integration (bidirectional sync)',
-                        'Custom email templates and branding',
-                        'Advanced analytics and reporting',
-                        'Team collaboration and sharing',
-                        'Priority customer support (24/7)',
-                        'API access for custom integrations',
-                        'Advanced security and compliance',
-                        'Data export (multiple formats)',
-                        'Custom sales methodology integration',
-                        'Advanced prospect research tools',
-                        'Bulk operations and automation'
-                      ];
-                      
-                      return proFeatures.map((feature, index) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
-                        </div>
-                      ));
-                    })()}
+                    {[
+                      'Unlimited call transcript processing',
+                      'Unlimited follow-up email generation', 
+                      'Unlimited presentation prompt creation',
+                      'Advanced AI insights and recommendations',
+                      'HubSpot CRM integration (bidirectional sync)',
+                      'Custom email templates and branding',
+                      'Advanced analytics and reporting',
+                      'Team collaboration and sharing',
+                      'Priority customer support (24/7)',
+                      'API access for custom integrations',
+                      'Advanced security and compliance',
+                      'Data export (multiple formats)',
+                      'Custom sales methodology integration',
+                      'Advanced prospect research tools',
+                      'Bulk operations and automation'
+                    ].map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <Button
@@ -598,60 +555,17 @@ export const BillingComponent = () => {
               </p>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
-                  <p>Loading Pro plan features...</p>
-                </div>
-              ) : planDetails?.features && planDetails.features.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-3">
-                  {planDetails.features.map((feature, index) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm font-medium">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  <p>No features found for your plan</p>
-                  <p className="text-xs mt-1">Contact support if this seems incorrect</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Subscription Management for Pro Users */}
-      {isPro && (
-        <div className="space-y-4">
-          <h4 className="text-lg font-semibold">Subscription Management</h4>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h5 className="font-medium mb-1">Manage Your Subscription</h5>
-                  <p className="text-sm text-muted-foreground">
-                    Update payment methods, view billing history, or cancel your subscription
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={handleManageSubscription}
-                    variant="outline"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Manage in Stripe
-                  </Button>
-                  <Button
-                    onClick={() => setShowCancelDialog(true)}
-                    variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Cancel Subscription
-                  </Button>
-                </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {planDetails?.features?.map((feature, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-medium">{feature}</span>
+                  </div>
+                )) || (
+                  <div className="col-span-2 text-center py-4 text-muted-foreground">
+                    <p>Loading Pro plan features...</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
