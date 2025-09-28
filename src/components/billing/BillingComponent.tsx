@@ -47,6 +47,7 @@ export const BillingComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState([]);
 
   useEffect(() => {
     loadPlanData();
@@ -56,24 +57,43 @@ export const BillingComponent = () => {
     try {
       setIsLoading(true);
       
-      // Get user's current plan from the old plan table
+      // Get user's current plan from user_plan table with plan_master details
       if (user?.id) {
-        const { data: planData, error } = await supabase
-          .from("plan")
-          .select("*")
+        console.log('🔍 Loading plan data for user:', user.id);
+        
+        const { data: userPlanData, error: userPlanError } = await supabase
+          .from("user_plan")
+          .select(`
+            *,
+            plan_master (
+              id,
+              plan_name,
+              description,
+              price,
+              currency,
+              duration_days
+            )
+          `)
           .eq("user_id", user.id)
+          .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1);
 
-        if (!error && planData && planData.length > 0) {
-          const plan = planData[0];
-          const endDate = new Date(plan.end_date);
+        if (!userPlanError && userPlanData && userPlanData.length > 0) {
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+          
+          console.log('📊 User plan data:', userPlan);
+          console.log('📋 Plan master data:', planMaster);
+          
+          const endDate = new Date(userPlan.end_date);
           const today = new Date();
           const isExpired = endDate < today;
           const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
 
           setPlanDetails({
-            ...plan,
+            ...userPlan,
+            ...planMaster,
             isExpired,
             daysRemaining,
             renewalDate: endDate.toLocaleDateString('en-US', { 
@@ -83,15 +103,55 @@ export const BillingComponent = () => {
             })
           });
 
-          // Determine current plan type based on plan_name
-          if (plan.plan_name === "Beta Trial" || plan.plan_name === "Free Plan") {
+          // Set current plan type based on plan_name
+          if (planMaster.plan_name.toLowerCase().includes("free")) {
             setCurrentPlan("free");
-          } else {
+            console.log('📋 User is on Free Plan');
+          } else if (planMaster.plan_name.toLowerCase().includes("pro")) {
             setCurrentPlan("pro");
+            console.log('📋 User is on Pro Plan');
           }
         } else {
-          // Default to free plan if no plan found
-          setCurrentPlan("free");
+          // Check old plan table for backward compatibility
+          console.log('⚠️ No user_plan found, checking old plan table...');
+          const { data: oldPlanData, error: oldPlanError } = await supabase
+            .from("plan")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (!oldPlanError && oldPlanData && oldPlanData.length > 0) {
+            const plan = oldPlanData[0];
+            const endDate = new Date(plan.end_date);
+            const today = new Date();
+            const isExpired = endDate < today;
+            const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+
+            setPlanDetails({
+              ...plan,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })
+            });
+
+            // Determine current plan type based on plan_name
+            if (plan.plan_name === "Beta Trial" || plan.plan_name === "Free Plan") {
+              setCurrentPlan("free");
+              console.log('📋 User is on Free Plan (from old table)');
+            } else {
+              setCurrentPlan("pro");
+              console.log('📋 User is on Pro Plan (from old table)');
+            }
+          } else {
+            // Default to free plan if no plan found
+            console.log('⚠️ No plan found, defaulting to free');
+            setCurrentPlan("free");
+          }
         }
       }
     } catch (error) {
@@ -132,6 +192,8 @@ export const BillingComponent = () => {
             plan_name,
             description,
             price,
+            currency,
+            duration_days,
             plan_features (
               feature_name,
               feature_description,
@@ -148,7 +210,8 @@ export const BillingComponent = () => {
         }
 
         console.log('📊 Raw plan data from database:', planMasterData);
-        await loadPlanFeatures(planMasterData);
+        setAvailablePlans(planMasterData || []);
+        await loadPlanFeatures(planMasterData || []);
       } catch (error) {
         console.error('❌ Error in fetchPlanFeatures:', error);
       }
@@ -159,11 +222,16 @@ export const BillingComponent = () => {
 
   // Helper function to get features for a specific plan
   const getFeaturesForPlan = (planName) => {
+    console.log('🔍 Getting features for plan:', planName);
+    console.log('📊 Available plan features:', planFeatures);
+    
     const plan = planFeatures.find(p => p.plan_name === planName);
     if (!plan || !plan.plan_features) {
       console.warn(`⚠️ No features found for plan: ${planName}`);
       return [];
     }
+    
+    console.log('✅ Found features for plan:', plan.plan_features);
     
     return plan.plan_features
       .sort((a, b) => a.display_order - b.display_order)
@@ -176,13 +244,11 @@ export const BillingComponent = () => {
   };
 
   const handleUpgradeToPro = () => {
-    // TODO: Implement Stripe integration
     console.log("Upgrade to Pro clicked");
     toast.info("Stripe integration coming soon!");
   };
 
   const handleManageSubscription = () => {
-    // TODO: Implement Stripe customer portal
     console.log("Manage subscription clicked");
     toast.info("Stripe customer portal coming soon!");
   };
@@ -190,8 +256,12 @@ export const BillingComponent = () => {
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
     try {
-      // TODO: Implement actual cancellation logic with Stripe
       console.log("Cancel subscription clicked");
+      // TODO: Implement actual cancellation logic with Stripe
+      // This would typically:
+      // 1. Cancel the Stripe subscription
+      // 2. Update user_plan status to 'canceled'
+      // 3. Set canceled_at timestamp
       toast.success("Subscription cancellation initiated");
       setShowCancelDialog(false);
     } catch (error) {
@@ -216,6 +286,10 @@ export const BillingComponent = () => {
   const isPro = currentPlan === "pro";
   const isFree = currentPlan === "free";
 
+  // Get plan data from available plans
+  const freePlanData = availablePlans.find(p => p.plan_name.toLowerCase().includes("free"));
+  const proPlanData = availablePlans.find(p => p.plan_name.toLowerCase().includes("pro"));
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -232,7 +306,7 @@ export const BillingComponent = () => {
               <p className="text-muted-foreground mb-1">
                 Your workspace is currently subscribed to the{" "}
                 <span className="font-semibold text-foreground">
-                  {isPro ? "Pro" : "Free Plan"}
+                  {planDetails?.plan_name || (isPro ? "Pro" : "Free Plan")}
                 </span>{" "}
                 plan.
               </p>
@@ -240,7 +314,7 @@ export const BillingComponent = () => {
                 <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {isPro ? "Renews" : "Expires"} on {planDetails.renewalDate}.
+                    {planDetails.isExpired ? "Expired" : (isPro ? "Renews" : "Expires")} on {planDetails.renewalDate}.
                   </span>
                 </div>
               )}
@@ -257,13 +331,13 @@ export const BillingComponent = () => {
                 )}>
                   <div className="text-center">
                     <h2 className="text-3xl font-bold mb-1">
-                      {isPro ? "Pro" : "Free Plan"}
+                      {planDetails?.plan_name || (isPro ? "Pro" : "Free Plan")}
                     </h2>
-                    {isPro && <p className="text-lg opacity-90">Monthly</p>}
-                    {isFree && (
+                    {isPro && <p className="text-lg opacity-90">per user/month</p>}
+                    {isFree && planDetails && (
                       <div className="flex items-center justify-center space-x-2">
                         <Sparkles className="w-5 h-5" />
-                        <p className="text-lg opacity-90">Trial</p>
+                        <p className="text-lg opacity-90">{planDetails.daysRemaining} days left</p>
                       </div>
                     )}
                   </div>
@@ -297,7 +371,7 @@ export const BillingComponent = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Price</span>
                       <span className="font-semibold">
-                        {isFree ? "Free" : "$49/user/month"}
+                        {planDetails?.price === 0 ? "Free" : `$${planDetails?.price || 49}/user/month`}
                       </span>
                     </div>
 
@@ -378,7 +452,7 @@ export const BillingComponent = () => {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Available Plans</h4>
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Free Plan */}
+              {/* Free Plan Card */}
               <Card className="relative border-2 border-green-200 bg-green-50/50">
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1">
@@ -389,13 +463,20 @@ export const BillingComponent = () => {
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Gift className="w-6 h-6 text-green-600" />
                   </div>
-                  <CardTitle className="text-xl">Free Plan</CardTitle>
-                  <div className="text-2xl font-bold text-green-600">Free</div>
-                  <p className="text-sm text-muted-foreground">30-day trial</p>
+                  <CardTitle className="text-xl">{freePlanData?.plan_name || "Free Plan"}</CardTitle>
+                  <div className="text-2xl font-bold text-green-600">
+                    ${freePlanData?.price || 0}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {freePlanData?.duration_days || 30}-day trial
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {getFeaturesForPlan("Free Plan").map((feature, index) => (
+                    {(() => {
+                      const features = getFeaturesForPlan(freePlanData?.plan_name || "Free Plan");
+                      console.log('🎯 Free plan features to display:', features);
+                      return features.map((feature, index) => (
                       <div key={index} className="flex items-start space-x-2">
                         {feature.included ? (
                           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -414,9 +495,15 @@ export const BillingComponent = () => {
                               {feature.limit}
                             </p>
                           )}
+                          {feature.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.description}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
 
                   <Button variant="outline" className="w-full" disabled>
@@ -425,28 +512,38 @@ export const BillingComponent = () => {
                 </CardContent>
               </Card>
 
-              {/* Pro Plan */}
+              {/* Pro Plan Card */}
               <Card className="relative border-2 border-blue-200 bg-blue-50/50">
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
-                    Recommended
+                    Upgrade Available
                   </Badge>
                 </div>
                 <CardHeader className="text-center pt-8">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Crown className="w-6 h-6 text-blue-600" />
                   </div>
-                  <CardTitle className="text-xl">Pro</CardTitle>
-                  <div className="text-2xl font-bold text-blue-600">$49</div>
+                  <CardTitle className="text-xl">{proPlanData?.plan_name || "Pro"}</CardTitle>
+                  <div className="text-2xl font-bold text-blue-600">
+                    ${proPlanData?.price || 49}
+                  </div>
                   <p className="text-sm text-muted-foreground">per user/month</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {getFeaturesForPlan("Pro Plan").map((feature, index) => (
+                    {(() => {
+                      const features = getFeaturesForPlan(proPlanData?.plan_name || "Pro Plan");
+                      console.log('🎯 Pro plan features to display:', features);
+                      return features.map((feature, index) => (
                       <div key={index} className="flex items-start space-x-2">
                         <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <span className="text-sm">{feature.name}</span>
+                          {feature.limit && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.limit}
+                            </p>
+                          )}
                           {feature.description && (
                             <p className="text-xs text-muted-foreground">
                               {feature.description}
@@ -454,7 +551,8 @@ export const BillingComponent = () => {
                           )}
                         </div>
                       </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
 
                   <Button 
@@ -462,7 +560,7 @@ export const BillingComponent = () => {
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    Upgrade to Pro
+                    Upgrade to Pro - ${proPlanData?.price || 49}/month
                   </Button>
                 </CardContent>
               </Card>
@@ -470,6 +568,47 @@ export const BillingComponent = () => {
           </div>
         )}
       </div>
+
+        {/* Pro Plan Features for Pro Users */}
+        {isPro && (
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold">Your Pro Plan Features</h4>
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Crown className="w-5 h-5 text-blue-600" />
+                  <span>Pro Plan Benefits</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(() => {
+                    const features = getFeaturesForPlan(proPlanData?.plan_name || "Pro Plan");
+                    console.log('🎯 Pro user features to display:', features);
+                    return features.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium">{feature.name}</span>
+                          {feature.limit && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.limit}
+                            </p>
+                          )}
+                          {feature.description && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
       {/* Manage Subscription Section */}
       <div className="space-y-6">
@@ -479,9 +618,15 @@ export const BillingComponent = () => {
           <h3 className="text-lg font-semibold text-foreground mb-4">Manage subscription</h3>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-muted-foreground mb-4">
-                You can get invoices, update your payment method, and adjust your subscription in Stripe.
-              </p>
+              {isPro ? (
+                <p className="text-muted-foreground mb-4">
+                  You can get invoices, update your payment method, and adjust your subscription in Stripe.
+                </p>
+              ) : (
+                <p className="text-muted-foreground mb-4">
+                  Upgrade to Pro to unlock unlimited access to all features and remove trial limitations.
+                </p>
+              )}
             </div>
             
             <div className="ml-8 space-y-3">
@@ -510,7 +655,7 @@ export const BillingComponent = () => {
                   className="w-full min-w-[200px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Pro
+                  Upgrade to Pro - ${proPlanData?.price || 49}/month
                 </Button>
               )}
             </div>
@@ -527,7 +672,7 @@ export const BillingComponent = () => {
               <span>Cancel Subscription</span>
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel your Pro subscription? You'll lose access to all Pro features at the end of your current billing period.
+              Are you sure you want to cancel your Pro subscription? You'll lose access to all Pro features and return to the Free Plan at the end of your current billing period.
             </DialogDescription>
           </DialogHeader>
 
@@ -536,9 +681,10 @@ export const BillingComponent = () => {
               <h4 className="font-medium text-red-900 mb-2">What happens when you cancel:</h4>
               <ul className="text-sm text-red-800 space-y-1">
                 <li>• You'll keep Pro access until {planDetails?.renewalDate}</li>
-                <li>• After that, you'll switch to view-only access</li>
-                <li>• You won't be able to process new transcripts</li>
-                <li>• You won't be able to generate new content</li>
+                <li>• After that, you'll return to the Free Plan</li>
+                <li>• Limited access to transcript processing</li>
+                <li>• Limited email and presentation generation</li>
+                <li>• You can resubscribe anytime</li>
               </ul>
             </div>
           </div>
