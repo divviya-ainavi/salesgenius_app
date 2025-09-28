@@ -315,7 +315,7 @@ export const BillingComponent = () => {
 
       {/* Upgrade Modal */}
       <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-3xl font-bold text-center">
               Upgrade your plan
@@ -325,79 +325,81 @@ export const BillingComponent = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex justify-center py-8">
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl w-full">
+          <div className="flex justify-center py-8 px-4">
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
               {availablePlans.map((plan) => {
                 const PlanIcon = getPlanIcon(plan);
                 const isCurrentPlan = plan.id === currentPlan?.id;
                 const isUpgrade = plan.price > (currentPlan?.price || 0);
-                const isPopular = plan.plan_name?.toLowerCase().includes("pro");
-                const isIntroductory = plan.plan_name?.toLowerCase().includes("go") || 
-                                     plan.plan_name?.toLowerCase().includes("plus");
+                const isPopular = plan.plan_name?.toLowerCase().includes("pro") || 
+                                 plan.plan_name?.toLowerCase().includes("standard");
+                const isIntroductory = plan.plan_name?.toLowerCase().includes("plus") || 
+                                     plan.plan_name?.toLowerCase().includes("starter");
                 
                 return (
-                  <Card
+                  <div
                     key={plan.id}
                     className={cn(
-                      "relative border-2 transition-all duration-200 hover:shadow-lg",
+                      "relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 overflow-hidden",
                       isCurrentPlan 
-                        ? "border-blue-500 bg-blue-50/30 shadow-md" 
+                        ? "border-gray-400 shadow-lg" 
                         : isPopular
-                        ? "border-blue-300 shadow-md"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-blue-400 shadow-lg ring-2 ring-blue-100"
+                        : "border-gray-200 hover:border-blue-300"
                     )}
                   >
-                    {/* Popular Badge */}
+                    {/* Badges */}
                     {isPopular && !isCurrentPlan && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-pink-500 text-white px-4 py-1.5 text-sm font-medium">
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                        <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-1.5 text-sm font-medium shadow-lg">
                           Most popular
                         </Badge>
                       </div>
                     )}
 
-                    {/* Introductory Price Badge */}
                     {isIntroductory && !isCurrentPlan && (
-                      <div className="absolute -top-3 right-4">
-                        <Badge className="bg-blue-500 text-white px-3 py-1 text-xs font-medium">
+                      <div className="absolute -top-3 right-4 z-10">
+                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 text-xs font-medium shadow-lg">
                           Introductory price
                         </Badge>
                       </div>
                     )}
 
-                    {/* Current Plan Badge */}
                     {isCurrentPlan && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-gray-500 text-white px-4 py-1.5 text-sm font-medium">
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                        <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-1.5 text-sm font-medium shadow-lg">
                           Your current plan
                         </Badge>
                       </div>
                     )}
 
-                    <CardHeader className="text-center pb-6 pt-8">
-                      
-                      <CardTitle className="text-2xl font-bold mb-4">
+                    {/* Card Content */}
+                    <div className="p-8 text-center">
+                      {/* Plan Name */}
+                      <h3 className="text-3xl font-bold text-gray-900 mb-3">
                         {plan.plan_name}
-                      </CardTitle>
+                      </h3>
                       
+                      {/* Plan Description */}
                       {plan.description && (
-                        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                        <p className="text-gray-600 mb-6 leading-relaxed text-base">
                           {plan.description}
                         </p>
                       )}
                       
-                      <div className="mb-6">
+                      {/* Pricing */}
+                      <div className="mb-8">
                         <div className="flex items-baseline justify-center">
-                          <span className="text-sm text-muted-foreground mr-1">₹</span>
-                          <span className="text-4xl font-bold">
+                          <span className="text-2xl font-bold text-gray-900 mr-1">₹</span>
+                          <span className="text-6xl font-bold text-gray-900">
                             {plan.price.toLocaleString()}
                           </span>
                         </div>
-                        <div className="text-sm text-muted-foreground mt-1">
+                        <div className="text-gray-600 mt-2 text-base">
                           / {plan.duration_days === 30 ? "month" : plan.duration_days === 365 ? "year" : `${plan.duration_days} days`}
-                          {plan.duration_days === 30 && " (inclusive of GST)"}
+                          <span className="text-gray-500"> (inclusive of GST)</span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-sm text-blue-600 mt-1 font-medium">
                           Billed {plan.duration_days === 30 ? "monthly" : plan.duration_days === 365 ? "annually" : "per period"}
                         </div>
                       </div>
@@ -407,14 +409,13 @@ export const BillingComponent = () => {
                         onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
                         disabled={isCurrentPlan}
                         className={cn(
-                          "w-full mb-6",
+                          "w-full mb-8 h-12 text-base font-semibold rounded-xl transition-all duration-200",
                           isCurrentPlan
-                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300"
                             : isPopular
-                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                            : "bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl"
+                            : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl"
                         )}
-                        size="lg"
                       >
                         {isCurrentPlan 
                           ? "Your current plan"
@@ -423,23 +424,24 @@ export const BillingComponent = () => {
                           : `Switch to ${plan.plan_name}`
                         }
                       </Button>
-                    </CardHeader>
+                    </div>
 
-                    <CardContent className="pt-0">
+                    {/* Features Section */}
+                    <div className="px-8 pb-8">
                       {/* Features Section */}
                       {plan.features && plan.features.length > 0 && (
-                        <div className="space-y-4">
-                          <div className="text-sm font-medium text-gray-900 mb-3">
+                        <div className="space-y-6">
+                          <div className="text-lg font-semibold text-gray-900 text-left">
                             Everything in {plan.plan_name}, and:
                           </div>
                           
-                          <div className="space-y-3">
+                          <div className="space-y-4 text-left">
                             {plan.features.map((feature, index) => (
-                              <div key={index} className="flex items-start space-x-3">
-                                <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <CheckCircle className="w-3 h-3 text-blue-600" />
+                              <div key={index} className="flex items-start space-x-4">
+                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <CheckCircle className="w-4 h-4 text-blue-600" />
                                 </div>
-                                <span className="text-sm text-gray-700 leading-relaxed">
+                                <span className="text-base text-gray-700 leading-relaxed">
                                   {feature}
                                 </span>
                               </div>
@@ -448,10 +450,10 @@ export const BillingComponent = () => {
                         </div>
                       )}
 
-                      {/* Additional Info */}
+                      {/* Additional Info for specific plans */}
                       {plan.plan_name?.toLowerCase().includes("business") && (
-                        <div className="mt-6 pt-4 border-t border-gray-100">
-                          <p className="text-xs text-muted-foreground text-center">
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                          <p className="text-sm text-gray-500 text-center">
                             For 2+ users, billed annually.<br />
                             GST excluded at checkout with a valid GST ID.
                           </p>
@@ -459,25 +461,24 @@ export const BillingComponent = () => {
                       )}
 
                       {plan.plan_name?.toLowerCase().includes("go") && (
-                        <div className="mt-6 pt-4 border-t border-gray-100">
-                          <p className="text-xs text-muted-foreground text-center">
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                          <p className="text-sm text-gray-500 text-center">
                             Only available in certain regions. Limits apply.
                           </p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          <DialogFooter className="flex justify-center pt-6 border-t">
+          <DialogFooter className="flex justify-center pt-8 border-t border-gray-100">
             <Button
               variant="outline"
               onClick={() => setShowUpgradeModal(false)}
-              size="lg"
-              className="px-8"
+              className="px-8 py-3 text-base font-medium rounded-xl border-gray-300 hover:bg-gray-50"
             >
               Close
             </Button>
