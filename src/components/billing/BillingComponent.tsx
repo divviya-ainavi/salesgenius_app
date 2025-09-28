@@ -45,11 +45,9 @@ export const BillingComponent = () => {
   );
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
-  const [planFeatures, setPlanFeatures] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
-  const [availablePlans, setAvailablePlans] = useState([]);
 
   useEffect(() => {
     loadPlanData();
@@ -75,13 +73,7 @@ export const BillingComponent = () => {
               price,
               currency,
               duration_days,
-              plan_features (
-                feature_name,
-                feature_description,
-                is_included,
-                feature_limit,
-                display_order
-              )
+              features
             )
           `
           )
@@ -96,7 +88,7 @@ export const BillingComponent = () => {
 
           console.log("📊 User plan data:", userPlan);
           console.log("📋 Plan master data:", planMaster);
-          console.log("🎯 Plan features data:", planMaster?.plan_features);
+          console.log("🎯 Plan features data:", planMaster?.features);
 
           const endDate = new Date(userPlan.end_date);
           const today = new Date();
@@ -116,21 +108,20 @@ export const BillingComponent = () => {
               month: "long",
               day: "numeric",
             }),
+            features: planMaster?.features || [],
           });
 
-          // Set current plan type based on plan_name
-          if (planMaster.plan_name.toLowerCase().includes("free")) {
+          // Set current plan type based on plan_name  
+          if (planMaster?.plan_name?.toLowerCase().includes("free") || 
+              planMaster?.plan_name?.toLowerCase().includes("trial") ||
+              planMaster?.plan_name?.toLowerCase().includes("beta")) {
             setCurrentPlan("free");
             console.log("📋 User is on Free Plan");
-          } else if (planMaster.plan_name.toLowerCase().includes("pro")) {
+          } else if (planMaster?.plan_name?.toLowerCase().includes("pro") ||
+                     planMaster?.plan_name?.toLowerCase().includes("standard") ||
+                     planMaster?.plan_name?.toLowerCase().includes("premium")) {
             setCurrentPlan("pro");
             console.log("📋 User is on Pro Plan");
-          }
-
-          // Set plan features from the loaded data
-          if (planMaster?.plan_features) {
-            console.log("✅ Setting plan features from user plan data");
-            setPlanFeatures([planMaster]);
           }
         } else {
           // Check old plan table for backward compatibility
@@ -154,6 +145,7 @@ export const BillingComponent = () => {
 
             setPlanDetails({
               ...plan,
+              plan_name: plan.plan_name,
               isExpired,
               daysRemaining,
               renewalDate: endDate.toLocaleDateString("en-US", {
@@ -161,6 +153,7 @@ export const BillingComponent = () => {
                 month: "long",
                 day: "numeric",
               }),
+              features: [], // Old plan table doesn't have features
             });
 
             // Determine current plan type based on plan_name
@@ -204,72 +197,6 @@ export const BillingComponent = () => {
       console.error("Error loading plan features:", error);
       setPlanFeatures([]);
     }
-  };
-
-  // Load plan features when component mounts
-  useEffect(() => {
-    const fetchPlanFeatures = async () => {
-      try {
-        console.log("🔄 Fetching plan features from database...");
-
-        const { data: planMasterData, error: planError } = await supabase
-          .from("plan_master")
-          .select(
-            `
-            id,
-            plan_name,
-            description,
-            price,
-            currency,
-            duration_days,
-            plan_features (
-              feature_name,
-              feature_description,
-              is_included,
-              feature_limit,
-              display_order
-            )
-          `
-          )
-          .order("plan_name", { ascending: true });
-
-        if (planError) {
-          console.error("❌ Error fetching plan features:", planError);
-          return;
-        }
-
-        console.log("📊 Raw plan data from database:", planMasterData);
-        setAvailablePlans(planMasterData || []);
-        await loadPlanFeatures(planMasterData || []);
-      } catch (error) {
-        console.error("❌ Error in fetchPlanFeatures:", error);
-      }
-    };
-
-    fetchPlanFeatures();
-  }, []);
-
-  // Helper function to get features for a specific plan
-  const getFeaturesForPlan = (planName) => {
-    console.log("🔍 Getting features for plan:", planName);
-    console.log("📊 Available plan features:", planFeatures);
-
-    const plan = planFeatures.find((p) => p.plan_name === planName);
-    if (!plan || !plan.plan_features) {
-      console.warn(`⚠️ No features found for plan: ${planName}`);
-      return [];
-    }
-
-    console.log("✅ Found features for plan:", plan.plan_features);
-
-    return plan.plan_features
-      .sort((a, b) => a.display_order - b.display_order)
-      .map((feature) => ({
-        name: feature.feature_name,
-        description: feature.feature_description,
-        included: feature.is_included,
-        limit: feature.feature_limit,
-      }));
   };
 
   const handleUpgradeToPro = () => {
@@ -317,13 +244,8 @@ export const BillingComponent = () => {
   const isPro = currentPlan === "pro";
   const isFree = currentPlan === "free";
 
-  // Get plan data from available plans
-  const freePlanData = availablePlans.find((p) =>
-    p.plan_name.toLowerCase().includes("free")
-  );
-  const proPlanData = availablePlans.find((p) =>
-    p.plan_name.toLowerCase().includes("pro")
-  );
+  console.log("🎯 Current plan details for features:", planDetails);
+  console.log("🎯 Plan features array:", planDetails?.features);
 
   return (
     <div className="space-y-8">
@@ -528,55 +450,27 @@ export const BillingComponent = () => {
                     <Gift className="w-6 h-6 text-green-600" />
                   </div>
                   <CardTitle className="text-xl">
-                    {freePlanData?.plan_name || "Free Plan"}
+                    {planDetails?.plan_name || "Free Plan"}
                   </CardTitle>
                   <div className="text-2xl font-bold text-green-600">
-                    ${freePlanData?.price || 0}
+                    ${planDetails?.price || 0}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {freePlanData?.duration_days || 30}-day trial
+                    {planDetails?.duration_days || 30}-day trial
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {(() => {
-                      const features = getFeaturesForPlan(
-                        freePlanData?.plan_name || "Free Plan"
-                      );
-                      console.log(
-                        "🎯 Free plan features to display:",
-                        features
-                      );
-                      return features.map((feature, index) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          {feature.included ? (
-                            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          ) : (
-                            <X className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span
-                              className={cn(
-                                "text-sm",
-                                !feature.included && "text-orange-700"
-                              )}
-                            >
-                              {feature.name}
-                            </span>
-                            {feature.limit && (
-                              <p className="text-xs text-muted-foreground">
-                                {feature.limit}
-                              </p>
-                            )}
-                            {feature.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {feature.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ));
-                    })()}
+                    {planDetails?.features?.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    )) || (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">Loading features...</p>
+                      </div>
+                    )}
                   </div>
 
                   <Button variant="outline" className="w-full" disabled>
@@ -597,10 +491,10 @@ export const BillingComponent = () => {
                     <Crown className="w-6 h-6 text-blue-600" />
                   </div>
                   <CardTitle className="text-xl">
-                    {proPlanData?.plan_name || "Pro"}
+                    Pro Plan
                   </CardTitle>
                   <div className="text-2xl font-bold text-blue-600">
-                    ${proPlanData?.price || 49}
+                    $49
                   </div>
                   <p className="text-sm text-muted-foreground">
                     per user/month
@@ -608,30 +502,28 @@ export const BillingComponent = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {(() => {
-                      const features = getFeaturesForPlan(
-                        proPlanData?.plan_name || "Pro Plan"
-                      );
-                      console.log("🎯 Pro plan features to display:", features);
-                      return features.map((feature, index) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm">{feature.name}</span>
-                            {feature.limit && (
-                              <p className="text-xs text-muted-foreground">
-                                {feature.limit}
-                              </p>
-                            )}
-                            {feature.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {feature.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ));
-                    })()}
+                    {[
+                      'Unlimited call transcript processing',
+                      'Unlimited follow-up email generation', 
+                      'Unlimited presentation prompt creation',
+                      'Advanced AI insights and recommendations',
+                      'HubSpot CRM integration (bidirectional sync)',
+                      'Custom email templates and branding',
+                      'Advanced analytics and reporting',
+                      'Team collaboration and sharing',
+                      'Priority customer support (24/7)',
+                      'API access for custom integrations',
+                      'Advanced security and compliance',
+                      'Data export (multiple formats)',
+                      'Custom sales methodology integration',
+                      'Advanced prospect research tools',
+                      'Bulk operations and automation'
+                    ].map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <Button
@@ -639,7 +531,7 @@ export const BillingComponent = () => {
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    Upgrade to Pro - ${proPlanData?.price || 49}/month
+                    Upgrade to Pro - $49/month
                   </Button>
                 </CardContent>
               </Card>
@@ -664,41 +556,16 @@ export const BillingComponent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-3">
-                {(() => {
-                  // Get features from current user's plan data
-                  const features = planDetails?.plan_features || 
-                                 getFeaturesForPlan(planDetails?.plan_name || "Pro Plan");
-                  console.log("🎯 Pro user features to display:", features);
-                  
-                  if (!features || features.length === 0) {
-                    return (
-                      <div className="col-span-2 text-center py-4 text-muted-foreground">
-                        <p>Loading Pro plan features...</p>
-                      </div>
-                    );
-                  }
-                  
-                  return features.map((feature, index) => (
-                    <div key={index} className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium">
-                          {feature.feature_name || feature.name}
-                        </span>
-                        {(feature.feature_limit || feature.limit) && (
-                          <p className="text-xs text-muted-foreground">
-                            {feature.feature_limit || feature.limit}
-                          </p>
-                        )}
-                        {(feature.feature_description || feature.description) && (
-                          <p className="text-xs text-muted-foreground">
-                            {feature.feature_description || feature.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ));
-                })()}
+                {planDetails?.features?.map((feature, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-medium">{feature}</span>
+                  </div>
+                )) || (
+                  <div className="col-span-2 text-center py-4 text-muted-foreground">
+                    <p>Loading Pro plan features...</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
