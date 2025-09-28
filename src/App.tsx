@@ -20,6 +20,7 @@ import ResetPassword from "@/pages/Auth/ResetPassword";
 import AccountSetup from "@/pages/Auth/AccountSetup";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import HubSpotCallback from "@/pages/HubSpotCallback";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
@@ -103,6 +104,7 @@ const App = () => {
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/setup" element={<AccountSetup />} />
             <Route path="/hubspot-callback" element={<HubSpotCallback />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
 
             {/* Protected Routes */}
             <Route

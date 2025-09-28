@@ -36,6 +36,7 @@ export const BillingComponent = () => {
   const [availablePlans, setAvailablePlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     loadPlanData();
@@ -212,10 +213,52 @@ export const BillingComponent = () => {
       : null;
   };
 
-  const handleUpgrade = (plan) => {
-    console.log("Upgrading to plan:", plan.plan_name);
-    toast.info("Stripe integration coming soon!");
-    setShowUpgradeModal(false);
+  const handleUpgrade = async (plan) => {
+    if (!plan.stripe_price_id) {
+      toast.error("This plan is not available for purchase yet");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    
+    try {
+      console.log("🔄 Creating checkout session for plan:", plan.plan_name);
+      
+      const payload = {
+        userid: user.id,
+        plan_id: plan.stripe_price_id,
+        emailid: user.email
+      };
+
+      const response = await fetch('https://salesgenius.ainavi.co.uk/n8n/webhook/checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const checkoutData = await response.json();
+      console.log("✅ Checkout session created:", checkoutData);
+
+      // Redirect to Stripe checkout
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
+      } else {
+        throw new Error("No checkout URL received from server");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error creating checkout session:", error);
+      toast.error("Failed to start checkout process: " + error.message);
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   if (isLoading) {
@@ -408,6 +451,7 @@ export const BillingComponent = () => {
                       <Button
                         onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
                         disabled={isCurrentPlan}
+                        loading={isProcessingPayment}
                         className={cn(
                           "w-full mb-8 h-12 text-base font-semibold rounded-xl transition-all duration-200",
                           isCurrentPlan
@@ -417,7 +461,12 @@ export const BillingComponent = () => {
                             : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl"
                         )}
                       >
-                        {isCurrentPlan 
+                        {isProcessingPayment ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : isCurrentPlan 
                           ? "Your current plan"
                           : isUpgrade 
                           ? `Upgrade to ${plan.plan_name}`
