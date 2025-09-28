@@ -59,7 +59,7 @@ export const BillingComponent = () => {
     try {
       setIsLoading(true);
 
-      // Get user's current plan from user_plan table with plan_master details
+      // Get user's current plan from user_plan table with plan_master and features
       if (user?.id) {
         console.log("🔍 Loading plan data for user:", user.id);
 
@@ -74,7 +74,14 @@ export const BillingComponent = () => {
               description,
               price,
               currency,
-              duration_days
+              duration_days,
+              plan_features (
+                feature_name,
+                feature_description,
+                is_included,
+                feature_limit,
+                display_order
+              )
             )
           `
           )
@@ -89,6 +96,7 @@ export const BillingComponent = () => {
 
           console.log("📊 User plan data:", userPlan);
           console.log("📋 Plan master data:", planMaster);
+          console.log("🎯 Plan features data:", planMaster?.plan_features);
 
           const endDate = new Date(userPlan.end_date);
           const today = new Date();
@@ -117,6 +125,12 @@ export const BillingComponent = () => {
           } else if (planMaster.plan_name.toLowerCase().includes("pro")) {
             setCurrentPlan("pro");
             console.log("📋 User is on Pro Plan");
+          }
+
+          // Set plan features from the loaded data
+          if (planMaster?.plan_features) {
+            console.log("✅ Setting plan features from user plan data");
+            setPlanFeatures([planMaster]);
           }
         } else {
           // Check old plan table for backward compatibility
@@ -644,29 +658,41 @@ export const BillingComponent = () => {
                 <Crown className="w-5 h-5 text-blue-600" />
                 <span>Pro Plan Benefits</span>
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Everything included in your Pro subscription
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-3">
                 {(() => {
-                  const features = getFeaturesForPlan(
-                    proPlanData?.plan_name || "Pro Plan"
-                  );
+                  // Get features from current user's plan data
+                  const features = planDetails?.plan_features || 
+                                 getFeaturesForPlan(planDetails?.plan_name || "Pro Plan");
                   console.log("🎯 Pro user features to display:", features);
+                  
+                  if (!features || features.length === 0) {
+                    return (
+                      <div className="col-span-2 text-center py-4 text-muted-foreground">
+                        <p>Loading Pro plan features...</p>
+                      </div>
+                    );
+                  }
+                  
                   return features.map((feature, index) => (
                     <div key={index} className="flex items-start space-x-2">
                       <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium">
-                          {feature.name}
+                          {feature.feature_name || feature.name}
                         </span>
-                        {feature.limit && (
+                        {(feature.feature_limit || feature.limit) && (
                           <p className="text-xs text-muted-foreground">
-                            {feature.limit}
+                            {feature.feature_limit || feature.limit}
                           </p>
                         )}
-                        {feature.description && (
+                        {(feature.feature_description || feature.description) && (
                           <p className="text-xs text-muted-foreground">
-                            {feature.description}
+                            {feature.feature_description || feature.description}
                           </p>
                         )}
                       </div>
