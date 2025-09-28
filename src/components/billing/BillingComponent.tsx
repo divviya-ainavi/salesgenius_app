@@ -315,152 +315,173 @@ export const BillingComponent = () => {
 
       {/* Upgrade Modal */}
       <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-2xl font-bold">
-                  Upgrade your plan
-                </DialogTitle>
-                <DialogDescription className="text-base mt-2">
-                  Choose the plan that best fits your needs
-                </DialogDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUpgradeModal(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-                Close
-              </Button>
-            </div>
+            <DialogTitle className="text-3xl font-bold text-center">
+              Upgrade your plan
+            </DialogTitle>
+            <DialogDescription className="text-lg text-center mt-2 text-muted-foreground">
+              Choose the plan that best fits your needs
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="grid md:grid-cols-3 gap-6 py-6">
-            {availablePlans.map((plan) => {
-              const PlanIcon = getPlanIcon(plan);
-              const isCurrentPlan = plan.id === currentPlan?.id;
-              const isUpgrade = plan.price > (currentPlan?.price || 0);
-              
-              return (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    "relative border-2 transition-all duration-200",
-                    isCurrentPlan 
-                      ? "border-blue-500 bg-blue-50/50" 
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                >
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
-                        Your current plan
-                      </Badge>
-                    </div>
-                  )}
-
-                  <CardHeader className="text-center pb-4">
-                    <div className="flex items-center justify-center mb-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center",
-                        isFreePlan(plan) ? "bg-green-100" : "bg-blue-100"
-                      )}>
-                        <PlanIcon className={cn(
-                          "w-6 h-6",
-                          isFreePlan(plan) ? "text-green-600" : "text-blue-600"
-                        )} />
+          <div className="flex justify-center py-8">
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl w-full">
+              {availablePlans.map((plan) => {
+                const PlanIcon = getPlanIcon(plan);
+                const isCurrentPlan = plan.id === currentPlan?.id;
+                const isUpgrade = plan.price > (currentPlan?.price || 0);
+                const isPopular = plan.plan_name?.toLowerCase().includes("pro");
+                const isIntroductory = plan.plan_name?.toLowerCase().includes("go") || 
+                                     plan.plan_name?.toLowerCase().includes("plus");
+                
+                return (
+                  <Card
+                    key={plan.id}
+                    className={cn(
+                      "relative border-2 transition-all duration-200 hover:shadow-lg",
+                      isCurrentPlan 
+                        ? "border-blue-500 bg-blue-50/30 shadow-md" 
+                        : isPopular
+                        ? "border-blue-300 shadow-md"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    {/* Popular Badge */}
+                    {isPopular && !isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-pink-500 text-white px-4 py-1.5 text-sm font-medium">
+                          Most popular
+                        </Badge>
                       </div>
-                    </div>
-                    
-                    <CardTitle className="text-xl mb-2">
-                      {plan.plan_name}
-                    </CardTitle>
-                    
-                    <div className="mb-2">
-                      <span className="text-3xl font-bold">
-                        ${plan.price}
-                      </span>
-                      <span className="text-muted-foreground text-sm ml-1">
-                        /{plan.duration_days === 30 ? "month" : plan.duration_days === 365 ? "year" : `${plan.duration_days} days`}
-                      </span>
-                      {plan.duration_days === 365 && (
-                        <div className="text-xs text-muted-foreground">
-                          (inclusive of GST)
+                    )}
+
+                    {/* Introductory Price Badge */}
+                    {isIntroductory && !isCurrentPlan && (
+                      <div className="absolute -top-3 right-4">
+                        <Badge className="bg-blue-500 text-white px-3 py-1 text-xs font-medium">
+                          Introductory price
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Current Plan Badge */}
+                    {isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-gray-500 text-white px-4 py-1.5 text-sm font-medium">
+                          Your current plan
+                        </Badge>
+                      </div>
+                    )}
+
+                    <CardHeader className="text-center pb-6 pt-8">
+                      
+                      <CardTitle className="text-2xl font-bold mb-4">
+                        {plan.plan_name}
+                      </CardTitle>
+                      
+                      {plan.description && (
+                        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                          {plan.description}
+                        </p>
+                      )}
+                      
+                      <div className="mb-6">
+                        <div className="flex items-baseline justify-center">
+                          <span className="text-sm text-muted-foreground mr-1">₹</span>
+                          <span className="text-4xl font-bold">
+                            {plan.price.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          / {plan.duration_days === 30 ? "month" : plan.duration_days === 365 ? "year" : `${plan.duration_days} days`}
+                          {plan.duration_days === 30 && " (inclusive of GST)"}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Billed {plan.duration_days === 30 ? "monthly" : plan.duration_days === 365 ? "annually" : "per period"}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <Button
+                        onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
+                        disabled={isCurrentPlan}
+                        className={cn(
+                          "w-full mb-6",
+                          isCurrentPlan
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                            : isPopular
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
+                            : "bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
+                        )}
+                        size="lg"
+                      >
+                        {isCurrentPlan 
+                          ? "Your current plan"
+                          : isUpgrade 
+                          ? `Upgrade to ${plan.plan_name}`
+                          : `Switch to ${plan.plan_name}`
+                        }
+                      </Button>
+                    </CardHeader>
+
+                    <CardContent className="pt-0">
+                      {/* Features Section */}
+                      {plan.features && plan.features.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="text-sm font-medium text-gray-900 mb-3">
+                            Everything in {plan.plan_name}, and:
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {plan.features.map((feature, index) => (
+                              <div key={index} className="flex items-start space-x-3">
+                                <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <CheckCircle className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <span className="text-sm text-gray-700 leading-relaxed">
+                                  {feature}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
-                    </div>
-                    
-                    {plan.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {plan.description}
-                      </p>
-                    )}
-                  </CardHeader>
 
-                  <CardContent className="space-y-4">
-                    {/* Action Button */}
-                    <Button
-                      onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
-                      disabled={isCurrentPlan}
-                      className={cn(
-                        "w-full",
-                        isCurrentPlan
-                          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                          : isUpgrade
-                          ? "bg-black text-white hover:bg-gray-800"
-                          : "bg-white text-gray-900 border border-gray-200 hover:bg-gray-50"
+                      {/* Additional Info */}
+                      {plan.plan_name?.toLowerCase().includes("business") && (
+                        <div className="mt-6 pt-4 border-t border-gray-100">
+                          <p className="text-xs text-muted-foreground text-center">
+                            For 2+ users, billed annually.<br />
+                            GST excluded at checkout with a valid GST ID.
+                          </p>
+                        </div>
                       )}
-                      size="lg"
-                    >
-                      {isCurrentPlan 
-                        ? "Your current plan"
-                        : isUpgrade 
-                        ? `Switch to ${plan.plan_name}`
-                        : `Downgrade to ${plan.plan_name}`
-                      }
-                    </Button>
 
-                    {/* Features List */}
-                    {plan.features && plan.features.length > 0 && (
-                      <div className="space-y-3 pt-4 border-t border-gray-100">
-                        {plan.features.map((feature, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                            </div>
-                            <span className="text-sm text-gray-700 leading-relaxed">
-                              {feature}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Additional Info for certain plans */}
-                    {plan.plan_name?.toLowerCase().includes("go") && (
-                      <div className="pt-4 border-t border-gray-100">
-                        <p className="text-xs text-muted-foreground">
-                          Only available in certain regions. Limits apply.
-                        </p>
-                      </div>
-                    )}
-
-                    {plan.plan_name?.toLowerCase().includes("business") && (
-                      <div className="pt-4 border-t border-gray-100">
-                        <p className="text-xs text-muted-foreground">
-                          For 2+ users, billed annually.
-                          GST excluded at checkout with a valid GST ID.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      {plan.plan_name?.toLowerCase().includes("go") && (
+                        <div className="mt-6 pt-4 border-t border-gray-100">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Only available in certain regions. Limits apply.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
+
+          <DialogFooter className="flex justify-center pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpgradeModal(false)}
+              size="lg"
+              className="px-8"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
