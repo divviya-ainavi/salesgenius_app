@@ -58,17 +58,17 @@ export const BillingComponent = () => {
   const loadAvailablePlans = async () => {
     try {
       console.log("🔍 Loading all available plans from plan_master...");
-      
+
       const { data: plansData, error: plansError } = await supabase
         .from("plan_master")
         .select("*")
         .order("price", { ascending: true });
-      
+
       if (plansError) {
         console.error("❌ Error loading plans:", plansError);
         return;
       }
-      
+
       console.log("✅ Available plans loaded:", plansData);
       setAvailablePlans(plansData || []);
     } catch (error) {
@@ -105,12 +105,21 @@ export const BillingComponent = () => {
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1);
+        console.log(
+          !userPlanError && userPlanData && userPlanData.length > 0,
+          userPlanError,
+          userPlanData,
+          userPlanData.length > 0,
+          userPlanData,
+          userPlanError,
+          "check user plan data"
+        );
 
         if (!userPlanError && userPlanData && userPlanData.length > 0) {
           const userPlan = userPlanData[0];
           const planMaster = userPlan.plan_master;
 
-          console.log("📊 User plan data:", userPlan);
+          console.log("📊 User plan data 113:", userPlan);
           console.log("📋 Plan master data:", planMaster);
           console.log("🎯 Current plan features:", planMaster?.features);
 
@@ -136,8 +145,21 @@ export const BillingComponent = () => {
             planMasterId: planMaster?.id,
           });
 
-          // Set current plan to the actual plan master data
-          setCurrentPlan(planMaster);
+          if (
+            planMaster?.plan_name?.toLowerCase().includes("free") ||
+            planMaster?.plan_name?.toLowerCase().includes("trial") ||
+            planMaster?.plan_name?.toLowerCase().includes("beta")
+          ) {
+            setCurrentPlan("free");
+            console.log("📋 User is on Free Plan");
+          } else if (
+            planMaster?.plan_name?.toLowerCase().includes("pro") ||
+            planMaster?.plan_name?.toLowerCase().includes("standard") ||
+            planMaster?.plan_name?.toLowerCase().includes("premium")
+          ) {
+            setCurrentPlan("pro");
+            console.log("📋 User is on Pro Plan");
+          }
           console.log("📋 Current plan set to:", planMaster?.plan_name);
         } else {
           // Check old plan table for backward compatibility
@@ -173,28 +195,32 @@ export const BillingComponent = () => {
               planMasterId: null,
             });
 
-            // For old plan table, create a mock plan object
-            setCurrentPlan({
-              plan_name: plan.plan_name,
-              price: 0,
-              features: [],
-            });
+            if (
+              plan.plan_name === "Beta Trial" ||
+              plan.plan_name === "Free Plan"
+            ) {
+              setCurrentPlan("free");
+              console.log("📋 User is on Free Plan (from old table)");
+            } else {
+              setCurrentPlan("pro");
+              console.log("📋 User is on Pro Plan (from old table)");
+            }
             console.log("📋 Current plan set from old table:", plan.plan_name);
           } else {
             // No plan found
             console.log("⚠️ No plan found");
-            setCurrentPlan(null);
+            setCurrentPlan("free");
           }
         }
       }
     } catch (error) {
       console.error("Error loading plan data:", error);
-      setCurrentPlan(null);
+      setCurrentPlan("free");
     } finally {
       setIsLoading(false);
     }
   };
-
+  console.log(currentPlan, "check current plan");
   const handleUpgradeToPro = () => {
     console.log("Upgrade to Pro clicked");
     toast.info("Stripe integration coming soon!");
@@ -227,17 +253,21 @@ export const BillingComponent = () => {
   const isFreePlan = (plan) => {
     if (!plan) return true;
     const planName = plan.plan_name?.toLowerCase() || "";
-    return planName.includes("free") || 
-           planName.includes("trial") || 
-           planName.includes("beta");
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta")
+    );
   };
 
   const isProPlan = (plan) => {
     if (!plan) return false;
     const planName = plan.plan_name?.toLowerCase() || "";
-    return planName.includes("pro") || 
-           planName.includes("standard") || 
-           planName.includes("premium");
+    return (
+      planName.includes("pro") ||
+      planName.includes("standard") ||
+      planName.includes("premium")
+    );
   };
 
   const getPlanIcon = (plan) => {
@@ -267,15 +297,16 @@ export const BillingComponent = () => {
 
   const isPro = isProPlan(currentPlan);
   const isFree = isFreePlan(currentPlan);
-  
+
   // Get other available plans (excluding current plan)
-  const otherPlans = availablePlans.filter(plan => 
-    plan.id !== planDetails?.planMasterId
+  const otherPlans = availablePlans.filter(
+    (plan) => plan.id !== planDetails?.planMasterId
   );
 
   console.log("🎯 Current plan:", currentPlan);
   console.log("🎯 Available plans:", availablePlans);
   console.log("🎯 Other plans:", otherPlans);
+  console.log("🎯 Plan details:", planDetails);
 
   return (
     <div className="space-y-8">
@@ -308,8 +339,8 @@ export const BillingComponent = () => {
                     {planDetails.isExpired
                       ? "Expired"
                       : isProPlan(currentPlan)
-                        ? "Renews"
-                        : "Expires"}{" "}
+                      ? "Renews"
+                      : "Expires"}{" "}
                     on {planDetails.renewalDate}.
                   </span>
                 </div>
@@ -319,7 +350,8 @@ export const BillingComponent = () => {
         </div>
 
         {/* Trial Expiration Warning */}
-        {isFree && planDetails?.daysRemaining <= 7 && (
+        {isFree && (
+          // && planDetails?.daysRemaining <= 7
           <Card className="border-orange-200 bg-orange-50">
             <CardContent className="p-6">
               <div className="flex items-start space-x-4">
@@ -355,65 +387,88 @@ export const BillingComponent = () => {
             <h4 className="text-lg font-semibold">
               {isFree ? "Available Plans" : "Other Plans"}
             </h4>
-            <div className={cn(
-              "grid gap-6",
-              otherPlans.length === 1 ? "md:grid-cols-1 max-w-md mx-auto" : "md:grid-cols-2"
-            )}>
+            <div
+              className={cn(
+                "grid gap-6",
+                otherPlans.length === 1
+                  ? "md:grid-cols-1 max-w-md mx-auto"
+                  : "md:grid-cols-2"
+              )}
+            >
               {otherPlans.map((plan) => {
                 const PlanIcon = getPlanIcon(plan);
                 const isUpgrade = plan.price > (currentPlan?.price || 0);
-                
+
                 return (
-                  <Card 
-                    key={plan.id} 
+                  <Card
+                    key={plan.id}
                     className={cn(
                       "relative border-2",
-                      isFreePlan(plan) ? "border-green-200 bg-green-50/50" : 
-                      isProPlan(plan) ? "border-blue-200 bg-blue-50/50" :
-                      "border-purple-200 bg-purple-50/50"
+                      isFreePlan(plan)
+                        ? "border-green-200 bg-green-50/50"
+                        : isProPlan(plan)
+                        ? "border-blue-200 bg-blue-50/50"
+                        : "border-purple-200 bg-purple-50/50"
                     )}
                   >
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className={cn(
-                        "px-3 py-1",
-                        isFreePlan(plan) ? "bg-green-100 text-green-800 border-green-200" :
-                        isProPlan(plan) ? "bg-blue-100 text-blue-800 border-blue-200" :
-                        "bg-purple-100 text-purple-800 border-purple-200"
-                      )}>
+                      <Badge
+                        className={cn(
+                          "px-3 py-1",
+                          isFreePlan(plan)
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : isProPlan(plan)
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : "bg-purple-100 text-purple-800 border-purple-200"
+                        )}
+                      >
                         {isUpgrade ? "Upgrade Available" : "Downgrade Option"}
                       </Badge>
                     </div>
-                    
+
                     <CardHeader className="text-center pt-8">
-                      <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3",
-                        isFreePlan(plan) ? "bg-green-100" :
-                        isProPlan(plan) ? "bg-blue-100" :
-                        "bg-purple-100"
-                      )}>
-                        <PlanIcon className={cn(
-                          "w-6 h-6",
-                          isFreePlan(plan) ? "text-green-600" :
-                          isProPlan(plan) ? "text-blue-600" :
-                          "text-purple-600"
-                        )} />
+                      <div
+                        className={cn(
+                          "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3",
+                          isFreePlan(plan)
+                            ? "bg-green-100"
+                            : isProPlan(plan)
+                            ? "bg-blue-100"
+                            : "bg-purple-100"
+                        )}
+                      >
+                        <PlanIcon
+                          className={cn(
+                            "w-6 h-6",
+                            isFreePlan(plan)
+                              ? "text-green-600"
+                              : isProPlan(plan)
+                              ? "text-blue-600"
+                              : "text-purple-600"
+                          )}
+                        />
                       </div>
                       <CardTitle className="text-xl">
                         {plan.plan_name}
                       </CardTitle>
-                      <div className={cn(
-                        "text-2xl font-bold",
-                        isFreePlan(plan) ? "text-green-600" :
-                        isProPlan(plan) ? "text-blue-600" :
-                        "text-purple-600"
-                      )}>
+                      <div
+                        className={cn(
+                          "text-2xl font-bold",
+                          isFreePlan(plan)
+                            ? "text-green-600"
+                            : isProPlan(plan)
+                            ? "text-blue-600"
+                            : "text-purple-600"
+                        )}
+                      >
                         ${plan.price}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {plan.price === 0 ? 
-                          `${plan.duration_days}-day trial` : 
-                          `per user/${plan.duration_days === 30 ? 'month' : 'year'}`
-                        }
+                        {plan.price === 0
+                          ? `${plan.duration_days}-day trial`
+                          : `per user/${
+                              plan.duration_days === 30 ? "month" : "year"
+                            }`}
                       </p>
                       {plan.description && (
                         <p className="text-sm text-muted-foreground mt-2">
@@ -421,17 +476,24 @@ export const BillingComponent = () => {
                         </p>
                       )}
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
                         {plan.features?.map((feature, index) => (
-                          <div key={index} className="flex items-start space-x-2">
-                            <CheckCircle className={cn(
-                              "w-4 h-4 mt-0.5 flex-shrink-0",
-                              isFreePlan(plan) ? "text-green-600" :
-                              isProPlan(plan) ? "text-blue-600" :
-                              "text-purple-600"
-                            )} />
+                          <div
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
+                            <CheckCircle
+                              className={cn(
+                                "w-4 h-4 mt-0.5 flex-shrink-0",
+                                isFreePlan(plan)
+                                  ? "text-green-600"
+                                  : isProPlan(plan)
+                                  ? "text-blue-600"
+                                  : "text-purple-600"
+                              )}
+                            />
                             <span className="text-sm">{feature}</span>
                           </div>
                         )) || (
@@ -442,18 +504,23 @@ export const BillingComponent = () => {
                       </div>
 
                       <Button
-                        onClick={isUpgrade ? handleUpgradeToPro : handleManageSubscription}
+                        onClick={
+                          isUpgrade
+                            ? handleUpgradeToPro
+                            : handleManageSubscription
+                        }
                         className={cn(
                           "w-full",
-                          isUpgrade ? 
-                            "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" :
-                            "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800"
+                          isUpgrade
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                            : "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800"
                         )}
                       >
                         {isUpgrade ? (
                           <>
                             <Crown className="w-4 h-4 mr-2" />
-                            Upgrade to {plan.plan_name} - ${plan.price}/{plan.duration_days === 30 ? 'month' : 'year'}
+                            Upgrade to {plan.plan_name} - ${plan.price}/
+                            {plan.duration_days === 30 ? "month" : "year"}
                           </>
                         ) : (
                           <>
@@ -476,37 +543,48 @@ export const BillingComponent = () => {
             <h4 className="text-lg font-semibold">
               Your {currentPlan.plan_name} Features
             </h4>
-            <Card className={cn(
-              isFreePlan(currentPlan) ? "border-green-200 bg-green-50/50" :
-              isProPlan(currentPlan) ? "border-blue-200 bg-blue-50/50" :
-              "border-purple-200 bg-purple-50/50"
-            )}>
+            <Card
+              className={cn(
+                isFreePlan(currentPlan)
+                  ? "border-green-200 bg-green-50/50"
+                  : isProPlan(currentPlan)
+                  ? "border-blue-200 bg-blue-50/50"
+                  : "border-purple-200 bg-purple-50/50"
+              )}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   {React.createElement(getPlanIcon(currentPlan), {
                     className: cn(
                       "w-5 h-5",
-                      isFreePlan(currentPlan) ? "text-green-600" :
-                      isProPlan(currentPlan) ? "text-blue-600" :
-                      "text-purple-600"
-                    )
+                      isFreePlan(currentPlan)
+                        ? "text-green-600"
+                        : isProPlan(currentPlan)
+                        ? "text-blue-600"
+                        : "text-purple-600"
+                    ),
                   })}
                   <span>{currentPlan.plan_name} Benefits</span>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Everything included in your {currentPlan.plan_name} subscription
+                  Everything included in your {currentPlan.plan_name}{" "}
+                  subscription
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-3">
                   {currentPlan.features.map((feature, index) => (
                     <div key={index} className="flex items-start space-x-2">
-                      <CheckCircle className={cn(
-                        "w-4 h-4 mt-0.5 flex-shrink-0",
-                        isFreePlan(currentPlan) ? "text-green-600" :
-                        isProPlan(currentPlan) ? "text-blue-600" :
-                        "text-purple-600"
-                      )} />
+                      <CheckCircle
+                        className={cn(
+                          "w-4 h-4 mt-0.5 flex-shrink-0",
+                          isFreePlan(currentPlan)
+                            ? "text-green-600"
+                            : isProPlan(currentPlan)
+                            ? "text-blue-600"
+                            : "text-purple-600"
+                        )}
+                      />
                       <span className="text-sm font-medium">{feature}</span>
                     </div>
                   ))}
@@ -548,7 +626,7 @@ export const BillingComponent = () => {
                   {/* Plan Icon */}
                   <div className="absolute top-4 right-4">
                     {React.createElement(getPlanIcon(currentPlan), {
-                      className: "w-8 h-8 opacity-80"
+                      className: "w-8 h-8 opacity-80",
                     })}
                   </div>
                 </div>
@@ -580,7 +658,11 @@ export const BillingComponent = () => {
                       <span className="font-semibold">
                         {currentPlan.price === 0
                           ? "Free"
-                          : `$${currentPlan.price}/${currentPlan.duration_days === 30 ? 'month' : 'year'}`}
+                          : `$${currentPlan.price}/${
+                              currentPlan.duration_days === 30
+                                ? "month"
+                                : "year"
+                            }`}
                       </span>
                     </div>
 
@@ -588,7 +670,9 @@ export const BillingComponent = () => {
                     {planDetails && (
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                          {isFreePlan(currentPlan) ? "Days remaining" : "Next billing"}
+                          {isFreePlan(currentPlan)
+                            ? "Days remaining"
+                            : "Next billing"}
                         </span>
                         <span
                           className={cn(
