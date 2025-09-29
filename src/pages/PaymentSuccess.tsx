@@ -9,16 +9,17 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import usePlanManagement from "@/hooks/usePlanManagement";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
+  const { loadCurrentPlan } = usePlanManagement();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [planDetails, setPlanDetails] = useState(null);
   const [error, setError] = useState(null);
   const [showCrackers, setShowCrackers] = useState(false);
 
@@ -28,7 +29,7 @@ const PaymentSuccess = () => {
 
   // Crackers animation effect
   useEffect(() => {
-    if (planDetails && !isLoading) {
+    if (!isLoading && !error) {
       // Start crackers animation immediately
       setShowCrackers(true);
       
@@ -37,7 +38,7 @@ const PaymentSuccess = () => {
         setShowCrackers(false);
       }, 4000);
     }
-  }, [planDetails, isLoading]);
+  }, [isLoading, error]);
 
   const verifyPaymentAndLoadDetails = async () => {
     try {
@@ -48,41 +49,8 @@ const PaymentSuccess = () => {
         return;
       }
 
-      // Load user's updated plan details
-      const { data: userPlanData, error: userPlanError } = await supabase
-        .from("user_plan")
-        .select(`
-          *,
-          plan_master (
-            id,
-            plan_name,
-            description,
-            price,
-            currency,
-            duration_days
-          )
-        `)
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (userPlanError || !userPlanData || userPlanData.length === 0) {
-        throw new Error("Could not load updated plan details");
-      }
-
-      const userPlan = userPlanData[0];
-      const planMaster = userPlan.plan_master;
-
-      setPlanDetails({
-        ...userPlan,
-        ...planMaster,
-        renewalDate: new Date(userPlan.end_date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      });
+      // Reload current plan to get updated payment details
+      await loadCurrentPlan(user.id);
 
       toast.success("Payment successful! Your plan has been upgraded.");
       

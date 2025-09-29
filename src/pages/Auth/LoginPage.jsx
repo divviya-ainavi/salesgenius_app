@@ -32,6 +32,11 @@ import {
   setBusinessKnowledgeLoading,
   setPersonalInsightKnowledge,
 } from "../../store/slices/orgSlice";
+import {
+  setCurrentPlan,
+  setPlanLoading,
+  setPlanError,
+} from "../../store/slices/authSlice";
 import { checkIntegrationStatus } from "../../services/hubspotService";
 
 const LoginPage = () => {
