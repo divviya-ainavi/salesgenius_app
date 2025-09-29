@@ -2045,38 +2045,30 @@ const CallInsights = () => {
                             Pushing...
                           </>
                         ) : (
-                  {canPushToHubSpot ? (
-                    <Button
-                      onClick={() =>
-                        handlePushCommitments(
-                          commitments.filter((item) => item.is_selected)
-                        )
-                      }
-                      disabled={
-                        pushStatus === "pending" ||
-                        selectedCount === 0 ||
-                        !hubspotConnectionStatus?.connected
-                      }
-                      size="sm"
-                    >
-                      {pushStatus === "pending" ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                          Pushing to HubSpot...
-                        </>
-                      ) : (
-                        <>
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Push {selectedCount} to HubSpot
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <RestrictedFeatureButton
-                      featureName="HubSpot Integration"
-                      size="sm"
-                    />
-                  )}
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Push to HubSpot
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopySalesInsights}
+                    disabled={totalInsightsCount === 0}
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy Insights
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingInsight(true)}
+                    disabled={isAddingInsight}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Insight
                   </Button>
                 </div>
               </CardTitle>
