@@ -32,8 +32,8 @@ interface UpgradePlanDialogProps {
 }
 
 export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
-  const { user, showUpgradeModal } = useSelector((state) => state.auth);
-  const { currentPlan, availablePlans, show } = useSelector(
+  const { user } = useSelector((state) => state.auth);
+  const { currentPlan, availablePlans, showUpgradeModal } = useSelector(
     (state) => state.org
   );
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
