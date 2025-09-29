@@ -230,7 +230,7 @@ export const BillingComponent = () => {
         emailid: user.email
       };
 
-      const response = await fetch('https://salesgenius.ainavi.co.uk/n8n/webhook/checkout-session', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,10 +246,15 @@ export const BillingComponent = () => {
       const checkoutData = await response.json();
       console.log("✅ Checkout session created:", checkoutData);
 
-      // Redirect to Stripe checkout
-      if (checkoutData.url) {
-        window.location.href = checkoutData.url;
+      // Handle the response array format
+      if (Array.isArray(checkoutData) && checkoutData.length > 0 && checkoutData[0].checkoutUrl) {
+        console.log("🔗 Redirecting to Stripe checkout:", checkoutData[0].checkoutUrl);
+        window.location.href = checkoutData[0].checkoutUrl;
+      } else if (checkoutData.checkoutUrl) {
+        console.log("🔗 Redirecting to Stripe checkout:", checkoutData.checkoutUrl);
+        window.location.href = checkoutData.checkoutUrl;
       } else {
+        console.error("❌ Invalid checkout response format:", checkoutData);
         throw new Error("No checkout URL received from server");
       }
       
