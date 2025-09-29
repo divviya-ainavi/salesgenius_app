@@ -300,47 +300,13 @@ export const BillingComponent = () => {
     try {
       console.log("🔄 Cancelling subscription for user:", user.id);
 
-      // Call the cancellation API first
-      const cancellationPayload = {
-        subscription_Id: currentPlan?.stripe_subscription_id,
-        cancel_at_period_end: true,
-        userid: user.id,
-        name: user.full_name || user.email,
-        email: user.email,
-        dbid: currentPlan?.id
-      };
-
-      console.log("📤 Sending cancellation request to API:", cancellationPayload);
-
-      const apiResponse = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.subscription.cancel}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(cancellationPayload),
-        }
-      );
-
-      if (!apiResponse.ok) {
-        const errorText = await apiResponse.text();
-        throw new Error(
-          `Cancellation API failed: ${apiResponse.status} ${apiResponse.statusText} - ${errorText}`
-        );
-      }
-
-      const apiResult = await apiResponse.json();
-      console.log("✅ Cancellation API response:", apiResult);
-
       // Update user_plan to mark as cancelled
       const { error: updateError } = await supabase
         .from("user_plan")
         .update({
           status: "cancelled",
           canceled_at: new Date().toISOString(),
-          // Keep is_active true until period ends
-          is_active: true,
+          is_active: false,
         })
         .eq("user_id", user.id)
         .eq("is_active", true);
