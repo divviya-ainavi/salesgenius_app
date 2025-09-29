@@ -213,31 +213,27 @@
 }
 
 /* Crackers animation */
-@keyframes confetti-fall {
+@keyframes cracker-fall {
   0% {
-    transform: translateY(-100px) rotate(0deg) scale(0);
+    transform: translateY(-50px) rotate(0deg) scale(0);
     opacity: 1;
   }
   10% {
-    transform: translateY(-50px) rotate(72deg) scale(1);
+    transform: translateY(-30px) rotate(36deg) scale(1);
     opacity: 1;
   }
-  50% {
-    transform: translateY(50vh) rotate(180deg) scale(1);
+  90% {
+    transform: translateY(100vh) rotate(324deg) scale(1);
     opacity: 0.8;
   }
-  90% {
-    transform: translateY(100vh) rotate(360deg) scale(0.8);
-    opacity: 0.3;
-  }
   100% {
-    transform: translateY(110vh) rotate(450deg) scale(0);
+    transform: translateY(100vh) rotate(360deg);
     opacity: 0;
   }
 }
 
-.animate-confetti-fall {
-  animation: confetti-fall 4s ease-out forwards;
+.animate-cracker-fall {
+  animation: cracker-fall 4s ease-out forwards;
 }
 
 /* Quill editor custom styles */

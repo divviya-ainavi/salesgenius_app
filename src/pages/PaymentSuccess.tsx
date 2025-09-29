@@ -7,8 +7,6 @@ import {
   Loader2,
   AlertCircle,
   X,
-  Trophy,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -31,15 +29,13 @@ const PaymentSuccess = () => {
   // Crackers animation effect
   useEffect(() => {
     if (planDetails && !isLoading) {
-      // Start crackers animation after a short delay
-      setTimeout(() => {
-        setShowCrackers(true);
-      }, 500);
+      // Start crackers animation immediately
+      setShowCrackers(true);
       
       // Stop crackers after 4 seconds
       setTimeout(() => {
         setShowCrackers(false);
-      }, 4500);
+      }, 4000);
     }
   }, [planDetails, isLoading]);
 
@@ -101,7 +97,7 @@ const PaymentSuccess = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-6">
         <div className="text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Loader2 className="w-8 h-8 animate-spin text-green-600" />
@@ -138,21 +134,21 @@ const PaymentSuccess = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Animated Confetti */}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Animated Crackers/Confetti */}
       {showCrackers && (
-        <div className="fixed inset-0 pointer-events-none z-40">
-          {/* Colorful confetti pieces */}
-          {[...Array(30)].map((_, i) => {
-            const shapes = ['triangle', 'circle', 'rectangle', 'diamond'];
-            const colors = ['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#FF7675', '#74B9FF'];
+        <div className="fixed inset-0 pointer-events-none z-50">
+          {/* Colorful geometric shapes - triangles, circles, rectangles */}
+          {[...Array(25)].map((_, i) => {
+            const shapes = ['triangle', 'circle', 'rectangle'];
+            const colors = ['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
             const shape = shapes[Math.floor(Math.random() * shapes.length)];
             const color = colors[Math.floor(Math.random() * colors.length)];
             
             return (
               <div
                 key={i}
-                className="absolute animate-confetti-fall"
+                className="absolute animate-cracker-fall"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `-20px`,
@@ -164,9 +160,9 @@ const PaymentSuccess = () => {
                   <div
                     className="w-0 h-0"
                     style={{
-                      borderLeft: '6px solid transparent',
-                      borderRight: '6px solid transparent',
-                      borderBottom: `10px solid ${color}`,
+                      borderLeft: '8px solid transparent',
+                      borderRight: '8px solid transparent',
+                      borderBottom: `12px solid ${color}`,
                     }}
                   />
                 )}
@@ -178,13 +174,7 @@ const PaymentSuccess = () => {
                 )}
                 {shape === 'rectangle' && (
                   <div
-                    className="w-2 h-5 rounded-sm"
-                    style={{ backgroundColor: color }}
-                  />
-                )}
-                {shape === 'diamond' && (
-                  <div
-                    className="w-3 h-3 rotate-45"
+                    className="w-2 h-6 rounded-sm"
                     style={{ backgroundColor: color }}
                   />
                 )}
@@ -194,98 +184,38 @@ const PaymentSuccess = () => {
         </div>
       )}
 
-      {/* Brand Logo */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-gray-800">SalesGenius.ai</span>
-        </div>
-      </div>
+      {/* Close Button */}
+      <button
+        onClick={() => navigate("/calls")}
+        className="absolute top-6 right-6 w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-all duration-200 z-10"
+      >
+        <X className="w-4 h-4 text-gray-600" />
+      </button>
 
       {/* Main Success Card */}
-      <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg w-full mx-auto text-center relative z-50 border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-md w-full mx-auto text-center relative z-10">
         {/* Success Icon */}
-        <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <CheckCircle className="w-8 h-8 text-white" />
+        <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+          <CheckCircle className="w-10 h-10 text-white" />
         </div>
 
         {/* Success Message */}
         <h1 className="text-3xl font-bold text-gray-900 mb-3">
-          Payment succeeded!
+          Payment Successful! 🎉
         </h1>
         
-        <p className="text-gray-600 mb-2 leading-relaxed">
-          Thank you for processing your most recent payment.
+        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+          Thank you for processing your most recent payment.<br />
+          Your premium subscription will expire on {planDetails?.renewalDate}.
         </p>
-        
-        <p className="text-gray-600 mb-8 leading-relaxed">
-          Your premium subscription will expire on <span className="font-semibold">{planDetails?.renewalDate}</span>.
-        </p>
-
-        {/* Trophy Icon */}
-        <div className="flex justify-center mb-6">
-          <Trophy className="w-6 h-6 text-yellow-500" />
-        </div>
-
-        {/* Plan Information */}
-        <div className="mb-8">
-          <p className="text-gray-700 mb-2">
-            You are now subscribed to the <span className="font-bold text-blue-600">{planDetails?.plan_name || 'Pro'}</span> plan.
-          </p>
-          <p className="text-gray-600 text-sm">
-            <span className="text-blue-600">💼</span> SalesGenius works while <span className="font-semibold">you close deals</span>.
-          </p>
-        </div>
-
-        {/* Total Payment */}
-        <div className="mb-8">
-          <p className="text-gray-500 text-sm mb-1">Total Payment</p>
-          <p className="text-4xl font-bold text-gray-900">
-            ${planDetails?.price || '49.00'}
-          </p>
-        </div>
-
-        {/* Features List */}
-        <div className="mb-8 text-left">
-          <div className="flex items-center mb-4">
-            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-            <span className="font-semibold text-gray-800">{planDetails?.plan_name || 'Pro'} includes:</span>
-          </div>
-          
-          <div className="space-y-2 text-sm text-gray-700">
-            <div className="flex items-center">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-              <span>Unlimited call transcript processing</span>
-            </div>
-            <div className="flex items-center">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-              <span>Unlimited follow-up email generation</span>
-            </div>
-            <div className="flex items-center">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-              <span>Advanced AI insights and recommendations</span>
-            </div>
-            <div className="flex items-center">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-              <span>Priority Support</span>
-            </div>
-            <div className="flex items-center">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-              <span>HubSpot CRM integration</span>
-            </div>
-          </div>
-        </div>
 
         {/* Action Button */}
         <Button
           onClick={() => navigate("/calls")}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+          className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           size="lg"
         >
-          <Sparkles className="w-5 h-5 mr-2" />
-          Start Using SalesGenius
+          Visit dashboard
         </Button>
       </div>
     </div>
