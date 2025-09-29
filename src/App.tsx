@@ -65,27 +65,29 @@ const App = () => {
 
   // Monitor Supabase auth state for token expiry
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' && !sessionStorage.getItem('manual_logout')) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT" && !sessionStorage.getItem("manual_logout")) {
         // Token expired - auto logout
-        console.log('🔒 Supabase token expired - auto logout triggered');
-        
+        console.log("🔒 Supabase token expired - auto logout triggered");
+
         // Clear all storage
         localStorage.clear();
         sessionStorage.clear();
-        
+
         // Reset Redux state
         dispatch(resetAuthState());
         dispatch(resetOrgState());
-        
+
         // Show message and redirect
-        toast.error('Your session has expired. Please log in again.');
-        navigate('/auth/login');
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth/login");
       }
-      
+
       // Clear manual logout flag after processing
-      if (event === 'SIGNED_OUT') {
-        sessionStorage.removeItem('manual_logout');
+      if (event === "SIGNED_OUT") {
+        sessionStorage.removeItem("manual_logout");
       }
     });
 
@@ -96,49 +98,46 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/auth/login" element={<LoginPage />} />
-            <Route path="/auth/signup" element={<SignupPage />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/auth/setup" element={<AccountSetup />} />
-            <Route path="/hubspot-callback" element={<HubSpotCallback />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/signup" element={<SignupPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/setup" element={<AccountSetup />} />
+          <Route path="/hubspot-callback" element={<HubSpotCallback />} />
+          <Route path="/success" element={<PaymentSuccess />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/calls" replace />} />
-              <Route path="research" element={<Research />} />
-              <Route path="calls" element={<SalesCalls />} />
-              <Route path="call-insights" element={<CallInsights />} />
-              <Route path="follow-ups">
-                <Route
-                  index
-                  element={<Navigate to="/call-insights" replace />}
-                />
-                <Route path="actions" element={<ActionItems />} />
-                <Route path="emails" element={<EmailTemplates />} />
-                <Route path="decks" element={<DeckBuilder />} />
-                <Route path="wrap-up" element={<CallInsights />} />
-              </Route>
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="admin">
-                <Route path="users" element={<UserManagementPage />} />
-              </Route>
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/calls" replace />} />
+            <Route path="research" element={<Research />} />
+            <Route path="calls" element={<SalesCalls />} />
+            <Route path="call-insights" element={<CallInsights />} />
+            <Route path="follow-ups">
+              <Route index element={<Navigate to="/call-insights" replace />} />
+              <Route path="actions" element={<ActionItems />} />
+              <Route path="emails" element={<EmailTemplates />} />
+              <Route path="decks" element={<DeckBuilder />} />
+              <Route path="wrap-up" element={<CallInsights />} />
             </Route>
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="admin">
+              <Route path="users" element={<UserManagementPage />} />
+            </Route>
+          </Route>
 
-            {/* Catch all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          {/* Catch all route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </TooltipProvider>
     </QueryClientProvider>
   );
