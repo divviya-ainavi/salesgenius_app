@@ -340,9 +340,9 @@ export const BillingComponent = () => {
                   })}
                 </div>
               </div>
-
+              {console.log(showUpgradeOption, planDetails, "show upgrade")}
               {/* Upgrade Button */}
-              {showUpgradeOption && (
+              {showUpgradeOption && planDetails?.isExpired && (
                 <Button
                   onClick={() => dispatch(setShowUpgradeModal(true))}
                   className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
