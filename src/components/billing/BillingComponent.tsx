@@ -70,9 +70,10 @@ export const BillingComponent = () => {
           const canceled_at = new Date(userPlan.canceled_at);
           const today = new Date();
           const isDateExpired = endDate < today;
-          const isStatusExpired = userPlan.status === 'expired' || 
-                                 userPlan.status === 'cancelled' || 
-                                 userPlan.is_active === false;
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
           const isExpired = isDateExpired || isStatusExpired;
           const daysRemaining = Math.max(
             0,
@@ -172,7 +173,7 @@ export const BillingComponent = () => {
       );
 
       const apiResponse = await fetch(
-        `https://salesgenius.ainavi.co.uk/n8n/webhook-test/Cancle-sub`,
+        `https://salesgenius.ainavi.co.uk/n8n/webhook/Cancle-sub`,
         {
           method: "POST",
           headers: {
@@ -258,8 +259,9 @@ export const BillingComponent = () => {
   }
 
   const nextTierPlan = getNextTierPlan();
-  const showUpgradeOption = isFreePlan(currentPlan) && nextTierPlan;
-  console.log(isFreePlan(currentPlan), nextTierPlan);
+  const showUpgradeOption =
+    (isFreePlan(currentPlan) && nextTierPlan) || planDetails?.isExpired;
+  // console.log(isFreePlan(currentPlan), nextTierPlan, planDetails, currentPlan);
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -347,7 +349,9 @@ export const BillingComponent = () => {
                   size="lg"
                 >
                   <ArrowUp className="w-4 h-4 mr-2" />
-                  Upgrade to {nextTierPlan.plan_name}
+                  {!isFreePlan(currentPlan) && planDetails?.isExpired
+                    ? "Renew Plan"
+                    : "Upgrade to" + nextTierPlan?.plan_name}
                 </Button>
               )}
 
