@@ -66,6 +66,12 @@ export const config = {
       updateContact:'Update_brevo-contact'
     }
   }
+
+  // Subscription management endpoints
+  subscription: {
+    cancel: 'Cancle-sub',
+    upgrade: 'checkout-session'
+  }
 };
 
 // Validation function to check if required environment variables are set
