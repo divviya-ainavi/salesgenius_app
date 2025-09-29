@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { usePlanRestrictions } from "@/hooks/usePlanRestrictions";
+import { PlanRestrictionBanner } from "@/components/restrictions/PlanRestrictionBanner";
+import { FeatureRestrictionModal } from "@/components/restrictions/FeatureRestrictionModal";
 import { CommitmentsCard } from "@/components/followups/CommitmentsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -149,6 +152,8 @@ const getActionItemsForProspect = (prospectId) => {
 
 export const ActionItems = () => {
   usePageTimer("Action Items");
+  const { isExpired, planName, daysRemaining, restrictions, checkFeatureAccess } = usePlanRestrictions();
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
 
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [commitments, setCommitments] = useState([]);
@@ -305,6 +310,12 @@ export const ActionItems = () => {
   };
 
   const handlePushCommitments = async (selectedCommitments) => {
+    // Check if user can push to HubSpot
+    if (!checkFeatureAccess('canPushToHubspot', 'HubSpot Integration')) {
+      setShowRestrictionModal(true);
+      return;
+    }
+
     if (!hubspotConnectionStatus?.connected) {
       toast.error(
         "HubSpot is not connected. Please connect your HubSpot account first."
@@ -544,6 +555,14 @@ export const ActionItems = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Plan Restriction Banner */}
+      <PlanRestrictionBanner 
+        isVisible={isExpired || daysRemaining <= 7}
+        planName={planName}
+        daysRemaining={daysRemaining}
+        isExpired={isExpired}
+      />
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -975,6 +994,15 @@ export const ActionItems = () => {
           )}
         </div>
       </div>
+
+      {/* Feature Restriction Modal */}
+      <FeatureRestrictionModal 
+        isOpen={showRestrictionModal}
+        onClose={() => setShowRestrictionModal(false)}
+        featureName="HubSpot Integration"
+        planName={planName}
+        isExpired={isExpired}
+      />
     </div>
   );
 };

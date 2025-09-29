@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePlanRestrictions } from '@/hooks/usePlanRestrictions';
+import { PlanRestrictionBanner } from '@/components/restrictions/PlanRestrictionBanner';
+import { FeatureRestrictionModal } from '@/components/restrictions/FeatureRestrictionModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +37,9 @@ import useUserManagement from '@/hooks/useUserManagement';
 import { config } from '@/lib/config';
 
 const UserManagement = () => {
+  const { isExpired, planName, daysRemaining, restrictions, checkFeatureAccess } = usePlanRestrictions();
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
+
   const [activeTab, setActiveTab] = useState('profiles');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrg, setSelectedOrg] = useState('all');
@@ -100,8 +106,26 @@ const UserManagement = () => {
     }
   };
 
+  const handleInviteUser = () => {
+    // Check if user can invite users
+    if (!checkFeatureAccess('canInviteUsers', 'User Invitations')) {
+      setShowRestrictionModal(true);
+      return;
+    }
+    // Proceed with invite logic
+    console.log('Opening invite user dialog...');
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Plan Restriction Banner */}
+      <PlanRestrictionBanner 
+        isVisible={isExpired || daysRemaining <= 7}
+        planName={planName}
+        daysRemaining={daysRemaining}
+        isExpired={isExpired}
+      />
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -124,7 +148,7 @@ const UserManagement = () => {
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={handleInviteUser}>
                 <UserPlus className="w-4 h-4 mr-1" />
                 Invite User
               </Button>
@@ -507,6 +531,15 @@ const UserManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Feature Restriction Modal */}
+      <FeatureRestrictionModal 
+        isOpen={showRestrictionModal}
+        onClose={() => setShowRestrictionModal(false)}
+        featureName="User Invitations"
+        planName={planName}
+        isExpired={isExpired}
+      />
     </div>
   );
 };
