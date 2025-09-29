@@ -422,8 +422,29 @@ export const BillingComponent = () => {
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    {planDetails.isExpired ? "Expired" : "Renews"} on{" "}
+                    {planDetails.isExpired 
+                      ? "Expired" 
+                      : planDetails.status === 'cancelled' 
+                        ? "Access until" 
+                        : "Renews"} on{" "}
                     {planDetails.renewalDate}.
+                  </span>
+                </div>
+              )}
+
+              {/* Cancellation Notice */}
+              {planDetails?.status === 'cancelled' && planDetails?.canceled_at && (
+                <div className="flex items-center space-x-2 text-red-600">
+                  <X className="w-4 h-4" />
+                  <span className="text-sm">
+                    Subscription cancelled on{" "}
+                    {new Date(planDetails.canceled_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long", 
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
                   </span>
                 </div>
               )}
@@ -435,9 +456,19 @@ export const BillingComponent = () => {
               <div
                 className={cn(
                   "relative rounded-2xl p-8 text-white overflow-hidden",
-                  `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
+                  `bg-gradient-to-br ${getPlanGradient(currentPlan)}`,
+                  planDetails?.status === 'cancelled' && "opacity-75 border-2 border-red-300"
                 )}
               >
+                {/* Cancelled Plan Overlay */}
+                {planDetails?.status === 'cancelled' && (
+                  <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center z-20">
+                    <div className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                      CANCELLED
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative z-10">
                   <h3 className="text-3xl font-bold mb-2">
                     {currentPlan?.plan_name || "Unknown"}
@@ -445,6 +476,11 @@ export const BillingComponent = () => {
                   <p className="text-white/80 text-lg">
                     {getDurationText(currentPlan?.duration_days)}
                   </p>
+                  {planDetails?.status === 'cancelled' && (
+                    <p className="text-white/90 text-sm mt-2">
+                      Access until {planDetails.renewalDate}
+                    </p>
+                  )}
                 </div>
 
                 {/* Background decoration */}
@@ -468,7 +504,7 @@ export const BillingComponent = () => {
               )}
 
               {/* Cancel Subscription Button for Paid Plans */}
-              {isPaidPlan(currentPlan) && (
+              {isPaidPlan(currentPlan) && planDetails?.status !== 'cancelled' && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
@@ -477,6 +513,30 @@ export const BillingComponent = () => {
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel Subscription
+                </Button>
+              )}
+
+              {/* Reactivate Button for Cancelled Plans */}
+              {planDetails?.status === 'cancelled' && !planDetails?.isExpired && (
+                <Button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
+                >
+                  <ArrowUp className="w-4 h-4 mr-2" />
+                  Reactivate Subscription
+                </Button>
+              )}
+
+              {/* Upgrade Button for Expired Plans */}
+              {planDetails?.isExpired && (
+                <Button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white"
+                  size="lg"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Renew Subscription
                 </Button>
               )}
             </div>
