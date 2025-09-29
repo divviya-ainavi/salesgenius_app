@@ -196,9 +196,12 @@ export const BillingComponent = () => {
   const getPlanGradient = (plan) => {
     if (!plan) return "from-gray-500 to-gray-600";
     if (isFreePlan(plan)) return "from-green-500 to-emerald-600";
-    if (plan.plan_name?.toLowerCase().includes("pro")) return "from-blue-500 to-indigo-600";
-    if (plan.plan_name?.toLowerCase().includes("business")) return "from-purple-500 to-violet-600";
-    if (plan.plan_name?.toLowerCase().includes("enterprise")) return "from-gray-800 to-black";
+    if (plan.plan_name?.toLowerCase().includes("pro"))
+      return "from-blue-500 to-indigo-600";
+    if (plan.plan_name?.toLowerCase().includes("business"))
+      return "from-purple-500 to-violet-600";
+    if (plan.plan_name?.toLowerCase().includes("enterprise"))
+      return "from-gray-800 to-black";
     return "from-blue-500 to-indigo-600";
   };
 
@@ -211,13 +214,15 @@ export const BillingComponent = () => {
 
   const getNextTierPlan = () => {
     if (!currentPlan || !availablePlans.length) return null;
-    
+
     // Find plans with higher price than current plan
-    const higherPlans = availablePlans.filter(plan => plan.price > currentPlan.price);
-    
+    const higherPlans = availablePlans.filter(
+      (plan) => plan.price > currentPlan.price
+    );
+
     // Return the cheapest higher plan (next tier)
-    return higherPlans.length > 0 
-      ? higherPlans.reduce((min, plan) => plan.price < min.price ? plan : min)
+    return higherPlans.length > 0
+      ? higherPlans.reduce((min, plan) => (plan.price < min.price ? plan : min))
       : null;
   };
 
@@ -228,44 +233,59 @@ export const BillingComponent = () => {
     }
 
     setIsProcessingPayment(true);
-    
+
     try {
       console.log("🔄 Creating checkout session for plan:", plan.plan_name);
-      
+
       const payload = {
         userid: user.id,
         plan_id: plan.stripe_price_id,
-        emailid: user.email
+        emailid: user.email,
+        dbplan_id: plan.id,
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
 
       const checkoutData = await response.json();
       console.log("✅ Checkout session created:", checkoutData);
 
       // Handle the response array format
-      if (Array.isArray(checkoutData) && checkoutData.length > 0 && checkoutData[0].checkoutUrl) {
-        console.log("🔗 Redirecting to Stripe checkout:", checkoutData[0].checkoutUrl);
+      if (
+        Array.isArray(checkoutData) &&
+        checkoutData.length > 0 &&
+        checkoutData[0].checkoutUrl
+      ) {
+        console.log(
+          "🔗 Redirecting to Stripe checkout:",
+          checkoutData[0].checkoutUrl
+        );
         window.location.href = checkoutData[0].checkoutUrl;
       } else if (checkoutData.checkoutUrl) {
-        console.log("🔗 Redirecting to Stripe checkout:", checkoutData.checkoutUrl);
+        console.log(
+          "🔗 Redirecting to Stripe checkout:",
+          checkoutData.checkoutUrl
+        );
         window.location.href = checkoutData.checkoutUrl;
       } else {
         console.error("❌ Invalid checkout response format:", checkoutData);
         throw new Error("No checkout URL received from server");
       }
-      
     } catch (error) {
       console.error("❌ Error creating checkout session:", error);
       toast.error("Failed to start checkout process: " + error.message);
@@ -276,17 +296,17 @@ export const BillingComponent = () => {
 
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
-    
+
     try {
       console.log("🔄 Cancelling subscription for user:", user.id);
-      
+
       // Update user_plan to mark as cancelled
       const { error: updateError } = await supabase
         .from("user_plan")
         .update({
           status: "cancelled",
           canceled_at: new Date().toISOString(),
-          is_active: false
+          is_active: false,
         })
         .eq("user_id", user.id)
         .eq("is_active", true);
@@ -297,10 +317,11 @@ export const BillingComponent = () => {
 
       // Reload plan data to reflect changes
       await loadPlanData();
-      
+
       setShowCancelModal(false);
-      toast.success("Subscription cancelled successfully. You'll retain access until your current billing period ends.");
-      
+      toast.success(
+        "Subscription cancelled successfully. You'll retain access until your current billing period ends."
+      );
     } catch (error) {
       console.error("❌ Error cancelling subscription:", error);
       toast.error("Failed to cancel subscription: " + error.message);
@@ -314,7 +335,9 @@ export const BillingComponent = () => {
       <div className="space-y-6">
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading billing information...</p>
+          <p className="text-muted-foreground">
+            Loading billing information...
+          </p>
         </div>
       </div>
     );
@@ -338,7 +361,7 @@ export const BillingComponent = () => {
           <h3 className="text-lg font-semibold text-foreground mb-6">
             Workspace subscription
           </h3>
-          
+
           <div className="grid lg:grid-cols-2 gap-8 items-start">
             {/* Left Column - Text Content */}
             <div className="space-y-4">
@@ -351,12 +374,13 @@ export const BillingComponent = () => {
                   plan.
                 </p>
               </div>
-              
+
               {planDetails && (
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    {planDetails.isExpired ? "Expired" : "Renews"} on {planDetails.renewalDate}.
+                    {planDetails.isExpired ? "Expired" : "Renews"} on{" "}
+                    {planDetails.renewalDate}.
                   </span>
                 </div>
               )}
@@ -365,7 +389,7 @@ export const BillingComponent = () => {
             {/* Right Column - Plan Card and Actions */}
             <div className="space-y-4">
               {/* Current Plan Card */}
-              <div 
+              <div
                 className={cn(
                   "relative rounded-2xl p-8 text-white overflow-hidden",
                   `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
@@ -379,11 +403,11 @@ export const BillingComponent = () => {
                     {getDurationText(currentPlan?.duration_days)}
                   </p>
                 </div>
-                
+
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
                   {React.createElement(getPlanIcon(currentPlan), {
-                    className: "w-full h-full"
+                    className: "w-full h-full",
                   })}
                 </div>
               </div>
@@ -435,18 +459,20 @@ export const BillingComponent = () => {
                 const PlanIcon = getPlanIcon(plan);
                 const isCurrentPlan = plan.id === currentPlan?.id;
                 const isUpgrade = plan.price > (currentPlan?.price || 0);
-                const isPopular = plan.plan_name?.toLowerCase().includes("pro") || 
-                                 plan.plan_name?.toLowerCase().includes("standard");
-                const isIntroductory = plan.plan_name?.toLowerCase().includes("plus") || 
-                                     plan.plan_name?.toLowerCase().includes("starter");
-                
+                const isPopular =
+                  plan.plan_name?.toLowerCase().includes("pro") ||
+                  plan.plan_name?.toLowerCase().includes("standard");
+                const isIntroductory =
+                  plan.plan_name?.toLowerCase().includes("plus") ||
+                  plan.plan_name?.toLowerCase().includes("starter");
+
                 return (
                   <div
                     key={plan.id}
                     className={cn(
                       "relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 overflow-hidden",
-                      isCurrentPlan 
-                        ? "border-gray-400 shadow-lg" 
+                      isCurrentPlan
+                        ? "border-gray-400 shadow-lg"
                         : isPopular
                         ? "border-blue-400 shadow-lg ring-2 ring-blue-100"
                         : "border-gray-200 hover:border-blue-300"
@@ -483,34 +509,51 @@ export const BillingComponent = () => {
                       <h3 className="text-3xl font-bold text-gray-900 mb-3">
                         {plan.plan_name}
                       </h3>
-                      
+
                       {/* Plan Description */}
                       {plan.description && (
                         <p className="text-gray-600 mb-6 leading-relaxed text-base">
                           {plan.description}
                         </p>
                       )}
-                      
+
                       {/* Pricing */}
                       <div className="mb-8">
                         <div className="flex items-baseline justify-center">
-                          <span className="text-2xl font-bold text-gray-900 mr-1">₹</span>
+                          <span className="text-2xl font-bold text-gray-900 mr-1">
+                            ₹
+                          </span>
                           <span className="text-6xl font-bold text-gray-900">
                             {plan.price.toLocaleString()}
                           </span>
                         </div>
                         <div className="text-gray-600 mt-2 text-base">
-                          / {plan.duration_days === 30 ? "month" : plan.duration_days === 365 ? "year" : `${plan.duration_days} days`}
-                          <span className="text-gray-500"> (inclusive of GST)</span>
+                          /{" "}
+                          {plan.duration_days === 30
+                            ? "month"
+                            : plan.duration_days === 365
+                            ? "year"
+                            : `${plan.duration_days} days`}
+                          <span className="text-gray-500">
+                            {" "}
+                            (inclusive of GST)
+                          </span>
                         </div>
                         <div className="text-sm text-blue-600 mt-1 font-medium">
-                          Billed {plan.duration_days === 30 ? "monthly" : plan.duration_days === 365 ? "annually" : "per period"}
+                          Billed{" "}
+                          {plan.duration_days === 30
+                            ? "monthly"
+                            : plan.duration_days === 365
+                            ? "annually"
+                            : "per period"}
                         </div>
                       </div>
 
                       {/* Action Button */}
                       <Button
-                        onClick={() => isCurrentPlan ? null : handleUpgrade(plan)}
+                        onClick={() =>
+                          isCurrentPlan ? null : handleUpgrade(plan)
+                        }
                         disabled={isCurrentPlan}
                         loading={isProcessingPayment}
                         className={cn(
@@ -527,12 +570,13 @@ export const BillingComponent = () => {
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Processing...
                           </>
-                        ) : isCurrentPlan 
-                          ? "Your current plan"
-                          : isUpgrade 
-                          ? `Upgrade to ${plan.plan_name}`
-                          : `Switch to ${plan.plan_name}`
-                        }
+                        ) : isCurrentPlan ? (
+                          "Your current plan"
+                        ) : isUpgrade ? (
+                          `Upgrade to ${plan.plan_name}`
+                        ) : (
+                          `Switch to ${plan.plan_name}`
+                        )}
                       </Button>
                     </div>
 
@@ -544,10 +588,13 @@ export const BillingComponent = () => {
                           <div className="text-lg font-semibold text-gray-900 text-left">
                             Everything in {plan.plan_name}, and:
                           </div>
-                          
+
                           <div className="space-y-4 text-left">
                             {plan.features.map((feature, index) => (
-                              <div key={index} className="flex items-start space-x-4">
+                              <div
+                                key={index}
+                                className="flex items-start space-x-4"
+                              >
                                 <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                                   <CheckCircle className="w-4 h-4 text-blue-600" />
                                 </div>
@@ -564,7 +611,8 @@ export const BillingComponent = () => {
                       {plan.plan_name?.toLowerCase().includes("business") && (
                         <div className="mt-8 pt-6 border-t border-gray-100">
                           <p className="text-sm text-gray-500 text-center">
-                            For 2+ users, billed annually.<br />
+                            For 2+ users, billed annually.
+                            <br />
                             GST excluded at checkout with a valid GST ID.
                           </p>
                         </div>
@@ -605,7 +653,8 @@ export const BillingComponent = () => {
               <span>Cancel Subscription</span>
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
-              Are you sure you want to cancel your {currentPlan?.plan_name} subscription?
+              Are you sure you want to cancel your {currentPlan?.plan_name}{" "}
+              subscription?
             </DialogDescription>
           </DialogHeader>
 
@@ -614,7 +663,9 @@ export const BillingComponent = () => {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center space-x-3 mb-3">
                 <CreditCard className="w-5 h-5 text-red-600" />
-                <span className="font-medium text-red-800">Current Plan Details</span>
+                <span className="font-medium text-red-800">
+                  Current Plan Details
+                </span>
               </div>
               <div className="space-y-2 text-sm text-red-700">
                 <div className="flex justify-between">
@@ -623,12 +674,17 @@ export const BillingComponent = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Price:</span>
-                  <span className="font-medium">₹{currentPlan?.price?.toLocaleString()} / {getDurationText(currentPlan?.duration_days)}</span>
+                  <span className="font-medium">
+                    ₹{currentPlan?.price?.toLocaleString()} /{" "}
+                    {getDurationText(currentPlan?.duration_days)}
+                  </span>
                 </div>
                 {planDetails && (
                   <div className="flex justify-between">
                     <span>Access until:</span>
-                    <span className="font-medium">{planDetails.renewalDate}</span>
+                    <span className="font-medium">
+                      {planDetails.renewalDate}
+                    </span>
                   </div>
                 )}
               </div>
@@ -636,7 +692,9 @@ export const BillingComponent = () => {
 
             {/* Cancellation Info */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h4 className="font-medium text-yellow-800 mb-2">What happens when you cancel:</h4>
+              <h4 className="font-medium text-yellow-800 mb-2">
+                What happens when you cancel:
+              </h4>
               <ul className="text-sm text-yellow-700 space-y-1">
                 <li>• You'll retain access until {planDetails?.renewalDate}</li>
                 <li>• No further charges will be made</li>
