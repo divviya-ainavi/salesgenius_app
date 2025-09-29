@@ -82,10 +82,6 @@ export const usePlanManagement = () => {
           duration_days: planMaster?.duration_days,
           features: planMaster?.features || [],
           
-          // Status and cancellation details
-          status: userPlan.status,
-          canceled_at: userPlan.canceled_at,
-          
           // Calculated fields
           isExpired,
           daysRemaining,
@@ -148,8 +144,7 @@ export const usePlanManagement = () => {
           
           // Default values for missing fields
           is_active: true,
-          status: plan.status || 'active',
-          canceled_at: plan.canceled_at || null,
+          status: 'active',
           price: plan.plan_name === 'Beta Trial' ? 0 : 49,
           currency: 'usd',
           features: [],
