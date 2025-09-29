@@ -124,9 +124,6 @@ export const MainLayout = () => {
 
       {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
-      
-      {/* Global Plan Upgrade Modal */}
-      <PlanUpgradeModal />
     </div>
   );
 };
