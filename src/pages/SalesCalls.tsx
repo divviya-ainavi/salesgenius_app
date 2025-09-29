@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { usePlanRestrictions } from "@/hooks/usePlanRestrictions";
+import { PlanRestrictionBanner } from "@/components/restrictions/PlanRestrictionBanner";
+import { FeatureRestrictionModal } from "@/components/restrictions/FeatureRestrictionModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +80,9 @@ import {
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
+  const { isExpired, planName, daysRemaining, restrictions, checkFeatureAccess } = usePlanRestrictions();
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
+  const [restrictedFeature, setRestrictedFeature] = useState("");
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -707,6 +713,13 @@ export const SalesCalls = () => {
       "get data to process file"
     );
 
+    // Check if user can process transcripts
+    if (!checkFeatureAccess('canProcessTranscripts', 'Call Transcript Processing')) {
+      setRestrictedFeature('Call Transcript Processing');
+      setShowRestrictionModal(true);
+      return;
+    }
+
     // if (true) return "";
 
     if (!file) {
@@ -1218,6 +1231,14 @@ export const SalesCalls = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Plan Restriction Banner */}
+      <PlanRestrictionBanner 
+        isVisible={isExpired || daysRemaining <= 7}
+        planName={planName}
+        daysRemaining={daysRemaining}
+        isExpired={isExpired}
+      />
+
       {/* Page Header */}
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-foreground">Sales Calls</h1>
@@ -1886,6 +1907,15 @@ export const SalesCalls = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Feature Restriction Modal */}
+      <FeatureRestrictionModal 
+        isOpen={showRestrictionModal}
+        onClose={() => setShowRestrictionModal(false)}
+        featureName={restrictedFeature}
+        planName={planName}
+        isExpired={isExpired}
+      />
     </div>
   );
 };
