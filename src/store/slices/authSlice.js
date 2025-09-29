@@ -27,7 +27,6 @@ const initialState = {
     hasSeenOnboardingTour: false,
     callCompanyAPI: true,
     isBetaUser: false,
-    currentPlan: null,
     planLoading: false,
     planError: null,
 };
@@ -100,9 +99,6 @@ const authSlice = createSlice({
         setIsBetaUser: (state, action) => {
             state.isBetaUser = action.payload;
         },
-        setCurrentPlan: (state, action) => {
-            state.currentPlan = action.payload;
-        },
         setPlanLoading: (state, action) => {
             state.planLoading = action.payload;
         },
@@ -139,7 +135,6 @@ export const {
     setHubspotUserDetails,
     setCallCompanyAPI,
     setIsBetaUser,
-    setCurrentPlan,
     setPlanLoading,
     setPlanError
 } = authSlice.actions;

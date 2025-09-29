@@ -1,22 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  CheckCircle,
-  Home,
-  Loader2,
-  AlertCircle,
-  X,
-} from "lucide-react";
+import { CheckCircle, Home, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
+import { dbHelpers } from "../lib/supabase";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [planDetails, setPlanDetails] = useState(null);
   const [error, setError] = useState(null);
@@ -31,7 +26,7 @@ const PaymentSuccess = () => {
     if (planDetails && !isLoading) {
       // Start crackers animation immediately
       setShowCrackers(true);
-      
+
       // Stop crackers after 4 seconds
       setTimeout(() => {
         setShowCrackers(false);
@@ -41,33 +36,17 @@ const PaymentSuccess = () => {
 
   const verifyPaymentAndLoadDetails = async () => {
     try {
-      const sessionId = searchParams.get('session_id');
-      
+      const sessionId = searchParams.get("session_id");
+
       if (!sessionId) {
         setError("No payment session found");
         return;
       }
 
       // Load user's updated plan details
-      const { data: userPlanData, error: userPlanError } = await supabase
-        .from("user_plan")
-        .select(`
-          *,
-          plan_master (
-            id,
-            plan_name,
-            description,
-            price,
-            currency,
-            duration_days
-          )
-        `)
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const userPlanData = await dbHelpers.getUserPlanAndPlanMasters();
 
-      if (userPlanError || !userPlanData || userPlanData.length === 0) {
+      if (!userPlanData || userPlanData.length === 0) {
         throw new Error("Could not load updated plan details");
       }
 
@@ -85,7 +64,6 @@ const PaymentSuccess = () => {
       });
 
       toast.success("Payment successful! Your plan has been upgraded.");
-      
     } catch (error) {
       console.error("Error verifying payment:", error);
       setError(error.message);
@@ -140,11 +118,20 @@ const PaymentSuccess = () => {
         <div className="fixed inset-0 pointer-events-none z-50">
           {/* Colorful geometric shapes - triangles, circles, rectangles */}
           {[...Array(25)].map((_, i) => {
-            const shapes = ['triangle', 'circle', 'rectangle'];
-            const colors = ['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+            const shapes = ["triangle", "circle", "rectangle"];
+            const colors = [
+              "#FF6B9D",
+              "#4ECDC4",
+              "#45B7D1",
+              "#96CEB4",
+              "#FFEAA7",
+              "#DDA0DD",
+              "#98D8C8",
+              "#F7DC6F",
+            ];
             const shape = shapes[Math.floor(Math.random() * shapes.length)];
             const color = colors[Math.floor(Math.random() * colors.length)];
-            
+
             return (
               <div
                 key={i}
@@ -156,23 +143,23 @@ const PaymentSuccess = () => {
                   animationDuration: `${3 + Math.random() * 2}s`,
                 }}
               >
-                {shape === 'triangle' && (
+                {shape === "triangle" && (
                   <div
                     className="w-0 h-0"
                     style={{
-                      borderLeft: '8px solid transparent',
-                      borderRight: '8px solid transparent',
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
                       borderBottom: `12px solid ${color}`,
                     }}
                   />
                 )}
-                {shape === 'circle' && (
+                {shape === "circle" && (
                   <div
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: color }}
                   />
                 )}
-                {shape === 'rectangle' && (
+                {shape === "rectangle" && (
                   <div
                     className="w-2 h-6 rounded-sm"
                     style={{ backgroundColor: color }}
@@ -203,9 +190,10 @@ const PaymentSuccess = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-3">
           Payment Successful! 🎉
         </h1>
-        
+
         <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          Thank you for processing your most recent payment.<br />
+          Thank you for processing your most recent payment.
+          <br />
           Your premium subscription will expire on {planDetails?.renewalDate}.
         </p>
 

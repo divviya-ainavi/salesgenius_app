@@ -4444,7 +4444,55 @@ export const dbHelpers = {
       throw error;
     }
   },
+  async getPlanMasters() {
+    try {
 
+      const { data, error } = await supabase
+        .from("plan_master")
+        .select("*")
+        .order("price", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching tour steps:', error);
+      throw error;
+    }
+  },
+
+  async getUserPlanAndPlanMasters(user_id) {
+    try {
+      const { data, error } = await supabase
+        .from("user_plan")
+        .select(
+          `
+              *,
+              plan_master (
+                id,
+                plan_name,
+                description,
+                price,
+                currency,
+                duration_days,
+                features
+              )
+            `
+        )
+        .eq("user_id", user_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) {
+        throw error;
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching tour steps:', error);
+      throw error;
+    }
+  },
   // Tour Steps Management
   async getTourSteps() {
     try {
@@ -4925,6 +4973,8 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+
 
   // Check HubSpot integration status for an organization
   checkHubSpotIntegration: async (organizationId) => {

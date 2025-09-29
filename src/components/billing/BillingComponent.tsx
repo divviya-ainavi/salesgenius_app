@@ -30,42 +30,29 @@ import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { setPlanDetails, setCurrentPlan } from "../../store/slices/orgSlice";
+import { dbHelpers } from "../../lib/supabase";
 // import config from "@/lib/config";
 
 export const BillingComponent = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
-  const [currentPlan, setCurrentPlan] = useState(null);
-  const [planDetails, setPlanDetails] = useState(null);
-  const [availablePlans, setAvailablePlans] = useState([]);
+  // const [currentPlan, setCurrentPlan] = useState(null);
+  // const [planDetails, setPlanDetails] = useState(null);
+  // const [availablePlans, setAvailablePlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const dispatch = useDispatch();
+  const { currentPlan, planDetails, availablePlans } = useSelector(
+    (state) => state.org
+  );
 
   useEffect(() => {
     loadPlanData();
-    loadAvailablePlans();
   }, [user]);
-
-  const loadAvailablePlans = async () => {
-    try {
-      const { data: plansData, error: plansError } = await supabase
-        .from("plan_master")
-        .select("*")
-        .order("price", { ascending: true });
-
-      if (plansError) {
-        console.error("Error loading plans:", plansError);
-        return;
-      }
-
-      setAvailablePlans(plansData || []);
-    } catch (error) {
-      console.error("Error loading available plans:", error);
-      setAvailablePlans([]);
-    }
-  };
 
   const loadPlanData = async () => {
     try {
@@ -73,28 +60,9 @@ export const BillingComponent = () => {
 
       if (user?.id) {
         // Get user's current plan from user_plan table with plan_master details
-        const { data: userPlanData, error: userPlanError } = await supabase
-          .from("user_plan")
-          .select(
-            `
-            *,
-            plan_master (
-              id,
-              plan_name,
-              description,
-              price,
-              currency,
-              duration_days,
-              features
-            )
-          `
-          )
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1);
+        const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
 
-        if (!userPlanError && userPlanData && userPlanData.length > 0) {
+        if (userPlanData && userPlanData.length > 0) {
           // console.log(userPlanData, "user plan data");
           const userPlan = userPlanData[0];
           const planMaster = userPlan.plan_master;
@@ -107,58 +75,12 @@ export const BillingComponent = () => {
             0,
             Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
           );
-          console.log(userPlan, "user plan 109");
-          setCurrentPlan(planMaster);
-          setPlanDetails({
-            ...userPlan,
-            // ...planMaster,
-            isExpired,
-            daysRemaining,
-            renewalDate: endDate.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            }),
-            canceled_at: canceled_at.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            }),
-          });
-        } else {
-          // Check old plan table for backward compatibility
-          const { data: oldPlanData, error: oldPlanError } = await supabase
-            .from("plan")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-          if (!oldPlanError && oldPlanData && oldPlanData.length > 0) {
-            const plan = oldPlanData[0];
-            const endDate = new Date(plan.end_date);
-            const today = new Date();
-            const isExpired = endDate < today;
-            const daysRemaining = Math.max(
-              0,
-              Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
-            );
-
-            // Create a mock plan master object for old plans
-            const mockPlanMaster = {
-              id: null,
-              plan_name: plan.plan_name,
-              description: null,
-              price: plan.plan_name === "Beta Trial" ? 0 : 49,
-              currency: "usd",
-              duration_days: plan.no_of_days,
-              features: [],
-            };
-
-            setCurrentPlan(mockPlanMaster);
+          // console.log(userPlan, "user plan 109");
+          dispatch(setCurrentPlan(planMaster));
+          dispatch(
             setPlanDetails({
-              ...plan,
-              ...mockPlanMaster,
+              ...userPlan,
+              // ...planMaster,
               isExpired,
               daysRemaining,
               renewalDate: endDate.toLocaleDateString("en-US", {
@@ -166,8 +88,13 @@ export const BillingComponent = () => {
                 month: "long",
                 day: "numeric",
               }),
-            });
-          }
+              canceled_at: canceled_at.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            })
+          );
         }
       }
     } catch (error) {
@@ -176,8 +103,6 @@ export const BillingComponent = () => {
       setIsLoading(false);
     }
   };
-
-  console.log(planDetails, "check plan details");
 
   const isFreePlan = (plan) => {
     if (!plan) return true;

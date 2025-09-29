@@ -127,10 +127,14 @@ export const SalesCalls = () => {
     firefliesData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
-  const { businessKnowledge, personalInsightKnowledge } = useSelector(
-    (state) => state.org
-  );
+  const {
+    businessKnowledge,
+    personalInsightKnowledge,
+    currentPlan,
+    planDetails,
+  } = useSelector((state) => state.org);
 
+  console.log(currentPlan, planDetails, "check current plan and plan details");
   // Load initial data
   useEffect(() => {
     loadUploadedFiles();
