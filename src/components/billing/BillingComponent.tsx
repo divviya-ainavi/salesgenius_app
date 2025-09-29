@@ -100,6 +100,7 @@ export const BillingComponent = () => {
           const planMaster = userPlan.plan_master;
 
           const endDate = new Date(userPlan.end_date);
+          const canceled_at = new Date(userPlan.canceled_at);
           const today = new Date();
           const isExpired = endDate < today;
           const daysRemaining = Math.max(
@@ -114,6 +115,11 @@ export const BillingComponent = () => {
             isExpired,
             daysRemaining,
             renewalDate: endDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            canceled_at: canceled_at.toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
@@ -152,7 +158,6 @@ export const BillingComponent = () => {
             setCurrentPlan(mockPlanMaster);
             setPlanDetails({
               ...plan,
-
               ...mockPlanMaster,
               isExpired,
               daysRemaining,
@@ -427,6 +432,19 @@ export const BillingComponent = () => {
                   </span>
                 </div>
               )}
+
+              {planDetails && (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4" />
+
+                  {planDetails?.status == "canceled" && (
+                    <span className="text-sm">
+                      {planDetails.status == "canceled" ? "Canceled" : "Renews"}{" "}
+                      at {planDetails.canceled_at}.
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right Column - Plan Card and Actions */}
@@ -468,7 +486,7 @@ export const BillingComponent = () => {
               )}
 
               {/* Cancel Subscription Button for Paid Plans */}
-              {isPaidPlan(currentPlan) && (
+              {isPaidPlan(currentPlan) && planDetails?.status != "canceled" ? (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
@@ -478,6 +496,10 @@ export const BillingComponent = () => {
                   <X className="w-4 h-4 mr-2" />
                   Cancel Subscription
                 </Button>
+              ) : planDetails?.status != "canceled" ? (
+                <>Plan cancelled at {planDetails?.canceled_at}</>
+              ) : (
+                ""
               )}
             </div>
           </div>
