@@ -37,7 +37,6 @@ import {
 import { resetAuthState } from "./store/slices/authSlice";
 import { resetOrgState } from "./store/slices/orgSlice";
 import { toast } from "sonner";
-import { PlanUpgradeModal } from "@/components/billing/PlanUpgradeModal";
 
 const queryClient = new QueryClient();
 
@@ -140,9 +139,6 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
-      
-      {/* Global Plan Upgrade Modal */}
-      <PlanUpgradeModal />
     </QueryClientProvider>
   );
 };
