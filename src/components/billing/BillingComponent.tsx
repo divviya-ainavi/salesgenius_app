@@ -153,6 +153,7 @@ export const BillingComponent = () => {
         userid: user.id,
         plan_id: plan.stripe_price_id,
         emailid: user.email
+        dbplan_id:plan.id
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}checkout-session`, {
