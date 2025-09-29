@@ -28,15 +28,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import usePlanManagement from "@/hooks/usePlanManagement";
 
 export const BillingComponent = () => {
-  const dispatch = useDispatch();
-  const { user, organizationDetails, currentPlan: reduxCurrentPlan } = useSelector((state) => state.auth);
-  const { loadCurrentPlan, handlePlanUpgrade, handlePlanCancellation } = usePlanManagement();
+  const { user, organizationDetails } = useSelector((state) => state.auth);
+  const [currentPlan, setCurrentPlan] = useState(null);
   const [planDetails, setPlanDetails] = useState(null);
   const [availablePlans, setAvailablePlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,15 +43,9 @@ export const BillingComponent = () => {
   const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
-    // Use Redux plan data if available, otherwise load from database
-    if (reduxCurrentPlan) {
-      setPlanDetails(reduxCurrentPlan);
-      setIsLoading(false);
-    } else {
-      loadPlanData();
-    }
+    loadPlanData();
     loadAvailablePlans();
-  }, [user, reduxCurrentPlan]);
+  }, [user]);
 
   const loadAvailablePlans = async () => {
     try {
@@ -77,10 +68,99 @@ export const BillingComponent = () => {
 
   const loadPlanData = async () => {
     try {
-      // Load plan using the management hook
-      const planData = await loadCurrentPlan(user?.id);
-      if (planData) {
-        setPlanDetails(planData);
+      setIsLoading(true);
+
+      if (user?.id) {
+        // Get user's current plan from user_plan table with plan_master details
+        const { data: userPlanData, error: userPlanError } = await supabase
+          .from("user_plan")
+          .select(
+            `
+            *,
+            plan_master (
+              id,
+              plan_name,
+              description,
+              price,
+              currency,
+              duration_days,
+              features
+            )
+          `
+          )
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!userPlanError && userPlanData && userPlanData.length > 0) {
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+
+          const endDate = new Date(userPlan.end_date);
+          const today = new Date();
+          const isExpired = endDate < today;
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          );
+
+          setCurrentPlan(planMaster);
+          setPlanDetails({
+            ...userPlan,
+            ...planMaster,
+            isExpired,
+            daysRemaining,
+            renewalDate: endDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+          });
+        } else {
+          // Check old plan table for backward compatibility
+          const { data: oldPlanData, error: oldPlanError } = await supabase
+            .from("plan")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (!oldPlanError && oldPlanData && oldPlanData.length > 0) {
+            const plan = oldPlanData[0];
+            const endDate = new Date(plan.end_date);
+            const today = new Date();
+            const isExpired = endDate < today;
+            const daysRemaining = Math.max(
+              0,
+              Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+            );
+
+            // Create a mock plan master object for old plans
+            const mockPlanMaster = {
+              id: null,
+              plan_name: plan.plan_name,
+              description: null,
+              price: plan.plan_name === "Beta Trial" ? 0 : 49,
+              currency: "usd",
+              duration_days: plan.no_of_days,
+              features: [],
+            };
+
+            setCurrentPlan(mockPlanMaster);
+            setPlanDetails({
+              ...plan,
+              ...mockPlanMaster,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            });
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading plan data:", error);
@@ -89,16 +169,19 @@ export const BillingComponent = () => {
     }
   };
 
-  // Use current plan from Redux state
-  const currentPlan = reduxCurrentPlan || planDetails;
-
   const isFreePlan = (plan) => {
     if (!plan) return true;
-    return plan.planType === 'free' || plan.price === 0;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      plan.price === 0
+    );
   };
 
   const isPaidPlan = (plan) => {
-    return plan?.planType === 'paid' && plan.price > 0;
+    return !isFreePlan(plan);
   };
 
   const getPlanIcon = (plan) => {
@@ -152,8 +235,7 @@ export const BillingComponent = () => {
       const payload = {
         userid: user.id,
         plan_id: plan.stripe_price_id,
-        emailid: user.email,
-        dbplan_id:plan.id
+        emailid: user.email
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}checkout-session`, {
@@ -214,7 +296,7 @@ export const BillingComponent = () => {
       }
 
       // Reload plan data to reflect changes
-      await loadCurrentPlan(user?.id);
+      await loadPlanData();
       
       setShowCancelModal(false);
       toast.success("Subscription cancelled successfully. You'll retain access until your current billing period ends.");

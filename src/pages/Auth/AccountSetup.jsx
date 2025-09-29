@@ -397,58 +397,6 @@ const AccountSetup = () => {
           numberOfDays = 365;
         }
 
-        // Step 5.1: Get the appropriate plan_master record
-        let planMasterId = null;
-        let planPrice = 0;
-        
-        try {
-          const { data: planMasterData, error: planMasterError } = await supabase
-            .from("plan_master")
-            .select("id, price")
-            .ilike("plan_name", userType === "beta" ? "%trial%" : "%standard%")
-            .limit(1);
-
-          if (!planMasterError && planMasterData && planMasterData.length > 0) {
-            planMasterId = planMasterData[0].id;
-            planPrice = planMasterData[0].price;
-            console.log("✅ Found plan_master record:", planMasterData[0]);
-          } else {
-            console.warn("⚠️ No plan_master record found, using legacy plan table only");
-          }
-        } catch (planMasterError) {
-          console.warn("⚠️ Error fetching plan_master:", planMasterError);
-        }
-
-        // Step 5.2: Create entry in user_plan table (new system)
-        if (planMasterId) {
-          const { data: userPlanData, error: userPlanError } = await supabase
-            .from("user_plan")
-            .insert([
-              {
-                user_id: profile.id,
-                plan_id: planMasterId,
-                plan_name: planName,
-                amount: planPrice,
-                currency: "usd",
-                start_date: today.toISOString(),
-                end_date: endDate.toISOString(),
-                is_active: true,
-                status: "active",
-                payment_status: userType === "beta" ? "free_trial" : "complimentary",
-              },
-            ])
-            .select()
-            .single();
-
-          if (userPlanError) {
-            console.warn("Failed to create user_plan entry:", userPlanError);
-            // Continue with legacy plan creation
-          } else {
-            console.log("✅ User plan created successfully:", userPlanData);
-          }
-        }
-
-        // Step 5.3: Create legacy plan entry (for backward compatibility)
         const { data: planData, error: planError } = await supabase
           .from("plan")
           .insert([
@@ -465,13 +413,13 @@ const AccountSetup = () => {
 
         if (planError) {
           console.warn("Failed to create user plan:", planError);
-          // Don't show error to user - plan creation is optional
+          // Don't show error to user - Slack notification is optional
         } else {
           console.log("✅ User plan created successfully:", planData);
         }
       } catch (planCreationError) {
         console.warn("Error creating user plan:", planCreationError);
-        // Don't show error to user - plan creation is optional
+        // Don't show error to user - Slack notification is optional
       }
 
       // Step 6: Sign out from Supabase Auth (user will login manually)
