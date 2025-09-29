@@ -22,6 +22,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { setShowUpgradeModal } from "../../store/slices/orgSlice";
 
 interface UpgradePlanDialogProps {
   isOpen: boolean;
@@ -29,14 +31,17 @@ interface UpgradePlanDialogProps {
   onUpgrade?: (plan: any) => void;
 }
 
-export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
-  isOpen,
-  onClose,
-  onUpgrade,
-}) => {
-  const { user } = useSelector((state) => state.auth);
-  const { currentPlan, availablePlans } = useSelector((state) => state.org);
+export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
+  const { user, showUpgradeModal } = useSelector((state) => state.auth);
+  const { currentPlan, availablePlans, show } = useSelector(
+    (state) => state.org
+  );
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const dispatch = useDispatch();
+
+  const onClose = () => {
+    dispatch(setShowUpgradeModal(false));
+  };
 
   const getPlanIcon = (plan: any) => {
     if (!plan) return Gift;
@@ -155,7 +160,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={showUpgradeModal} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold text-center">

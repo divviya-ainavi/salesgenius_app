@@ -32,19 +32,22 @@ import { useSelector } from "react-redux";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
-import { setPlanDetails, setCurrentPlan } from "../../store/slices/orgSlice";
+import {
+  setPlanDetails,
+  setCurrentPlan,
+  setShowUpgradeModal,
+} from "../../store/slices/orgSlice";
 import { dbHelpers } from "../../lib/supabase";
 
 export const BillingComponent = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const dispatch = useDispatch();
-  const { currentPlan, planDetails, availablePlans } = useSelector(
-    (state) => state.org
-  );
+  const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
+    useSelector((state) => state.org);
 
   useEffect(() => {
     loadPlanData();
@@ -217,13 +220,14 @@ export const BillingComponent = () => {
   };
 
   const getNextTierPlan = () => {
+    // console.log(currentPlan, availablePlans, "get next tier");
     if (!currentPlan || !availablePlans.length) return null;
 
     // Find plans with higher price than current plan
     const higherPlans = availablePlans.filter(
       (plan) => plan.price > currentPlan.price
     );
-
+    console.log(higherPlans, "higher plans");
     // Return the cheapest higher plan (next tier)
     return higherPlans.length > 0
       ? higherPlans.reduce((min, plan) => (plan.price < min.price ? plan : min))
@@ -233,7 +237,7 @@ export const BillingComponent = () => {
   const handleUpgradeFromDialog = async (plan) => {
     // Reload plan data after successful upgrade
     await loadPlanData();
-    setShowUpgradeModal(false);
+    dispatch(setShowUpgradeModal(false));
   };
 
   if (isLoading) {
@@ -251,7 +255,7 @@ export const BillingComponent = () => {
 
   const nextTierPlan = getNextTierPlan();
   const showUpgradeOption = isFreePlan(currentPlan) && nextTierPlan;
-
+  console.log(isFreePlan(currentPlan), nextTierPlan);
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -291,7 +295,7 @@ export const BillingComponent = () => {
                 </div>
               )}
 
-              {planDetails && (
+              {planDetails?.status == "canceled" && (
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
 
@@ -334,7 +338,7 @@ export const BillingComponent = () => {
               {/* Upgrade Button */}
               {showUpgradeOption && (
                 <Button
-                  onClick={() => setShowUpgradeModal(true)}
+                  onClick={() => dispatch(setShowUpgradeModal(true))}
                   className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
                   size="lg"
                 >
@@ -344,7 +348,7 @@ export const BillingComponent = () => {
               )}
 
               {/* Cancel Subscription Button for Paid Plans */}
-              {isPaidPlan(currentPlan) && planDetails?.status != "canceled" ? (
+              {isPaidPlan(currentPlan) && planDetails?.status != "canceled" && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
@@ -354,10 +358,6 @@ export const BillingComponent = () => {
                   <X className="w-4 h-4 mr-2" />
                   Cancel Subscription
                 </Button>
-              ) : planDetails?.status != "canceled" ? (
-                <>Plan cancelled at {planDetails?.canceled_at}</>
-              ) : (
-                ""
               )}
             </div>
           </div>
@@ -365,11 +365,7 @@ export const BillingComponent = () => {
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradePlanDialog
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgradeFromDialog}
-      />
+      <UpgradePlanDialog />
 
       {/* Cancel Subscription Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>

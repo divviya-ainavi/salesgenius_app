@@ -152,7 +152,7 @@ const LoginPage = () => {
 
   const AllPlan = async () => {
     const plansData = await dbHelpers?.getPlanMasters();
-    // console.log(plansData, "available plans");
+
     dispatch(setAvailablePlans(plansData || []));
   };
 

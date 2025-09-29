@@ -6,14 +6,18 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { dbHelpers } from "../lib/supabase";
+import { setCurrentPlan, setPlanDetails } from "../store/slices/orgSlice";
+import { useDispatch } from "react-redux";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
+  const { planDetails } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [planDetails, setPlanDetails] = useState(null);
+  // const [planDetails, setPlanDetails] = useState(null);
   const [error, setError] = useState(null);
   const [showCrackers, setShowCrackers] = useState(false);
 
@@ -44,24 +48,42 @@ const PaymentSuccess = () => {
       }
 
       // Load user's updated plan details
-      const userPlanData = await dbHelpers.getUserPlanAndPlanMasters();
+      const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user?.id);
 
-      if (!userPlanData || userPlanData.length === 0) {
-        throw new Error("Could not load updated plan details");
+      if (userPlanData && userPlanData.length > 0) {
+        // console.log(userPlanData, "user plan data");
+        const userPlan = userPlanData[0];
+        const planMaster = userPlan.plan_master;
+
+        const endDate = new Date(userPlan.end_date);
+        const canceled_at = new Date(userPlan.canceled_at);
+        const today = new Date();
+        const isExpired = endDate < today;
+        const daysRemaining = Math.max(
+          0,
+          Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+        );
+        // console.log(userPlan, "user plan 109");
+        dispatch(setCurrentPlan(planMaster));
+        dispatch(
+          setPlanDetails({
+            ...userPlan,
+            // ...planMaster,
+            isExpired,
+            daysRemaining,
+            renewalDate: endDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            canceled_at: canceled_at.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+          })
+        );
       }
-
-      const userPlan = userPlanData[0];
-      const planMaster = userPlan.plan_master;
-
-      setPlanDetails({
-        ...userPlan,
-        ...planMaster,
-        renewalDate: new Date(userPlan.end_date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      });
 
       toast.success("Payment successful! Your plan has been upgraded.");
     } catch (error) {
