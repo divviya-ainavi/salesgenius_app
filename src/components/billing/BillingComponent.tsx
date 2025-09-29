@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+// import config from "@/lib/config";
 
 export const BillingComponent = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
@@ -94,6 +95,7 @@ export const BillingComponent = () => {
           .limit(1);
 
         if (!userPlanError && userPlanData && userPlanData.length > 0) {
+          // console.log(userPlanData, "user plan data");
           const userPlan = userPlanData[0];
           const planMaster = userPlan.plan_master;
 
@@ -104,11 +106,11 @@ export const BillingComponent = () => {
             0,
             Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
           );
-
+          console.log(userPlan, "user plan 109");
           setCurrentPlan(planMaster);
           setPlanDetails({
             ...userPlan,
-            ...planMaster,
+            // ...planMaster,
             isExpired,
             daysRemaining,
             renewalDate: endDate.toLocaleDateString("en-US", {
@@ -150,6 +152,7 @@ export const BillingComponent = () => {
             setCurrentPlan(mockPlanMaster);
             setPlanDetails({
               ...plan,
+
               ...mockPlanMaster,
               isExpired,
               daysRemaining,
@@ -168,6 +171,8 @@ export const BillingComponent = () => {
       setIsLoading(false);
     }
   };
+
+  console.log(planDetails, "check plan details");
 
   const isFreePlan = (plan) => {
     if (!plan) return true;
@@ -294,26 +299,64 @@ export const BillingComponent = () => {
     }
   };
 
+  console.log(planDetails, "check plan details", currentPlan);
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
 
     try {
       console.log("🔄 Cancelling subscription for user:", user.id);
 
-      // Update user_plan to mark as cancelled
-      const { error: updateError } = await supabase
-        .from("user_plan")
-        .update({
-          status: "cancelled",
-          canceled_at: new Date().toISOString(),
-          is_active: false,
-        })
-        .eq("user_id", user.id)
-        .eq("is_active", true);
+      // Call the cancellation API first
+      const cancellationPayload = {
+        subscription_Id: planDetails?.stripe_subscription_id,
+        cancel_at_period_end: true,
+        userid: user.id,
+        name: user.full_name || user.email,
+        email: user.email,
+        dbid: planDetails?.id,
+      };
 
-      if (updateError) {
-        throw updateError;
+      console.log(
+        "📤 Sending cancellation request to API:",
+        cancellationPayload
+      );
+
+      const apiResponse = await fetch(
+        `https://salesgenius.ainavi.co.uk/n8n/webhook/Cancle-sub`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cancellationPayload),
+        }
+      );
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        throw new Error(
+          `Cancellation API failed: ${apiResponse.status} ${apiResponse.statusText} - ${errorText}`
+        );
       }
+
+      const apiResult = await apiResponse.json();
+      console.log("✅ Cancellation API response:", apiResult);
+
+      // Update user_plan to mark as cancelled
+      // const { error: updateError } = await supabase
+      //   .from("user_plan")
+      //   .update({
+      //     status: "cancelled",
+      //     canceled_at: new Date().toISOString(),
+      //     // Keep is_active true until period ends
+      //     is_active: true,
+      //   })
+      //   .eq("user_id", user.id)
+      //   .eq("is_active", true);
+
+      // if (updateError) {
+      //   throw updateError;
+      // }
 
       // Reload plan data to reflect changes
       await loadPlanData();
