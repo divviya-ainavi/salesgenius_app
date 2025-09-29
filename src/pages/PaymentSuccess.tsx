@@ -182,7 +182,15 @@ const PaymentSuccess = () => {
             Welcome to your new {planDetails?.plan_name} plan
           </p>
         </div>
-
+ <Card className="mt-6 shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+          <CardContent className="p-6 text-center">
+            <Sparkles className="w-8 h-8 mx-auto mb-3 text-purple-600" />
+            <h3 className="text-lg font-semibold mb-2">Welcome to {planDetails?.plan_name}!</h3>
+            <p className="text-sm text-gray-600">
+              You now have access to all premium features. Start exploring your enhanced SalesGenius AI experience.
+            </p>
+          </CardContent>
+        </Card>
         {/* Main Content */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Payment Details Card */}
@@ -280,16 +288,8 @@ const PaymentSuccess = () => {
           </Button>
         </div>
 
-        {/* Welcome Message */}
-        <Card className="mt-6 shadow-lg border-0 bg-white/90 backdrop-blur-sm">
-          <CardContent className="p-6 text-center">
-            <Sparkles className="w-8 h-8 mx-auto mb-3 text-purple-600" />
-            <h3 className="text-lg font-semibold mb-2">Welcome to {planDetails?.plan_name}!</h3>
-            <p className="text-sm text-gray-600">
-              You now have access to all premium features. Start exploring your enhanced SalesGenius AI experience.
-            </p>
-          </CardContent>
-        </Card>
+        
+       
       </div>
     </div>
   );
