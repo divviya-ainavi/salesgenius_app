@@ -152,7 +152,7 @@ export const BillingComponent = () => {
       const payload = {
         userid: user.id,
         plan_id: plan.stripe_price_id,
-        emailid: user.email
+        emailid: user.email,
         dbplan_id:plan.id
       };
 
