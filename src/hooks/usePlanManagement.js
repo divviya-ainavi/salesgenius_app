@@ -47,10 +47,12 @@ export const usePlanManagement = () => {
         const userPlan = userPlanData[0];
         const planMaster = userPlan.plan_master;
 
-        // Calculate plan status
+        // Calculate plan status - check both status and dates
         const endDate = new Date(userPlan.end_date);
         const today = new Date();
-        const isExpired = endDate < today;
+        const isDateExpired = endDate < today;
+        const isStatusExpired = userPlan.status === 'expired' || userPlan.status === 'cancelled';
+        const isExpired = isDateExpired || isStatusExpired;
         const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
 
         const planDetails = {
@@ -130,7 +132,9 @@ export const usePlanManagement = () => {
         const plan = legacyPlanData[0];
         const endDate = new Date(plan.end_date);
         const today = new Date();
-        const isExpired = endDate < today;
+        const isDateExpired = endDate < today;
+        // Legacy plans don't have status field, so only check date
+        const isExpired = isDateExpired;
         const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
 
         const legacyPlanDetails = {

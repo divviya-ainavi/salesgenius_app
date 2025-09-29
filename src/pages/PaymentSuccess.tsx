@@ -58,7 +58,11 @@ const PaymentSuccess = () => {
         const endDate = new Date(userPlan.end_date);
         const canceled_at = new Date(userPlan.canceled_at);
         const today = new Date();
-        const isExpired = endDate < today;
+        const isDateExpired = endDate < today;
+        const isStatusExpired = userPlan.status === 'expired' || 
+                               userPlan.status === 'cancelled' || 
+                               userPlan.is_active === false;
+        const isExpired = isDateExpired || isStatusExpired;
         const daysRemaining = Math.max(
           0,
           Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))

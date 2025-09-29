@@ -8,8 +8,16 @@ export const usePlanRestrictions = () => {
   const hasFeatureAccess = useCallback((feature) => {
     if (!currentPlan) return false;
     
-    // If plan is expired, no access to premium features
-    if (currentPlan.isExpired) return false;
+    // Check multiple expiry conditions
+    const today = new Date();
+    const endDate = new Date(currentPlan.end_date);
+    const isDateExpired = endDate < today;
+    const isStatusExpired = currentPlan.status === 'expired' || 
+                           currentPlan.status === 'cancelled' || 
+                           currentPlan.is_active === false;
+    
+    // If plan is expired by date or status, no access to premium features
+    if (isDateExpired || isStatusExpired) return false;
     
     // Free plans have limited access
     if (currentPlan.planType === 'free') {
@@ -33,7 +41,16 @@ export const usePlanRestrictions = () => {
   }, [hasFeatureAccess]);
 
   const isExpired = useMemo(() => {
-    return currentPlan?.isExpired || false;
+    if (!currentPlan) return true;
+    
+    const today = new Date();
+    const endDate = new Date(currentPlan.end_date);
+    const isDateExpired = endDate < today;
+    const isStatusExpired = currentPlan.status === 'expired' || 
+                           currentPlan.status === 'cancelled' || 
+                           currentPlan.is_active === false;
+    
+    return isDateExpired || isStatusExpired;
   }, [currentPlan]);
 
   const daysUntilExpiry = useMemo(() => {
