@@ -212,6 +212,35 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.6s;
 }
 
+/* Crackers animation */
+@keyframes cracker-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes cracker-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+}
+
+.animate-cracker-fall {
+  animation: cracker-fall 3s ease-out forwards;
+}
+
+.animate-cracker-bounce {
+  animation: cracker-bounce 1s ease-in-out infinite;
+}
+
 /* Quill editor custom styles */
 .ql-editor {
   min-height: 150px;
