@@ -30,6 +30,7 @@ const initialState = {
     currentPlan: null,
     planLoading: false,
     planError: null,
+    showPlanUpgradeModal: false,
 };
 
 const authSlice = createSlice({
@@ -109,6 +110,9 @@ const authSlice = createSlice({
         setPlanError: (state, action) => {
             state.planError = action.payload;
         },
+        setShowPlanUpgradeModal: (state, action) => {
+            state.showPlanUpgradeModal = action.payload;
+        },
         resetAuthState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -141,6 +145,7 @@ export const {
     setIsBetaUser,
     setCurrentPlan,
     setPlanLoading,
-    setPlanError
+    setPlanError,
+    setShowPlanUpgradeModal
 } = authSlice.actions;
 export default authSlice.reducer;
