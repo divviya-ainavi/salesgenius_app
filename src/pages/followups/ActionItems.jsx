@@ -816,31 +816,38 @@ export const ActionItems = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Button
-                    onClick={() =>
-                      handlePushCommitments(
-                        commitments.filter((item) => item.is_selected)
-                      )
-                    }
-                    disabled={
-                      pushStatus === "pending" ||
-                      selectedCount === 0 ||
-                      !hubspotConnectionStatus?.connected
-                    }
-                    size="sm"
-                  >
-                    {pushStatus === "pending" ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        Pushing to HubSpot...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Push {selectedCount} to HubSpot
-                      </>
-                    )}
-                  </Button>
+                  {canPushToHubSpot ? (
+                    <Button
+                      onClick={() =>
+                        handlePushCommitments(
+                          commitments.filter((item) => item.is_selected)
+                        )
+                      }
+                      disabled={
+                        pushStatus === "pending" ||
+                        selectedCount === 0 ||
+                        !hubspotConnectionStatus?.connected
+                      }
+                      size="sm"
+                    >
+                      {pushStatus === "pending" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          Pushing to HubSpot...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Push {selectedCount} to HubSpot
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <RestrictedFeatureButton
+                      featureName="HubSpot Integration"
+                      size="sm"
+                    />
+                  )}
                 </div>
               </CardHeader>
 
