@@ -1,7 +1,4 @@
 import { useState, useEffect } from "react";
-import { usePlanRestrictions } from "@/hooks/usePlanRestrictions";
-import { PlanRestrictionBanner } from "@/components/restrictions/PlanRestrictionBanner";
-import { FeatureRestrictionModal } from "@/components/restrictions/FeatureRestrictionModal";
 import {
   Card,
   CardContent,
@@ -163,10 +160,6 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
       ? "Email Templates"
       : "Presentation Prompt Builder"
   );
-
-  const { isExpired, planName, daysRemaining, restrictions, checkFeatureAccess } = usePlanRestrictions();
-  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
-  const [restrictedFeature, setRestrictedFeature] = useState("");
 
   // Core state
   const [currentView, setCurrentView] = useState<"setup" | "canvas">("setup");
@@ -630,19 +623,6 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   }, [selectedProspect]);
   //   console.log(selectedProspect, "check selected prospect");
   const handleGenerate = async () => {
-    // Check feature access based on artifact type
-    const featureMap = {
-      email: { permission: 'canGenerateEmails', name: 'Email Generation' },
-      presentation: { permission: 'canGeneratePresentations', name: 'Presentation Generation' }
-    };
-
-    const feature = featureMap[artefactType];
-    if (feature && !checkFeatureAccess(feature.permission, feature.name)) {
-      setRestrictedFeature(feature.name);
-      setShowRestrictionModal(true);
-      return;
-    }
-
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
     setIsLoading(true);
@@ -1196,14 +1176,6 @@ ${updatedBlocks
   // Render the appropriate view
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Plan Restriction Banner */}
-      <PlanRestrictionBanner 
-        isVisible={isExpired || daysRemaining <= 7}
-        planName={planName}
-        daysRemaining={daysRemaining}
-        isExpired={isExpired}
-      />
-
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -2616,16 +2588,6 @@ ${updatedBlocks
           </div>
         </div>
       )}
-
-      {/* Feature Restriction Modal */}
-      <FeatureRestrictionModal 
-        isOpen={showRestrictionModal}
-        onClose={() => setShowRestrictionModal(false)}
-        featureName={restrictedFeature}
-        planName={planName}
-        isExpired={isExpired}
-      />
-
       {/* Email Client Selection Dialog */}
       <Dialog
         open={showEmailClientDialog}
