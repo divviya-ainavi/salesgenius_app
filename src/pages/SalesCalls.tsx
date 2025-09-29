@@ -50,8 +50,6 @@ import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import firefliesService from "@/services/firefliesService";
 import { usePageTimer } from "../hooks/userPageTimer";
-import { usePlanRestrictions } from "@/hooks/usePlanRestrictions";
-import { RestrictedFeatureButton } from "@/components/restrictions/RestrictedFeatureButton";
 import { config } from "@/lib/config";
 import { ProcessCallModal } from "@/components/calls/ProcessCallModal";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -79,7 +77,6 @@ import {
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
-  const { canProcessCalls, trackRestrictionHit } = usePlanRestrictions();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -709,11 +706,6 @@ export const SalesCalls = () => {
       chosendata,
       "get data to process file"
     );
-
-    if (!canProcessCalls) {
-      trackRestrictionHit('call_processing');
-      return;
-    }
 
     // if (true) return "";
 
