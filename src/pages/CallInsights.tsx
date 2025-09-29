@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { usePlanRestrictions } from "@/hooks/usePlanRestrictions";
+import { PlanRestrictionBanner } from "@/components/restrictions/PlanRestrictionBanner";
+import { FeatureRestrictionModal } from "@/components/restrictions/FeatureRestrictionModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +114,9 @@ const communicationModalityIcons = {
 
 const CallInsights = () => {
   usePageTimer("Call Insights");
+  const { isExpired, planName, daysRemaining, restrictions, checkFeatureAccess } = usePlanRestrictions();
+  const [showRestrictionModal, setShowRestrictionModal] = useState(false);
+  const [restrictedFeature, setRestrictedFeature] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedProspect, setSelectedProspect] = useState(null);
@@ -1086,6 +1092,13 @@ const CallInsights = () => {
   };
 
   const handlePushToHubSpot = async () => {
+    // Check if user can push to HubSpot
+    if (!checkFeatureAccess('canPushToHubspot', 'HubSpot Integration')) {
+      setRestrictedFeature('HubSpot Integration');
+      setShowRestrictionModal(true);
+      return;
+    }
+
     if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
       toast.error("HubSpot integration not available");
       return;
@@ -1573,6 +1586,14 @@ const CallInsights = () => {
   // console.log(insights, "get list of insights");
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Plan Restriction Banner */}
+      <PlanRestrictionBanner 
+        isVisible={isExpired || daysRemaining <= 7}
+        planName={planName}
+        daysRemaining={daysRemaining}
+        isExpired={isExpired}
+      />
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -2979,6 +3000,15 @@ const CallInsights = () => {
           {/* Cumulative Intelligence Section */}
         </>
       )}
+
+      {/* Feature Restriction Modal */}
+      <FeatureRestrictionModal 
+        isOpen={showRestrictionModal}
+        onClose={() => setShowRestrictionModal(false)}
+        featureName={restrictedFeature}
+        planName={planName}
+        isExpired={isExpired}
+      />
     </div>
   );
 };
