@@ -23,6 +23,8 @@ import {
   Users,
   Shield,
   Sparkles,
+  AlertTriangle,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
@@ -37,6 +39,8 @@ export const BillingComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     loadPlanData();
@@ -176,6 +180,10 @@ export const BillingComponent = () => {
     );
   };
 
+  const isPaidPlan = (plan) => {
+    return !isFreePlan(plan);
+  };
+
   const getPlanIcon = (plan) => {
     if (!plan) return Gift;
     if (isFreePlan(plan)) return Gift;
@@ -263,6 +271,41 @@ export const BillingComponent = () => {
       toast.error("Failed to start checkout process: " + error.message);
     } finally {
       setIsProcessingPayment(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    
+    try {
+      console.log("🔄 Cancelling subscription for user:", user.id);
+      
+      // Update user_plan to mark as cancelled
+      const { error: updateError } = await supabase
+        .from("user_plan")
+        .update({
+          status: "cancelled",
+          canceled_at: new Date().toISOString(),
+          is_active: false
+        })
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Reload plan data to reflect changes
+      await loadPlanData();
+      
+      setShowCancelModal(false);
+      toast.success("Subscription cancelled successfully. You'll retain access until your current billing period ends.");
+      
+    } catch (error) {
+      console.error("❌ Error cancelling subscription:", error);
+      toast.error("Failed to cancel subscription: " + error.message);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -354,6 +397,19 @@ export const BillingComponent = () => {
                 >
                   <ArrowUp className="w-4 h-4 mr-2" />
                   Upgrade to {nextTierPlan.plan_name}
+                </Button>
+              )}
+
+              {/* Cancel Subscription Button for Paid Plans */}
+              {isPaidPlan(currentPlan) && (
+                <Button
+                  onClick={() => setShowCancelModal(true)}
+                  variant="outline"
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  size="lg"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Subscription
                 </Button>
               )}
             </div>
@@ -535,6 +591,87 @@ export const BillingComponent = () => {
               className="px-8 py-3 text-base font-medium rounded-xl border-gray-300 hover:bg-gray-50"
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Subscription Modal */}
+      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Cancel Subscription</span>
+            </DialogTitle>
+            <DialogDescription className="text-base leading-relaxed">
+              Are you sure you want to cancel your {currentPlan?.plan_name} subscription?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Current Plan Info */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3 mb-3">
+                <CreditCard className="w-5 h-5 text-red-600" />
+                <span className="font-medium text-red-800">Current Plan Details</span>
+              </div>
+              <div className="space-y-2 text-sm text-red-700">
+                <div className="flex justify-between">
+                  <span>Plan:</span>
+                  <span className="font-medium">{currentPlan?.plan_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Price:</span>
+                  <span className="font-medium">₹{currentPlan?.price?.toLocaleString()} / {getDurationText(currentPlan?.duration_days)}</span>
+                </div>
+                {planDetails && (
+                  <div className="flex justify-between">
+                    <span>Access until:</span>
+                    <span className="font-medium">{planDetails.renewalDate}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cancellation Info */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="font-medium text-yellow-800 mb-2">What happens when you cancel:</h4>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• You'll retain access until {planDetails?.renewalDate}</li>
+                <li>• No further charges will be made</li>
+                <li>• You can reactivate anytime before expiration</li>
+                <li>• Your data will be preserved</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelModal(false)}
+              disabled={isCancelling}
+              className="mt-2 sm:mt-0"
+            >
+              Keep Subscription
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelSubscription}
+              disabled={isCancelling}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Subscription
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
