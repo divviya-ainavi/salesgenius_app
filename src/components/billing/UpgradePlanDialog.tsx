@@ -198,17 +198,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         <div className="flex justify-center py-8 px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
             {availablePlans
-              .filter((plan) => {
-                // If user has already used a free plan, don't show free plans again
-                if (
-                  isFreePlan(plan) &&
-                  currentPlan &&
-                  isFreePlan(currentPlan)
-                ) {
-                  return false;
-                }
-                return true;
-              })
               .map((plan) => {
                 const PlanIcon = getPlanIcon(plan);
                 const isCurrentPlan = plan.id === currentPlan?.id;
