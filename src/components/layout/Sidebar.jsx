@@ -126,9 +126,9 @@ export const Sidebar = () => {
   const hasAdminAccess = filteredAdminItems.length > 0;
 
   return (
-    <div className="w-64 bg-card border-r border-border flex flex-col h-full">
+    <div className="w-64 bg-card border-r border-border flex flex-col h-screen">
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2">
         {mainNavItems.map((item) => (
           <div key={item.title}>
             {item.href ? (
@@ -240,7 +240,7 @@ export const Sidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border flex-shrink-0">
         <div className="text-xs text-muted-foreground text-center">
           <p>© 2025 SalesGenius.ai</p>
           <p>Version 1.1.0</p>
