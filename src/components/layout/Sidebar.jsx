@@ -297,14 +297,14 @@ export const Sidebar = () => {
             </div>
 
             {/* Upgrade Button for Free Plan Users */}
-            {isFreePlan(currentPlan) && !planDetails?.isExpired && (
+            {(isFreePlan(currentPlan) || planDetails?.isExpired) && (
               <Button
                 onClick={handleUpgradeClick}
                 size="sm"
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
               >
                 <ArrowUp className="w-3 h-3 mr-1" />
-                Upgrade to Pro
+                {planDetails?.isExpired ? "Renew Plan" : "Upgrade to Pro"}
               </Button>
             )}
           </div>
