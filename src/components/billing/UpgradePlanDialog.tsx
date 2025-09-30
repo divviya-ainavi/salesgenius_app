@@ -199,7 +199,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
         <div className="flex justify-center py-8 px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
-            {availablePlans.map((plan) => {
+            {availablePlans
+              .filter((plan) => {
+                // Hide free plans if user's current plan is expired or inactive
+                if (isFreePlan(plan) && planDetails?.isExpired) {
+                  return false;
+                }
+                return true;
+              })
+              .map((plan) => {
               const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
               const isUpgrade = plan.price > (currentPlan?.price || 0);
