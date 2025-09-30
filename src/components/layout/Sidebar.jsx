@@ -126,9 +126,9 @@ export const Sidebar = () => {
   const hasAdminAccess = filteredAdminItems.length > 0;
 
   return (
-    <div className="w-64 bg-card border-r border-border flex flex-col">
+    <div className="w-64 bg-card border-r border-border flex flex-col h-full">
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {mainNavItems.map((item) => (
           <div key={item.title}>
             {item.href ? (
