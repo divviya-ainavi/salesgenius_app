@@ -342,8 +342,7 @@ const AccountSetup = () => {
       }
 
       // Step 3: Create user profile (with both custom and Supabase auth support)
-      const hashedPassword = hashPassword(formData.password);
-
+    
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert([
@@ -353,7 +352,7 @@ const AccountSetup = () => {
             organization_id: organizationId,
             title_id: inviteData.title_id || null,
             status_id: 1, // Active status
-            hashed_password: hashedPassword,
+           
             auth_user_id: supabaseAuthUserId, // Link to Supabase Auth user if created
           },
         ])
