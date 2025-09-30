@@ -226,7 +226,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     //   ? "border-gray-300 opacity-60 cursor-not-allowed"
                     //   : "",
                     isCurrentPlan
-                      ? planDetails?.isExpired
+                      ? planDetails?.isExpired && isFreePlan(plan) 
                         ? "border-red-400 shadow-lg ring-2 ring-red-100"
                         : "border-gray-400 shadow-lg"
                       : isPopular
