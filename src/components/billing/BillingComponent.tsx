@@ -69,7 +69,17 @@ export const BillingComponent = () => {
           const endDate = new Date(userPlan.end_date);
           const canceled_at = new Date(userPlan.canceled_at);
           const today = new Date();
-          const isDateExpired = endDate < today;
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          console.log(
+            endDate,
+            today,
+            "check date",
+            isDateExpired,
+            endDate?.toLocaleDateString("en-CA") <
+              today?.toLocaleDateString("en-CA")
+          );
           const isStatusExpired =
             userPlan.status === "expired" ||
             userPlan.status === "cancelled" ||

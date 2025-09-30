@@ -116,10 +116,13 @@ const LoginPage = () => {
           const endDate = new Date(userPlan.end_date);
           const canceled_at = new Date(userPlan.canceled_at);
           const today = new Date();
-          const isDateExpired = endDate < today;
-          const isStatusExpired = userPlan.status === 'expired' || 
-                                 userPlan.status === 'cancelled' || 
-                                 userPlan.is_active === false;
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
           const isExpired = isDateExpired || isStatusExpired;
           const daysRemaining = Math.max(
             0,

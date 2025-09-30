@@ -58,10 +58,13 @@ const PaymentSuccess = () => {
         const endDate = new Date(userPlan.end_date);
         const canceled_at = new Date(userPlan.canceled_at);
         const today = new Date();
-        const isDateExpired = endDate < today;
-        const isStatusExpired = userPlan.status === 'expired' || 
-                               userPlan.status === 'cancelled' || 
-                               userPlan.is_active === false;
+        const isDateExpired =
+          endDate?.toLocaleDateString("en-CA") <
+          today?.toLocaleDateString("en-CA");
+        const isStatusExpired =
+          userPlan.status === "expired" ||
+          userPlan.status === "cancelled" ||
+          userPlan.is_active === false;
         const isExpired = isDateExpired || isStatusExpired;
         const daysRemaining = Math.max(
           0,
@@ -130,7 +133,7 @@ const PaymentSuccess = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <Button onClick={() => navigate("/")} className="w-full">
             <Home className="w-4 h-4 mr-2" />
-            Go to Dashboard
+            Go to Sales Call
           </Button>
         </div>
       </div>
@@ -229,7 +232,7 @@ const PaymentSuccess = () => {
           className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           size="lg"
         >
-          Visit dashboard
+          Visit Sales Call
         </Button>
       </div>
     </div>
