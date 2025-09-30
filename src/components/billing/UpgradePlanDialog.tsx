@@ -38,7 +38,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const dispatch = useDispatch();
   const [hasCoupon, setHasCoupon] = useState(false);
-  const [expandedFeatures, setExpandedFeatures] = useState<{[key: string]: boolean}>({});
+  const [expandedFeatures, setExpandedFeatures] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   // Check for coupon on component mount
   useEffect(() => {
@@ -63,9 +65,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   };
 
   const toggleFeatures = (planId: string) => {
-    setExpandedFeatures(prev => ({
+    setExpandedFeatures((prev) => ({
       ...prev,
-      [planId]: !prev[planId]
+      [planId]: !prev[planId],
     }));
   };
 
@@ -73,8 +75,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     if (!plan) return "border-gray-300";
     if (isFreePlan(plan)) return "border-green-300";
     if (plan.plan_name?.toLowerCase().includes("pro")) return "border-blue-400";
-    if (plan.plan_name?.toLowerCase().includes("business")) return "border-purple-400";
-    if (plan.plan_name?.toLowerCase().includes("enterprise")) return "border-gray-600";
+    if (plan.plan_name?.toLowerCase().includes("business"))
+      return "border-purple-400";
+    if (plan.plan_name?.toLowerCase().includes("enterprise"))
+      return "border-gray-600";
     return "border-blue-400";
   };
 
@@ -186,7 +190,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           {hasCoupon && (
             <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-lg mt-2">
               <div className="text-center">
-                <div className="text-base font-bold mb-1">🎉 Coupon Applied!</div>
+                <div className="text-base font-bold mb-1">
+                  🎉 Coupon Applied!
+                </div>
                 <div className="text-sm opacity-90">
                   Code{" "}
                   <span className="font-bold bg-white/20 px-2 py-1 rounded">
@@ -205,14 +211,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         <div className="overflow-y-auto flex-1 px-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
             {availablePlans.map((plan) => {
-       const PlanIcon = getPlanIcon(plan);
+              const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
               const isUpgrade = plan.price > (currentPlan?.price || 0);
               const isDowngrade = plan.price < (currentPlan?.price || 0);
               const isPopular =
                 plan.plan_name?.toLowerCase().includes("pro") ||
                 plan.plan_name?.toLowerCase().includes("standard");
-               const isIntroductory = plan.plan_name?.toLowerCase().includes("plus") ||
+              const isIntroductory =
+                plan.plan_name?.toLowerCase().includes("plus") ||
                 plan.plan_name?.toLowerCase().includes("starter");
 
               // For expired users, allow them to choose their current plan again
@@ -220,7 +227,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 planDetails?.isExpired && plan.id === currentPlan?.id;
 
               // Disable free plans for expired users (but still show them)
-              const isDisabledFreePlan = isFreePlan(plan) && planDetails?.isExpired;
+              const isDisabledFreePlan =
+                isFreePlan(plan) && planDetails?.isExpired;
 
               return (
                 <div
@@ -229,10 +237,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
-                     // ? "border-gray-300 opacity-50"
+                    // ? "border-gray-300 opacity-50"
                     //   : "",
                     isCurrentPlan
-                      ? planDetails?.isExpired && !isFreePlan(plan) 
+                      ? planDetails?.isExpired && !isFreePlan(plan)
                         ? "border-red-400 shadow-lg ring-2 ring-red-100"
                         : "border-gray-400 shadow-md"
                       : isPopular
@@ -241,7 +249,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   )}
                 >
                   {/* Disabled Overlay for Free Plans */}
-                  {isDisabledFreePlan && (
+                  {/* {isDisabledFreePlan && (
                     <div className="absolute inset-0 bg-gray-100/90 flex items-center justify-center z-20 rounded-lg">
                       <div className="text-center">
                         <div className="text-sm font-medium text-gray-600 mb-1">
@@ -252,8 +260,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         </div>
                       </div>
                     </div>
-                  )}
-                  
+                  )} */}
 
                   {/* Badges */}
                   {isPopular && !isCurrentPlan && (
@@ -263,7 +270,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       </Badge>
                     </div>
                   )}
-
 
                   {isCurrentPlan && (
                     <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-10">
@@ -342,7 +348,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     {/* Action Button */}
                     <Button
                       onClick={() =>
-                        isCurrentPlan && !canSelectExpiredPlan || isDisabledFreePlan
+                        (isCurrentPlan && !canSelectExpiredPlan) ||
+                        isDisabledFreePlan
                           ? null
                           : handleUpgrade(plan)
                       }
@@ -392,23 +399,30 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     {plan.features && plan.features.length > 0 && (
                       <div className="text-left">
                         <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                          {(expandedFeatures[plan.id] ? plan.features : plan.features.slice(0, 4)).map((feature, index) => (
-                            <div key={index} className="flex items-center space-x-2">
+                          {(expandedFeatures[plan.id]
+                            ? plan.features
+                            : plan.features.slice(0, 4)
+                          ).map((feature, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center space-x-2"
+                            >
                               <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 mt-0.5" />
                               <span className="text-xs text-gray-700 leading-tight">
-                                {feature.length > 35 ? `${feature.substring(0, 35)}...` : feature}
+                                {feature.length > 35
+                                  ? `${feature.substring(0, 35)}...`
+                                  : feature}
                               </span>
                             </div>
                           ))}
                           {plan.features.length > 4 && (
-                            <div 
+                            <div
                               className="text-xs text-blue-600 font-medium mt-2 cursor-pointer hover:text-blue-800 transition-colors"
                               onClick={() => toggleFeatures(plan.id)}
                             >
-                              {expandedFeatures[plan.id] 
-                                ? "Show less" 
-                                : `+${plan.features.length - 4} more features`
-                              }
+                              {expandedFeatures[plan.id]
+                                ? "Show less"
+                                : `+${plan.features.length - 4} more features`}
                             </div>
                           )}
                         </div>
