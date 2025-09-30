@@ -111,7 +111,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         plan_id: plan.stripe_price_id,
         emailid: user.email,
         dbplan_id: plan.id,
-        ...(hasCoupon && !isFreePlan(plan) && { coupon_code: "50LIFE" }),
+        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon: hasCoupon,,
       };
 
       const response = await fetch(
