@@ -222,9 +222,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   key={plan.id}
                   className={cn(
                     "relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 overflow-hidden",
-                    isDisabledFreePlan
-                      ? "border-gray-300 opacity-60 cursor-not-allowed"
-                      : "",
+                    // isDisabledFreePlan
+                    //   ? "border-gray-300 opacity-60 cursor-not-allowed"
+                    //   : "",
                     isCurrentPlan
                       ? planDetails?.isExpired
                         ? "border-red-400 shadow-lg ring-2 ring-red-100"
@@ -234,16 +234,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       : "border-gray-200 hover:border-blue-300"
                   )}
                 >
-                  {/* Disabled overlay for free plans when user is expired */}
-                  {isDisabledFreePlan && (
-                    <div className="absolute inset-0 bg-gray-100/50 z-20 flex items-center justify-center">
-                      <div className="bg-white px-4 py-2 rounded-lg shadow-md border border-gray-300">
-                        <p className="text-sm font-medium text-gray-700">
-                          Free plan not available
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  
 
                   {/* Badges */}
                   {isPopular && !isCurrentPlan && (
