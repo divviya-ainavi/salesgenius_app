@@ -200,14 +200,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         <div className="flex justify-center py-8 px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
             {availablePlans.map((plan) => {
-              const PlanIcon = getPlanIcon(plan);
-              const isCurrentPlan = plan.id === currentPlan?.id;
-              const isUpgrade = plan.price > (currentPlan?.price || 0);
-              const isDowngrade = plan.price < (currentPlan?.price || 0);
-              const isPopular =
-                plan.plan_name?.toLowerCase().includes("pro") ||
-                plan.plan_name?.toLowerCase().includes("standard");
-              const isIntroductory =
                 plan.plan_name?.toLowerCase().includes("plus") ||
                 plan.plan_name?.toLowerCase().includes("starter");
 
@@ -215,11 +207,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
               const canSelectExpiredPlan =
                 planDetails?.isExpired && plan.id === currentPlan?.id;
 
+              // Disable free plans for expired users (but still show them)
+              const isDisabledFreePlan = isFreePlan(plan) && planDetails?.isExpired;
+
               return (
                 <div
                   key={plan.id}
                   className={cn(
                     "relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 overflow-hidden",
+                    isDisabledFreePlan
+                      ? "border-gray-300 opacity-60 cursor-not-allowed"
+                      : "",
                     isCurrentPlan
                       ? planDetails?.isExpired
                         ? "border-red-400 shadow-lg ring-2 ring-red-100"
@@ -229,6 +227,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       : "border-gray-200 hover:border-blue-300"
                   )}
                 >
+                  {/* Disabled overlay for free plans when user is expired */}
+                  {isDisabledFreePlan && (
+                    <div className="absolute inset-0 bg-gray-100/50 z-20 flex items-center justify-center">
+                      <div className="bg-white px-4 py-2 rounded-lg shadow-md border border-gray-300">
+                        <p className="text-sm font-medium text-gray-700">
+                          Free plan not available
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Badges */}
                   {isPopular && !isCurrentPlan && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
@@ -335,17 +344,19 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     {/* Action Button */}
                     <Button
                       onClick={() =>
-                        isCurrentPlan && !canSelectExpiredPlan
+                        isCurrentPlan && !canSelectExpiredPlan || isDisabledFreePlan
                           ? null
                           : handleUpgrade(plan)
                       }
                       disabled={
                         (isCurrentPlan && !canSelectExpiredPlan) ||
+                        isDisabledFreePlan ||
                         (isDowngrade && planDetails?.isExpired)
                       }
                       className={cn(
                         "w-full mb-8 h-12 text-base font-semibold rounded-xl transition-all duration-200",
                         (isCurrentPlan && !canSelectExpiredPlan) ||
+                          isDisabledFreePlan ||
                           (isDowngrade && planDetails?.isExpired)
                           ? "bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300"
                           : canSelectExpiredPlan
@@ -360,6 +371,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Processing...
                         </>
+                      ) : isDisabledFreePlan ? (
+                        "Not Available"
                       ) : isCurrentPlan && !canSelectExpiredPlan ? (
                         planDetails?.isExpired ? (
                           "Your expired plan"
