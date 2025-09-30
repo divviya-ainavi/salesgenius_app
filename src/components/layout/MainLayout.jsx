@@ -10,11 +10,9 @@ import { useSelector } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
 import { toast } from "sonner";
-import { setShowUpgradeModal } from "@/store/slices/orgSlice";
 
 export const MainLayout = () => {
   const location = useLocation();
-  const dispatch = useDispatch();
   const {
     userProfileInfo,
     userRole,
@@ -54,21 +52,6 @@ export const MainLayout = () => {
     !planDetails.isExpired && 
     planDetails.daysRemaining !== undefined;
 
-  // Determine if we should show coupon code (free plan users after 15 days)
-  const shouldShowCoupon = 
-    currentPlan && 
-    isFreePlan(currentPlan) && 
-    planDetails && 
-    !planDetails.isExpired && 
-    planDetails.daysRemaining !== undefined &&
-    planDetails.daysRemaining <= 15;
-
-  const handleUseCoupon = () => {
-    // Set coupon flag in localStorage for UpgradePlanDialog to use
-    localStorage.setItem('apply_coupon_50', 'true');
-    dispatch(setShowUpgradeModal(true));
-    toast.success("50% discount coupon applied! Choose your plan below.");
-  };
   console.log(user, "check user");
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -110,18 +93,6 @@ export const MainLayout = () => {
                 >
                   {planDetails.daysRemaining} days remaining
                 </Badge>
-              )}
-              
-              {/* Coupon Code Badge for Free Plan Users after 15 days */}
-              {shouldShowCoupon && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUseCoupon}
-                  className="text-xs bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 border-orange-300 hover:from-orange-200 hover:to-red-200 hover:border-orange-400 font-medium px-3 py-1 h-6 animate-pulse"
-                >
-                  🎟️ Use Coupon 50% OFF
-                </Button>
               )}
             </div>
           </div>
