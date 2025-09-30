@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Zap, HelpCircle } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
 import { toast } from "sonner";
