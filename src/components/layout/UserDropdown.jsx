@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CURRENT_USER, authHelpers } from "@/lib/supabase";
-import { useDispatch, useSelector } from "react-redux";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
 import { supabase } from "../../lib/supabase";
