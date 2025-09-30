@@ -22,6 +22,8 @@ const SignupPage = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Email validation
   const isValidEmail = /\S+@\S+\.\S+/.test(email);
@@ -124,26 +126,33 @@ const SignupPage = () => {
           }
         );
         // console.log(response, "check response");
-        toast.success(
-          `Account setup link ${
-            result.status === "re-invited" ? "re-" : ""
-          }sent to ${email}! Check your email to complete registration.`
-        );
+        const message = `Account setup link ${
+          result.status === "re-invited" ? "re-" : ""
+        }sent to ${email}! Check your email to complete registration.`;
+        
+        setSuccessMessage(message);
+        setIsSuccess(true);
         setIsLoading(false);
+        
+        // Also show toast for additional feedback
+        toast.success(message);
         // console.log("Invite ID:", result.id); // optional for webhook trigger
       } else if (result.status === "registered") {
-        toast.info(
-          "This email is already registered. Please use the login page instead."
-        );
+        const message = "This email is already registered. Please use the login page instead.";
+        setError(message);
         setIsLoading(false);
+        toast.info(message);
       } else if (result.status === "already-invited") {
-        toast.info(
-          "Account setup link was already sent to this email within the last 24 hours. Please check your email."
-        );
+        const message = "Account setup link was already sent to this email within the last 24 hours. Please check your email.";
+        setSuccessMessage(message);
+        setIsSuccess(true);
         setIsLoading(false);
+        toast.info(message);
       } else {
-        toast.error(result.message || "Failed to send account setup link");
+        const message = result.message || "Failed to send account setup link";
+        setError(message);
         setIsLoading(false);
+        toast.error(message);
       }
       // console.log("✅ Email is available for registration");
       // toast.success("Account setup link sent! Please check your email to complete registration.");
@@ -153,10 +162,98 @@ const SignupPage = () => {
     } catch (error) {
       console.error("❌ Signup error:", error);
       setError("An error occurred while checking email. Please try again.");
+      setIsSuccess(false);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // If signup was successful, show success screen
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          {/* Logo/Brand */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              SalesGenius Ai
+            </h1>
+            <p className="text-gray-600">AI-Powered Sales Assistant</p>
+          </div>
+
+          {/* Success Card */}
+          <Card className="shadow-lg">
+            <CardContent className="p-8">
+              <div className="text-center space-y-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Check Your Email
+                  </h2>
+                  <p className="text-gray-600">
+                    We've sent an account setup link to:
+                  </p>
+                  <p className="font-medium text-gray-900 mt-1">{email}</p>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Mail className="w-5 h-5 text-green-600 mt-0.5" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-green-900">
+                        What to do next:
+                      </p>
+                      <ul className="text-sm text-green-800 mt-1 space-y-1">
+                        <li>• Check your email inbox</li>
+                        <li>• Look for an email from SalesGenius Ai</li>
+                        <li>• Click the "Complete Setup" link</li>
+                        <li>• Check your spam folder if you don't see it</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => {
+                      setIsSuccess(false);
+                      setEmail("");
+                      setSuccessMessage("");
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Another Email
+                  </Button>
+
+                  <Link
+                    to="/auth/login"
+                    className="block w-full"
+                  >
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Login
+                    </Button>
+                  </Link>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  The setup link will expire in 24 hours for security reasons.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -206,6 +303,7 @@ const SignupPage = () => {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError("");
+                      if (isSuccess) setIsSuccess(false);
                     }}
                     className="pl-10"
                     disabled={isLoading}
