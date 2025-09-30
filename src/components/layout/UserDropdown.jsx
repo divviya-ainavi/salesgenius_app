@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useSelector } from "react-redux";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +72,10 @@ export const UserDropdown = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sessionCheckInterval, setSessionCheckInterval] = useState(null);
+  
+  // Get plan information from Redux
+  const { currentPlan, planDetails } = useSelector((state) => state.org);
+  
   const {
     userProfileInfo,
     userRole,
@@ -311,6 +316,25 @@ export const UserDropdown = () => {
                   )}
                 </div>
               )}
+              
+              {/* Current Plan Display */}
+              {currentPlan && (
+                <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                  <Crown className="w-3 h-3" />
+                  <span className="font-medium">{currentPlan.plan_name}</span>
+                  {planDetails && !planDetails.isExpired && (
+                    <span className="text-muted-foreground/70">
+                      • {planDetails.daysRemaining} days left
+                    </span>
+                  )}
+                  {planDetails && planDetails.isExpired && (
+                    <span className="text-red-600">
+                      • Expired
+                    </span>
+                  )}
+                </div>
+              )}
+              
               {userProfile?.status && (
                 <Badge
                   variant={
