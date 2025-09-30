@@ -36,12 +36,21 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [hasCoupon, setHasCoupon] = useState(false);
   const dispatch = useDispatch();
 
   const onClose = () => {
+    // Clear coupon when closing modal
+    localStorage.removeItem('apply_coupon_50');
+    setHasCoupon(false);
     dispatch(setShowUpgradeModal(false));
   };
 
+  // Check for coupon on modal open
+  useEffect(() => {
+    const couponApplied = localStorage.getItem('apply_coupon_50') === 'true';
+    setHasCoupon(couponApplied);
+  }, [showUpgradeModal]);
   const getPlanIcon = (plan: any) => {
     if (!plan) return Gift;
     if (isFreePlan(plan)) return Gift;
@@ -85,6 +94,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     return `${durationDays} days`;
   };
 
+  const getDiscountedPrice = (originalPrice: number) => {
+    return Math.round(originalPrice * 0.5); // 50% discount
+  };
   const handleUpgrade = async (plan: any) => {
     if (!plan.stripe_price_id) {
       toast.error("This plan is not available for purchase yet");
@@ -261,10 +273,38 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           <span className="text-2xl font-bold text-gray-900 mr-1">
                             ₹
                           </span>
-                          <span className="text-6xl font-bold text-gray-900">
-                            {plan.price.toLocaleString()}
-                          </span>
+                          {hasCoupon && !isFreePlan(plan) ? (
+                            <div className="flex flex-col items-center">
+                              <span className="text-3xl font-bold text-gray-400 line-through">
+                                {plan.price.toLocaleString()}
+                              </span>
+                              <span className="text-6xl font-bold text-green-600">
+                                {getDiscountedPrice(plan.price).toLocaleString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-6xl font-bold text-gray-900">
+                              {plan.price.toLocaleString()}
+                            </span>
+                          )}
                         </div>
+                        
+                        {hasCoupon && !isFreePlan(plan) && (
+                          <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-lg p-3 mt-4">
+                            <div className="flex items-center justify-center space-x-2">
+                              <span className="text-2xl">🎉</span>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-800">
+                                  50% OFF Applied!
+                                </div>
+                                <div className="text-sm text-green-700">
+                                  You save ₹{(plan.price - getDiscountedPrice(plan.price)).toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="text-gray-600 mt-2 text-base">
                           /{" "}
                           {plan.duration_days === 30
@@ -324,7 +364,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         ) : canSelectExpiredPlan ? (
                           `Renew ${plan.plan_name}`
                         ) : isUpgrade ? (
-                          `Upgrade to ${plan.plan_name}`
+                          hasCoupon && !isFreePlan(plan) ? 
+                            `Upgrade to ${plan.plan_name} (50% OFF)` :
+                            `Upgrade to ${plan.plan_name}`
                         ) : isDowngrade ? (
                           `${plan.plan_name}`
                         ) : (
