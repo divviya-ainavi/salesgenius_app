@@ -200,7 +200,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         <div className="flex justify-center py-8 px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
             {availablePlans.map((plan) => {
-                plan.plan_name?.toLowerCase().includes("plus") ||
+       const PlanIcon = getPlanIcon(plan);
+              const isCurrentPlan = plan.id === currentPlan?.id;
+              const isUpgrade = plan.price > (currentPlan?.price || 0);
+              const isDowngrade = plan.price < (currentPlan?.price || 0);
+              const isPopular =
+                plan.plan_name?.toLowerCase().includes("pro") ||
+                plan.plan_name?.toLowerCase().includes("standard");
+               const isIntroductory = plan.plan_name?.toLowerCase().includes("plus") ||
                 plan.plan_name?.toLowerCase().includes("starter");
 
               // For expired users, allow them to choose their current plan again
