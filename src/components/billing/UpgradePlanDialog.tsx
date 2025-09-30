@@ -221,7 +221,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     "relative bg-white rounded-xl border-2 transition-all duration-200 overflow-hidden",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
-                      ? "border-gray-300 opacity-50"
+                     // ? "border-gray-300 opacity-50"
                     //   : "",
                     isCurrentPlan
                       ? planDetails?.isExpired && !isFreePlan(plan) 
