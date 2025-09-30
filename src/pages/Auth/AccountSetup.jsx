@@ -376,50 +376,7 @@ const AccountSetup = () => {
         console.warn("Failed to update invite status:", updateError);
       }
 
-      // Step 5: Create plan based on user type
-      try {
-        const today = new Date();
-        const userType = inviteData.type; // 'beta' for self-signup, null for admin invite
-
-        let planName, endDate, numberOfDays;
-
-        if (userType === "beta") {
-          // Beta user: 30-day trial
-          planName = "Beta Trial";
-          endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
-          numberOfDays = 30;
-        } else {
-          // Admin invited user: 1-year plan
-          planName = "Standard Plan";
-          endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from today
-          numberOfDays = 365;
-        }
-
-        const { data: planData, error: planError } = await supabase
-          .from("plan")
-          .insert([
-            {
-              user_id: profile.id,
-              plan_name: planName,
-              start_date: today.toISOString().split("T")[0], // YYYY-MM-DD format
-              end_date: endDate.toISOString().split("T")[0], // YYYY-MM-DD format
-              no_of_days: numberOfDays,
-            },
-          ])
-          .select()
-          .single();
-
-        if (planError) {
-          console.warn("Failed to create user plan:", planError);
-          // Don't show error to user - Slack notification is optional
-        } else {
-          console.log("✅ User plan created successfully:", planData);
-        }
-      } catch (planCreationError) {
-        console.warn("Error creating user plan:", planCreationError);
-        // Don't show error to user - Slack notification is optional
-      }
-
+   
       // Step 6: Sign out from Supabase Auth (user will login manually)
       if (supabaseAuthUserId) {
         await supabase.auth.signOut();
