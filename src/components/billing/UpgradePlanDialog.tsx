@@ -38,6 +38,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const dispatch = useDispatch();
   const [hasCoupon, setHasCoupon] = useState(false);
+  const [expandedFeatures, setExpandedFeatures] = useState<{[key: string]: boolean}>({});
 
   // Check for coupon on component mount
   useEffect(() => {
@@ -59,6 +60,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     if (plan.plan_name?.toLowerCase().includes("business")) return Users;
     if (plan.plan_name?.toLowerCase().includes("enterprise")) return Shield;
     return Star;
+  };
+
+  const toggleFeatures = (planId: string) => {
+    setExpandedFeatures(prev => ({
+      ...prev,
+      [planId]: !prev[planId]
+    }));
   };
 
   const getPlanBorderColor = (plan: any) => {
@@ -383,8 +391,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     {/* Simple Features List */}
                     {plan.features && plan.features.length > 0 && (
                       <div className="text-left">
-                        <div className="space-y-1.5">
-                          {plan.features.slice(0, 4).map((feature, index) => (
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                          {(expandedFeatures[plan.id] ? plan.features : plan.features.slice(0, 4)).map((feature, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 mt-0.5" />
                               <span className="text-xs text-gray-700 leading-tight">
@@ -393,8 +401,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             </div>
                           ))}
                           {plan.features.length > 4 && (
-                            <div className="text-xs text-blue-600 font-medium mt-2">
-                              +{plan.features.length - 4} more features
+                            <div 
+                              className="text-xs text-blue-600 font-medium mt-2 cursor-pointer hover:text-blue-800 transition-colors"
+                              onClick={() => toggleFeatures(plan.id)}
+                            >
+                              {expandedFeatures[plan.id] 
+                                ? "Show less" 
+                                : `+${plan.features.length - 4} more features`
+                              }
                             </div>
                           )}
                         </div>
