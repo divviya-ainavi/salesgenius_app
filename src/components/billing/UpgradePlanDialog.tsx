@@ -38,6 +38,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const dispatch = useDispatch();
   const [hasCoupon, setHasCoupon] = useState(false);
+  const [expandedFeatures, setExpandedFeatures] = useState<{[key: string]: boolean}>({});
 
   // Check for coupon on component mount
   useEffect(() => {
@@ -50,6 +51,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     localStorage.removeItem("apply_coupon_50LIFE");
     setHasCoupon(false);
     dispatch(setShowUpgradeModal(false));
+  };
+
+  const toggleFeatures = (planId: string) => {
+    setExpandedFeatures(prev => ({
+      ...prev,
+      [planId]: !prev[planId]
+    }));
   };
 
   const getPlanIcon = (plan: any) => {
@@ -396,18 +404,29 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           Key Features:
                         </div>
                         <div className="space-y-1">
-                          {plan.features.slice(0, 3).map((feature, index) => (
+                          {(expandedFeatures[plan.id] ? plan.features : plan.features.slice(0, 3)).map((feature, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <CheckCircle className="w-3 h-3 text-blue-600 flex-shrink-0" />
                               <span className="text-xs text-gray-600 leading-tight">
-                                {feature.length > 40 ? `${feature.substring(0, 40)}...` : feature}
+                                {expandedFeatures[plan.id] 
+                                  ? feature 
+                                  : (feature.length > 40 ? `${feature.substring(0, 40)}...` : feature)
+                                }
                               </span>
                             </div>
                           ))}
                           {plan.features.length > 3 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              +{plan.features.length - 3} more features
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleFeatures(plan.id)}
+                              className="text-xs text-blue-600 hover:text-blue-700 p-0 h-auto font-normal mt-1"
+                            >
+                              {expandedFeatures[plan.id] 
+                                ? "Show less" 
+                                : `+${plan.features.length - 3} more features`
+                              }
+                            </Button>
                           )}
                         </div>
                       </div>
