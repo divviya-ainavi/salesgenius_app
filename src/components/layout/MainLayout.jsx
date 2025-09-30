@@ -150,10 +150,9 @@ export const MainLayout = () => {
                 size="sm"
                 onClick={() => {
                   console.log("🎯 User clicked guidelines icon in header");
+                  toast.success('Coupon code 50LIFE applied!');
+                  dispatch(setShowUpgradeModal(true));
                   if (window.replaySalesFlowTour) {
-                    console.log(
-                      "🎯 User manually triggered tour replay from header"
-                    );
                     window.replaySalesFlowTour();
                   } else {
                     console.error(
@@ -193,9 +192,6 @@ export const MainLayout = () => {
 
       {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
-
-      {/* Upgrade Plan Dialog - Available globally */}
-      <UpgradePlanDialog />
     </div>
   );
 };
