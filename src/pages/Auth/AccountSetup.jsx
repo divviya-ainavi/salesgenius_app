@@ -376,7 +376,59 @@ const AccountSetup = () => {
         console.warn("Failed to update invite status:", updateError);
       }
 
-   
+      // Step 5: Create free plan entry for new user
+      try {
+        // Get the free plan from plan_master table
+        const { data: freePlan, error: freePlanError } = await supabase
+          .from("plan_master")
+          .select("*")
+          .or("plan_name.ilike.%free%,plan_name.ilike.%trial%,plan_name.ilike.%beta%,price.eq.0")
+          .order("price", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (freePlanError) {
+          console.warn("No free plan found, skipping plan assignment:", freePlanError);
+        } else {
+          // Calculate plan dates
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setDate(startDate.getDate() + freePlan.duration_days);
+
+          // Create user_plan entry
+          const { data: userPlan, error: userPlanError } = await supabase
+            .from("user_plan")
+            .insert([{
+              user_id: profile.id,
+              plan_id: freePlan.id,
+              plan_name: freePlan.plan_name,
+              amount: freePlan.price,
+              currency: freePlan.currency || 'usd',
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              status: 'active',
+              is_active: true,
+              payment_status: 'completed', // Free plan is automatically completed
+            }])
+            .select()
+            .single();
+
+          if (userPlanError) {
+            console.warn("Failed to create user plan entry:", userPlanError);
+          } else {
+            console.log("✅ Free plan assigned to new user:", {
+              userId: profile.id,
+              planName: freePlan.plan_name,
+              duration: freePlan.duration_days,
+              endDate: endDate.toISOString()
+            });
+          }
+        }
+      } catch (planError) {
+        console.warn("Error assigning free plan to user:", planError);
+        // Don't fail account creation if plan assignment fails
+      }
+
       // Step 6: Sign out from Supabase Auth (user will login manually)
       if (supabaseAuthUserId) {
         await supabase.auth.signOut();
