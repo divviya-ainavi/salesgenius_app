@@ -304,7 +304,7 @@ export const Sidebar = () => {
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
               >
                 <ArrowUp className="w-3 h-3 mr-1" />
-                {planDetails?.isExpired ? "Renew Plan" : "Upgrade to Pro"}
+                "Upgrade to Pro"
               </Button>
             )}
           </div>
