@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,13 +41,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
   // Check for coupon on component mount
   useEffect(() => {
-    const couponFlag = localStorage.getItem('apply_coupon_50LIFE');
+    const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
 
   const onClose = () => {
     // Remove coupon flag when modal closes
-    localStorage.removeItem('apply_coupon_50LIFE');
+    localStorage.removeItem("apply_coupon_50LIFE");
     setHasCoupon(false);
     dispatch(setShowUpgradeModal(false));
   };
@@ -111,7 +111,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         plan_id: plan.stripe_price_id,
         emailid: user.email,
         dbplan_id: plan.id,
-        ...(hasCoupon && !isFreePlan(plan) && { coupon_code: '50LIFE' })
+        ...(hasCoupon && !isFreePlan(plan) && { coupon_code: "50LIFE" }),
       };
 
       const response = await fetch(
@@ -181,7 +181,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
               <div className="text-center">
                 <div className="text-lg font-bold mb-1">🎉 Coupon Applied!</div>
                 <div className="text-sm opacity-90">
-                  Code <span className="font-bold bg-white/20 px-2 py-1 rounded">50LIFE</span> - Save 50% on all paid plans
+                  Code{" "}
+                  <span className="font-bold bg-white/20 px-2 py-1 rounded">
+                    50LIFE
+                  </span>{" "}
+                  - Save 50% on all paid plans
                 </div>
               </div>
             </div>
@@ -283,32 +287,33 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             {/* Original Price - Strikethrough */}
                             <div className="flex items-baseline justify-center opacity-60">
                               <span className="text-lg font-bold text-gray-500 mr-1 line-through">
-                                ₹
+                                $
                               </span>
                               <span className="text-4xl font-bold text-gray-500 line-through">
                                 {plan.price.toLocaleString()}
                               </span>
                             </div>
-                            
+
                             {/* Discounted Price */}
                             <div className="flex items-baseline justify-center">
                               <span className="text-2xl font-bold text-green-600 mr-1">
-                                ₹
+                                $
                               </span>
                               <span className="text-6xl font-bold text-green-600">
                                 {Math.round(plan.price * 0.5).toLocaleString()}
                               </span>
                             </div>
-                            
+
                             {/* Savings Display */}
                             <div className="text-green-600 font-semibold text-lg">
-                              Save ₹{Math.round(plan.price * 0.5).toLocaleString()}!
+                              Save $
+                              {Math.round(plan.price * 0.5).toLocaleString()}!
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-baseline justify-center">
                             <span className="text-2xl font-bold text-gray-900 mr-1">
-                              ₹
+                              $
                             </span>
                             <span className="text-6xl font-bold text-gray-900">
                               {plan.price.toLocaleString()}

@@ -11,6 +11,9 @@ import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import SalesCallsTour from "@/components/onboarding/SalesCallsTour";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { UpgradePlanDialog } from "../billing/UpgradePlanDialog";
+import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import { useDispatch } from "react-redux";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -26,6 +29,7 @@ export const MainLayout = () => {
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
   const { currentPlan, planDetails } = useSelector((state) => state.org);
+  const dispatch = useDispatch();
 
   // Helper function to check if user is on a free plan
   const isFreePlan = (plan) => {
@@ -42,16 +46,17 @@ export const MainLayout = () => {
   // Helper function to get remaining days color
   const getRemainingDaysColor = (daysRemaining) => {
     if (daysRemaining <= 3) return "bg-red-100 text-red-800 border-red-200";
-    if (daysRemaining <= 7) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    if (daysRemaining <= 7)
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
     return "bg-blue-100 text-blue-800 border-blue-200";
   };
 
   // Determine if we should show remaining days
-  const shouldShowRemainingDays = 
-    currentPlan && 
-    isFreePlan(currentPlan) && 
-    planDetails && 
-    !planDetails.isExpired && 
+  const shouldShowRemainingDays =
+    currentPlan &&
+    isFreePlan(currentPlan) &&
+    planDetails &&
+    !planDetails.isExpired &&
     planDetails.daysRemaining !== undefined;
 
   console.log(user, "check user");
@@ -61,7 +66,9 @@ export const MainLayout = () => {
       {shouldShowRemainingDays && planDetails.daysRemaining <= 15 && (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-center relative border-b border-blue-700/20">
           <div className="flex items-center justify-center space-x-2 text-xs">
-            <span className="font-medium">🎟️ Limited time: Save 50% with coupon code</span>
+            <span className="font-medium">
+              🎟️ Limited time: Save 50% with coupon code
+            </span>
             <span className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-md font-bold tracking-wider text-xs border border-white/30">
               50LIFE
             </span>
@@ -69,11 +76,14 @@ export const MainLayout = () => {
               variant="ghost"
               size="sm"
               onClick={() => {
-                localStorage.setItem('apply_coupon_50LIFE', 'true');
-                toast.success('Coupon code 50LIFE applied! Redirecting to upgrade...');
-                setTimeout(() => {
-                  navigate('/settings');
-                }, 1000);
+                localStorage.setItem("apply_coupon_50LIFE", "true");
+                dispatch(setShowUpgradeModal(true));
+                toast.success(
+                  "Coupon code 50LIFE applied! Redirecting to upgrade..."
+                );
+                // setTimeout(() => {
+                //   navigate("/settings");
+                // }, 1000);
               }}
               className="bg-white/20 hover:bg-white/30 text-white border border-white/30 px-3 py-1 h-auto text-xs font-semibold rounded-md transition-all duration-200 hover:scale-105"
             >
@@ -112,12 +122,14 @@ export const MainLayout = () => {
                 <Zap className="w-3 h-3 mr-1" />
                 {userRole?.label || "Super Admin"}
               </Badge>
-              
+
               {/* Remaining Days Badge for Free Plan Users */}
               {shouldShowRemainingDays && (
                 <Badge
                   variant="outline"
-                  className={`text-xs ${getRemainingDaysColor(planDetails.daysRemaining)}`}
+                  className={`text-xs ${getRemainingDaysColor(
+                    planDetails.daysRemaining
+                  )}`}
                 >
                   {planDetails.daysRemaining} days remaining
                 </Badge>
@@ -149,9 +161,6 @@ export const MainLayout = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  console.log("🎯 User clicked guidelines icon in header");
-                  toast.success('Coupon code 50LIFE applied!');
-                  dispatch(setShowUpgradeModal(true));
                   if (window.replaySalesFlowTour) {
                     window.replaySalesFlowTour();
                   } else {
@@ -192,6 +201,7 @@ export const MainLayout = () => {
 
       {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
+      <UpgradePlanDialog />
     </div>
   );
 };
