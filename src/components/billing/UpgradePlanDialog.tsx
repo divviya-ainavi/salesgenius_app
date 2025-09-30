@@ -24,8 +24,6 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { setShowUpgradeModal } from "../../store/slices/orgSlice";
-import { toast } from "sonner";
-import { useEffect } from "react";
 
 interface UpgradePlanDialogProps {
   isOpen: boolean;
@@ -39,21 +37,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     useSelector((state) => state.org);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const dispatch = useDispatch();
-  const [hasCoupon, setHasCoupon] = useState(false);
-
-  // Check for coupon on component mount
-  useEffect(() => {
-    const couponFlag = localStorage.getItem('apply_coupon_50');
-    setHasCoupon(couponFlag === 'true');
-  }, [showUpgradeModal]);
-
-  // Clear coupon when modal closes
-  useEffect(() => {
-    if (!showUpgradeModal) {
-      localStorage.removeItem('apply_coupon_50');
-      setHasCoupon(false);
-    }
-  }, [showUpgradeModal]);
 
   const onClose = () => {
     dispatch(setShowUpgradeModal(false));
@@ -274,36 +257,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
                       {/* Pricing */}
                       <div className="mb-8">
-                        {/* Original Price (with strikethrough if coupon applied) */}
-                        {hasCoupon && !isFreePlan(plan) && (
-                          <div className="text-center mb-2">
-                            <span className="text-lg text-gray-500 line-through">
-                              ₹{plan.price.toLocaleString()}
-                            </span>
-                            <span className="text-sm text-gray-500 ml-2">
-                              / {getDurationText(plan.duration_days).toLowerCase()}
-                            </span>
-                          </div>
-                        )}
-
                         <div className="flex items-baseline justify-center">
                           <span className="text-2xl font-bold text-gray-900 mr-1">
                             ₹
                           </span>
                           <span className="text-6xl font-bold text-gray-900">
-                            {hasCoupon && !isFreePlan(plan) 
-                              ? Math.round(plan.price * 0.5).toLocaleString()
-                              : plan.price.toLocaleString()}
+                            {plan.price.toLocaleString()}
                           </span>
                         </div>
-                        
-                        {/* Savings Display */}
-                        {hasCoupon && !isFreePlan(plan) && (
-                          <div className="text-green-600 font-semibold text-lg mt-2">
-                            Save ₹{Math.round(plan.price * 0.5).toLocaleString()}!
-                          </div>
-                        )}
-                        
                         <div className="text-gray-600 mt-2 text-base">
                           /{" "}
                           {plan.duration_days === 30
@@ -361,13 +322,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             "Your current plan"
                           )
                         ) : canSelectExpiredPlan ? (
-                          `Renew ${plan.plan_name}${hasCoupon && !isFreePlan(plan) ? ' (50% OFF)' : ''}`
+                          `Renew ${plan.plan_name}`
                         ) : isUpgrade ? (
-                          `Upgrade to ${plan.plan_name}${hasCoupon && !isFreePlan(plan) ? ' (50% OFF)' : ''}`
+                          `Upgrade to ${plan.plan_name}`
                         ) : isDowngrade ? (
                           `${plan.plan_name}`
                         ) : (
-                          `Switch to ${plan.plan_name}${hasCoupon && !isFreePlan(plan) ? ' (50% OFF)' : ''}`
+                          `Switch to ${plan.plan_name}`
                         )}
                       </Button>
                     </div>

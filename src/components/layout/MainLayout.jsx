@@ -94,27 +94,6 @@ export const MainLayout = () => {
                   {planDetails.daysRemaining} days remaining
                 </Badge>
               )}
-
-              {/* Coupon Code Badge for Free Plan Users after 15 days */}
-              {currentPlan && 
-               isFreePlan(currentPlan) && 
-               planDetails && 
-               !planDetails.isExpired && 
-               planDetails.daysRemaining <= 15 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    localStorage.setItem('apply_coupon_50', 'true');
-                    toast.success('50% OFF coupon applied! Choose your plan.');
-                    // Navigate to settings or trigger upgrade modal
-                    window.location.href = '/settings';
-                  }}
-                  className="text-xs bg-gradient-to-r from-orange-500 to-red-500 text-white border-orange-400 hover:from-orange-600 hover:to-red-600 animate-pulse"
-                >
-                  🎟️ Use Coupon 50% OFF
-                </Button>
-              )}
             </div>
           </div>
           {console.log(
