@@ -23,6 +23,35 @@ export const MainLayout = () => {
     hubspotIntegration,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
+  const { currentPlan, planDetails } = useSelector((state) => state.org);
+
+  // Helper function to check if user is on a free plan
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      plan.price === 0
+    );
+  };
+
+  // Helper function to get remaining days color
+  const getRemainingDaysColor = (daysRemaining) => {
+    if (daysRemaining <= 3) return "bg-red-100 text-red-800 border-red-200";
+    if (daysRemaining <= 7) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    return "bg-blue-100 text-blue-800 border-blue-200";
+  };
+
+  // Determine if we should show remaining days
+  const shouldShowRemainingDays = 
+    currentPlan && 
+    isFreePlan(currentPlan) && 
+    planDetails && 
+    !planDetails.isExpired && 
+    planDetails.daysRemaining !== undefined;
+
   console.log(user, "check user");
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -47,13 +76,25 @@ export const MainLayout = () => {
             <span className="font-medium text-foreground">
               {user?.full_name || ""}
             </span>
-            <Badge
-              variant="outline"
-              className="text-xs bg-green-100 text-green-800 border-green-200"
-            >
-              <Zap className="w-3 h-3 mr-1" />
-              {userRole?.label || "Super Admin"}
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge
+                variant="outline"
+                className="text-xs bg-green-100 text-green-800 border-green-200"
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                {userRole?.label || "Super Admin"}
+              </Badge>
+              
+              {/* Remaining Days Badge for Free Plan Users */}
+              {shouldShowRemainingDays && (
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${getRemainingDaysColor(planDetails.daysRemaining)}`}
+                >
+                  {planDetails.daysRemaining} days remaining
+                </Badge>
+              )}
+            </div>
           </div>
           {console.log(
             hubspotIntegration.connected,
