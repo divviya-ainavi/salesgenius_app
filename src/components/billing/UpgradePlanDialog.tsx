@@ -61,16 +61,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     return Star;
   };
 
-  const getPlanGradient = (plan: any) => {
-    if (!plan) return "from-gray-500 to-gray-600";
-    if (isFreePlan(plan)) return "from-green-500 to-emerald-600";
-    if (plan.plan_name?.toLowerCase().includes("pro"))
-      return "from-blue-500 to-indigo-600";
-    if (plan.plan_name?.toLowerCase().includes("business"))
-      return "from-purple-500 to-violet-600";
-    if (plan.plan_name?.toLowerCase().includes("enterprise"))
-      return "from-gray-800 to-black";
-    return "from-blue-500 to-indigo-600";
+  const getPlanBorderColor = (plan: any) => {
+    if (!plan) return "border-gray-300";
+    if (isFreePlan(plan)) return "border-green-300";
+    if (plan.plan_name?.toLowerCase().includes("pro")) return "border-blue-400";
+    if (plan.plan_name?.toLowerCase().includes("business")) return "border-purple-400";
+    if (plan.plan_name?.toLowerCase().includes("enterprise")) return "border-gray-600";
+    return "border-blue-400";
   };
 
   const isFreePlan = (plan: any) => {
@@ -173,15 +170,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
   return (
     <Dialog open={showUpgradeModal} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-bold text-center">
+          <DialogTitle className="text-2xl font-bold text-center">
             Upgrade your plan
           </DialogTitle>
           {hasCoupon && (
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-lg mx-4 mt-4">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-lg mt-2">
               <div className="text-center">
-                <div className="text-lg font-bold mb-1">🎉 Coupon Applied!</div>
+                <div className="text-base font-bold mb-1">🎉 Coupon Applied!</div>
                 <div className="text-sm opacity-90">
                   Code{" "}
                   <span className="font-bold bg-white/20 px-2 py-1 rounded">
@@ -192,13 +189,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
               </div>
             </div>
           )}
-          <DialogDescription className="text-lg text-center mt-2 text-muted-foreground">
+          <DialogDescription className="text-base text-center mt-2 text-muted-foreground">
             Choose the plan that best fits your needs
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex justify-center py-8 px-4">
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl w-full">
+        <div className="flex justify-center py-4 px-4">
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl w-full">
             {availablePlans.map((plan) => {
        const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
@@ -221,41 +218,48 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 overflow-hidden",
+                    "relative bg-white rounded-xl border-2 transition-all duration-200 overflow-hidden",
+                    !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
-                    //   ? "border-gray-300 opacity-60 cursor-not-allowed"
+                      ? "border-gray-300 opacity-50"
                     //   : "",
                     isCurrentPlan
                       ? planDetails?.isExpired && !isFreePlan(plan) 
                         ? "border-red-400 shadow-lg ring-2 ring-red-100"
-                        : "border-gray-400 shadow-lg"
+                        : "border-gray-400 shadow-md"
                       : isPopular
-                      ? "border-blue-400 shadow-lg ring-2 ring-blue-100"
+                      ? "border-blue-400 shadow-md ring-1 ring-blue-100"
                       : "border-gray-200 hover:border-blue-300"
                   )}
                 >
+                  {/* Disabled Overlay for Free Plans */}
+                  {isDisabledFreePlan && (
+                    <div className="absolute inset-0 bg-gray-100/80 flex items-center justify-center z-20 rounded-xl">
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-600 mb-1">
+                          Free plan not available
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Choose a paid plan to continue
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
 
                   {/* Badges */}
                   {isPopular && !isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-1.5 text-sm font-medium shadow-lg">
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1 text-xs font-medium shadow-md">
                         Most popular
                       </Badge>
                     </div>
                   )}
 
-                  {isIntroductory && !isCurrentPlan && (
-                    <div className="absolute -top-3 right-4 z-10">
-                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 text-xs font-medium shadow-lg">
-                        Introductory price
-                      </Badge>
-                    </div>
-                  )}
 
                   {isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-1.5 text-sm font-medium shadow-lg">
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 py-1 text-xs font-medium shadow-md">
                         {planDetails?.isExpired
                           ? "Your expired plan"
                           : "Your current plan"}
@@ -264,72 +268,68 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   )}
 
                   {/* Card Content */}
-                  <div className="p-8 text-center">
+                  <div className="p-6 text-center">
                     {/* Plan Name */}
-                    <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
                       {plan.plan_name}
                     </h3>
 
                     {/* Plan Description */}
                     {plan.description && (
-                      <p className="text-gray-600 mb-6 leading-relaxed text-base">
+                      <p className="text-gray-600 mb-4 text-sm leading-relaxed">
                         {plan.description}
                       </p>
                     )}
 
                     {/* Pricing */}
-                    <div className="mb-8">
+                    <div className="mb-6">
                       {hasCoupon && !isFreePlan(plan) ? (
                         <div className="space-y-2">
                           {/* Original Price - Strikethrough */}
                           <div className="flex items-baseline justify-center opacity-60">
-                            <span className="text-lg font-bold text-gray-500 mr-1 line-through">
+                            <span className="text-base font-bold text-gray-500 mr-1 line-through">
                               $
                             </span>
-                            <span className="text-4xl font-bold text-gray-500 line-through">
+                            <span className="text-3xl font-bold text-gray-500 line-through">
                               {plan.price.toLocaleString()}
                             </span>
                           </div>
 
                           {/* Discounted Price */}
                           <div className="flex items-baseline justify-center">
-                            <span className="text-2xl font-bold text-green-600 mr-1">
+                            <span className="text-xl font-bold text-green-600 mr-1">
                               $
                             </span>
-                            <span className="text-6xl font-bold text-green-600">
+                            <span className="text-4xl font-bold text-green-600">
                               {(plan.price * 0.5).toLocaleString()}
                             </span>
                           </div>
 
                           {/* Savings Display */}
-                          <div className="text-green-600 font-semibold text-lg">
+                          <div className="text-green-600 font-semibold text-base">
                             Save $
                             {Math.round(plan.price * 0.5).toLocaleString()}!
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-baseline justify-center">
-                          <span className="text-2xl font-bold text-gray-900 mr-1">
+                          <span className="text-xl font-bold text-gray-900 mr-1">
                             $
                           </span>
-                          <span className="text-6xl font-bold text-gray-900">
+                          <span className="text-4xl font-bold text-gray-900">
                             {plan.price.toLocaleString()}
                           </span>
                         </div>
                       )}
-                      <div className="text-gray-600 mt-2 text-base">
+                      <div className="text-gray-600 mt-1 text-sm">
                         /{" "}
                         {plan.duration_days === 30
                           ? "month"
                           : plan.duration_days === 365
                           ? "year"
                           : `${plan.duration_days} days`}
-                        <span className="text-gray-500">
-                          {" "}
-                          (inclusive of GST)
-                        </span>
                       </div>
-                      <div className="text-sm text-blue-600 mt-1 font-medium">
+                      <div className="text-xs text-blue-600 mt-1 font-medium">
                         Billed{" "}
                         {plan.duration_days === 30
                           ? "monthly"
@@ -352,7 +352,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         (isDowngrade && planDetails?.isExpired)
                       }
                       className={cn(
-                        "w-full mb-8 h-12 text-base font-semibold rounded-xl transition-all duration-200",
+                        "w-full mb-4 h-10 text-sm font-semibold rounded-lg transition-all duration-200",
                         (isCurrentPlan && !canSelectExpiredPlan) ||
                           isDisabledFreePlan ||
                           (isDowngrade && planDetails?.isExpired)
@@ -387,50 +387,29 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         `Switch to ${plan.plan_name}`
                       )}
                     </Button>
-                  </div>
 
-                  {/* Features Section */}
-                  <div className="px-8 pb-8">
+                    
+                    {/* Compact Features List */}
                     {plan.features && plan.features.length > 0 && (
-                      <div className="space-y-6">
-                        <div className="text-lg font-semibold text-gray-900 text-left">
-                          Everything in {plan.plan_name}, and:
+                      <div className="text-left">
+                        <div className="text-sm font-medium text-gray-700 mb-2">
+                          Key Features:
                         </div>
-
-                        <div className="space-y-4 text-left">
-                          {plan.features.map((feature, index) => (
-                            <div
-                              key={index}
-                              className="flex items-start space-x-4"
-                            >
-                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <CheckCircle className="w-4 h-4 text-blue-600" />
-                              </div>
-                              <span className="text-base text-gray-700 leading-relaxed">
-                                {feature}
+                        <div className="space-y-1">
+                          {plan.features.slice(0, 3).map((feature, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <CheckCircle className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                              <span className="text-xs text-gray-600 leading-tight">
+                                {feature.length > 40 ? `${feature.substring(0, 40)}...` : feature}
                               </span>
                             </div>
                           ))}
+                          {plan.features.length > 3 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              +{plan.features.length - 3} more features
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Additional Info for specific plans */}
-                    {plan.plan_name?.toLowerCase().includes("business") && (
-                      <div className="mt-8 pt-6 border-t border-gray-100">
-                        <p className="text-sm text-gray-500 text-center">
-                          For 2+ users, billed annually.
-                          <br />
-                          GST excluded at checkout with a valid GST ID.
-                        </p>
-                      </div>
-                    )}
-
-                    {plan.plan_name?.toLowerCase().includes("go") && (
-                      <div className="mt-8 pt-6 border-t border-gray-100">
-                        <p className="text-sm text-gray-500 text-center">
-                          Only available in certain regions. Limits apply.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -440,11 +419,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center pt-8 border-t border-gray-100">
+        <DialogFooter className="flex justify-center pt-4 border-t border-gray-100">
           <Button
             variant="outline"
             onClick={onClose}
-            className="px-8 py-3 text-base font-medium rounded-xl border-gray-300 hover:bg-gray-50"
+            className="px-6 py-2 text-sm font-medium rounded-lg border-gray-300 hover:bg-gray-50"
           >
             Close
           </Button>
