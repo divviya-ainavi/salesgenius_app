@@ -352,7 +352,6 @@ const AccountSetup = () => {
             organization_id: organizationId,
             title_id: inviteData.title_id || null,
             status_id: 1, // Active status
-           
             auth_user_id: supabaseAuthUserId, // Link to Supabase Auth user if created
           },
         ])
