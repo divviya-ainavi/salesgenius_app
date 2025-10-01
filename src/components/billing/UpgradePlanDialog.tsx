@@ -182,7 +182,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
   return (
     <Dialog open={showUpgradeModal} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[95vh] overflow-hidden">
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
             Upgrade your plan
@@ -208,8 +208,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 px-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+        <div className="flex-1 overflow-y-auto px-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
             {availablePlans.map((plan) => {
               const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
@@ -234,7 +234,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden min-h-[500px]",
+                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
                     // ? "border-gray-300 opacity-50"
@@ -282,21 +282,21 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   )}
 
                   {/* Card Content */}
-                  <div className="p-6 text-center h-full flex flex-col">
+                  <div className="p-4 text-center flex flex-col">
                     {/* Plan Name */}
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3 mt-2">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 mt-1">
                       {plan.plan_name}
                     </h3>
 
                     {/* Plan Description */}
                     {plan.description && (
-                      <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                      <p className="text-gray-600 mb-3 text-sm leading-relaxed">
                         {plan.description}
                       </p>
                     )}
 
                     {/* Pricing */}
-                    <div className="mb-6">
+                    <div className="mb-4">
                       {hasCoupon && !isFreePlan(plan) ? (
                         <div className="space-y-2">
                           {/* Original Price - Strikethrough */}
@@ -314,7 +314,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             <span className="text-lg font-bold text-green-600 mr-1">
                               $
                             </span>
-                            <span className="text-3xl font-bold text-green-600">
+                            <span className="text-2xl font-bold text-green-600">
                               {(plan.price * 0.5).toLocaleString()}
                             </span>
                           </div>
@@ -330,7 +330,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           <span className="text-lg font-bold text-gray-900 mr-1">
                             $
                           </span>
-                          <span className="text-3xl font-bold text-gray-900">
+                          <span className="text-2xl font-bold text-gray-900">
                             {plan.price.toLocaleString()}
                           </span>
                         </div>
@@ -359,7 +359,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         (isDowngrade && planDetails?.isExpired)
                       }
                       className={cn(
-                        "w-full mb-6 h-12 text-sm font-semibold rounded-lg transition-all duration-200",
+                        "w-full mb-4 h-10 text-sm font-semibold rounded-lg transition-all duration-200",
                         (isCurrentPlan && !canSelectExpiredPlan) ||
                           isDisabledFreePlan ||
                           (isDowngrade && planDetails?.isExpired)
@@ -397,15 +397,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
                     {/* Features List - Full Display */}
                     {plan.features && plan.features.length > 0 && (
-                      <div className="text-left flex-1">
-                        <div className="space-y-2">
+                      <div className="text-left">
+                        <div className="space-y-1.5">
                           {plan.features.map((feature, index) => (
                             <div
                               key={index}
-                              className="flex items-center space-x-2"
+                              className="flex items-start space-x-2"
                             >
                               <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-xs text-gray-700 leading-relaxed">
+                              <span className="text-xs text-gray-700 leading-tight">
                                 {feature}
                               </span>
                             </div>
@@ -420,11 +420,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center pt-4 border-t border-gray-100 flex-shrink-0">
+        <DialogFooter className="flex justify-center pt-3 border-t border-gray-100 flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
-            className="px-6 py-2 text-sm font-medium rounded-lg border-gray-300 hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium rounded-lg border-gray-300 hover:bg-gray-50"
           >
             Close
           </Button>
