@@ -68,7 +68,8 @@ export const MainLayout = () => {
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-center relative border-b border-blue-700/20">
           <div className="flex items-center justify-center space-x-2 text-xs">
             <span className="font-medium">
-              🎟️ Limited time: Save 50% with coupon code
+              🎟️ Unlock Pro for half price! Use coupon code before your trial
+              ends.
             </span>
             <span className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-md font-bold tracking-wider text-xs border border-white/30">
               50LIFE
