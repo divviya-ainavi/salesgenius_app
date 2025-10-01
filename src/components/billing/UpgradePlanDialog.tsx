@@ -209,7 +209,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
             {availablePlans.map((plan) => {
               const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
@@ -234,7 +234,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden",
+                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden min-h-[500px]",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
                     // ? "border-gray-300 opacity-50"
@@ -282,21 +282,21 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   )}
 
                   {/* Card Content */}
-                  <div className="p-4 text-center">
+                  <div className="p-6 text-center h-full flex flex-col">
                     {/* Plan Name */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 mt-2">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3 mt-2">
                       {plan.plan_name}
                     </h3>
 
                     {/* Plan Description */}
                     {plan.description && (
-                      <p className="text-gray-600 mb-3 text-xs leading-relaxed">
+                      <p className="text-gray-600 mb-4 text-sm leading-relaxed">
                         {plan.description}
                       </p>
                     )}
 
                     {/* Pricing */}
-                    <div className="mb-4">
+                    <div className="mb-6">
                       {hasCoupon && !isFreePlan(plan) ? (
                         <div className="space-y-2">
                           {/* Original Price - Strikethrough */}
@@ -359,7 +359,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         (isDowngrade && planDetails?.isExpired)
                       }
                       className={cn(
-                        "w-full mb-4 h-10 text-sm font-semibold rounded-lg transition-all duration-200",
+                        "w-full mb-6 h-12 text-sm font-semibold rounded-lg transition-all duration-200",
                         (isCurrentPlan && !canSelectExpiredPlan) ||
                           isDisabledFreePlan ||
                           (isDowngrade && planDetails?.isExpired)
@@ -395,36 +395,21 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       )}
                     </Button>
 
-                    {/* Simple Features List */}
+                    {/* Features List - Full Display */}
                     {plan.features && plan.features.length > 0 && (
-                      <div className="text-left">
-                        <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                          {(expandedFeatures[plan.id]
-                            ? plan.features
-                            : plan.features.slice(0, 4)
-                          ).map((feature, index) => (
+                      <div className="text-left flex-1">
+                        <div className="space-y-2">
+                          {plan.features.map((feature, index) => (
                             <div
                               key={index}
                               className="flex items-center space-x-2"
                             >
                               <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-xs text-gray-700 leading-tight">
-                                {feature.length > 35
-                                  ? `${feature.substring(0, 35)}...`
-                                  : feature}
+                              <span className="text-xs text-gray-700 leading-relaxed">
+                                {feature}
                               </span>
                             </div>
                           ))}
-                          {plan.features.length > 4 && (
-                            <div
-                              className="text-xs text-blue-600 font-medium mt-2 cursor-pointer hover:text-blue-800 transition-colors"
-                              onClick={() => toggleFeatures(plan.id)}
-                            >
-                              {expandedFeatures[plan.id]
-                                ? "Show less"
-                                : `+${plan.features.length - 4} more features`}
-                            </div>
-                          )}
                         </div>
                       </div>
                     )}
