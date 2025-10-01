@@ -9,16 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertTriangle,
-  Crown,
-  ArrowUp,
-  X,
-  Calendar,
-  Zap,
-} from "lucide-react";
+import { AlertTriangle, Crown, ArrowUp, X, Calendar, Zap } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
-import { setPlanExpiryModal, setShowUpgradeModal } from "@/store/slices/orgSlice";
+import {
+  setPlanExpiryModal,
+  setShowUpgradeModal,
+} from "@/store/slices/orgSlice";
 
 interface PlanExpiryModalProps {
   featureName: string;
@@ -37,7 +33,13 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
   );
 
   const handleClose = () => {
-    dispatch(setPlanExpiryModal({ isOpen: false, featureName: "", featureDescription: "" }));
+    dispatch(
+      setPlanExpiryModal({
+        isOpen: false,
+        featureName: "",
+        featureDescription: "",
+      })
+    );
   };
 
   const handleUpgrade = () => {
@@ -67,7 +69,8 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
             <span>Plan Expired</span>
           </DialogTitle>
           <DialogDescription className="text-base leading-relaxed">
-            Your {currentPlan?.plan_name || "current plan"} has expired and you no longer have access to this feature.
+            Your {currentPlan?.plan_name || "current plan"} has expired and you
+            no longer have access to this feature.
           </DialogDescription>
         </DialogHeader>
 
@@ -77,11 +80,11 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
             <div className="flex items-center space-x-3 mb-3">
               <FeatureIcon className="w-5 h-5 text-blue-600" />
               <span className="font-medium text-blue-800">
-                {featureName}
+                {planExpiryModal?.featureName}
               </span>
             </div>
             <p className="text-sm text-blue-700">
-              {featureDescription}
+              {planExpiryModal?.featureDescription}
             </p>
           </div>
 
@@ -89,9 +92,7 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-3">
               <Calendar className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-red-800">
-                Plan Status
-              </span>
+              <span className="font-medium text-red-800">Plan Status</span>
             </div>
             <div className="space-y-2 text-sm text-red-700">
               <div className="flex justify-between">
@@ -107,9 +108,7 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
               {planDetails && (
                 <div className="flex justify-between">
                   <span>Expired on:</span>
-                  <span className="font-medium">
-                    {planDetails.renewalDate}
-                  </span>
+                  <span className="font-medium">{planDetails.renewalDate}</span>
                 </div>
               )}
             </div>
@@ -123,7 +122,8 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
                 Upgrade to Continue
               </h4>
               <p className="text-sm text-blue-700">
-                Upgrade to a Pro plan to regain access to {featureName.toLowerCase()} and all premium features.
+                Upgrade to a Pro plan to regain access to{" "}
+                {featureName.toLowerCase()} and all premium features.
               </p>
             </div>
           </div>

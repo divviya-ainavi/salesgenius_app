@@ -169,11 +169,14 @@ const Research = () => {
   const handleResearchClick = () => {
     if (isPlanExpired) {
       // Show plan expiry modal
-      dispatch(setPlanExpiryModal({
-        isOpen: true,
-        featureName: "Company Research",
-        featureDescription: "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations."
-      }));
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Company Research",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
       return;
     }
 
@@ -402,6 +405,19 @@ const Research = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
+
+    if (isPlanExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Company Research",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
 
     setIsLoading(true);
 
