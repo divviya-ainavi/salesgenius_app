@@ -209,7 +209,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-w-4xl mx-auto">
             {availablePlans.map((plan) => {
               const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
@@ -234,7 +234,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto",
+                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto max-w-sm mx-auto",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
                     // ? "border-gray-300 opacity-50"
