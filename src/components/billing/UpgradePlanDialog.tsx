@@ -420,6 +420,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
             })}
           </div>
         </div>
+        </div>
 
         <DialogFooter className="flex justify-center pt-2 border-t border-gray-100 flex-shrink-0">
           <Button
