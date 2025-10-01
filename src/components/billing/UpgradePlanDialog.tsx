@@ -377,7 +377,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           Processing...
                         </>
                       ) : isDisabledFreePlan ? (
-                        "Not Available"
+                        "Free Plan"
                       ) : isCurrentPlan && !canSelectExpiredPlan ? (
                         planDetails?.isExpired ? (
                           "Your expired plan"
