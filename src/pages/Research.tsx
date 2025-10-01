@@ -84,7 +84,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useSelector } from "react-redux";
 import { config } from "@/lib/config";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/lib/supabase";
