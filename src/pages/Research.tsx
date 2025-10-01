@@ -157,7 +157,6 @@ interface StoredResearch {
 import { useSelector, useDispatch } from "react-redux";
 import { setPlanExpiryModal } from "@/store/slices/orgSlice";
 import { PlanExpiryModal } from "@/components/billing/PlanExpiryModal";
-import { Search } from "lucide-react";
 
 const Research = () => {
   usePageTimer("Research");
