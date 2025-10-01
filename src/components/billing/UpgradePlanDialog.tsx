@@ -182,7 +182,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
   return (
     <Dialog open={showUpgradeModal} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
             Upgrade your plan
@@ -208,8 +208,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-w-4xl mx-auto">
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {availablePlans.map((plan) => {
               const PlanIcon = getPlanIcon(plan);
               const isCurrentPlan = plan.id === currentPlan?.id;
@@ -234,7 +234,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto max-w-sm mx-auto",
+                    "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto w-full",
                     !isDisabledFreePlan && "hover:shadow-lg",
                     // isDisabledFreePlan
                     // ? "border-gray-300 opacity-50"
@@ -268,7 +268,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2 py-0.5 text-xs font-medium shadow-md">
                         Most popular
                       </Badge>
-                    </div>
+                  <div className="p-4 text-center flex flex-col">
                   )}
 
                   {isCurrentPlan && (
@@ -284,7 +284,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   {/* Card Content */}
                   <div className="p-4 text-center flex flex-col">
                     {/* Plan Name */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 mt-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 mt-1">
                       {plan.plan_name}
                     </h3>
 
@@ -296,7 +296,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     )}
 
                     {/* Pricing */}
-                    <div className="mb-4">
+                    <div className="mb-3">
                       {hasCoupon && !isFreePlan(plan) ? (
                         <div className="space-y-2">
                           {/* Original Price - Strikethrough */}
@@ -304,7 +304,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             <span className="text-sm font-bold text-gray-500 mr-1 line-through">
                               $
                             </span>
-                            <span className="text-2xl font-bold text-gray-500 line-through">
+                            <span className="text-xl font-bold text-gray-500 line-through">
                               {plan.price.toLocaleString()}
                             </span>
                           </div>
@@ -314,7 +314,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             <span className="text-lg font-bold text-green-600 mr-1">
                               $
                             </span>
-                            <span className="text-2xl font-bold text-green-600">
+                            <span className="text-xl font-bold text-green-600">
                               {(plan.price * 0.5).toLocaleString()}
                             </span>
                           </div>
@@ -330,7 +330,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                           <span className="text-lg font-bold text-gray-900 mr-1">
                             $
                           </span>
-                          <span className="text-2xl font-bold text-gray-900">
+                          <span className="text-xl font-bold text-gray-900">
                             {plan.price.toLocaleString()}
                           </span>
                         </div>
@@ -359,7 +359,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         (isDowngrade && planDetails?.isExpired)
                       }
                       className={cn(
-                        "w-full mb-4 h-10 text-sm font-semibold rounded-lg transition-all duration-200",
+                        "w-full mb-3 h-10 text-sm font-semibold rounded-lg transition-all duration-200",
                         (isCurrentPlan && !canSelectExpiredPlan) ||
                           isDisabledFreePlan ||
                           (isDowngrade && planDetails?.isExpired)
@@ -398,14 +398,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     {/* Features List - Full Display */}
                     {plan.features && plan.features.length > 0 && (
                       <div className="text-left">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           {plan.features.map((feature, index) => (
                             <div
                               key={index}
-                              className="flex items-start space-x-2"
+                              className="flex items-start space-x-2 text-xs"
                             >
                               <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-xs text-gray-700 leading-tight">
+                              <span className="text-gray-700 leading-tight">
                                 {feature}
                               </span>
                             </div>
@@ -420,7 +420,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center pt-3 border-t border-gray-100 flex-shrink-0">
+        <DialogFooter className="flex justify-center pt-2 border-t border-gray-100 flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
