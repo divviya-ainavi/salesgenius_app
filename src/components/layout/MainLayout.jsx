@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { UpgradePlanDialog } from "../billing/UpgradePlanDialog";
 import { setShowUpgradeModal } from "../../store/slices/orgSlice";
 import { useDispatch } from "react-redux";
+import { PlanExpiryModal } from "../billing/PlanExpiryModal";
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -204,6 +205,12 @@ export const MainLayout = () => {
       {/* Sales Calls Tour - Primary onboarding experience */}
       <SalesCallsTour />
       <UpgradePlanDialog />
+      
+      {/* Plan Expiry Modal - Global component */}
+      <PlanExpiryModal
+        featureName=""
+        featureDescription=""
+      />
     </div>
   );
 };

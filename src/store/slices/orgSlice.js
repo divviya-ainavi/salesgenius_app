@@ -20,6 +20,11 @@ const initialState = {
     planDetails: null,
     availablePlans: [],
     showUpgradeModal: false,
+    planExpiryModal: {
+        isOpen: false,
+        featureName: "",
+        featureDescription: "",
+    },
 };
 
 const orgSlice = createSlice({
@@ -80,6 +85,9 @@ const orgSlice = createSlice({
         setShowUpgradeModal: (state, action) => {
             state.showUpgradeModal = action.payload;
         },
+        setPlanExpiryModal: (state, action) => {
+            state.planExpiryModal = action.payload;
+        },
         resetOrgState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -106,6 +114,7 @@ export const {
     setCurrentPlan,
     setPlanDetails,
     setAvailablePlans,
-    setShowUpgradeModal
+    setShowUpgradeModal,
+    setPlanExpiryModal
 } = orgSlice.actions;
 export default orgSlice.reducer;
