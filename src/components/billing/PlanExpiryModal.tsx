@@ -49,101 +49,57 @@ export const PlanExpiryModal: React.FC<PlanExpiryModalProps> = ({
     dispatch(setShowUpgradeModal(true));
   };
 
-  const isFreePlan = (plan: any) => {
-    if (!plan) return true;
-    const planName = plan.plan_name?.toLowerCase() || "";
-    return (
-      planName.includes("free") ||
-      planName.includes("trial") ||
-      planName.includes("beta") ||
-      plan.price === 0
-    );
-  };
-
   return (
     <Dialog open={planExpiryModal.isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            <span>Plan Expired</span>
+          <DialogTitle className="text-center text-xl font-bold">
+            Your plan has expired
           </DialogTitle>
-          <DialogDescription className="text-base leading-relaxed">
-            Your {currentPlan?.plan_name || "current plan"} has expired and you
-            no longer have access to this feature.
+          <DialogDescription className="text-center text-base text-muted-foreground">
+            Upgrade to continue using {planExpiryModal?.featureName}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Feature Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-3 mb-3">
-              <FeatureIcon className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-800">
-                {planExpiryModal?.featureName}
-              </span>
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Access Restricted
+          </h3>
+          
+          <p className="text-gray-600 mb-6">
+            Your {currentPlan?.plan_name || "plan"} has expired. 
+            Upgrade to continue using all features.
+          </p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-center space-x-2 text-blue-800">
+              <Crown className="w-5 h-5" />
+              <span className="font-medium">Upgrade to Pro Plan</span>
             </div>
-            <p className="text-sm text-blue-700">
-              {planExpiryModal?.featureDescription}
+            <p className="text-sm text-blue-700 mt-1">
+              Get unlimited access to all features
             </p>
-          </div>
-
-          {/* Plan Status */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center space-x-3 mb-3">
-              <Calendar className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-red-800">Plan Status</span>
-            </div>
-            <div className="space-y-2 text-sm text-red-700">
-              <div className="flex justify-between">
-                <span>Current Plan:</span>
-                <span className="font-medium">{currentPlan?.plan_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Status:</span>
-                <Badge variant="destructive" className="text-xs">
-                  Expired
-                </Badge>
-              </div>
-              {planDetails && (
-                <div className="flex justify-between">
-                  <span>Expired on:</span>
-                  <span className="font-medium">{planDetails.renewalDate}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Call to Action */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-center">
-              <Crown className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <h4 className="font-medium text-blue-800 mb-2">
-                Upgrade to Continue
-              </h4>
-              <p className="text-sm text-blue-700">
-                Upgrade to a Pro plan to regain access to{" "}
-                {featureName.toLowerCase()} and all premium features.
-              </p>
-            </div>
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-center sm:space-x-3">
           <Button
             variant="outline"
             onClick={handleClose}
-            className="mt-2 sm:mt-0"
+            className="mt-2 sm:mt-0 px-6"
           >
-            <X className="w-4 h-4 mr-2" />
-            Cancel
+            Maybe Later
           </Button>
           <Button
             onClick={handleUpgrade}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6"
           >
             <ArrowUp className="w-4 h-4 mr-2" />
-            Upgrade Now
+            Upgrade Plan
           </Button>
         </DialogFooter>
       </DialogContent>
