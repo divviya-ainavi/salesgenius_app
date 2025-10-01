@@ -268,7 +268,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2 py-0.5 text-xs font-medium shadow-md">
                         Most popular
                       </Badge>
-                  <div className="p-4 text-center flex flex-col">
+                    </div>
                   )}
 
                   {isCurrentPlan && (
