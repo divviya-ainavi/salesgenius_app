@@ -181,7 +181,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   };
 
   return (
-    <Dialog open={showUpgradeModal} onOpenChange={onClose}>
+        style={{ 
+          scrollbarWidth: 'none', 
+          msOverflowStyle: 'none',
+          WebkitScrollbar: 'none'
+        }}
       <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden no-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
@@ -208,7 +212,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div 
+          className="flex-1 overflow-y-auto px-4 py-4"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitScrollbar: 'none'
+          }}
+        >
         <div className="flex-1 overflow-y-auto px-4 py-4 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {availablePlans.map((plan) => {
