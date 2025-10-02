@@ -75,6 +75,7 @@ import { setCallInsightSelectedId } from "../store/slices/prospectSlice";
 import { useDispatch } from "react-redux";
 import { config } from "../lib/config";
 import { supabase } from "../lib/supabase";
+import { setPlanExpiryModal } from "../store/slices/orgSlice";
 
 const communicationStyleConfigs = {
   Visual: {
@@ -158,7 +159,9 @@ const CallInsights = () => {
   const [editingNameId, setEditingNameId] = useState(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-  const { communicationStyleTypes } = useSelector((state) => state.org);
+  const { communicationStyleTypes, planDetails } = useSelector(
+    (state) => state.org
+  );
   const dispatch = useDispatch();
 
   // Salesperson checkbox state
@@ -892,6 +895,18 @@ const CallInsights = () => {
   };
   console.log(selectedProspect, "check selected prospect 2");
   const handleSyncHubspotData = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Sync with HubSpot",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!selectedProspect?.is_hubspot || !selectedProspect?.hubspot_deal_id) {
       toast.error("This is not a HubSpot deal");
       return;
@@ -1086,6 +1101,18 @@ const CallInsights = () => {
   };
 
   const handlePushToHubSpot = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Push to HubSpot",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!hubspotIntegration?.connected || !hubspotIntegration?.hubspotUserId) {
       toast.error("HubSpot integration not available");
       return;
@@ -1486,21 +1513,25 @@ const CallInsights = () => {
           const categoryTitle = category.type
             .replace(/_/g, " ")
             .replace(/\b\w/g, (l) => l.toUpperCase());
-          
-          insightsText += `${categoryIndex + 1}. ${categoryTitle} (Score: ${category.average_score || 0})\n`;
-          
+
+          insightsText += `${categoryIndex + 1}. ${categoryTitle} (Score: ${
+            category.average_score || 0
+          })\n`;
+
           category.insights.forEach((insight, index) => {
-            insightsText += `   ${String.fromCharCode(97 + index)}. ${insight.content}\n`;
+            insightsText += `   ${String.fromCharCode(97 + index)}. ${
+              insight.content
+            }\n`;
             if (insight.speaker) {
               insightsText += `      Speaker: ${insight.speaker}\n`;
             }
             if (insight.relevance_score) {
               insightsText += `      Relevance Score: ${insight.relevance_score}\n`;
             }
-            insightsText += '\n';
+            insightsText += "\n";
           });
-          
-          insightsText += '\n';
+
+          insightsText += "\n";
         }
       });
 
@@ -2065,7 +2096,11 @@ const CallInsights = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleCopySalesInsights}
-                    disabled={!insights || insights.length === 0 || totalInsightsCount === 0}
+                    disabled={
+                      !insights ||
+                      insights.length === 0 ||
+                      totalInsightsCount === 0
+                    }
                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   >
                     <Copy className="w-4 h-4 mr-1" />

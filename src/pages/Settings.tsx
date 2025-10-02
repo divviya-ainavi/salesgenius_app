@@ -72,7 +72,7 @@ import {
   Clock,
   Target,
   AlertTriangle,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -88,6 +88,7 @@ import {
   setGetUsersList,
   setIndustry,
   setPersonalInsightKnowledge,
+  setPlanExpiryModal,
   setSales_methodology,
 } from "../store/slices/orgSlice";
 import {
@@ -441,6 +442,7 @@ export const Settings = () => {
     getUserslist,
     getOrgList,
     allStatus,
+    planDetails,
   } = useSelector((state) => state.org);
 
   // console.log(isBetaUser, "check beta user");
@@ -793,6 +795,18 @@ export const Settings = () => {
   // console.log(user, "check settings");
 
   const handleFirefliesConnect = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Connect Fireflies",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!firefliesToken.trim()) {
       toast.error("Please enter a valid Fireflies API token");
       return;
@@ -1195,6 +1209,18 @@ export const Settings = () => {
   };
 
   const handleInviteUser = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Invite Users",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     setIsLoading(true);
     const email = newUserEmail.trim();
     if (!email) {
@@ -1340,6 +1366,18 @@ export const Settings = () => {
   };
 
   const handleFileUpload = async (files, category) => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Supply Business Materials",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!files || files.length === 0) return;
 
     // Convert single file to array for consistency
@@ -1580,6 +1618,18 @@ export const Settings = () => {
     return finalResponse?.length > 0 ? finalResponse : [];
   };
   const validateHubspotToken = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Connect HubSpot",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!hubspotToken) {
       toast.error("No HubSpot access token found");
       return;
@@ -1855,10 +1905,7 @@ export const Settings = () => {
               <span>AI Training</span>
             </TabsTrigger>
           )}
-          <TabsTrigger
-            value="billing"
-            className="flex items-center space-x-2"
-          >
+          <TabsTrigger value="billing" className="flex items-center space-x-2">
             <DollarSign className="w-4 h-4" />
             <span>Billing</span>
           </TabsTrigger>

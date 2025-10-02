@@ -359,7 +359,7 @@ export const BillingComponent = () => {
                   size="lg"
                 >
                   <ArrowUp className="w-4 h-4 mr-2" />
-                  {planDetails?.isExpired
+                  {planDetails?.isExpired && !isFreePlan(currentPlan)
                     ? "Renew Plan"
                     : nextTierPlan
                     ? `Upgrade to ${nextTierPlan.plan_name}`
