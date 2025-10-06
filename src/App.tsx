@@ -22,6 +22,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import HubSpotCallback from "@/pages/HubSpotCallback";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
+import VersionChecker from "@/components/shared/VersionChecker";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
@@ -96,6 +97,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <VersionChecker />
         <Toaster />
         <Sonner />
         <Routes>
