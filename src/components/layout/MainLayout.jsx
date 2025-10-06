@@ -63,7 +63,7 @@ export const MainLayout = () => {
 
   console.log(user, "check user");
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Coupon Code Banner - Shows for free plan users with ≤15 days remaining */}
       {shouldShowRemainingDays && planDetails.daysRemaining <= 15 && (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-center relative border-b border-blue-700/20">
@@ -192,9 +192,9 @@ export const MainLayout = () => {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden h-full">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <Outlet />
         </main>
       </div>
