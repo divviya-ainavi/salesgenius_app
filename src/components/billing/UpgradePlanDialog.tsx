@@ -168,12 +168,12 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       }
 
       // Call onUpgrade callback if provided
-      if (onUpgrade) {
-        onUpgrade(plan);
-      }
+      // if (onUpgrade) {
+      //   onUpgrade(plan);
+      // }
     } catch (error) {
       console.error("❌ Error creating checkout session:", error);
-      toast.error("Failed to start checkout process: " + error.message);
+      // toast.error("Failed to start checkout process: " + error?.message || "");
     } finally {
       setIsProcessingPayment(false);
       dispatch(setShowUpgradeModal(false));
