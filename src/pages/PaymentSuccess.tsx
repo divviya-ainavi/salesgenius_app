@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Home, Loader2, AlertCircle, X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Home, Loader2, AlertCircle, X, Download, Receipt, CreditCard, Calendar, Crown, Gift, Users, Shield, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useSelector } from "react-redux";
 import { dbHelpers } from "../lib/supabase";
 import { setCurrentPlan, setPlanDetails } from "../store/slices/orgSlice";
 import { useDispatch } from "react-redux";
+import { cn } from "@/lib/utils";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
@@ -17,9 +20,10 @@ const PaymentSuccess = () => {
   const dispatch = useDispatch();
 
   const [isLoading, setIsLoading] = useState(true);
-  // const [planDetails, setPlanDetails] = useState(null);
   const [error, setError] = useState(null);
   const [showCrackers, setShowCrackers] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
 
   useEffect(() => {
     verifyPaymentAndLoadDetails();
@@ -51,7 +55,6 @@ const PaymentSuccess = () => {
       const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user?.id);
 
       if (userPlanData && userPlanData.length > 0) {
-        // console.log(userPlanData, "user plan data");
         const userPlan = userPlanData[0];
         const planMaster = userPlan.plan_master;
 
@@ -70,12 +73,11 @@ const PaymentSuccess = () => {
           0,
           Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
         );
-        // console.log(userPlan, "user plan 109");
+
         dispatch(setCurrentPlan(planMaster));
         dispatch(
           setPlanDetails({
             ...userPlan,
-            // ...planMaster,
             isExpired,
             daysRemaining,
             renewalDate: endDate.toLocaleDateString("en-US", {
@@ -90,6 +92,23 @@ const PaymentSuccess = () => {
             }),
           })
         );
+
+        // Fetch payment transaction details with receipt URLs
+        const { data: paymentData, error: paymentError } = await supabase
+          .from("user_plan")
+          .select("id, plan_name, amount, currency, invoice_number, start_date, created_at, invoice_pdf, hosted_invoice_url, receipt_url")
+          .eq("user_id", user.id)
+          .eq("stripe_session_id", sessionId)
+          .maybeSingle();
+
+        if (paymentError) {
+          console.error("Error fetching payment details:", paymentError);
+        } else if (paymentData) {
+          setPaymentDetails({
+            ...paymentData,
+            planMaster,
+          });
+        }
       }
 
       toast.success("Payment successful! Your plan has been upgraded.");
@@ -139,6 +158,85 @@ const PaymentSuccess = () => {
       </div>
     );
   }
+
+  const getPlanIcon = (plan) => {
+    if (!plan) return Gift;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    if (planName.includes("free") || planName.includes("trial") || planName.includes("beta") || plan.price === 0) return Gift;
+    if (planName.includes("pro")) return Crown;
+    if (planName.includes("business")) return Users;
+    if (planName.includes("enterprise")) return Shield;
+    return Star;
+  };
+
+  const getPlanGradient = (plan) => {
+    if (!plan) return "from-gray-500 to-gray-600";
+    const planName = plan.plan_name?.toLowerCase() || "";
+    if (planName.includes("free") || planName.includes("trial") || planName.includes("beta") || plan.price === 0)
+      return "from-green-500 to-emerald-600";
+    if (planName.includes("pro")) return "from-blue-500 to-blue-600";
+    if (planName.includes("business")) return "from-slate-700 to-slate-800";
+    if (planName.includes("enterprise")) return "from-gray-800 to-black";
+    return "from-blue-500 to-blue-600";
+  };
+
+  const getPlanBorderColor = (plan) => {
+    if (!plan) return "border-gray-300";
+    const planName = plan.plan_name?.toLowerCase() || "";
+    if (planName.includes("free") || planName.includes("trial") || planName.includes("beta") || plan.price === 0)
+      return "border-green-300";
+    if (planName.includes("pro")) return "border-blue-400";
+    if (planName.includes("business")) return "border-slate-400";
+    if (planName.includes("enterprise")) return "border-gray-600";
+    return "border-blue-400";
+  };
+
+  const getDurationText = (durationDays) => {
+    if (durationDays === 30) return "month";
+    if (durationDays === 365) return "year";
+    if (durationDays <= 31) return "trial";
+    return `${durationDays} days`;
+  };
+
+  const formatCurrency = (amount, currency) => {
+    const currencySymbols = {
+      usd: "$",
+      eur: "€",
+      gbp: "£",
+      inr: "₹",
+    };
+    const symbol = currencySymbols[currency?.toLowerCase()] || "$";
+    return `${symbol}${parseFloat(amount || 0).toFixed(2)}`;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const handleDownloadReceipt = () => {
+    setDownloadingReceipt(true);
+
+    try {
+      const receiptUrl = paymentDetails?.receipt_url || paymentDetails?.invoice_pdf || paymentDetails?.hosted_invoice_url;
+
+      if (receiptUrl) {
+        window.open(receiptUrl, "_blank");
+        toast.success("Opening receipt in new tab...");
+      } else {
+        toast.error("Receipt not available");
+      }
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+      toast.error("Failed to download receipt");
+    } finally {
+      setTimeout(() => setDownloadingReceipt(false), 1000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-6 relative overflow-hidden">
@@ -209,31 +307,165 @@ const PaymentSuccess = () => {
       </button>
 
       {/* Main Success Card */}
-      <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-md w-full mx-auto text-center relative z-10">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full mx-auto relative z-10">
         {/* Success Icon */}
-        <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+        <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
 
         {/* Success Message */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">
+        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center">
           Payment Successful! 🎉
         </h1>
 
-        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          Thank you for processing your most recent payment.
-          <br />
-          Your premium subscription will expire on {planDetails?.renewalDate}.
+        <p className="text-base text-gray-600 mb-6 text-center leading-relaxed">
+          Thank you for upgrading your subscription.
         </p>
 
-        {/* Action Button */}
-        <Button
-          onClick={() => navigate("/calls")}
-          className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-          size="lg"
-        >
-          Visit Sales Call
-        </Button>
+        {/* Plan Details Card */}
+        {paymentDetails?.planMaster && (
+          <Card className={cn(
+            "mb-6 border-2 overflow-hidden",
+            getPlanBorderColor(paymentDetails.planMaster)
+          )}>
+            <div className={cn(
+              "p-6 text-white relative overflow-hidden",
+              `bg-gradient-to-br ${getPlanGradient(paymentDetails.planMaster)}`
+            )}>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <Badge className="bg-white/20 text-white border-white/30 mb-2">
+                      Your New Plan
+                    </Badge>
+                    <h2 className="text-2xl font-bold">
+                      {paymentDetails.planMaster.plan_name}
+                    </h2>
+                  </div>
+                  {React.createElement(getPlanIcon(paymentDetails.planMaster), {
+                    className: "w-12 h-12 opacity-80",
+                  })}
+                </div>
+
+                <div className="flex items-baseline mb-4">
+                  <span className="text-3xl font-bold">
+                    {formatCurrency(paymentDetails.amount || paymentDetails.planMaster.price, paymentDetails.currency || paymentDetails.planMaster.currency)}
+                  </span>
+                  <span className="text-white/80 ml-2">
+                    / {getDurationText(paymentDetails.planMaster.duration_days)}
+                  </span>
+                </div>
+
+                {paymentDetails.planMaster.features && paymentDetails.planMaster.features.length > 0 && (
+                  <div className="space-y-2">
+                    {paymentDetails.planMaster.features.slice(0, 3).map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-2 text-sm">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                    {paymentDetails.planMaster.features.length > 3 && (
+                      <p className="text-sm text-white/80 mt-2">
+                        +{paymentDetails.planMaster.features.length - 3} more features
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+                {React.createElement(getPlanIcon(paymentDetails.planMaster), {
+                  className: "w-full h-full",
+                })}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Payment Summary */}
+        {paymentDetails && (
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2" />
+                Payment Details
+              </h3>
+
+              <div className="space-y-3 text-sm">
+                {paymentDetails.invoice_number && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Invoice Number</span>
+                    <span className="font-medium text-gray-900">
+                      {paymentDetails.invoice_number}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Amount Paid</span>
+                  <span className="font-semibold text-gray-900 text-base">
+                    {formatCurrency(paymentDetails.amount, paymentDetails.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Payment Date</span>
+                  <span className="font-medium text-gray-900">
+                    {formatDate(paymentDetails.created_at)}
+                  </span>
+                </div>
+
+                {planDetails?.renewalDate && (
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                    <span className="text-gray-600 flex items-center">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      Next Renewal
+                    </span>
+                    <span className="font-medium text-gray-900">
+                      {planDetails.renewalDate}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {/* Download Receipt Button */}
+          {paymentDetails && (paymentDetails.receipt_url || paymentDetails.invoice_pdf || paymentDetails.hosted_invoice_url) && (
+            <Button
+              onClick={handleDownloadReceipt}
+              disabled={downloadingReceipt}
+              variant="outline"
+              className="w-full border-2 border-green-500 text-green-700 hover:bg-green-50 rounded-xl py-3 text-base font-semibold transition-all duration-200"
+              size="lg"
+            >
+              {downloadingReceipt ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Loading Receipt...
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5 mr-2" />
+                  Download Receipt
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Continue Button */}
+          <Button
+            onClick={() => navigate("/calls")}
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-xl py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            size="lg"
+          >
+            Continue to Sales Call
+          </Button>
+        </div>
       </div>
     </div>
   );
