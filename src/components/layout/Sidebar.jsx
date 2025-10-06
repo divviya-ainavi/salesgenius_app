@@ -273,12 +273,7 @@ export const Sidebar = () => {
 
       {/* Current Plan Section */}
       {currentPlan && (
-        <div className={cn(
-          "p-4 border-t flex-shrink-0",
-          !isFreePlan(currentPlan) && !planDetails?.isExpired
-            ? "border-t-blue-500/20 bg-blue-500/5"
-            : "border-border"
-        )}>
+        <div className="p-4 border-t border-border flex-shrink-0">
           <div className="space-y-3">
             {/* Plan Info */}
             <div className="flex items-center space-x-2">
