@@ -66,8 +66,31 @@ const PaymentSuccess = () => {
         return;
       }
 
-      // Load user's updated plan details
-      const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user?.id);
+      if (!user?.id) {
+        console.error("User ID not available, retrying...");
+        setTimeout(() => {
+          if (user?.id) {
+            verifyPaymentAndLoadDetails();
+          }
+        }, 1000);
+        return;
+      }
+
+      const maxRetries = 5;
+      let retryCount = 0;
+      let userPlanData = null;
+
+      while (retryCount < maxRetries) {
+        userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
+
+        if (userPlanData && userPlanData.length > 0) {
+          break;
+        }
+
+        console.log(`Attempt ${retryCount + 1}: Payment details not yet available, retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        retryCount++;
+      }
 
       if (userPlanData && userPlanData.length > 0) {
         const userPlan = userPlanData[0];
@@ -108,19 +131,35 @@ const PaymentSuccess = () => {
           })
         );
 
-        // Fetch payment transaction details with receipt URLs
-        const { data: paymentData, error: paymentError } = await supabase
-          .from("user_plan")
-          .select(
-            "id, plan_name, amount, currency, invoice_number, start_date, created_at, invoice_pdf, hosted_invoice_url, receipt_url"
-          )
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle();
+        let paymentData = null;
+        retryCount = 0;
 
-        if (paymentError) {
-          console.error("Error fetching payment details:", paymentError);
-        } else if (paymentData) {
+        while (retryCount < maxRetries) {
+          const { data, error: paymentError } = await supabase
+            .from("user_plan")
+            .select(
+              "id, plan_name, amount, currency, invoice_number, start_date, created_at, invoice_pdf, hosted_invoice_url, receipt_url"
+            )
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (paymentError) {
+            console.error("Error fetching payment details:", paymentError);
+            break;
+          }
+
+          if (data && data.amount) {
+            paymentData = data;
+            break;
+          }
+
+          console.log(`Attempt ${retryCount + 1}: Receipt details not yet available, retrying in 2 seconds...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          retryCount++;
+        }
+
+        if (paymentData) {
           setPaymentDetails({
             ...paymentData,
             planMaster,
