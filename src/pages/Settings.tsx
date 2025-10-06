@@ -1244,7 +1244,7 @@ export const Settings = () => {
       const formData = new FormData();
       formData.append("id", result?.id);
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.userInviteProd}`,
+        `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
         {
           method: "POST",
           body: formData,

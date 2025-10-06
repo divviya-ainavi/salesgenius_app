@@ -63,7 +63,11 @@ export const config = {
       sendSlack: "Send-slack",
       fileUpload: 'upload-file-ai',
       brevoContact: 'User-contact',
-      updateContact:'Update_brevo-contact'
+      updateContact: 'Update_brevo-contact',
+      cancelSubscriptionDev: 'Cancle-sub',
+      cancelSubscriptionProd: 'Cancle-sub-prod',
+      checkoutSubscriptionDev: 'checkout-session',
+      checkoutSubscriptionProd: 'checkout-session-prod',
     }
   }
 };

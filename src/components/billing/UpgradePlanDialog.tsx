@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import { config } from "../../lib/config";
 
 interface UpgradePlanDialogProps {
   isOpen: boolean;
@@ -125,7 +126,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}checkout-session`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.checkoutSubscriptionDev
+        }`,
         {
           method: "POST",
           headers: {
@@ -168,12 +171,12 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       }
 
       // Call onUpgrade callback if provided
-      if (onUpgrade) {
-        onUpgrade(plan);
-      }
+      // if (onUpgrade) {
+      //   onUpgrade(plan);
+      // }
     } catch (error) {
       console.error("❌ Error creating checkout session:", error);
-      toast.error("Failed to start checkout process: " + error.message);
+      // toast.error("Failed to start checkout process: " + error?.message || "");
     } finally {
       setIsProcessingPayment(false);
       dispatch(setShowUpgradeModal(false));

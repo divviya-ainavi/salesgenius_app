@@ -49,6 +49,7 @@ import {
   setShowUpgradeModal,
 } from "../../store/slices/orgSlice";
 import { dbHelpers } from "../../lib/supabase";
+import { config } from "../../lib/config";
 
 export const BillingComponent = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
@@ -139,7 +140,9 @@ export const BillingComponent = () => {
       if (user?.id) {
         const { data, error } = await supabase
           .from("user_plan")
-          .select("id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at")
+          .select(
+            "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+          )
           .eq("user_id", user.id)
           .not("amount", "is", null)
           .gt("amount", 0)
@@ -225,7 +228,10 @@ export const BillingComponent = () => {
       );
 
       const apiResponse = await fetch(
-        `https://salesgenius.ainavi.co.uk/n8n/webhook/Cancle-sub`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.cancelSubscriptionDev
+        }`,
+
         {
           method: "POST",
           headers: {
@@ -464,13 +470,17 @@ export const BillingComponent = () => {
           {isLoadingHistory ? (
             <div className="text-center py-8">
               <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading billing history...</p>
+              <p className="text-sm text-muted-foreground">
+                Loading billing history...
+              </p>
             </div>
           ) : billingHistory.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No billing history available</p>
+                <p className="text-muted-foreground">
+                  No billing history available
+                </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your payment history will appear here once you make a purchase
                 </p>
@@ -505,7 +515,10 @@ export const BillingComponent = () => {
                     </thead>
                     <tbody className="bg-background divide-y divide-border">
                       {billingHistory.map((invoice) => (
-                        <tr key={invoice.id} className="hover:bg-muted/30 transition-colors">
+                        <tr
+                          key={invoice.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <Receipt className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -544,8 +557,12 @@ export const BillingComponent = () => {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {(!invoice.invoice_pdf && !invoice.hosted_invoice_url && !invoice.receipt_url) ? (
-                              <span className="text-xs text-muted-foreground">No documents</span>
+                            {!invoice.invoice_pdf &&
+                            !invoice.hosted_invoice_url &&
+                            !invoice.receipt_url ? (
+                              <span className="text-xs text-muted-foreground">
+                                No documents
+                              </span>
                             ) : (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -560,7 +577,12 @@ export const BillingComponent = () => {
                                 <DropdownMenuContent align="end">
                                   {invoice.invoice_pdf && (
                                     <DropdownMenuItem
-                                      onClick={() => handleDownload(invoice.invoice_pdf, "Invoice PDF")}
+                                      onClick={() =>
+                                        handleDownload(
+                                          invoice.invoice_pdf,
+                                          "Invoice PDF"
+                                        )
+                                      }
                                     >
                                       <Download className="w-4 h-4 mr-2" />
                                       Download PDF
@@ -568,7 +590,12 @@ export const BillingComponent = () => {
                                   )}
                                   {invoice.hosted_invoice_url && (
                                     <DropdownMenuItem
-                                      onClick={() => handleDownload(invoice.hosted_invoice_url, "Hosted Invoice")}
+                                      onClick={() =>
+                                        handleDownload(
+                                          invoice.hosted_invoice_url,
+                                          "Hosted Invoice"
+                                        )
+                                      }
                                     >
                                       <ExternalLink className="w-4 h-4 mr-2" />
                                       View Invoice
@@ -576,7 +603,12 @@ export const BillingComponent = () => {
                                   )}
                                   {invoice.receipt_url && (
                                     <DropdownMenuItem
-                                      onClick={() => handleDownload(invoice.receipt_url, "Receipt")}
+                                      onClick={() =>
+                                        handleDownload(
+                                          invoice.receipt_url,
+                                          "Receipt"
+                                        )
+                                      }
                                     >
                                       <Receipt className="w-4 h-4 mr-2" />
                                       View Receipt
