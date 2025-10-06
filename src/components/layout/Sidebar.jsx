@@ -273,15 +273,28 @@ export const Sidebar = () => {
 
       {/* Current Plan Section */}
       {currentPlan && (
-        <div className="p-4 border-t border-border flex-shrink-0">
+        <div className={cn(
+          "p-4 border-t border-border flex-shrink-0",
+          !isFreePlan(currentPlan) && !planDetails?.isExpired && "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-t-2 border-t-blue-200 dark:border-t-blue-800"
+        )}>
           <div className="space-y-3">
             {/* Plan Info */}
             <div className="flex items-center space-x-2">
               {React.createElement(getPlanIcon(currentPlan), {
-                className: "w-4 h-4 text-muted-foreground"
+                className: cn(
+                  "w-4 h-4",
+                  !isFreePlan(currentPlan) && !planDetails?.isExpired
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-muted-foreground"
+                )
               })}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className={cn(
+                  "text-sm font-medium truncate",
+                  !isFreePlan(currentPlan) && !planDetails?.isExpired
+                    ? "text-blue-700 dark:text-blue-300"
+                    : "text-foreground"
+                )}>
                   {currentPlan.plan_name}
                 </p>
                 {isFreePlan(currentPlan) && planDetails && !planDetails.isExpired && (
@@ -289,6 +302,9 @@ export const Sidebar = () => {
                     <Calendar className="w-3 h-3" />
                     <span>{planDetails.daysRemaining} days left</span>
                   </div>
+                )}
+                {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Active</p>
                 )}
                 {planDetails?.isExpired && (
                   <p className="text-xs text-red-600 font-medium">Expired</p>
