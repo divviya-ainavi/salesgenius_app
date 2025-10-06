@@ -274,8 +274,10 @@ export const Sidebar = () => {
       {/* Current Plan Section */}
       {currentPlan && (
         <div className={cn(
-          "p-4 border-t border-border flex-shrink-0",
-          !isFreePlan(currentPlan) && !planDetails?.isExpired && "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-t-2 border-t-blue-200 dark:border-t-blue-800"
+          "p-4 border-t flex-shrink-0",
+          !isFreePlan(currentPlan) && !planDetails?.isExpired
+            ? "border-t-blue-500/20 bg-blue-500/5"
+            : "border-border"
         )}>
           <div className="space-y-3">
             {/* Plan Info */}
@@ -284,27 +286,31 @@ export const Sidebar = () => {
                 className: cn(
                   "w-4 h-4",
                   !isFreePlan(currentPlan) && !planDetails?.isExpired
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-blue-600 dark:text-blue-500"
                     : "text-muted-foreground"
                 )
               })}
               <div className="flex-1 min-w-0">
-                <p className={cn(
-                  "text-sm font-medium truncate",
-                  !isFreePlan(currentPlan) && !planDetails?.isExpired
-                    ? "text-blue-700 dark:text-blue-300"
-                    : "text-foreground"
-                )}>
-                  {currentPlan.plan_name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={cn(
+                    "text-sm font-medium truncate",
+                    !isFreePlan(currentPlan) && !planDetails?.isExpired
+                      ? "text-blue-600 dark:text-blue-500"
+                      : "text-foreground"
+                  )}>
+                    {currentPlan.plan_name}
+                  </p>
+                  {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
+                      PRO
+                    </span>
+                  )}
+                </div>
                 {isFreePlan(currentPlan) && planDetails && !planDetails.isExpired && (
                   <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     <span>{planDetails.daysRemaining} days left</span>
                   </div>
-                )}
-                {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Active</p>
                 )}
                 {planDetails?.isExpired && (
                   <p className="text-xs text-red-600 font-medium">Expired</p>
