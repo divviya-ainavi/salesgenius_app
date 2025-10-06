@@ -4452,6 +4452,10 @@ export const dbHelpers = {
         .select("*")
         .order("price", { ascending: true });
 
+
+
+
+
       if (error) {
         throw error;
       }
