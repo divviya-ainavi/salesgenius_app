@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import { config } from "../../lib/config";
 
 interface UpgradePlanDialogProps {
   isOpen: boolean;
@@ -125,7 +126,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}checkout-session`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.checkoutSubscriptionDev
+        }`,
         {
           method: "POST",
           headers: {

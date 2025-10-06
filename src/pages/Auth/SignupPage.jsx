@@ -119,7 +119,7 @@ const SignupPage = () => {
         const formData = new FormData();
         formData.append("id", result?.id);
         const response = await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.userInviteProd}`,
+          `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
           {
             method: "POST",
             body: formData,
@@ -129,21 +129,23 @@ const SignupPage = () => {
         const message = `Account setup link ${
           result.status === "re-invited" ? "re-" : ""
         }sent to ${email}! Check your email to complete registration.`;
-        
+
         setSuccessMessage(message);
         setIsSuccess(true);
         setIsLoading(false);
-        
+
         // Also show toast for additional feedback
         toast.success(message);
         // console.log("Invite ID:", result.id); // optional for webhook trigger
       } else if (result.status === "registered") {
-        const message = "This email is already registered. Please use the login page instead.";
+        const message =
+          "This email is already registered. Please use the login page instead.";
         setError(message);
         setIsLoading(false);
         toast.info(message);
       } else if (result.status === "already-invited") {
-        const message = "Account setup link was already sent to this email within the last 24 hours. Please check your email.";
+        const message =
+          "Account setup link was already sent to this email within the last 24 hours. Please check your email.";
         setSuccessMessage(message);
         setIsSuccess(true);
         setIsLoading(false);
@@ -230,14 +232,8 @@ const SignupPage = () => {
                     Send Another Email
                   </Button>
 
-                  <Link
-                    to="/auth/login"
-                    className="block w-full"
-                  >
-                    <Button
-                      variant="ghost"
-                      className="w-full"
-                    >
+                  <Link to="/auth/login" className="block w-full">
+                    <Button variant="ghost" className="w-full">
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back to Login
                     </Button>
