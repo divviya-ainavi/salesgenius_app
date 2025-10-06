@@ -26,6 +26,10 @@ import {
   Sparkles,
   AlertTriangle,
   CreditCard,
+  Download,
+  ExternalLink,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
@@ -45,12 +49,15 @@ export const BillingComponent = () => {
   // const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [billingHistory, setBillingHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const dispatch = useDispatch();
   const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
     useSelector((state) => state.org);
 
   useEffect(() => {
     loadPlanData();
+    loadBillingHistory();
   }, [user]);
 
   const loadPlanData = async () => {
@@ -115,6 +122,34 @@ export const BillingComponent = () => {
       console.error("Error loading plan data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadBillingHistory = async () => {
+    try {
+      setIsLoadingHistory(true);
+
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from("user_plan")
+          .select("id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at")
+          .eq("user_id", user.id)
+          .not("amount", "is", null)
+          .gt("amount", 0)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error loading billing history:", error);
+          toast.error("Failed to load billing history");
+        } else {
+          setBillingHistory(data || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading billing history:", error);
+      toast.error("Failed to load billing history");
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -255,6 +290,34 @@ export const BillingComponent = () => {
     dispatch(setShowUpgradeModal(false));
   };
 
+  const formatCurrency = (amount, currency) => {
+    const currencySymbols = {
+      usd: "$",
+      eur: "€",
+      gbp: "£",
+      inr: "₹",
+    };
+    const symbol = currencySymbols[currency?.toLowerCase()] || "$";
+    return `${symbol}${parseFloat(amount).toFixed(2)}`;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const handleDownload = (url, type) => {
+    if (url) {
+      window.open(url, "_blank");
+    } else {
+      toast.error(`${type} not available`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -381,6 +444,146 @@ export const BillingComponent = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Billing History Section */}
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-6">
+            Billing History
+          </h3>
+
+          {isLoadingHistory ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading billing history...</p>
+            </div>
+          ) : billingHistory.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">No billing history available</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your payment history will appear here once you make a purchase
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-muted/50 border-b">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Invoice
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Plan
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Amount
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-background divide-y divide-border">
+                      {billingHistory.map((invoice) => (
+                        <tr key={invoice.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Receipt className="w-4 h-4 mr-2 text-muted-foreground" />
+                              <span className="text-sm font-medium text-foreground">
+                                {invoice.invoice_number || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-foreground max-w-xs truncate">
+                              {invoice.plan_name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(invoice.created_at)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-foreground">
+                              {formatCurrency(invoice.amount, invoice.currency)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge
+                              variant={
+                                invoice.status === "active"
+                                  ? "default"
+                                  : invoice.status === "canceled"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                              className="capitalize"
+                            >
+                              {invoice.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              {invoice.invoice_pdf && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownload(invoice.invoice_pdf, "Invoice PDF")}
+                                  className="text-xs"
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  PDF
+                                </Button>
+                              )}
+                              {invoice.hosted_invoice_url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownload(invoice.hosted_invoice_url, "Hosted Invoice")}
+                                  className="text-xs"
+                                >
+                                  <ExternalLink className="w-3 h-3 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                              {invoice.receipt_url && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownload(invoice.receipt_url, "Receipt")}
+                                  className="text-xs"
+                                >
+                                  <Receipt className="w-3 h-3 mr-1" />
+                                  Receipt
+                                </Button>
+                              )}
+                              {!invoice.invoice_pdf && !invoice.hosted_invoice_url && !invoice.receipt_url && (
+                                <span className="text-xs text-muted-foreground">No documents</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
