@@ -1,12 +1,12 @@
 trigger:
   branches:
     include:
-      - dev0.1
+      - Dev
   paths:
     exclude:
       - '*'
 variables:
-  Devozy_DUMMY_VARIABLE: ID_PjCtYnWV
+  Devozy_DUMMY_VARIABLE: ID_M4B4llQ5
   IMAGE_NAME: PLN1000014_MERN_Development
   group: frontend-secrets
   name: IMAGE_NAME
