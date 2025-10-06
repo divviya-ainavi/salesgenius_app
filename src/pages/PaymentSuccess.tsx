@@ -108,7 +108,8 @@ const PaymentSuccess = () => {
           })
         );
 
-        // Fetch payment transaction details with receipt URLs
+        setIsLoading(false);
+
         const { data: paymentData, error: paymentError } = await supabase
           .from("user_plan")
           .select(
@@ -126,6 +127,8 @@ const PaymentSuccess = () => {
             planMaster,
           });
         }
+      } else {
+        setIsLoading(false);
       }
 
       toast.success("Payment successful! Your plan has been upgraded.");
@@ -133,7 +136,6 @@ const PaymentSuccess = () => {
       console.error("Error verifying payment:", error);
       setError(error.message);
       toast.error("Error verifying payment: " + error.message);
-    } finally {
       setIsLoading(false);
     }
   };
