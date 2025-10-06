@@ -212,6 +212,30 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.6s;
 }
 
+/* Crackers animation */
+@keyframes cracker-fall {
+  0% {
+    transform: translateY(-50px) rotate(0deg) scale(0);
+    opacity: 1;
+  }
+  10% {
+    transform: translateY(-30px) rotate(36deg) scale(1);
+    opacity: 1;
+  }
+  90% {
+    transform: translateY(100vh) rotate(324deg) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-cracker-fall {
+  animation: cracker-fall 4s ease-out forwards;
+}
+
 /* Quill editor custom styles */
 .ql-editor {
   min-height: 150px;
@@ -348,4 +372,12 @@
 .react-tel-input .form-control {
   width: 100%;
   border-color: hsl(214.3 31.8% 91.4%);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

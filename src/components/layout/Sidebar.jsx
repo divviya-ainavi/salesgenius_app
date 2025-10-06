@@ -1,5 +1,7 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Search,
   Phone,
@@ -13,9 +15,15 @@ import {
   Settings,
   Users,
   Shield,
+  Crown,
+  Gift,
+  ArrowUp,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CURRENT_USER } from "@/lib/supabase";
+import { useSelector, useDispatch } from "react-redux";
+import { setShowUpgradeModal } from "@/store/slices/orgSlice";
 
 const mainNavItems = [
   {
@@ -89,7 +97,9 @@ const adminNavItems = [
 
 export const Sidebar = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
   const userRole = CURRENT_USER.role_key;
+  const { currentPlan, planDetails } = useSelector((state) => state.org);
 
   const isActiveRoute = (href) => {
     if (!href) return false; // For non-clickable items
@@ -125,10 +135,32 @@ export const Sidebar = () => {
 
   const hasAdminAccess = filteredAdminItems.length > 0;
 
+  // Helper functions for plan display
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      plan.price === 0
+    );
+  };
+
+  const getPlanIcon = (plan) => {
+    if (!plan || isFreePlan(plan)) return Gift;
+    if (plan.plan_name?.toLowerCase().includes("pro")) return Crown;
+    return Crown;
+  };
+
+  const handleUpgradeClick = () => {
+    dispatch(setShowUpgradeModal(true));
+  };
+
   return (
-    <div className="w-64 bg-card border-r border-border flex flex-col">
+    <div className="w-64 bg-card border-r border-border flex flex-col h-full">
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
         {mainNavItems.map((item) => (
           <div key={item.title}>
             {item.href ? (
@@ -239,8 +271,65 @@ export const Sidebar = () => {
         )}
       </nav>
 
+      {/* Current Plan Section */}
+      {currentPlan && (
+        <div className="p-4 border-t border-border flex-shrink-0">
+          <div className="space-y-3">
+            {/* Plan Info */}
+            <div className="flex items-center space-x-2">
+              {React.createElement(getPlanIcon(currentPlan), {
+                className: cn(
+                  "w-4 h-4",
+                  !isFreePlan(currentPlan) && !planDetails?.isExpired
+                    ? "text-blue-600 dark:text-blue-500"
+                    : "text-muted-foreground"
+                )
+              })}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className={cn(
+                    "text-sm font-medium truncate",
+                    !isFreePlan(currentPlan) && !planDetails?.isExpired
+                      ? "text-blue-600 dark:text-blue-500"
+                      : "text-foreground"
+                  )}>
+                    {currentPlan.plan_name}
+                  </p>
+                  {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
+                      PRO
+                    </span>
+                  )}
+                </div>
+                {isFreePlan(currentPlan) && planDetails && !planDetails.isExpired && (
+                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                    <Calendar className="w-3 h-3" />
+                    <span>{planDetails.daysRemaining} days left</span>
+                  </div>
+                )}
+                {planDetails?.isExpired && (
+                  <p className="text-xs text-red-600 font-medium">Expired</p>
+                )}
+              </div>
+            </div>
+
+            {/* Upgrade Button for Free Plan Users */}
+            {(isFreePlan(currentPlan) || planDetails?.isExpired) && (
+              <Button
+                onClick={handleUpgradeClick}
+                size="sm"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
+              >
+                <ArrowUp className="w-3 h-3 mr-1" />
+                Upgrade to Pro
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border flex-shrink-0">
         <div className="text-xs text-muted-foreground text-center">
           <p>© 2025 SalesGenius.ai</p>
           <p>Version 1.1.0</p>

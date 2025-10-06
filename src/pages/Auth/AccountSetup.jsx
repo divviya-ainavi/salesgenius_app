@@ -342,8 +342,7 @@ const AccountSetup = () => {
       }
 
       // Step 3: Create user profile (with both custom and Supabase auth support)
-      const hashedPassword = hashPassword(formData.password);
-
+    
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert([
@@ -353,7 +352,6 @@ const AccountSetup = () => {
             organization_id: organizationId,
             title_id: inviteData.title_id || null,
             status_id: 1, // Active status
-            hashed_password: hashedPassword,
             auth_user_id: supabaseAuthUserId, // Link to Supabase Auth user if created
           },
         ])
@@ -378,48 +376,57 @@ const AccountSetup = () => {
         console.warn("Failed to update invite status:", updateError);
       }
 
-      // Step 5: Create plan based on user type
+      // Step 5: Create free plan entry for new user
       try {
-        const today = new Date();
-        const userType = inviteData.type; // 'beta' for self-signup, null for admin invite
-
-        let planName, endDate, numberOfDays;
-
-        if (userType === "beta") {
-          // Beta user: 30-day trial
-          planName = "Beta Trial";
-          endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
-          numberOfDays = 30;
-        } else {
-          // Admin invited user: 1-year plan
-          planName = "Standard Plan";
-          endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from today
-          numberOfDays = 365;
-        }
-
-        const { data: planData, error: planError } = await supabase
-          .from("plan")
-          .insert([
-            {
-              user_id: profile.id,
-              plan_name: planName,
-              start_date: today.toISOString().split("T")[0], // YYYY-MM-DD format
-              end_date: endDate.toISOString().split("T")[0], // YYYY-MM-DD format
-              no_of_days: numberOfDays,
-            },
-          ])
-          .select()
+        // Get the free plan from plan_master table
+        const { data: freePlan, error: freePlanError } = await supabase
+          .from("plan_master")
+          .select("*")
+          .or("plan_name.ilike.%free%,plan_name.ilike.%trial%,plan_name.ilike.%beta%,price.eq.0")
+          .order("price", { ascending: true })
+          .limit(1)
           .single();
 
-        if (planError) {
-          console.warn("Failed to create user plan:", planError);
-          // Don't show error to user - Slack notification is optional
+        if (freePlanError) {
+          console.warn("No free plan found, skipping plan assignment:", freePlanError);
         } else {
-          console.log("✅ User plan created successfully:", planData);
+          // Calculate plan dates
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setDate(startDate.getDate() + freePlan.duration_days);
+
+          // Create user_plan entry
+          const { data: userPlan, error: userPlanError } = await supabase
+            .from("user_plan")
+            .insert([{
+              user_id: profile.id,
+              plan_id: freePlan.id,
+              plan_name: freePlan.plan_name,
+              amount: freePlan.price,
+              currency: freePlan.currency || 'usd',
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              status: 'active',
+              is_active: true,
+              payment_status: 'completed', // Free plan is automatically completed
+            }])
+            .select()
+            .single();
+
+          if (userPlanError) {
+            console.warn("Failed to create user plan entry:", userPlanError);
+          } else {
+            console.log("✅ Free plan assigned to new user:", {
+              userId: profile.id,
+              planName: freePlan.plan_name,
+              duration: freePlan.duration_days,
+              endDate: endDate.toISOString()
+            });
+          }
         }
-      } catch (planCreationError) {
-        console.warn("Error creating user plan:", planCreationError);
-        // Don't show error to user - Slack notification is optional
+      } catch (planError) {
+        console.warn("Error assigning free plan to user:", planError);
+        // Don't fail account creation if plan assignment fails
       }
 
       // Step 6: Sign out from Supabase Auth (user will login manually)

@@ -27,10 +27,13 @@ import {
 import { dbHelpers } from "../../lib/supabase";
 import {
   setAllTitles,
+  setAvailablePlans,
   setBusinessKnowledge,
   setBusinessKnowledgeError,
   setBusinessKnowledgeLoading,
+  setCurrentPlan,
   setPersonalInsightKnowledge,
+  setPlanDetails,
 } from "../../store/slices/orgSlice";
 import { checkIntegrationStatus } from "../../services/hubspotService";
 
@@ -98,6 +101,67 @@ const LoginPage = () => {
   };
 
   // console.log("LoginPage rendered", hubspotIntegration);
+
+  const loadPlanData = async (user_id) => {
+    try {
+      if (user_id) {
+        // Get user's current plan from user_plan table with plan_master details
+        const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user_id);
+
+        if (userPlanData && userPlanData.length > 0) {
+          // console.log(userPlanData, "user plan data");
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+
+          const endDate = new Date(userPlan.end_date);
+          const canceled_at = new Date(userPlan.canceled_at);
+          const today = new Date();
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
+          const isExpired = isDateExpired || isStatusExpired;
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          );
+          // console.log(userPlan, "user plan 109");
+          dispatch(setCurrentPlan(planMaster));
+          dispatch(
+            setPlanDetails({
+              ...userPlan,
+              // ...planMaster,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              canceled_at: canceled_at.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            })
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading plan data:", error);
+    } finally {
+      console.log("Finished loading plan data");
+    }
+  };
+
+  const AllPlan = async () => {
+    const plansData = await dbHelpers?.getPlanMasters();
+
+    dispatch(setAvailablePlans(plansData || []));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -173,28 +237,9 @@ const LoginPage = () => {
       }
       console.log("User ID from auth:", userId);
       if (userId) {
-        // Get profile if not already fetched
-        // if (!profile) {
         profile = await authHelpers.getUserProfile(userId);
-        // }
 
         if (!profile) throw new Error("User profile not found");
-
-        // Check plan expiry before proceeding with login
-        console.log("🔍 Checking user plan expiry for user:", userId);
-        const planStatus = await authHelpers.checkPlanExpiry(userId);
-
-        if (planStatus.isExpired) {
-          console.log("❌ User plan is expired:", planStatus);
-          setError(planStatus.message);
-          return;
-        } else {
-          console.log("✅ User plan is active:", {
-            planType: planStatus.planType,
-            planName: planStatus.planName,
-            daysRemaining: planStatus.daysRemaining,
-          });
-        }
 
         // Extract organization_details and remove from profile
         const { organization_details, ...profileWithoutOrgDetails } = profile;
@@ -234,29 +279,6 @@ const LoginPage = () => {
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);
         localStorage.setItem("login_timestamp", Date.now().toString());
 
-        // Check if user is a beta user by looking at their plan
-        try {
-          const { data: planData, error: planError } = await supabase
-            .from("plan")
-            .select("plan_name")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-          if (!planError && planData && planData.length > 0) {
-            const isBeta = planData[0].plan_name === "Beta Trial";
-            dispatch(setIsBetaUser(isBeta));
-            console.log("✅ Beta user status set:", isBeta);
-          } else {
-            // If no plan found, assume not beta (legacy user)
-            dispatch(setIsBetaUser(false));
-            console.log("📭 No plan found, setting as non-beta user");
-          }
-        } catch (error) {
-          console.warn("⚠️ Failed to check beta user status:", error);
-          dispatch(setIsBetaUser(false)); // Default to false on error
-        }
-
         // Load onboarding tour status
         let tourStatus = false;
         try {
@@ -269,7 +291,8 @@ const LoginPage = () => {
           // Default to false if we can't load the status
           dispatch(setHasSeenOnboardingTour(false));
         }
-
+        loadPlanData(profile.id);
+        AllPlan();
         // Load business knowledge data for the organization
         if (profile.organization_id) {
           try {

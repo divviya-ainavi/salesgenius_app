@@ -15,7 +15,16 @@ const initialState = {
     businessKnowledge: null,
     businessKnowledgeLoading: false,
     businessKnowledgeError: null,
-    personalInsightKnowledge: null
+    personalInsightKnowledge: null,
+    currentPlan: null,
+    planDetails: null,
+    availablePlans: [],
+    showUpgradeModal: false,
+    planExpiryModal: {
+        isOpen: false,
+        featureName: "",
+        featureDescription: "",
+    },
 };
 
 const orgSlice = createSlice({
@@ -64,6 +73,21 @@ const orgSlice = createSlice({
         setBusinessKnowledgeError: (state, action) => {
             state.businessKnowledgeError = action.payload;
         },
+        setCurrentPlan: (state, action) => {
+            state.currentPlan = action.payload;
+        },
+        setPlanDetails: (state, action) => {
+            state.planDetails = action.payload;
+        },
+        setAvailablePlans: (state, action) => {
+            state.availablePlans = action.payload;
+        },
+        setShowUpgradeModal: (state, action) => {
+            state.showUpgradeModal = action.payload;
+        },
+        setPlanExpiryModal: (state, action) => {
+            state.planExpiryModal = action.payload;
+        },
         resetOrgState: (state) => {
             // Reset the entire state to initial values
             Object.assign(state, initialState);
@@ -86,6 +110,11 @@ export const {
     setBusinessKnowledge,
     setBusinessKnowledgeLoading,
     setBusinessKnowledgeError,
-    setPersonalInsightKnowledge
+    setPersonalInsightKnowledge,
+    setCurrentPlan,
+    setPlanDetails,
+    setAvailablePlans,
+    setShowUpgradeModal,
+    setPlanExpiryModal
 } = orgSlice.actions;
 export default orgSlice.reducer;

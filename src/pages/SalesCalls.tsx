@@ -74,6 +74,8 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { setPlanExpiryModal } from "../store/slices/orgSlice";
+import { PlanExpiryModal } from "../components/billing/PlanExpiryModal";
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
@@ -127,10 +129,15 @@ export const SalesCalls = () => {
     firefliesData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
-  const { businessKnowledge, personalInsightKnowledge } = useSelector(
-    (state) => state.org
-  );
+  const {
+    businessKnowledge,
+    personalInsightKnowledge,
+    currentPlan,
+    planDetails,
+    isPlanExpired,
+  } = useSelector((state) => state.org);
 
+  console.log(currentPlan, planDetails, "check current plan and plan details");
   // Load initial data
   useEffect(() => {
     loadUploadedFiles();
@@ -153,7 +160,7 @@ export const SalesCalls = () => {
     };
     loadInsightTypes();
   }, []);
-  console.log(insightTypes, "check insight types in SalesCalls");
+  // console.log(insightTypes, "check insight types in SalesCalls");
   const loadUploadedFiles = async () => {
     setRecentUploadRefresh(true);
     try {
@@ -424,7 +431,20 @@ export const SalesCalls = () => {
     disabled: isUploading,
   });
 
+  // console.log(isPlanExpired, "check is plan expired in SalesCalls");
   const handleProcessClick = (file, source) => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Process Sales Call",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     setProcessingFileId(file.id);
     setCurrentProcessingFile(file);
     setShowProcessModal(true);
@@ -1886,6 +1906,11 @@ export const SalesCalls = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <PlanExpiryModal
+        featureName="Sales Call"
+        featureDescription="Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations."
+        featureIcon={Search}
+      />
     </div>
   );
 };

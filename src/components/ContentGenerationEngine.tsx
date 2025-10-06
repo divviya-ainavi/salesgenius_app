@@ -81,6 +81,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { setPlanExpiryModal } from "../store/slices/orgSlice";
 
 interface ContentGenerationEngineProps {
   defaultArtefactType: "email" | "presentation";
@@ -219,7 +220,9 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
     user,
     hubspotIntegration,
   } = useSelector((state) => state.auth);
-  const { communicationStyleTypes } = useSelector((state) => state.org);
+  const { communicationStyleTypes, planDetails } = useSelector(
+    (state) => state.org
+  );
   const { callInsightSelectedId } = useSelector((state) => state.prospect);
   const dispatch = useDispatch();
 
@@ -623,6 +626,21 @@ const ContentGenerationEngine: React.FC<ContentGenerationEngineProps> = ({
   }, [selectedProspect]);
   //   console.log(selectedProspect, "check selected prospect");
   const handleGenerate = async () => {
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName:
+            artefactType === "presentation"
+              ? "generate Presentation"
+              : "generate Email",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
     if (!selectedProspect || isGenerateButtonDisabled()) return;
 
     setIsLoading(true);
