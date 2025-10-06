@@ -481,7 +481,7 @@ export const BillingComponent = () => {
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-muted/50 border-b">
+                    <thead className="bg-muted border-b">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                           Invoice
