@@ -229,7 +229,7 @@ export const BillingComponent = () => {
 
       const apiResponse = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.cancelSubscriptionDev
+          config.api.endpoints.cancelSubscriptionProd
         }`,
 
         {

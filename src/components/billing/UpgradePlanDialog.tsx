@@ -127,7 +127,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.checkoutSubscriptionDev
+          config.api.endpoints.checkoutSubscriptionProd
         }`,
         {
           method: "POST",

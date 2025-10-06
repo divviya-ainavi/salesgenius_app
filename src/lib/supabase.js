@@ -4450,6 +4450,7 @@ export const dbHelpers = {
       const { data, error } = await supabase
         .from("plan_master")
         .select("*")
+        .eq("is_original", true)
         .order("price", { ascending: true });
 
       if (error) {
