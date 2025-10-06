@@ -30,8 +30,15 @@ import {
   ExternalLink,
   FileText,
   Receipt,
+  MoreVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSelector } from "react-redux";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -537,44 +544,47 @@ export const BillingComponent = () => {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-2">
-                              {invoice.invoice_pdf && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDownload(invoice.invoice_pdf, "Invoice PDF")}
-                                  className="text-xs"
-                                >
-                                  <Download className="w-3 h-3 mr-1" />
-                                  PDF
-                                </Button>
-                              )}
-                              {invoice.hosted_invoice_url && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDownload(invoice.hosted_invoice_url, "Hosted Invoice")}
-                                  className="text-xs"
-                                >
-                                  <ExternalLink className="w-3 h-3 mr-1" />
-                                  View
-                                </Button>
-                              )}
-                              {invoice.receipt_url && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDownload(invoice.receipt_url, "Receipt")}
-                                  className="text-xs"
-                                >
-                                  <Receipt className="w-3 h-3 mr-1" />
-                                  Receipt
-                                </Button>
-                              )}
-                              {!invoice.invoice_pdf && !invoice.hosted_invoice_url && !invoice.receipt_url && (
-                                <span className="text-xs text-muted-foreground">No documents</span>
-                              )}
-                            </div>
+                            {(!invoice.invoice_pdf && !invoice.hosted_invoice_url && !invoice.receipt_url) ? (
+                              <span className="text-xs text-muted-foreground">No documents</span>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {invoice.invoice_pdf && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDownload(invoice.invoice_pdf, "Invoice PDF")}
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Download PDF
+                                    </DropdownMenuItem>
+                                  )}
+                                  {invoice.hosted_invoice_url && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDownload(invoice.hosted_invoice_url, "Hosted Invoice")}
+                                    >
+                                      <ExternalLink className="w-4 h-4 mr-2" />
+                                      View Invoice
+                                    </DropdownMenuItem>
+                                  )}
+                                  {invoice.receipt_url && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDownload(invoice.receipt_url, "Receipt")}
+                                    >
+                                      <Receipt className="w-4 h-4 mr-2" />
+                                      View Receipt
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </td>
                         </tr>
                       ))}
