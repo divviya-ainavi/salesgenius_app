@@ -371,18 +371,24 @@ export const BillingComponent = () => {
                 <p className="text-muted-foreground text-base">
                   Your workspace is currently subscribed to the{" "}
                   <span className="font-semibold text-foreground">
-                    {currentPlan?.plan_name || "Unknown Plan"}
+                    {currentPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : currentPlan.plan_name || "Unknown Plan"}
                   </span>{" "}
                   plan.
                 </p>
               </div>
-
+              {console.log(planDetails, "plan details")}
               {planDetails && (
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    {planDetails.isExpired ? "Expired" : "Renews"} on{" "}
-                    {planDetails.renewalDate}.
+                    {isFreePlan(planDetails)
+                      ? "Upgrade"
+                      : planDetails.isExpired
+                      ? "Expired"
+                      : "Renews"}{" "}
+                    on {planDetails.renewalDate}.
                   </span>
                 </div>
               )}
@@ -412,7 +418,9 @@ export const BillingComponent = () => {
               >
                 <div className="relative z-10">
                   <h3 className="text-3xl font-bold mb-2">
-                    {currentPlan?.plan_name || "Unknown"}
+                    {currentPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : currentPlan.plan_name || "Unknown"}
                   </h3>
                   <p className="text-white/80 text-lg">
                     {getDurationText(currentPlan?.duration_days)}
@@ -438,7 +446,11 @@ export const BillingComponent = () => {
                   {planDetails?.isExpired && !isFreePlan(currentPlan)
                     ? "Renew Plan"
                     : nextTierPlan
-                    ? `Upgrade to ${nextTierPlan.plan_name}`
+                    ? `Upgrade to ${
+                        nextTierPlan.plan_name == "Pro 1"
+                          ? "Pro"
+                          : nextTierPlan.plan_name
+                      }`
                     : "Upgrade Plan"}
                 </Button>
               )}
@@ -529,7 +541,9 @@ export const BillingComponent = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-foreground max-w-xs truncate">
-                              {invoice.plan_name}
+                              {invoice?.plan_name == "Pro 1"
+                                ? "Pro"
+                                : invoice?.plan_name || "Unknown Plan"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -641,7 +655,10 @@ export const BillingComponent = () => {
               <span>Cancel Subscription</span>
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
-              Are you sure you want to cancel your {currentPlan?.plan_name}{" "}
+              Are you sure you want to cancel your{" "}
+              {currentPlan?.plan_name == "Pro 1"
+                ? "Pro"
+                : currentPlan?.plan_name}{" "}
               subscription?
             </DialogDescription>
           </DialogHeader>
