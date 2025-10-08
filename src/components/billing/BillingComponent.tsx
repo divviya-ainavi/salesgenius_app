@@ -434,7 +434,7 @@ export const BillingComponent = () => {
                   })}
                 </div>
               </div>
-              {console.log(showUpgradeOption, planDetails, "show upgrade")}
+
               {/* Upgrade Button */}
               {showUpgradeOption && (
                 <Button
