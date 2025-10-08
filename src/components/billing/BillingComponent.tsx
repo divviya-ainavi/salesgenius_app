@@ -359,30 +359,34 @@ export const BillingComponent = () => {
 
       {/* Workspace Subscription Section */}
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-6">
-            Workspace subscription
-          </h3>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
-            {/* Left Column - Text Content */}
-            <div className="space-y-4">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          {/* Left Column - Text Content */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
+              Workspace subscription
+            </h3>
               <div>
                 <p className="text-muted-foreground text-base">
                   Your workspace is currently subscribed to the{" "}
                   <span className="font-semibold text-foreground">
-                    {currentPlan?.plan_name || "Unknown Plan"}
+                    {currentPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : currentPlan.plan_name || "Unknown Plan"}
                   </span>{" "}
                   plan.
                 </p>
               </div>
-
+              {console.log(planDetails, "plan details")}
               {planDetails && (
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    {planDetails.isExpired ? "Expired" : "Renews"} on{" "}
-                    {planDetails.renewalDate}.
+                    {isFreePlan(planDetails)
+                      ? "Upgrade"
+                      : planDetails.isExpired
+                      ? "Expired"
+                      : "Renews"}{" "}
+                    on {planDetails.renewalDate}.
                   </span>
                 </div>
               )}
@@ -399,10 +403,10 @@ export const BillingComponent = () => {
                   )}
                 </div>
               )}
-            </div>
+          </div>
 
-            {/* Right Column - Plan Card and Actions */}
-            <div className="space-y-4">
+          {/* Right Column - Plan Card and Actions */}
+          <div className="space-y-4">
               {/* Current Plan Card */}
               <div
                 className={cn(
@@ -412,7 +416,9 @@ export const BillingComponent = () => {
               >
                 <div className="relative z-10">
                   <h3 className="text-3xl font-bold mb-2">
-                    {currentPlan?.plan_name || "Unknown"}
+                    {currentPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : currentPlan.plan_name || "Unknown"}
                   </h3>
                   <p className="text-white/80 text-lg">
                     {getDurationText(currentPlan?.duration_days)}
@@ -426,7 +432,7 @@ export const BillingComponent = () => {
                   })}
                 </div>
               </div>
-              {console.log(showUpgradeOption, planDetails, "show upgrade")}
+
               {/* Upgrade Button */}
               {showUpgradeOption && (
                 <Button
@@ -438,7 +444,11 @@ export const BillingComponent = () => {
                   {planDetails?.isExpired && !isFreePlan(currentPlan)
                     ? "Renew Plan"
                     : nextTierPlan
-                    ? `Upgrade to ${nextTierPlan.plan_name}`
+                    ? `Upgrade to ${
+                        nextTierPlan.plan_name == "Pro 1"
+                          ? "Pro"
+                          : nextTierPlan.plan_name
+                      }`
                     : "Upgrade Plan"}
                 </Button>
               )}
@@ -455,7 +465,6 @@ export const BillingComponent = () => {
                   Cancel Subscription
                 </Button>
               )}
-            </div>
           </div>
         </div>
       </div>
@@ -529,7 +538,9 @@ export const BillingComponent = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-foreground max-w-xs truncate">
-                              {invoice.plan_name}
+                              {invoice?.plan_name == "Pro 1"
+                                ? "Pro"
+                                : invoice?.plan_name || "Unknown Plan"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -641,7 +652,10 @@ export const BillingComponent = () => {
               <span>Cancel Subscription</span>
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
-              Are you sure you want to cancel your {currentPlan?.plan_name}{" "}
+              Are you sure you want to cancel your{" "}
+              {currentPlan?.plan_name == "Pro 1"
+                ? "Pro"
+                : currentPlan?.plan_name}{" "}
               subscription?
             </DialogDescription>
           </DialogHeader>

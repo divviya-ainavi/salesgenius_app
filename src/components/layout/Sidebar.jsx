@@ -283,16 +283,19 @@ export const Sidebar = () => {
                   !isFreePlan(currentPlan) && !planDetails?.isExpired
                     ? "text-blue-600 dark:text-blue-500"
                     : "text-muted-foreground"
-                )
+                ),
               })}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={cn(
-                    "text-sm font-medium truncate",
-                    !isFreePlan(currentPlan) && !planDetails?.isExpired
-                      ? "text-blue-600 dark:text-blue-500"
-                      : "text-foreground"
-                  )}>
+                  <p
+                    className={cn(
+                      "text-sm font-medium truncate",
+                      !isFreePlan(currentPlan) && !planDetails?.isExpired
+                        ? "text-blue-600 dark:text-blue-500"
+                        : "text-foreground"
+                    )}
+                  >
+                    {/* {console.log(currentPlan, "check current plan")} */}
                     {currentPlan.plan_name}
                   </p>
                   {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
@@ -301,12 +304,14 @@ export const Sidebar = () => {
                     </span>
                   )}
                 </div>
-                {isFreePlan(currentPlan) && planDetails && !planDetails.isExpired && (
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    <span>{planDetails.daysRemaining} days left</span>
-                  </div>
-                )}
+                {isFreePlan(currentPlan) &&
+                  planDetails &&
+                  !planDetails.isExpired && (
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      <span>{planDetails.daysRemaining} days remaining</span>
+                    </div>
+                  )}
                 {planDetails?.isExpired && (
                   <p className="text-xs text-red-600 font-medium">Expired</p>
                 )}
