@@ -324,10 +324,11 @@ export const UserDropdown = () => {
               )}
 
               {/* Current Plan Display */}
-              {currentPlan && (
+              {/* {currentPlan && (
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <Crown className="w-3 h-3" />
                   <span className="font-medium">{currentPlan.plan_name}</span>
+                 
                   {planDetails && !planDetails.isExpired && (
                     <span className="text-muted-foreground/70">
                       • {planDetails.daysRemaining} days remaining
@@ -337,7 +338,7 @@ export const UserDropdown = () => {
                     <span className="text-red-600">• Expired</span>
                   )}
                 </div>
-              )}
+              )} */}
 
               {userProfile?.status && (
                 <Badge
