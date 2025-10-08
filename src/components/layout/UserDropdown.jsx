@@ -71,10 +71,10 @@ export const UserDropdown = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sessionCheckInterval, setSessionCheckInterval] = useState(null);
-  
+
   // Get plan information from Redux
   const { currentPlan, planDetails } = useSelector((state) => state.org);
-  
+
   const {
     userProfileInfo,
     userRole,
@@ -118,10 +118,10 @@ export const UserDropdown = () => {
   // Check for 3-hour session expiry
   useEffect(() => {
     const checkSessionExpiry = () => {
-      const loginTimestamp = localStorage.getItem('login_timestamp');
-      
+      const loginTimestamp = localStorage.getItem("login_timestamp");
+
       if (!loginTimestamp) {
-        console.log('⚠️ No login timestamp found');
+        console.log("⚠️ No login timestamp found");
         return;
       }
 
@@ -129,22 +129,29 @@ export const UserDropdown = () => {
       const currentTime = Date.now();
       const elapsedTime = currentTime - loginTime;
 
-      console.log('🕐 Session check:', {
+      console.log("🕐 Session check:", {
         loginTime: new Date(loginTime).toLocaleString(),
         currentTime: new Date(currentTime).toLocaleString(),
         elapsedHours: (elapsedTime / (1000 * 60 * 60)).toFixed(2),
-        remainingMinutes: Math.max(0, Math.ceil((THREE_HOURS_IN_MS - elapsedTime) / (1000 * 60)))
+        remainingMinutes: Math.max(
+          0,
+          Math.ceil((THREE_HOURS_IN_MS - elapsedTime) / (1000 * 60))
+        ),
       });
 
       if (elapsedTime >= THREE_HOURS_IN_MS) {
-        console.log('⏰ 3-hour session limit reached - triggering automatic logout');
-        
+        console.log(
+          "⏰ 3-hour session limit reached - triggering automatic logout"
+        );
+
         // Set flag to indicate this is an automatic logout
-        sessionStorage.setItem('auto_logout_reason', '3_hour_limit');
-        
+        sessionStorage.setItem("auto_logout_reason", "3_hour_limit");
+
         // Show toast message
-        toast.error('Your session has expired after 3 hours. Please log in again.');
-        
+        toast.error(
+          "Your session has expired after 3 hours. Please log in again."
+        );
+
         // Trigger logout
         handleConfirmLogout();
       }
@@ -190,14 +197,14 @@ export const UserDropdown = () => {
   const handleConfirmLogout = async () => {
     try {
       // Check if this is an automatic logout
-      const autoLogoutReason = sessionStorage.getItem('auto_logout_reason');
+      const autoLogoutReason = sessionStorage.getItem("auto_logout_reason");
       const isAutoLogout = !!autoLogoutReason;
-      
+
       if (!isAutoLogout) {
         // Set flag to indicate this is a manual logout
-        sessionStorage.setItem('manual_logout', 'true');
+        sessionStorage.setItem("manual_logout", "true");
       }
-      
+
       // Sign out from Supabase Auth if user is authenticated there
       const {
         data: { session },
@@ -219,7 +226,7 @@ export const UserDropdown = () => {
 
         // Show appropriate message based on logout type
         if (isAutoLogout) {
-          if (autoLogoutReason === '3_hour_limit') {
+          if (autoLogoutReason === "3_hour_limit") {
             toast.error("Session expired after 3 hours. Please log in again.");
           } else {
             toast.error("Session expired. Please log in again.");
@@ -227,7 +234,7 @@ export const UserDropdown = () => {
         } else {
           toast.success("Logged out successfully");
         }
-        
+
         setShowLogoutDialog(false);
 
         // Reload the page to clear any in-memory data
@@ -240,7 +247,7 @@ export const UserDropdown = () => {
       toast.error("An error occurred during logout");
     } finally {
       // Clean up any auto logout flags
-      sessionStorage.removeItem('auto_logout_reason');
+      sessionStorage.removeItem("auto_logout_reason");
     }
   };
 
@@ -315,25 +322,24 @@ export const UserDropdown = () => {
                   )}
                 </div>
               )}
-              
+
               {/* Current Plan Display */}
-              {currentPlan && (
+              {/* {currentPlan && (
                 <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                   <Crown className="w-3 h-3" />
                   <span className="font-medium">{currentPlan.plan_name}</span>
+                 
                   {planDetails && !planDetails.isExpired && (
                     <span className="text-muted-foreground/70">
-                      • {planDetails.daysRemaining} days left
+                      • {planDetails.daysRemaining} days remaining
                     </span>
                   )}
                   {planDetails && planDetails.isExpired && (
-                    <span className="text-red-600">
-                      • Expired
-                    </span>
+                    <span className="text-red-600">• Expired</span>
                   )}
                 </div>
-              )}
-              
+              )} */}
+
               {userProfile?.status && (
                 <Badge
                   variant={

@@ -292,7 +292,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     <div className="p-4 text-center flex flex-col">
                       {/* Plan Name */}
                       <h3 className="text-lg font-bold text-gray-900 mb-2 mt-1">
-                        {plan.plan_name}
+                        {plan.plan_name == "Pro 1" ? "Pro" : plan.plan_name}
                       </h3>
 
                       {/* Plan Description */}
@@ -384,7 +384,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             Processing...
                           </>
                         ) : isDisabledFreePlan ? (
-                          "Free Plan"
+                          "Free Trail"
                         ) : isCurrentPlan && !canSelectExpiredPlan ? (
                           planDetails?.isExpired ? (
                             "Your expired plan"
@@ -392,13 +392,21 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             "Your current plan"
                           )
                         ) : canSelectExpiredPlan ? (
-                          `Renew ${plan.plan_name}`
+                          `Renew ${
+                            plan.plan_name == "Pro 1" ? "Pro" : plan.plan_name
+                          }`
                         ) : isUpgrade ? (
-                          `Upgrade to ${plan.plan_name}`
+                          `Upgrade to ${
+                            plan.plan_name == "Pro 1" ? "Pro" : plan.plan_name
+                          }`
                         ) : isDowngrade ? (
-                          `${plan.plan_name}`
+                          `${
+                            plan.plan_name == "Pro 1" ? "Pro" : plan.plan_name
+                          }`
                         ) : (
-                          `Switch to ${plan.plan_name}`
+                          `Switch to ${
+                            plan.plan_name == "Pro 1" ? "Pro" : plan.plan_name
+                          }`
                         )}
                       </Button>
 
