@@ -66,7 +66,8 @@ const PaymentSuccess = () => {
         return;
       }
 
-      // Load user's updated plan details
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
       const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user?.id);
 
       if (userPlanData && userPlanData.length > 0) {
@@ -108,8 +109,6 @@ const PaymentSuccess = () => {
           })
         );
 
-        setIsLoading(false);
-
         const { data: paymentData, error: paymentError } = await supabase
           .from("user_plan")
           .select(
@@ -127,6 +126,7 @@ const PaymentSuccess = () => {
             planMaster,
           });
         }
+        setIsLoading(false);
       } else {
         setIsLoading(false);
       }
