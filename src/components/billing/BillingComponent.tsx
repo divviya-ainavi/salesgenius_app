@@ -359,14 +359,12 @@ export const BillingComponent = () => {
 
       {/* Workspace Subscription Section */}
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-6">
-            Workspace subscription
-          </h3>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
-            {/* Left Column - Text Content */}
-            <div className="space-y-4">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          {/* Left Column - Text Content */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
+              Workspace subscription
+            </h3>
               <div>
                 <p className="text-muted-foreground text-base">
                   Your workspace is currently subscribed to the{" "}
@@ -405,10 +403,10 @@ export const BillingComponent = () => {
                   )}
                 </div>
               )}
-            </div>
+          </div>
 
-            {/* Right Column - Plan Card and Actions */}
-            <div className="space-y-4">
+          {/* Right Column - Plan Card and Actions */}
+          <div className="space-y-4">
               {/* Current Plan Card */}
               <div
                 className={cn(
@@ -467,7 +465,6 @@ export const BillingComponent = () => {
                   Cancel Subscription
                 </Button>
               )}
-            </div>
           </div>
         </div>
       </div>
