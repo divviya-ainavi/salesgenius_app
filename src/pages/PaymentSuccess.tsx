@@ -66,7 +66,8 @@ const PaymentSuccess = () => {
         return;
       }
 
-      // Load user's updated plan details
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
       const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user?.id);
 
       if (userPlanData && userPlanData.length > 0) {
