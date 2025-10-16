@@ -2667,7 +2667,7 @@ export const Settings = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Default Settings</CardTitle>
                 </CardHeader>
@@ -2698,21 +2698,7 @@ export const Settings = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  {/* <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Data Retention (Days)
-                    </label>
-                    <Input
-                      type="number"
-                      value={orgSettings.data_retention_days}
-                      onChange={(e) =>
-                        setOrgSettings((prev) => ({
-                          ...prev,
-                          data_retention_days: parseInt(e.target.value),
-                        }))
-                      }
-                    />
-                  </div> */}
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">AI Training Enabled</p>
@@ -2750,7 +2736,7 @@ export const Settings = () => {
                     />
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               <Card>
                 <CardHeader>
