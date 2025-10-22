@@ -1818,6 +1818,33 @@ export const dbHelpers = {
     }
   },
 
+  // Fathom operations
+  async getFathomFiles(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching Fathom files:', error)
+      throw error
+    }
+  },
+
+  async bulkInsertFathomFiles(entries) {
+    const { error } = await supabase
+      .from("fathom_files")
+      .insert(entries);
+
+    if (error) {
+      throw new Error("Failed to insert Fathom data");
+    }
+  },
+
   async createEmailTemplate(subject, body) {
     const { data, error } = await supabase
       .from('email_templates')

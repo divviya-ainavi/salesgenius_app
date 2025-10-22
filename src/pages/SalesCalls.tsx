@@ -5,6 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { HelpCircle } from "lucide-react";
 import {
   Upload,
@@ -49,6 +56,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { dbHelpers, CURRENT_USER } from "@/lib/supabase";
 import firefliesService from "@/services/firefliesService";
+import fathomService from "@/services/fathomService";
 import { usePageTimer } from "../hooks/userPageTimer";
 import { config } from "@/lib/config";
 import { ProcessCallModal } from "@/components/calls/ProcessCallModal";
@@ -99,6 +107,23 @@ export const SalesCalls = () => {
   const [firefliesCalls, setFirefliesCalls] = useState([]);
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
+
+  // Platform selector state for imports tab
+  const [selectedImportPlatform, setSelectedImportPlatform] = useState("fireflies");
+
+  // Determine which integrations are connected
+  const hasFireflies = user?.fireflies_connected;
+  const hasFathom = user?.fathom_connected;
+  const hasBothIntegrations = hasFireflies && hasFathom;
+
+  // Determine tab name based on connected integrations
+  const getImportsTabName = () => {
+    if (hasBothIntegrations) return "Meeting Imports";
+    if (hasFireflies) return "Fireflies.ai Imports";
+    if (hasFathom) return "Fathom Imports";
+    return "Meeting Imports";
+  };
+
   const [getFirefliessummary, setGetFirefliessummary] = useState(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -141,16 +166,30 @@ export const SalesCalls = () => {
   // Load initial data
   useEffect(() => {
     loadUploadedFiles();
-    if (
-      activeTab === "fireflies" &&
-      user?.fireflies_connected &&
-      !ishavefirefliesData
-    ) {
-      loadFirefliesData();
+    if (activeTab === "fireflies") {
+      if (hasBothIntegrations) {
+        if (selectedImportPlatform === "fireflies" && !ishavefirefliesData) {
+          loadFirefliesData();
+        } else if (selectedImportPlatform === "fathom" && !ishavefirefliesData) {
+          loadFathomData();
+        }
+      } else if (hasFireflies && !ishavefirefliesData) {
+        loadFirefliesData();
+      } else if (hasFathom && !ishavefirefliesData) {
+        loadFathomData();
+      }
     } else if (activeTab === "past") {
       loadPastCalls();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedImportPlatform]);
+
+  useEffect(() => {
+    if (hasFireflies && !hasFathom) {
+      setSelectedImportPlatform("fireflies");
+    } else if (hasFathom && !hasFireflies) {
+      setSelectedImportPlatform("fathom");
+    }
+  }, [hasFireflies, hasFathom]);
 
   useEffect(() => {
     const loadInsightTypes = async () => {
@@ -274,6 +313,84 @@ export const SalesCalls = () => {
     } catch (error) {
       console.error("Error loading Fireflies data:", error);
       toast.error("Failed to sync Fireflies transcripts.");
+      dispatch(setFirefliesData([]));
+      dispatch(setIshavefirefliesData(false));
+    } finally {
+      setIsLoadingFireflies(false);
+    }
+  };
+
+  const loadFathomData = async () => {
+    setIsLoadingFireflies(true);
+    const formData = new FormData();
+
+    formData.append("id", user?.id);
+
+    try {
+      const [existingRecords, response] = await Promise.all([
+        dbHelpers.getFathomFiles(user?.id),
+        await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.getFathomFiles}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        ),
+        [],
+      ]);
+
+      const existingKeys = new Set(
+        existingRecords.map((r) => `${r.user_id}_${r.fathom_id}`)
+      );
+
+      const json = await response.json();
+      const transcripts = json?.[0]?.data?.transcripts || [];
+      const newTranscripts = transcripts.filter(
+        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
+      );
+
+      const insertPayload = newTranscripts.map((t) => ({
+        fathom_id: t.id,
+        title: t.title,
+        organizer_email: t.organizer_email,
+        participants: t.participants,
+        meeting_link: t?.meeting_link || null,
+        datestring: new Date(t.date).toISOString(),
+        duration: parseInt(t.duration),
+        summary: t.summary,
+        sentences: t.sentences,
+        user_id: user?.id,
+        is_processed: false,
+      }));
+
+      if (insertPayload.length > 0) {
+        await dbHelpers.bulkInsertFathomFiles(insertPayload);
+      }
+
+      const combinedRecords = [...existingRecords, ...insertPayload];
+
+      const transformed = combinedRecords.map((file) => ({
+        id: file.fathom_id,
+        callId: `Fathom ${file.fathom_id.slice(-6)}`,
+        companyName: "-",
+        prospectName: file.organizer_email || "Unknown",
+        date: new Date(file.datestring || file.created_at)
+          .toISOString()
+          .split("T")[0],
+        duration: file.duration || "N/A",
+        status: file.is_processed ? "processed" : "unprocessed",
+        participants: file.participants ? Object.values(file.participants) : [],
+        meetingLink: file.meeting_link,
+        hasSummary: file.summary,
+        hasTranscript: file.sentences,
+        title: file?.title,
+      }));
+
+      dispatch(setFirefliesData(transformed));
+      dispatch(setIshavefirefliesData(true));
+    } catch (error) {
+      console.error("Error loading Fathom data:", error);
+      toast.error("Failed to sync Fathom transcripts.");
       dispatch(setFirefliesData([]));
       dispatch(setIshavefirefliesData(false));
     } finally {
@@ -1259,7 +1376,7 @@ export const SalesCalls = () => {
             className="flex items-center space-x-2 relative"
           >
             <ExternalLink className="w-4 h-4" />
-            <span>Fireflies.ai Imports</span>
+            <span>{getImportsTabName()}</span>
           </TabsTrigger>
           <TabsTrigger value="past" className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
@@ -1393,9 +1510,28 @@ export const SalesCalls = () => {
           </div>
         </TabsContent>
 
-        {/* Fireflies.ai Imports Tab */}
+        {/* Meeting Imports Tab */}
         <TabsContent value="fireflies" className="mt-6">
           <div className="space-y-6">
+            {/* Platform selector when both integrations are connected */}
+            {hasBothIntegrations && (
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">Select Platform:</span>
+                <Select
+                  value={selectedImportPlatform}
+                  onValueChange={setSelectedImportPlatform}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Choose platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fireflies">Fireflies.ai</SelectItem>
+                    <SelectItem value="fathom">Fathom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Tab-specific search bar */}
             <div className="flex items-center justify-between">
               <div className="relative flex-1 max-w-md">
@@ -1407,7 +1543,7 @@ export const SalesCalls = () => {
                   className="pl-10"
                 />
               </div>
-              {user?.fireflies_connected && (
+              {((hasBothIntegrations && selectedImportPlatform === "fireflies") || (hasFireflies && !hasFathom)) && (
                 <Button
                   variant="outline"
                   onClick={loadFirefliesData}
@@ -1422,26 +1558,50 @@ export const SalesCalls = () => {
                   Sync Fireflies
                 </Button>
               )}
+              {((hasBothIntegrations && selectedImportPlatform === "fathom") || (hasFathom && !hasFireflies)) && (
+                <Button
+                  variant="outline"
+                  onClick={loadFathomData}
+                  disabled={isLoadingFireflies}
+                >
+                  {isLoadingFireflies ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                  )}
+                  Sync Fathom
+                </Button>
+              )}
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>Fireflies.ai Synced Calls</CardTitle>
+                <CardTitle>
+                  {hasBothIntegrations
+                    ? selectedImportPlatform === "fireflies"
+                      ? "Fireflies.ai Synced Calls"
+                      : "Fathom Synced Calls"
+                    : hasFireflies
+                    ? "Fireflies.ai Synced Calls"
+                    : hasFathom
+                    ? "Fathom Synced Calls"
+                    : "Meeting Synced Calls"}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingFireflies ? (
                   <div className="text-center py-8">
                     <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
                     <p className="text-muted-foreground">
-                      Loading Fireflies data...
+                      Loading {hasBothIntegrations ? (selectedImportPlatform === "fireflies" ? "Fireflies" : "Fathom") : hasFireflies ? "Fireflies" : "Fathom"} data...
                     </p>
                   </div>
-                ) : !user?.fireflies_connected ? (
+                ) : (!hasBothIntegrations && !hasFireflies && !hasFathom) ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No Fireflies integration found</p>
+                    <p>No integration found</p>
                     <p className="text-sm">
-                      Connect your Fireflies account to automatically sync and
+                      Connect your Fireflies or Fathom account to automatically sync and
                       view your meeting transcripts here.
                     </p>
                     <p className="text-sm">
@@ -1449,7 +1609,7 @@ export const SalesCalls = () => {
                       navigate to the Profile tab.
                     </p>
                   </div>
-                ) : filteredFirefliesData.length === 0 ? (
+                ) : (hasBothIntegrations && selectedImportPlatform === "fireflies" && !hasFireflies) || (!hasBothIntegrations && !hasFireflies && hasFathom) ? null : filteredFirefliesData.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No Fireflies calls found</p>
