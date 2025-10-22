@@ -1980,6 +1980,49 @@ export const dbHelpers = {
     }
   },
 
+  // Fathom Integration Functions
+  async saveUserFathomToken(userId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: encryptedToken,
+          fathom_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving Fathom token:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFathomToken(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: null,
+          fathom_connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting Fathom token:', error);
+      throw error;
+    }
+  },
+
   // Link business knowledge files to business knowledge data
   async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
     try {

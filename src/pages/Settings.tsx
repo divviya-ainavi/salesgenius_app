@@ -486,6 +486,16 @@ export const Settings = () => {
   const [isConnectingFireflies, setIsConnectingFireflies] = useState(false);
   const [isDisconnectingFireflies, setIsDisconnectingFireflies] =
     useState(false);
+
+  // Fathom integration state
+  const [fathomToken, setFathomToken] = useState("");
+  const [showFathomToken, setShowFathomToken] = useState(false);
+  const [fathomStatus, setFathomStatus] = useState(null);
+  const [isConnectingFathom, setIsConnectingFathom] = useState(false);
+  const [isDisconnectingFathom, setIsDisconnectingFathom] = useState(false);
+
+  // Platform selector state
+  const [selectedPlatform, setSelectedPlatform] = useState("fireflies");
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
@@ -884,7 +894,7 @@ export const Settings = () => {
         fireflies_connected: false,
       };
 
-      dispatch(setUser(updatedUser)); // update Redux store
+      dispatch(setUser(updatedUser));
       setFirefliesStatus({ connected: false, hasToken: false });
       toast.success("Fireflies integration disconnected successfully");
     } catch (error) {
@@ -892,6 +902,88 @@ export const Settings = () => {
       toast.error("Failed to disconnect Fireflies integration");
     } finally {
       setIsDisconnectingFireflies(false);
+    }
+  };
+
+  const handleFathomConnect = async () => {
+    if (planDetails?.isExpired) {
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Connect Fathom",
+          featureDescription:
+            "Connect your Fathom account to automatically sync meeting transcripts and recordings.",
+        })
+      );
+      return;
+    }
+    if (!fathomToken.trim()) {
+      toast.error("Please enter a valid Fathom API token");
+      return;
+    }
+
+    const payload = {
+      pat: fathomToken.trim(),
+    };
+
+    const jwtToken = createJWT(payload);
+    const formData = new FormData();
+    formData.append("token", jwtToken);
+    setIsConnectingFathom(true);
+
+    try {
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.fathomConnectionCheck}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to validate Fathom token");
+      }
+
+      const result = await response.json();
+      console.log("Fathom validation result:", result);
+
+      await dbHelpers.saveUserFathomToken(user?.id, jwtToken);
+      const updatedUser = {
+        ...user,
+        fathom_connected: true,
+      };
+
+      dispatch(setUser(updatedUser));
+      setFathomStatus({ connected: true, hasToken: true });
+      toast.success("Fathom integration connected successfully");
+    } catch (error) {
+      console.error("Error connecting Fathom:", error);
+      toast.error(
+        error.message || "Failed to connect Fathom. Please check your token."
+      );
+    } finally {
+      setIsConnectingFathom(false);
+    }
+  };
+
+  const handleFathomDisconnect = async () => {
+    setIsDisconnectingFathom(true);
+
+    try {
+      await dbHelpers.deleteUserFathomToken(user?.id);
+      const updatedUser = {
+        ...user,
+        fathom_connected: false,
+      };
+
+      dispatch(setUser(updatedUser));
+      setFathomStatus({ connected: false, hasToken: false });
+      toast.success("Fathom integration disconnected successfully");
+    } catch (error) {
+      console.error("Error disconnecting Fathom:", error);
+      toast.error("Failed to disconnect Fathom integration");
+    } finally {
+      setIsDisconnectingFathom(false);
     }
   };
 
@@ -2278,14 +2370,19 @@ export const Settings = () => {
               </CardContent>
             </Card>
 
-            {/* Fireflies Integration */}
+            {/* Meeting Recording Integration */}
             <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Mic className="w-5 h-5" />
-                    <span>Fireflies.ai</span>
-                    {firefliesStatus?.connected ? (
+                    <span>Meeting Recording Integration</span>
+                    {selectedPlatform === "fireflies" && firefliesStatus?.connected ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Connected
+                      </Badge>
+                    ) : selectedPlatform === "fathom" && fathomStatus?.connected ? (
                       <Badge className="bg-green-100 text-green-800 border-green-200">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Connected
@@ -2302,105 +2399,217 @@ export const Settings = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-selector">Select Platform</Label>
+                    <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+                      <SelectTrigger id="platform-selector">
+                        <SelectValue placeholder="Choose a platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fireflies">Fireflies.ai</SelectItem>
+                        <SelectItem value="fathom">Fathom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <p className="text-sm text-muted-foreground">
-                    Connect your Fireflies.ai account to automatically sync
-                    meeting transcripts and recordings.
+                    {selectedPlatform === "fireflies"
+                      ? "Connect your Fireflies.ai account to automatically sync meeting transcripts and recordings."
+                      : "Connect your Fathom account to automatically sync meeting transcripts and recordings."}
                   </p>
 
-                  {!firefliesStatus?.connected ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fireflies-token">
-                          Fireflies API Token
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="fireflies-token"
-                            type={showFirefliesToken ? "text" : "password"}
-                            placeholder="Enter your Fireflies API token"
-                            value={firefliesToken}
-                            onChange={(e) => setFirefliesToken(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() =>
-                              setShowFirefliesToken(!showFirefliesToken)
-                            }
-                          >
-                            {showFirefliesToken ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
+                  {selectedPlatform === "fireflies" ? (
+                    !firefliesStatus?.connected ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="fireflies-token">
+                            Fireflies API Token
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="fireflies-token"
+                              type={showFirefliesToken ? "text" : "password"}
+                              placeholder="Enter your Fireflies API token"
+                              value={firefliesToken}
+                              onChange={(e) => setFirefliesToken(e.target.value)}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() =>
+                                setShowFirefliesToken(!showFirefliesToken)
+                              }
+                            >
+                              {showFirefliesToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your Fireflies
+                              API key in your Fireflies account under:
+                            </p>
+                            <p>
+                              Settings → Developer Settings → Generate/View API
+                              Key
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          <p className="mb-1">
-                            <strong>Note:</strong> You can find your Fireflies
-                            API key in your Fireflies account under:
-                          </p>
-                          <p>
-                            Settings → Developer Settings → Generate/View API
-                            Key
-                          </p>
-                        </div>
-                      </div>
 
-                      <Button
-                        onClick={handleFirefliesConnect}
-                        disabled={
-                          isConnectingFireflies || !firefliesToken.trim()
-                        }
-                        className="w-full"
-                      >
-                        {isConnectingFireflies ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Connect Fireflies
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                        <Button
+                          onClick={handleFirefliesConnect}
+                          disabled={
+                            isConnectingFireflies || !firefliesToken.trim()
+                          }
+                          className="w-full"
+                        >
+                          {isConnectingFireflies ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect Fireflies
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Fireflies Integration Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-700">
+                            Your Fireflies.ai account is connected and ready to
+                            sync meeting data.
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleFirefliesDisconnect}
+                          disabled={isDisconnectingFireflies}
+                          className="w-full"
+                        >
+                          {isDisconnectingFireflies ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect Fireflies"
+                          )}
+                        </Button>
+                      </div>
+                    )
                   ) : (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">
-                            Fireflies Integration Active
-                          </span>
+                    !fathomStatus?.connected ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="fathom-token">
+                            Fathom API Token
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="fathom-token"
+                              type={showFathomToken ? "text" : "password"}
+                              placeholder="Enter your Fathom API token"
+                              value={fathomToken}
+                              onChange={(e) => setFathomToken(e.target.value)}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() =>
+                                setShowFathomToken(!showFathomToken)
+                              }
+                            >
+                              {showFathomToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your Fathom
+                              API key in your Fathom account under:
+                            </p>
+                            <p>
+                              Settings → Developer Settings → Generate/View API
+                              Key
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-green-700">
-                          Your Fireflies.ai account is connected and ready to
-                          sync meeting data.
-                        </p>
-                      </div>
 
-                      <Button
-                        variant="outline"
-                        onClick={handleFirefliesDisconnect}
-                        disabled={isDisconnectingFireflies}
-                        className="w-full"
-                      >
-                        {isDisconnectingFireflies ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Disconnecting...
-                          </>
-                        ) : (
-                          "Disconnect Fireflies"
-                        )}
-                      </Button>
-                    </div>
+                        <Button
+                          onClick={handleFathomConnect}
+                          disabled={
+                            isConnectingFathom || !fathomToken.trim()
+                          }
+                          className="w-full"
+                        >
+                          {isConnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect Fathom
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Fathom Integration Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-700">
+                            Your Fathom account is connected and ready to
+                            sync meeting data.
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleFathomDisconnect}
+                          disabled={isDisconnectingFathom}
+                          className="w-full"
+                        >
+                          {isDisconnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect Fathom"
+                          )}
+                        </Button>
+                      </div>
+                    )
                   )}
                 </CardContent>
               </Card>

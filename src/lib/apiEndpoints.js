@@ -79,6 +79,14 @@ const API_ENDPOINTS = {
     GETTRANSCRIPT_BYID: '/get-fireflies-transcripts-byid'
   },
 
+  // Fathom Integration endpoints
+  FATHOM: {
+    GET_TRANSCRIPTS: '/get-fathom-transcripts',
+    GET_TRANSCRIPT_DETAIL: '/get-fathom-transcript',
+    SYNC_TRANSCRIPTS: '/get-fathom-transcripts',
+    GETTRANSCRIPT_BYID: '/get-fathom-transcripts-byid'
+  },
+
   // Prospect management endpoints
   PROSPECTS: {
     LIST: '/prospects/list',
