@@ -46,9 +46,7 @@ export const config = {
       userInviteProd: 'user-invite', //prod
       hubspotConnectionCheck: 'hubspotconnection-check',
       firefliesConnectionCheck: 'FF-check',
-      fathomConnectionCheck: 'fathom-check',
       getFirefliesFiles: 'get-FF-transcripts',
-      getFathomFiles: 'get-fathom-transcripts',
       vectorFileUpload: 'upload-rag',
       passwordReset: 'forgot-password-dev',//dev
       passwordResetProd: 'forgot-password', //prod
