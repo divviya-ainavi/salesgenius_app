@@ -87,6 +87,28 @@ import { PlanExpiryModal } from "../components/billing/PlanExpiryModal";
 
 export const SalesCalls = () => {
   usePageTimer("Sales Calls");
+  const userId = CURRENT_USER.id;
+  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
+    useAnalytics();
+  const {
+    userProfileInfo,
+    userRole,
+    userRoleId,
+    titleName,
+    organizationDetails,
+    user,
+    hubspotIntegration,
+    ishavefirefliesData,
+    firefliesData,
+    hasSeenOnboardingTour,
+  } = useSelector((state) => state.auth);
+  const {
+    businessKnowledge,
+    personalInsightKnowledge,
+    currentPlan,
+    planDetails,
+    isPlanExpired,
+  } = useSelector((state) => state.org);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("upload");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -109,7 +131,8 @@ export const SalesCalls = () => {
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
 
   // Platform selector state for imports tab
-  const [selectedImportPlatform, setSelectedImportPlatform] = useState("fireflies");
+  const [selectedImportPlatform, setSelectedImportPlatform] =
+    useState("fireflies");
 
   // Determine which integrations are connected
   const hasFireflies = user?.fireflies_connected;
@@ -139,29 +162,6 @@ export const SalesCalls = () => {
   const [insightTypes, setInsightTypes] = useState([]);
   const dispatch = useDispatch();
 
-  const userId = CURRENT_USER.id;
-  const { trackButtonClick, trackFeatureUsage, trackFileUpload } =
-    useAnalytics();
-  const {
-    userProfileInfo,
-    userRole,
-    userRoleId,
-    titleName,
-    organizationDetails,
-    user,
-    hubspotIntegration,
-    ishavefirefliesData,
-    firefliesData,
-    hasSeenOnboardingTour,
-  } = useSelector((state) => state.auth);
-  const {
-    businessKnowledge,
-    personalInsightKnowledge,
-    currentPlan,
-    planDetails,
-    isPlanExpired,
-  } = useSelector((state) => state.org);
-
   console.log(currentPlan, planDetails, "check current plan and plan details");
   // Load initial data
   useEffect(() => {
@@ -170,7 +170,10 @@ export const SalesCalls = () => {
       if (hasBothIntegrations) {
         if (selectedImportPlatform === "fireflies" && !ishavefirefliesData) {
           loadFirefliesData();
-        } else if (selectedImportPlatform === "fathom" && !ishavefirefliesData) {
+        } else if (
+          selectedImportPlatform === "fathom" &&
+          !ishavefirefliesData
+        ) {
           loadFathomData();
         }
       } else if (hasFireflies && !ishavefirefliesData) {
@@ -1543,7 +1546,9 @@ export const SalesCalls = () => {
                   className="pl-10"
                 />
               </div>
-              {((hasBothIntegrations && selectedImportPlatform === "fireflies") || (hasFireflies && !hasFathom)) && (
+              {((hasBothIntegrations &&
+                selectedImportPlatform === "fireflies") ||
+                (hasFireflies && !hasFathom)) && (
                 <Button
                   variant="outline"
                   onClick={loadFirefliesData}
@@ -1558,7 +1563,8 @@ export const SalesCalls = () => {
                   Sync Fireflies
                 </Button>
               )}
-              {((hasBothIntegrations && selectedImportPlatform === "fathom") || (hasFathom && !hasFireflies)) && (
+              {((hasBothIntegrations && selectedImportPlatform === "fathom") ||
+                (hasFathom && !hasFireflies)) && (
                 <Button
                   variant="outline"
                   onClick={loadFathomData}
@@ -1593,23 +1599,36 @@ export const SalesCalls = () => {
                   <div className="text-center py-8">
                     <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
                     <p className="text-muted-foreground">
-                      Loading {hasBothIntegrations ? (selectedImportPlatform === "fireflies" ? "Fireflies" : "Fathom") : hasFireflies ? "Fireflies" : "Fathom"} data...
+                      Loading{" "}
+                      {hasBothIntegrations
+                        ? selectedImportPlatform === "fireflies"
+                          ? "Fireflies"
+                          : "Fathom"
+                        : hasFireflies
+                        ? "Fireflies"
+                        : "Fathom"}{" "}
+                      data...
                     </p>
                   </div>
-                ) : (!hasBothIntegrations && !hasFireflies && !hasFathom) ? (
+                ) : !hasBothIntegrations && !hasFireflies && !hasFathom ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No integration found</p>
                     <p className="text-sm">
-                      Connect your Fireflies or Fathom account to automatically sync and
-                      view your meeting transcripts here.
+                      Connect your Fireflies or Fathom account to automatically
+                      sync and view your meeting transcripts here.
                     </p>
                     <p className="text-sm">
                       To set up the integration, go to the Settings menu and
                       navigate to the Profile tab.
                     </p>
                   </div>
-                ) : (hasBothIntegrations && selectedImportPlatform === "fireflies" && !hasFireflies) || (!hasBothIntegrations && !hasFireflies && hasFathom) ? null : filteredFirefliesData.length === 0 ? (
+                ) : (hasBothIntegrations &&
+                    selectedImportPlatform === "fireflies" &&
+                    !hasFireflies) ||
+                  (!hasBothIntegrations &&
+                    !hasFireflies &&
+                    hasFathom) ? null : filteredFirefliesData.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No Fireflies calls found</p>

@@ -2007,6 +2007,73 @@ export const dbHelpers = {
     }
   },
 
+  async saveUserFathomToken(userId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: encryptedToken,
+          fathom_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving Fathom token:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFathomToken(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: null,
+          fathom_connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting Fathom token:', error);
+      throw error;
+    }
+  },
+
+  async getFathomFiles(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching Fathom files:', error)
+      throw error
+    }
+  },
+
+  async bulkInsertFathomFiles(entries) {
+    const { error } = await supabase
+      .from("fathom_files")
+      .insert(entries);
+
+    if (error) {
+      throw new Error("Failed to insert Fathom data");
+    }
+  },
   // Link business knowledge files to business knowledge data
   async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
     try {
