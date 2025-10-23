@@ -655,6 +655,16 @@ export const SalesCalls = () => {
     //   );
     //   return;
     // }
+
+    // Check if the transcript has already been processed
+    if (file.status === "processed") {
+      toast.error("This transcript has already been processed", {
+        description: "You can view the insights in the 'Past Processed Calls' tab",
+        duration: 4000,
+      });
+      return;
+    }
+
     console.log(file, "check source in handleProcessClick");
     setProcessingFileId(file.id);
     setCurrentProcessingFile(file);
@@ -1934,7 +1944,7 @@ export const SalesCalls = () => {
                               onClick={() =>
                                 handleProcessClick(call, selectedImportPlatform)
                               }
-                              disabled={isProcessing}
+                              disabled={isProcessing || call.status === "processed"}
                               trackingName="Generate Insights"
                               trackingContext={{
                                 call_id: call?.id,
@@ -1944,12 +1954,16 @@ export const SalesCalls = () => {
                             >
                               {isProcessing && processingFileId === call?.id ? (
                                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : call.status === "processed" ? (
+                                <CheckCircle className="w-3 h-3 mr-1" />
                               ) : (
                                 <ArrowRight className="w-3 h-3 mr-1" />
                               )}
                               {/* <ArrowRight className="w-4 h-4 mr-1" /> */}
                               {isProcessing && processingFileId === call?.id
                                 ? "Generating Insights..."
+                                : call.status === "processed"
+                                ? "Already Processed"
                                 : "Generate Insights"}
                             </TrackedButton>
                           )}
