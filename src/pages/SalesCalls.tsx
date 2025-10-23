@@ -168,12 +168,9 @@ export const SalesCalls = () => {
     loadUploadedFiles();
     if (activeTab === "fireflies") {
       if (hasBothIntegrations) {
-        if (selectedImportPlatform === "fireflies" && !ishavefirefliesData) {
+        if (selectedImportPlatform === "fireflies") {
           loadFirefliesData();
-        } else if (
-          selectedImportPlatform === "fathom" &&
-          !ishavefirefliesData
-        ) {
+        } else if (selectedImportPlatform === "fathom") {
           loadFathomData();
         }
       } else if (hasFireflies && !ishavefirefliesData) {
@@ -325,56 +322,13 @@ export const SalesCalls = () => {
 
   const loadFathomData = async () => {
     setIsLoadingFireflies(true);
-    const formData = new FormData();
-
-    formData.append("id", user?.id);
 
     try {
-      const [existingRecords, response] = await Promise.all([
-        dbHelpers.getFathomFiles(user?.id),
-        await fetch(
-          `${config.api.baseUrl}${config.api.endpoints.getFathomFiles}`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        ),
-        [],
-      ]);
+      const existingRecords = await dbHelpers.getFathomFiles(user?.id);
 
-      const existingKeys = new Set(
-        existingRecords.map((r) => `${r.user_id}_${r.fathom_id}`)
-      );
-
-      const json = await response.json();
-      const transcripts = json?.[0]?.data?.transcripts || [];
-      const newTranscripts = transcripts.filter(
-        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
-      );
-
-      const insertPayload = newTranscripts.map((t) => ({
-        fathom_id: t.id,
-        title: t.title,
-        organizer_email: t.organizer_email,
-        participants: t.participants,
-        meeting_link: t?.meeting_link || null,
-        datestring: new Date(t.date).toISOString(),
-        duration: parseInt(t.duration),
-        summary: t.summary,
-        sentences: t.sentences,
-        user_id: user?.id,
-        is_processed: false,
-      }));
-
-      if (insertPayload.length > 0) {
-        await dbHelpers.bulkInsertFathomFiles(insertPayload);
-      }
-
-      const combinedRecords = [...existingRecords, ...insertPayload];
-
-      const transformed = combinedRecords.map((file) => ({
+      const transformed = existingRecords.map((file) => ({
         id: file.fathom_id,
-        callId: `Fathom ${file.fathom_id.slice(-6)}`,
+        callId: `Fathom ${file.fathom_id?.slice(-6) || 'N/A'}`,
         companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
@@ -393,7 +347,7 @@ export const SalesCalls = () => {
       dispatch(setIshavefirefliesData(true));
     } catch (error) {
       console.error("Error loading Fathom data:", error);
-      toast.error("Failed to sync Fathom transcripts.");
+      toast.error("Failed to load Fathom transcripts.");
       dispatch(setFirefliesData([]));
       dispatch(setIshavefirefliesData(false));
     } finally {
