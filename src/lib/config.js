@@ -69,7 +69,7 @@ export const config = {
       checkoutSubscriptionDev: 'checkout-session',
       checkoutSubscriptionProd: 'checkout-session-prod',
       fathomConnectionCheck: 'Fathom-check',
-      getFathomFiles: 'get-fathom-transcripts',
+      getFathomFiles: 'get-Fathom-transcripts',
     }
   }
 };

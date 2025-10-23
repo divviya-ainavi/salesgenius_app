@@ -1410,6 +1410,24 @@ export const dbHelpers = {
     }
   },
 
+  async getFathomSingleData(userId, fathomId) {
+    // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('fathom_id', fathomId)
+        .single(); // because you're expecting one record
+
+      if (error) throw error;
+      return data?.sentences || [];
+    } catch (error) {
+      console.error('Error fetching Fireflies file:', error);
+      throw error;
+    }
+  },
+
 
   async getUploadedFileById(fileId) {
     try {
@@ -1874,6 +1892,24 @@ export const dbHelpers = {
         .from('fireflies_files')
         .update(updates)
         .eq('fireflies_id', fileId)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error updating Fireflies file:', error)
+      throw error
+    }
+  },
+
+  async updateFathomFile(fileId, userId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .update(updates)
+        .eq('fathom_id', fileId)
         .eq('user_id', userId)
         .select()
         .single()

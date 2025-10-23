@@ -160,6 +160,7 @@ export const SalesCalls = () => {
   const [source, setSource] = useState("upload");
   const [firefliesSummary, setFirefliesSummary] = useState(null);
   const [insightTypes, setInsightTypes] = useState([]);
+  const [fathomTranscripts, setFathomTranscripts] = useState([]);
   const dispatch = useDispatch();
 
   console.log(currentPlan, planDetails, "check current plan and plan details");
@@ -322,13 +323,78 @@ export const SalesCalls = () => {
 
   const loadFathomData = async () => {
     setIsLoadingFireflies(true);
+    const formData = new FormData();
+
+    formData.append("id", user?.id);
 
     try {
-      const existingRecords = await dbHelpers.getFathomFiles(user?.id);
+      const [existingRecords, response] = await Promise.all([
+        dbHelpers.getFathomFiles(user?.id),
+        await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.getFathomFiles}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        ),
+        [],
+      ]);
+      console.log(response, "check existingRecords from fathom");
+      // Create a Set of existing composite keys: `${user_id}_${fireflies_id}`
+      const existingKeys = new Set(
+        existingRecords.map((r) => `${r.user_id}_${r.fireflies_id}`)
+      );
 
-      const transformed = existingRecords.map((file) => ({
+      // const existingIds = new Set(existingRecords.map((r) => r.fireflies_id));
+      const json = await response.json();
+      // console.log(json, "check json response from Fathom API");
+      const transcripts = json?.[0]?.items || [];
+      // Then filter transcripts using that composite key
+      const newTranscripts = transcripts.filter(
+        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
+      );
+      console.log(newTranscripts, "check new transcripts from fathom");
+      // const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
+      // console.log(json, "check json response from Fireflies API");
+      // console.log(response, "check response from Fireflies API");
+      // console.log(newTranscripts, "check new transcripts");
+      // console.log(existingRecords, "check existing records");
+      // console.log(existingIds, "check existing ids");
+
+      // Prepare new entries
+      const insertPayload = newTranscripts.map((t) => {
+        const start = new Date(t.recording_start_time);
+        const end = new Date(t.recording_end_time);
+        const durationInSeconds = Math.floor((end - start) / 1000); // difference in seconds
+        const durationInMinutes = Math.round(durationInSeconds / 60); // if you want minutes
+
+        return {
+          fathom_id: t.recording_id,
+          title: t.title,
+          organizer_email: null,
+          participants: t.calendar_invitees?.map((invitee) => invitee.email),
+          meeting_link: t?.url || null,
+          datestring: new Date(t.recording_start_time).toISOString(),
+          duration: durationInMinutes, // or use durationInMinutes
+          summary: t?.default_summary?.markdown_formatted,
+          sentences: t.transcript,
+          user_id: user?.id,
+          is_processed: false,
+        };
+      });
+
+      console.log(insertPayload, "check insert payload");
+      // Bulk insert if there are new entries
+      if (insertPayload.length > 0) {
+        await dbHelpers.bulkInsertFathomFiles(insertPayload); // You must implement this
+      }
+
+      // Transform both new + existing records for display
+      const combinedRecords = [...existingRecords, ...insertPayload];
+
+      const transformed = combinedRecords.map((file) => ({
         id: file.fathom_id,
-        callId: `Fathom ${file.fathom_id?.slice(-6) || 'N/A'}`,
+        callId: `Fireflies ${file.fathom_id.slice(-6)}`,
         companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
@@ -346,14 +412,49 @@ export const SalesCalls = () => {
       dispatch(setFirefliesData(transformed));
       dispatch(setIshavefirefliesData(true));
     } catch (error) {
-      console.error("Error loading Fathom data:", error);
-      toast.error("Failed to load Fathom transcripts.");
+      console.error("Error loading Fireflies data:", error);
+      toast.error("Failed to sync Fireflies transcripts.");
       dispatch(setFirefliesData([]));
       dispatch(setIshavefirefliesData(false));
     } finally {
       setIsLoadingFireflies(false);
     }
   };
+
+  // const loadFathomData = async () => {
+  //   setIsLoadingFireflies(true);
+
+  //   try {
+  //     const existingRecords = await dbHelpers.getFathomFiles(user?.id);
+
+  //     const transformed = existingRecords.map((file) => ({
+  //       id: file.fathom_id,
+  //       callId: `Fathom ${file.fathom_id?.slice(-6) || 'N/A'}`,
+  //       companyName: "-",
+  //       prospectName: file.organizer_email || "Unknown",
+  //       date: new Date(file.datestring || file.created_at)
+  //         .toISOString()
+  //         .split("T")[0],
+  //       duration: file.duration || "N/A",
+  //       status: file.is_processed ? "processed" : "unprocessed",
+  //       participants: file.participants ? Object.values(file.participants) : [],
+  //       meetingLink: file.meeting_link,
+  //       hasSummary: file.summary,
+  //       hasTranscript: file.sentences,
+  //       title: file?.title,
+  //     }));
+
+  //     dispatch(setFirefliesData(transformed));
+  //     dispatch(setIshavefirefliesData(true));
+  //   } catch (error) {
+  //     console.error("Error loading Fathom data:", error);
+  //     toast.error("Failed to load Fathom transcripts.");
+  //     dispatch(setFirefliesData([]));
+  //     dispatch(setIshavefirefliesData(false));
+  //   } finally {
+  //     setIsLoadingFireflies(false);
+  //   }
+  // };
 
   const refreshFireflies = async () => {
     setIsLoadingFireflies(true);
@@ -364,6 +465,41 @@ export const SalesCalls = () => {
       const transformed = getData.map((file) => ({
         id: file.fireflies_id,
         callId: `Fireflies ${file.fireflies_id.slice(-6)}`,
+        companyName: "-",
+        prospectName: file.organizer_email || "Unknown",
+        date: new Date(file.datestring || file.created_at)
+          .toISOString()
+          .split("T")[0],
+        duration: file.duration || "N/A",
+        status: file.is_processed ? "processed" : "unprocessed",
+        participants: file.participants ? Object.values(file.participants) : [],
+        meetingLink: file.meeting_link,
+        hasSummary: file.summary,
+        hasTranscript: file.sentences,
+        title: file?.title,
+      }));
+
+      dispatch(setFirefliesData(transformed));
+      dispatch(setIshavefirefliesData(true));
+    } catch (error) {
+      console.error("Error loading Fireflies data:", error);
+      toast.error("Failed to sync Fireflies transcripts.");
+      dispatch(setFirefliesData([]));
+      dispatch(setIshavefirefliesData(false));
+    } finally {
+      setIsLoadingFireflies(false);
+    }
+  };
+
+  const refreshFathom = async () => {
+    setIsLoadingFireflies(true);
+
+    try {
+      const getData = await dbHelpers.getFathomFiles(user?.id);
+
+      const transformed = getData.map((file) => ({
+        id: file.fathom_id,
+        callId: `Fathom ${file.fathom_id.slice(-6)}`,
         companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
@@ -507,18 +643,19 @@ export const SalesCalls = () => {
 
   // console.log(isPlanExpired, "check is plan expired in SalesCalls");
   const handleProcessClick = (file, source) => {
-    if (planDetails?.isExpired) {
-      // Show plan expiry modal
-      dispatch(
-        setPlanExpiryModal({
-          isOpen: true,
-          featureName: "Process Sales Call",
-          featureDescription:
-            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
-        })
-      );
-      return;
-    }
+    // if (planDetails?.isExpired) {
+    //   // Show plan expiry modal
+    //   dispatch(
+    //     setPlanExpiryModal({
+    //       isOpen: true,
+    //       featureName: "Process Sales Call",
+    //       featureDescription:
+    //         "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+    //     })
+    //   );
+    //   return;
+    // }
+    console.log(file, "check source in handleProcessClick");
     setProcessingFileId(file.id);
     setCurrentProcessingFile(file);
     setShowProcessModal(true);
@@ -527,6 +664,14 @@ export const SalesCalls = () => {
       setFirefliesSummary(file.hasSummary);
     } else {
       setFirefliesSummary(null);
+    }
+    if (source == "fathom") {
+      const sentences = file.hasTranscript || [];
+
+      const transcriptText = sentences
+        .map((s) => `${s.speaker?.display_name} [${s.timestamp}s]: ${s.text}`)
+        .join("\n\n");
+      setFathomTranscripts(transcriptText);
     }
   };
 
@@ -792,14 +937,16 @@ export const SalesCalls = () => {
     prospectDetails,
     chosendata
   ) => {
-    console.log(
-      file,
-      companyId,
-      prospectId,
-      prospectDetails,
-      chosendata,
-      "get data to process file"
-    );
+    // console.log(
+    //   file,
+    //   companyId,
+    //   prospectId,
+    //   prospectDetails,
+    //   chosendata,
+    //   "get data to process file"
+    // );
+
+    // console.log(fathomTranscripts, "check file in handleConfirmAssociation");
 
     // if (true) return "";
 
@@ -844,7 +991,7 @@ export const SalesCalls = () => {
         }
       }
 
-      if (!fileBlob && source != "fireflies") {
+      if (!fileBlob && source != "fireflies" && source != "fathom") {
         toast.error("No file content available for processing");
         setShowProcessingModal(false);
         setIsProcessing(false);
@@ -855,15 +1002,19 @@ export const SalesCalls = () => {
       // Create FormData
       const formData = new FormData();
 
-      if (source != "fireflies") {
+      if (source != "fireflies" && source != "fathom") {
         formData.append("transcript", fileBlob, file.filename);
         // formData.append("user_id", CURRENT_USER.id);
         // formData.append("call_metadata", null);
         // formData.append("previous_interactions", null);
         formData.append("company_new", "");
         formData.append("sales_call_prospect_new", "");
-      } else {
+      } else if (source == "fireflies") {
         formData.append("transcript_id", processingFileId);
+        formData.append("company_new", "");
+        formData.append("sales_call_prospect_new", "");
+      } else if (source == "fathom") {
+        formData.append("fathomdata", fathomTranscripts || "");
         formData.append("company_new", "");
         formData.append("sales_call_prospect_new", "");
       }
@@ -904,6 +1055,11 @@ export const SalesCalls = () => {
           is_processed: true,
         });
         refreshFireflies();
+      } else if (source === "fathom") {
+        await dbHelpers.updateFathomFile(processingFileId, user?.id, {
+          is_processed: true,
+        });
+        refreshFathom();
       } else {
         await dbHelpers.updateUploadedFile(file.id, { is_processed: true });
       }
@@ -1202,6 +1358,24 @@ export const SalesCalls = () => {
       setModalTitle(`Transcript - ${call?.title || call.callId}`);
       setModalContent(transcriptText);
       // setGetFirefliestranscript(false);s
+    } else if (type === "fathom") {
+      // console.log(call, "check call in handleViewTranscript");
+      // setGetFirefliestranscript(true);
+      setProcessingFirefliesId(call.id);
+
+      const sentences =
+        tab == "past"
+          ? await dbHelpers?.get(user?.id, call?.fathom_id)
+          : call.hasTranscript || [];
+
+      // console.log(sentences, "check sentences in handleViewTranscript");
+
+      const transcriptText = sentences
+        .map((s) => `${s.speaker?.display_name} [${s.timestamp}s]: ${s.text}`)
+        .join("\n\n");
+      setModalTitle(`Transcript - ${call?.title || call.callId}`);
+      setModalContent(transcriptText);
+      // setGetFirefliestranscript(false);s
     } else {
       setModalTitle(`Transcript - ${call.callId}`);
       setModalContent(call.transcript || "No transcript available");
@@ -1292,11 +1466,13 @@ export const SalesCalls = () => {
   };
 
   const handleViewSummary = async (call, type) => {
-    if (type === "fireflies") {
+    console.log(type, call, "view summary called");
+    if (type === "fireflies" || type === "fathom") {
       // setGetFirefliessummary(true);
       setProcessingFirefliesId(call.id);
 
-      const shortSummary = call?.hasSummary?.short_summary;
+      const shortSummary =
+        type === "fathom" ? call?.hasSummary : call?.hasSummary?.short_summary;
       setModalTitle(`Summary - ${call?.title || call.callId}`);
       setModalContent(shortSummary || "No summary available");
       // setGetFirefliessummary(false);
@@ -1683,7 +1859,10 @@ export const SalesCalls = () => {
                                     processingFirefliesId == call?.id
                                   }
                                   onClick={() =>
-                                    handleViewSummary(call, "fireflies")
+                                    handleViewSummary(
+                                      call,
+                                      selectedImportPlatform
+                                    )
                                   }
                                   trackingName="View Summary"
                                   trackingContext={{
@@ -1717,7 +1896,10 @@ export const SalesCalls = () => {
                                     processingFirefliesId == call?.id
                                   }
                                   onClick={() =>
-                                    handleViewTranscript(call, "fireflies")
+                                    handleViewTranscript(
+                                      call,
+                                      selectedImportPlatform
+                                    )
                                   }
                                   trackingName="View Transcript"
                                   trackingContext={{
@@ -1750,14 +1932,14 @@ export const SalesCalls = () => {
                           {call.status !== "failed" && (
                             <TrackedButton
                               onClick={() =>
-                                handleProcessClick(call, "fireflies")
+                                handleProcessClick(call, selectedImportPlatform)
                               }
                               disabled={isProcessing}
                               trackingName="Generate Insights"
                               trackingContext={{
                                 call_id: call?.id,
                                 company: call.companyName,
-                                source: "fireflies",
+                                source: selectedImportPlatform,
                               }}
                             >
                               {isProcessing && processingFileId === call?.id ? (
@@ -1885,7 +2067,7 @@ export const SalesCalls = () => {
                               variant="outline"
                               size="sm"
                               disabled={
-                                call.type == "fireflies" &&
+                                call.type == selectedImportPlatform &&
                                 getFirefliestranscript &&
                                 processingFirefliesId == call?.id
                               }
@@ -1902,21 +2084,22 @@ export const SalesCalls = () => {
                               View Original Transcript
                             </TrackedButton>
                             {/* {console.log("check type", call)} */}
-                            {call.type !== "fireflies" && (
-                              <TrackedButton
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDownloadTranscript(call)}
-                                trackingName="Download Transcript PDF"
-                                trackingContext={{
-                                  call_id: call.id,
-                                  company: call.companyName,
-                                }}
-                              >
-                                <Download className="w-3 h-3 mr-1" />
-                                Download PDF
-                              </TrackedButton>
-                            )}
+                            {call.type !== "fireflies" &&
+                              call.type !== "fathom" && (
+                                <TrackedButton
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDownloadTranscript(call)}
+                                  trackingName="Download Transcript PDF"
+                                  trackingContext={{
+                                    call_id: call.id,
+                                    company: call.companyName,
+                                  }}
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  Download PDF
+                                </TrackedButton>
+                              )}
                           </div>
                           {/* {console.log(call, "check selected call")} */}
                           <div className="flex items-center space-x-2">
