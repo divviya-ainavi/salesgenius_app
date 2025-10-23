@@ -130,15 +130,14 @@ export const SalesCalls = () => {
   const [firefliesError, setFirefliesError] = useState(null);
   const [lastFirefliesSync, setLastFirefliesSync] = useState(null);
 
-  // Platform selector state for imports tab
-  const [selectedImportPlatform, setSelectedImportPlatform] =
-    useState("fireflies");
-
   // Determine which integrations are connected
   const hasFireflies = user?.fireflies_connected;
   const hasFathom = user?.fathom_connected;
   const hasBothIntegrations = hasFireflies && hasFathom;
-
+  // Platform selector state for imports tab
+  const [selectedImportPlatform, setSelectedImportPlatform] = useState(
+    hasFireflies ? "fireflies" : hasFathom ? "fathom" : "fireflies"
+  );
   // Determine tab name based on connected integrations
   const getImportsTabName = () => {
     if (hasBothIntegrations) return "Meeting Imports";
@@ -169,14 +168,23 @@ export const SalesCalls = () => {
     loadUploadedFiles();
     if (activeTab === "fireflies") {
       if (hasBothIntegrations) {
+        console.log("has both integrations called");
         if (selectedImportPlatform === "fireflies") {
+          console.log("has if fireflies integrations called");
+
           loadFirefliesData();
         } else if (selectedImportPlatform === "fathom") {
+          console.log("has if fathom integrations called");
+
           loadFathomData();
         }
       } else if (hasFireflies && !ishavefirefliesData) {
+        console.log("has else fireflies integrations called");
+
         loadFirefliesData();
       } else if (hasFathom && !ishavefirefliesData) {
+        console.log("has if fathom integrations called");
+
         loadFathomData();
       }
     } else if (activeTab === "past") {
@@ -339,19 +347,19 @@ export const SalesCalls = () => {
         ),
         [],
       ]);
-      console.log(response, "check existingRecords from fathom");
+      // console.log(response, "check existingRecords from fathom");
       // Create a Set of existing composite keys: `${user_id}_${fireflies_id}`
       const existingKeys = new Set(
-        existingRecords.map((r) => `${r.user_id}_${r.fireflies_id}`)
+        existingRecords.map((r) => `${r.user_id}_${r.fathom_id}`)
       );
-
+      console.log(existingKeys, "check existingKeys from fathom");
       // const existingIds = new Set(existingRecords.map((r) => r.fireflies_id));
       const json = await response.json();
       // console.log(json, "check json response from Fathom API");
       const transcripts = json?.[0]?.items || [];
       // Then filter transcripts using that composite key
       const newTranscripts = transcripts.filter(
-        (t) => !existingKeys.has(`${user?.id}_${t.id}`)
+        (t) => !existingKeys.has(`${user?.id}_${t.recording_id}`)
       );
       console.log(newTranscripts, "check new transcripts from fathom");
       // const newTranscripts = transcripts.filter((t) => !existingIds.has(t.id));
@@ -391,10 +399,10 @@ export const SalesCalls = () => {
 
       // Transform both new + existing records for display
       const combinedRecords = [...existingRecords, ...insertPayload];
-
+      console.log(combinedRecords, "check combinedRecords from fathom");
       const transformed = combinedRecords.map((file) => ({
         id: file.fathom_id,
-        callId: `Fireflies ${file.fathom_id.slice(-6)}`,
+        callId: `Fathom ${file?.fathom_id}`,
         companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
@@ -408,7 +416,7 @@ export const SalesCalls = () => {
         hasTranscript: file.sentences,
         title: file?.title,
       }));
-
+      console.log(transformed, "check transformed from fathom");
       dispatch(setFirefliesData(transformed));
       dispatch(setIshavefirefliesData(true));
     } catch (error) {
@@ -659,7 +667,8 @@ export const SalesCalls = () => {
     // Check if the transcript has already been processed
     if (file.status === "processed") {
       toast.error("This transcript has already been processed", {
-        description: "You can view the insights in the 'Past Processed Calls' tab",
+        description:
+          "You can view the insights in the 'Past Processed Calls' tab",
         duration: 4000,
       });
       return;
@@ -1944,7 +1953,9 @@ export const SalesCalls = () => {
                               onClick={() =>
                                 handleProcessClick(call, selectedImportPlatform)
                               }
-                              disabled={isProcessing || call.status === "processed"}
+                              disabled={
+                                isProcessing || call.status === "processed"
+                              }
                               trackingName="Generate Insights"
                               trackingContext={{
                                 call_id: call?.id,

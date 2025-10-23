@@ -269,7 +269,8 @@ export const authHelpers = {
         timezone,
         language,
         email_client_preference,
-        phone_number
+        phone_number,
+        fathom_connected
       `)
         .eq("id", userId)
         .single();
@@ -2107,6 +2108,7 @@ export const dbHelpers = {
       .insert(entries);
 
     if (error) {
+      console.error('Error inserting Fathom files:', error);
       throw new Error("Failed to insert Fathom data");
     }
   },
@@ -2436,6 +2438,25 @@ export const dbHelpers = {
       return {
         connected: data?.fireflies_connected || false,
         hasToken: !!data?.fireflies_encrypted_token
+      };
+    } catch (error) {
+      console.error('Error getting Fireflies status:', error);
+      return { connected: false, hasToken: false };
+    }
+  },
+
+  async getUserFathomStatus(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('fathom_connected, fathom_encrypted_token')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return {
+        connected: data?.fathom_connected || false,
+        hasToken: !!data?.fathom_encrypted_token
       };
     } catch (error) {
       console.error('Error getting Fireflies status:', error);

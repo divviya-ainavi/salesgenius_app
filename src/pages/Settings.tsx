@@ -664,6 +664,7 @@ export const Settings = () => {
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
+    checkFathomStatus();
     getInternalUploadedFiles();
   }, []);
 
@@ -705,6 +706,16 @@ export const Settings = () => {
     } catch (error) {
       console.error("Error checking Fireflies status:", error);
       setFirefliesStatus({ connected: false, hasToken: false });
+    }
+  };
+
+  const checkFathomStatus = async () => {
+    try {
+      const status = await dbHelpers.getUserFathomStatus(user?.id);
+      setFathomStatus(status);
+    } catch (error) {
+      console.error("Error checking Fireflies status:", error);
+      setFathomStatus({ connected: false, hasToken: false });
     }
   };
 
