@@ -73,7 +73,9 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { setCummulativeSpin } from "../store/slices/prospectSlice";
 import {
+  setFathomData,
   setFirefliesData,
+  setIshaveFathomData,
   setIshavefirefliesData,
 } from "../store/slices/authSlice";
 import {
@@ -100,6 +102,8 @@ export const SalesCalls = () => {
     hubspotIntegration,
     ishavefirefliesData,
     firefliesData,
+    fathomData,
+    ishaveFathomData,
     hasSeenOnboardingTour,
   } = useSelector((state) => state.auth);
   const {
@@ -182,7 +186,7 @@ export const SalesCalls = () => {
         console.log("has else fireflies integrations called");
 
         loadFirefliesData();
-      } else if (hasFathom && !ishavefirefliesData) {
+      } else if (hasFathom && !ishaveFathomData) {
         console.log("has if fathom integrations called");
 
         loadFathomData();
@@ -402,7 +406,7 @@ export const SalesCalls = () => {
       console.log(combinedRecords, "check combinedRecords from fathom");
       const transformed = combinedRecords.map((file) => ({
         id: file.fathom_id,
-        callId: `Fathom ${file?.fathom_id}`,
+        callId: `Fathom ${String(file?.fathom_id || "").slice(-6)}`,
         companyName: "-",
         prospectName: file.organizer_email || "Unknown",
         date: new Date(file.datestring || file.created_at)
@@ -417,13 +421,13 @@ export const SalesCalls = () => {
         title: file?.title,
       }));
       console.log(transformed, "check transformed from fathom");
-      dispatch(setFirefliesData(transformed));
-      dispatch(setIshavefirefliesData(true));
+      dispatch(setFathomData(transformed));
+      dispatch(setIshaveFathomData(true));
     } catch (error) {
       console.error("Error loading Fireflies data:", error);
       toast.error("Failed to sync Fireflies transcripts.");
-      dispatch(setFirefliesData([]));
-      dispatch(setIshavefirefliesData(false));
+      dispatch(setFathomData([]));
+      dispatch(setIshaveFathomData(false));
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -522,13 +526,13 @@ export const SalesCalls = () => {
         title: file?.title,
       }));
 
-      dispatch(setFirefliesData(transformed));
-      dispatch(setIshavefirefliesData(true));
+      dispatch(setFathomData(transformed));
+      dispatch(setIshaveFathomData(true));
     } catch (error) {
       console.error("Error loading Fireflies data:", error);
       toast.error("Failed to sync Fireflies transcripts.");
-      dispatch(setFirefliesData([]));
-      dispatch(setIshavefirefliesData(false));
+      dispatch(setFathomData([]));
+      dispatch(setIshaveFathomData(false));
     } finally {
       setIsLoadingFireflies(false);
     }
@@ -651,18 +655,18 @@ export const SalesCalls = () => {
 
   // console.log(isPlanExpired, "check is plan expired in SalesCalls");
   const handleProcessClick = (file, source) => {
-    // if (planDetails?.isExpired) {
-    //   // Show plan expiry modal
-    //   dispatch(
-    //     setPlanExpiryModal({
-    //       isOpen: true,
-    //       featureName: "Process Sales Call",
-    //       featureDescription:
-    //         "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
-    //     })
-    //   );
-    //   return;
-    // }
+    if (planDetails?.isExpired) {
+      // Show plan expiry modal
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Process Sales Call",
+          featureDescription:
+            "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+        })
+      );
+      return;
+    }
 
     // Check if the transcript has already been processed
     if (file.status === "processed") {
@@ -1068,7 +1072,7 @@ export const SalesCalls = () => {
       const data = await response.json();
       // Determine file type and set data accordingly
       const isFireflies = source === "fireflies";
-
+      const isFathom = source === "fathom";
       if (isFireflies) {
         await dbHelpers.updateFirefliesFile(processingFileId, user?.id, {
           is_processed: true,
@@ -1090,6 +1094,7 @@ export const SalesCalls = () => {
           user?.id,
           user?.organization_id,
           isFireflies,
+          isFathom,
           file,
           processedData,
           companyId,
@@ -1284,6 +1289,8 @@ export const SalesCalls = () => {
     }
   };
 
+  console.log(fathomData, "fathom data here");
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -1330,8 +1337,12 @@ export const SalesCalls = () => {
   };
 
   // console.log(firefliesData, "fireflies data");
+  console.log(fathomData, "fathom data");
+  const choosendata =
+    selectedImportPlatform == "fireflies" ? firefliesData : fathomData;
+  console.log(choosendata, "check choosendata here");
   // Filter functions for tab-specific searches
-  const filteredFirefliesData = firefliesData.filter((call) => {
+  const filteredFirefliesData = choosendata.filter((call) => {
     if (!firefliesSearch.trim()) return true;
     const searchTerm = firefliesSearch.toLowerCase();
     return (
@@ -1340,7 +1351,7 @@ export const SalesCalls = () => {
       call.companyName?.toLowerCase().includes(searchTerm)
     );
   });
-
+  console.log(filteredFirefliesData, "filtered fireflies data");
   // console.log(pastCalls, "past calls");
   const filteredPastCalls = pastCalls.filter((call) => {
     if (!pastCallsSearch.trim()) return true;
@@ -1772,23 +1783,25 @@ export const SalesCalls = () => {
                       navigate to the Profile tab.
                     </p>
                   </div>
-                ) : (hasBothIntegrations &&
-                    selectedImportPlatform === "fireflies" &&
-                    !hasFireflies) ||
-                  (!hasBothIntegrations &&
-                    !hasFireflies &&
-                    hasFathom) ? null : filteredFirefliesData.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No Fireflies calls found</p>
-                    <p className="text-sm">
-                      {firefliesSearch
-                        ? "Try adjusting your search terms"
-                        : "Sync your Fireflies account to see calls here"}
-                    </p>
-                  </div>
                 ) : (
+                  // : (hasBothIntegrations &&
+                  //     selectedImportPlatform === "fireflies" &&
+                  //     !hasFireflies) ||
+                  //   (!hasBothIntegrations &&
+                  //     !hasFireflies &&
+                  //     hasFathom) ? null : filteredFirefliesData.length === 0 ? (
+                  //   <div className="text-center py-8 text-muted-foreground">
+                  //     <ExternalLink className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  //     <p>No Fireflies calls found</p>
+                  //     <p className="text-sm">
+                  //       {firefliesSearch
+                  //         ? "Try adjusting your search terms"
+                  //         : "Sync your Fireflies account to see calls here"}
+                  //     </p>
+                  //   </div>
+                  // )
                   <div className="space-y-3">
+                    {/* {console.log(1802, filteredFirefliesData)} */}
                     {filteredFirefliesData.map((call) => (
                       <div
                         key={call.id}

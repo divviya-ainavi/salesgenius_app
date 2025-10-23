@@ -917,17 +917,17 @@ export const Settings = () => {
   };
 
   const handleFathomConnect = async () => {
-    // if (planDetails?.isExpired) {
-    //   dispatch(
-    //     setPlanExpiryModal({
-    //       isOpen: true,
-    //       featureName: "Connect Fathom",
-    //       featureDescription:
-    //         "Connect your Fathom account to automatically sync meeting transcripts and recordings.",
-    //     })
-    //   );
-    //   return;
-    // }
+    if (planDetails?.isExpired) {
+      dispatch(
+        setPlanExpiryModal({
+          isOpen: true,
+          featureName: "Connect Fathom",
+          featureDescription:
+            "Connect your Fathom account to automatically sync meeting transcripts and recordings.",
+        })
+      );
+      return;
+    }
     if (!fathomToken.trim()) {
       toast.error("Please enter a valid Fathom API token");
       return;

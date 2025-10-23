@@ -3051,7 +3051,7 @@ export const dbHelpers = {
   //   };
   // },
 
-  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
+  async processSalesCall(userId, organizationId, isFireflies, isFathom, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -3270,9 +3270,9 @@ export const dbHelpers = {
         processing_status: "completed",
         communication_style_ids: communicationStyleIds,
         user_id: userId,
-        uploaded_file_id: isFireflies ? null : file?.id,
-        fireflies_id: isFireflies ? file?.id : null,
-        type: isFireflies ? "fireflies" : "file_upload",
+        uploaded_file_id: isFireflies || isFathom ? null : file?.id,
+        fireflies_id: isFireflies || isFathom ? file?.id : null,
+        type: isFireflies ? "fireflies" : isFathom ? "fathom" : "file_upload",
         sales_insight_ids: salesInsightIds
       })
       .select()
