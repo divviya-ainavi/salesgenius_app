@@ -269,7 +269,8 @@ export const authHelpers = {
         timezone,
         language,
         email_client_preference,
-        phone_number
+        phone_number,
+        fathom_connected
       `)
         .eq("id", userId)
         .single();
@@ -1410,6 +1411,24 @@ export const dbHelpers = {
     }
   },
 
+  async getFathomSingleData(userId, fathomId) {
+    // console.log('Fetching Fireflies file for user:', userId, 'and ID:', firefliesId)
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('fathom_id', fathomId)
+        .single(); // because you're expecting one record
+
+      if (error) throw error;
+      return data?.sentences || [];
+    } catch (error) {
+      console.error('Error fetching Fireflies file:', error);
+      throw error;
+    }
+  },
+
 
   async getUploadedFileById(fileId) {
     try {
@@ -1818,6 +1837,33 @@ export const dbHelpers = {
     }
   },
 
+  // Fathom operations
+  async getFathomFiles(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching Fathom files:', error)
+      throw error
+    }
+  },
+
+  async bulkInsertFathomFiles(entries) {
+    const { error } = await supabase
+      .from("fathom_files")
+      .insert(entries);
+
+    if (error) {
+      throw new Error("Failed to insert Fathom data");
+    }
+  },
+
   async createEmailTemplate(subject, body) {
     const { data, error } = await supabase
       .from('email_templates')
@@ -1847,6 +1893,24 @@ export const dbHelpers = {
         .from('fireflies_files')
         .update(updates)
         .eq('fireflies_id', fileId)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error updating Fireflies file:', error)
+      throw error
+    }
+  },
+
+  async updateFathomFile(fileId, userId, updates) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .update(updates)
+        .eq('fathom_id', fileId)
         .eq('user_id', userId)
         .select()
         .single()
@@ -1980,6 +2044,74 @@ export const dbHelpers = {
     }
   },
 
+  async saveUserFathomToken(userId, encryptedToken) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: encryptedToken,
+          fathom_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving Fathom token:', error);
+      throw error;
+    }
+  },
+
+  async deleteUserFathomToken(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          fathom_encrypted_token: null,
+          fathom_connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting Fathom token:', error);
+      throw error;
+    }
+  },
+
+  async getFathomFiles(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('fathom_files')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching Fathom files:', error)
+      throw error
+    }
+  },
+
+  async bulkInsertFathomFiles(entries) {
+    const { error } = await supabase
+      .from("fathom_files")
+      .insert(entries);
+
+    if (error) {
+      console.error('Error inserting Fathom files:', error);
+      throw new Error("Failed to insert Fathom data");
+    }
+  },
   // Link business knowledge files to business knowledge data
   async linkBusinessKnowledgeFiles(fileIds, businessKnowledgeDataId) {
     try {
@@ -2306,6 +2438,25 @@ export const dbHelpers = {
       return {
         connected: data?.fireflies_connected || false,
         hasToken: !!data?.fireflies_encrypted_token
+      };
+    } catch (error) {
+      console.error('Error getting Fireflies status:', error);
+      return { connected: false, hasToken: false };
+    }
+  },
+
+  async getUserFathomStatus(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('fathom_connected, fathom_encrypted_token')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return {
+        connected: data?.fathom_connected || false,
+        hasToken: !!data?.fathom_encrypted_token
       };
     } catch (error) {
       console.error('Error getting Fireflies status:', error);
@@ -2900,7 +3051,7 @@ export const dbHelpers = {
   //   };
   // },
 
-  async processSalesCall(userId, organizationId, isFireflies, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
+  async processSalesCall(userId, organizationId, isFireflies, isFathom, file, data, company_id, prospect_id, researchCompanyId, dealNotesProcessed) {
     const {
       company_details = [],
       sales_call_prospect = "",
@@ -3119,9 +3270,9 @@ export const dbHelpers = {
         processing_status: "completed",
         communication_style_ids: communicationStyleIds,
         user_id: userId,
-        uploaded_file_id: isFireflies ? null : file?.id,
-        fireflies_id: isFireflies ? file?.id : null,
-        type: isFireflies ? "fireflies" : "file_upload",
+        uploaded_file_id: isFireflies || isFathom ? null : file?.id,
+        fireflies_id: isFireflies || isFathom ? file?.id : null,
+        type: isFireflies ? "fireflies" : isFathom ? "fathom" : "file_upload",
         sales_insight_ids: salesInsightIds
       })
       .select()
