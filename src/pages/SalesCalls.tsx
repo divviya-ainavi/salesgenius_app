@@ -1395,7 +1395,7 @@ export const SalesCalls = () => {
 
       const sentences =
         tab == "past"
-          ? await dbHelpers?.get(user?.id, call?.fathom_id)
+          ? await dbHelpers?.getFathomSingleData(user?.id, call?.fireflies_id)
           : call.hasTranscript || [];
 
       // console.log(sentences, "check sentences in handleViewTranscript");
