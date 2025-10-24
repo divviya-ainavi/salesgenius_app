@@ -2564,10 +2564,7 @@ export const Settings = () => {
                             <strong>Note:</strong> You can find your Fathom API
                             key in your Fathom account under:
                           </p>
-                          <p>
-                            Settings → Developer Settings → Generate/View API
-                            Key
-                          </p>
+                          <p>Settings → Generate/View API Key</p>
                         </div>
                       </div>
 
