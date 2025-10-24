@@ -29,6 +29,8 @@ const initialState = {
     isBetaUser: false,
     planLoading: false,
     planError: null,
+    ishaveFathomData: false,
+    fathomData: [],
 };
 
 const authSlice = createSlice({
@@ -84,6 +86,12 @@ const authSlice = createSlice({
         setFirefliesData: (state, action) => {
             state.firefliesData = action.payload;
         },
+        setIshaveFathomData: (state, action) => {
+            state.ishaveFathomData = action.payload;
+        },
+        setFathomData: (state, action) => {
+            state.fathomData = action.payload;
+        },
         setHasSeenOnboardingTour: (state, action) => {
             state.hasSeenOnboardingTour = action.payload;
         },
@@ -136,6 +144,8 @@ export const {
     setCallCompanyAPI,
     setIsBetaUser,
     setPlanLoading,
-    setPlanError
+    setPlanError,
+    setIshaveFathomData,
+    setFathomData
 } = authSlice.actions;
 export default authSlice.reducer;
