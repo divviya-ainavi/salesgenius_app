@@ -110,7 +110,6 @@ const App = () => {
           <Route path="/auth/setup" element={<AccountSetup />} />
           <Route path="/hubspot-callback" element={<HubSpotCallback />} />
           <Route path="/success" element={<PaymentSuccess />} />
-          <Route path="/dealhub" element={<DealHub />} />
 
           {/* Protected Routes */}
           <Route
@@ -125,6 +124,7 @@ const App = () => {
             <Route path="research" element={<Research />} />
             <Route path="calls" element={<SalesCalls />} />
             <Route path="call-insights" element={<CallInsights />} />
+            <Route path="dealhub" element={<DealHub />} />
             <Route path="follow-ups">
               <Route index element={<Navigate to="/call-insights" replace />} />
               <Route path="actions" element={<ActionItems />} />
