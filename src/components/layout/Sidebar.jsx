@@ -70,11 +70,17 @@ const mainNavItems = [
       },
     ],
   },
+  // {
+  //   title: "Analytics",
+  //   href: "/analytics",
+  //   icon: BarChart3,
+  //   description: "Performance metrics and insights",
+  // },
   {
-    title: "Analytics",
-    href: "/analytics",
+    title: "Deal Hub",
+    href: "/dealhub",
     icon: BarChart3,
-    description: "Performance metrics and insights",
+    description: "Our CRM integration and deal tracking",
   },
   {
     title: "Settings",

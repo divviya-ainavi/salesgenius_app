@@ -38,6 +38,7 @@ import {
 import { resetAuthState } from "./store/slices/authSlice";
 import { resetOrgState } from "./store/slices/orgSlice";
 import { toast } from "sonner";
+import DealHub from "@/pages/DealHub";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,7 @@ const App = () => {
           <Route path="/auth/setup" element={<AccountSetup />} />
           <Route path="/hubspot-callback" element={<HubSpotCallback />} />
           <Route path="/success" element={<PaymentSuccess />} />
+          <Route path="/dealhub" element={<DealHub />} />
 
           {/* Protected Routes */}
           <Route
