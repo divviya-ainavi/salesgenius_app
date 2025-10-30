@@ -9,9 +9,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+} from "@/ui/alert-dialog";
+import { Textarea } from "@/ui/textarea";
+import { Label } from "@/ui/label";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { AlertTriangle } from "lucide-react";
 

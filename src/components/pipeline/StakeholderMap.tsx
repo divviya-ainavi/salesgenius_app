@@ -1,6 +1,6 @@
 import { Stakeholder } from "@/types/pipeline";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
+import { Avatar, AvatarFallback } from "@/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface StakeholderMapProps {

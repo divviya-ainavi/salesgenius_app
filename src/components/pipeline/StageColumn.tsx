@@ -3,7 +3,7 @@ import { DealCardCompact } from "./DealCardCompact";
 import { DealCard } from "@/types/pipeline";
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from "@/lib/utils";
-import { Target, Calendar, CheckCircle, Presentation, FileText, Handshake } from 'lucide-react';
+import { Target, Calendar, CheckCircle, Presentation, FileText, DollarSign } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef } from 'react';
 
@@ -74,7 +74,7 @@ export const StageColumn = ({ stage, onDealClick, phase }: StageColumnProps) => 
               {stage.id === 'qualified' && <CheckCircle className="w-6 h-6 text-green-500" strokeWidth={1.5} />}
               {stage.id === 'presentation' && <Presentation className="w-6 h-6 text-purple-400" strokeWidth={1.5} />}
               {stage.id === 'proposal-sent' && <FileText className="w-6 h-6 text-orange-400" strokeWidth={1.5} />}
-              {stage.id === 'negotiation-started' && <Handshake className="w-6 h-6 text-orange-500" strokeWidth={1.5} />}
+              {stage.id === 'negotiation-started' && <DollarSign className="w-6 h-6 text-orange-500" strokeWidth={1.5} />}
             </div>
             <p className="text-xs text-[#86868B] font-medium">
               {stage.id === 'leads' && 'Add your first lead'}

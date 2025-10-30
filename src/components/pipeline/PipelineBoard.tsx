@@ -2,7 +2,7 @@ import { DealCard, DealStage, PipelineStage, PipelineFilters, LAPSPhase } from "
 import { StageColumn } from "./StageColumn";
 import { DealCardCompact } from "./DealCardCompact";
 import { useMemo } from "react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/ui/scroll-area";
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { cn } from "@/lib/utils";
 

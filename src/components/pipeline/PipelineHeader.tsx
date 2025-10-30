@@ -1,19 +1,19 @@
 import { Search, Filter, Plus, Info, ChevronDown, User, Target, Archive } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/ui/input";
+import { Button } from "@/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+} from "@/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/ui/toggle-group";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@/ui/collapsible";
 import { PipelineFilters } from "@/types/pipeline";
 
 interface PipelineHeaderProps {

@@ -3,7 +3,7 @@ import { DealCard } from "@/types/pipeline";
 import { DealCardCompact } from "./DealCardCompact";
 import { Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/ui/tabs";
 
 interface ClosedDealsGridProps {
   deals: DealCard[];

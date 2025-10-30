@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { DealCard, DealStatus } from "@/types/pipeline";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
+import { Button } from "@/ui/button";
+import { Textarea } from "@/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface CloseReasonModalProps {
