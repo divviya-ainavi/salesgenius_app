@@ -30,11 +30,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Settings as SettingsIcon,
   Shield,
   Users,
@@ -2396,284 +2391,246 @@ export const Settings = () => {
                     Connect your meeting recording platforms to automatically sync transcripts and recordings
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Integrated Platforms - Compact Display */}
-                  <div>
-                    <Label className="text-sm font-medium mb-3 block">
-                      Connected Platforms
-                    </Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {/* Fireflies Card */}
-                      {firefliesStatus?.connected && (
-                        <div className="relative group">
-                          <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer">
-                            <div className="flex flex-col items-center text-center space-y-2">
-                              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-                                <Zap className="w-6 h-6 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm text-foreground">Fireflies.ai</h4>
-                                <div className="flex items-center justify-center mt-1">
-                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
-                                  <span className="text-xs text-green-700">Connected</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                <CardContent className="space-y-6">
+                  {/* Fireflies Integration Card */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                          <Zap className="w-5 h-5 text-white" />
                         </div>
-                      )}
-
-                      {/* Fathom Card */}
-                      {fathomStatus?.connected && (
-                        <div className="relative group">
-                          <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer">
-                            <div className="flex flex-col items-center text-center space-y-2">
-                              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                                <Calendar className="w-6 h-6 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm text-foreground">Fathom</h4>
-                                <div className="flex items-center justify-center mt-1">
-                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
-                                  <span className="text-xs text-green-700">Connected</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                        <div>
+                          <h4 className="font-semibold text-sm">Fireflies.ai</h4>
+                          <p className="text-xs text-muted-foreground">
+                            AI meeting transcription
+                          </p>
                         </div>
+                      </div>
+                      {firefliesStatus?.connected ? (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Connected
+                        </Badge>
                       )}
                     </div>
 
-                    {!firefliesStatus?.connected && !fathomStatus?.connected && (
-                      <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 text-center">
-                        <AlertCircle className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
-                        No platforms connected yet. Connect a platform below to get started.
+                    {!firefliesStatus?.connected ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="fireflies-token">
+                            Fireflies API Token
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="fireflies-token"
+                              type={showFirefliesToken ? "text" : "password"}
+                              placeholder="Enter your Fireflies API token"
+                              value={firefliesToken}
+                              onChange={(e) =>
+                                setFirefliesToken(e.target.value)
+                              }
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() =>
+                                setShowFirefliesToken(!showFirefliesToken)
+                              }
+                            >
+                              {showFirefliesToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your Fireflies
+                              API key in your Fireflies account under:
+                            </p>
+                            <p>
+                              Settings → Developer Settings → Generate/View API
+                              Key
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={handleFirefliesConnect}
+                          disabled={
+                            isConnectingFireflies || !firefliesToken.trim()
+                          }
+                          className="w-full"
+                        >
+                          {isConnectingFireflies ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect Fireflies
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Integration Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-700">
+                            Your Fireflies.ai account is connected and ready to
+                            sync meeting data.
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleFirefliesDisconnect}
+                          disabled={isDisconnectingFireflies}
+                          className="w-full"
+                        >
+                          {isDisconnectingFireflies ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect Fireflies"
+                          )}
+                        </Button>
                       </div>
                     )}
                   </div>
 
-                  <Separator />
-
-                  {/* Available Integrations - Expandable */}
-                  <div>
-                    <Label className="text-sm font-medium mb-3 block">
-                      Available Platforms
-                    </Label>
-                    <div className="space-y-3">
-                      {/* Fireflies Integration */}
-                      {!firefliesStatus?.connected && (
-                        <Collapsible>
-                          <div className="border rounded-lg">
-                            <CollapsibleTrigger asChild>
-                              <div className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer rounded-lg transition-colors">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center flex-shrink-0">
-                                    <Zap className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-sm">Fireflies.ai</h4>
-                                    <p className="text-xs text-muted-foreground">AI meeting transcription</p>
-                                  </div>
-                                </div>
-                                <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  Connect
-                                </Badge>
-                              </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="border-t p-4 space-y-4 bg-muted/20">
-                                <div className="space-y-2">
-                                  <Label htmlFor="fireflies-token" className="text-sm">
-                                    Fireflies API Token
-                                  </Label>
-                                  <div className="relative">
-                                    <Input
-                                      id="fireflies-token"
-                                      type={showFirefliesToken ? "text" : "password"}
-                                      placeholder="Enter your Fireflies API token"
-                                      value={firefliesToken}
-                                      onChange={(e) => setFirefliesToken(e.target.value)}
-                                      className="pr-10"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                      onClick={() => setShowFirefliesToken(!showFirefliesToken)}
-                                    >
-                                      {showFirefliesToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Find your API key: Settings → Developer Settings → Generate/View API Key
-                                  </p>
-                                </div>
-                                <Button
-                                  onClick={handleFirefliesConnect}
-                                  disabled={isConnectingFireflies || !firefliesToken.trim()}
-                                  className="w-full"
-                                  size="sm"
-                                >
-                                  {isConnectingFireflies ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Connecting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ExternalLink className="w-4 h-4 mr-2" />
-                                      Connect Fireflies
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-                      )}
-
-                      {/* Fireflies - When Connected */}
-                      {firefliesStatus?.connected && (
-                        <div className="border-2 border-green-200 rounded-lg bg-green-50/50 p-3">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center flex-shrink-0">
-                                <Zap className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm">Fireflies.ai</h4>
-                                <div className="flex items-center mt-0.5">
-                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
-                                  <span className="text-xs text-green-700">Integration Active</span>
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleFirefliesDisconnect}
-                              disabled={isDisconnectingFireflies}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              {isDisconnectingFireflies ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                "Disconnect"
-                              )}
-                            </Button>
-                          </div>
+                  {/* Fathom Integration Card */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-white" />
                         </div>
-                      )}
-
-                      {/* Fathom Integration */}
-                      {!fathomStatus?.connected && (
-                        <Collapsible>
-                          <div className="border rounded-lg">
-                            <CollapsibleTrigger asChild>
-                              <div className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer rounded-lg transition-colors">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
-                                    <Calendar className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-sm">Fathom</h4>
-                                    <p className="text-xs text-muted-foreground">Free meeting recorder</p>
-                                  </div>
-                                </div>
-                                <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  Connect
-                                </Badge>
-                              </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="border-t p-4 space-y-4 bg-muted/20">
-                                <div className="space-y-2">
-                                  <Label htmlFor="fathom-token" className="text-sm">
-                                    Fathom API Token
-                                  </Label>
-                                  <div className="relative">
-                                    <Input
-                                      id="fathom-token"
-                                      type={showFathomToken ? "text" : "password"}
-                                      placeholder="Enter your Fathom API token"
-                                      value={fathomToken}
-                                      onChange={(e) => setFathomToken(e.target.value)}
-                                      className="pr-10"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                      onClick={() => setShowFathomToken(!showFathomToken)}
-                                    >
-                                      {showFathomToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Find your API key: Settings → Generate/View API Key
-                                  </p>
-                                </div>
-                                <Button
-                                  onClick={handleFathomConnect}
-                                  disabled={isConnectingFathom || !fathomToken.trim()}
-                                  className="w-full"
-                                  size="sm"
-                                >
-                                  {isConnectingFathom ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Connecting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ExternalLink className="w-4 h-4 mr-2" />
-                                      Connect Fathom
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-                      )}
-
-                      {/* Fathom - When Connected */}
-                      {fathomStatus?.connected && (
-                        <div className="border-2 border-green-200 rounded-lg bg-green-50/50 p-3">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
-                                <Calendar className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm">Fathom</h4>
-                                <div className="flex items-center mt-0.5">
-                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
-                                  <span className="text-xs text-green-700">Integration Active</span>
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleFathomDisconnect}
-                              disabled={isDisconnectingFathom}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              {isDisconnectingFathom ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                "Disconnect"
-                              )}
-                            </Button>
-                          </div>
+                        <div>
+                          <h4 className="font-semibold text-sm">Fathom</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Free meeting recorder
+                          </p>
                         </div>
+                      </div>
+                      {fathomStatus?.connected ? (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Connected
+                        </Badge>
                       )}
                     </div>
+
+                    {!fathomStatus?.connected ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="fathom-token">Fathom API Token</Label>
+                          <div className="relative">
+                            <Input
+                              id="fathom-token"
+                              type={showFathomToken ? "text" : "password"}
+                              placeholder="Enter your Fathom API token"
+                              value={fathomToken}
+                              onChange={(e) => setFathomToken(e.target.value)}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowFathomToken(!showFathomToken)}
+                            >
+                              {showFathomToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your Fathom API
+                              key in your Fathom account under:
+                            </p>
+                            <p>Settings → Generate/View API Key</p>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={handleFathomConnect}
+                          disabled={isConnectingFathom || !fathomToken.trim()}
+                          className="w-full"
+                        >
+                          {isConnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect Fathom
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Integration Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-700">
+                            Your Fathom account is connected and ready to sync
+                            meeting data.
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleFathomDisconnect}
+                          disabled={isDisconnectingFathom}
+                          className="w-full"
+                        >
+                          {isDisconnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect Fathom"
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
