@@ -494,8 +494,6 @@ export const Settings = () => {
   const [isConnectingFathom, setIsConnectingFathom] = useState(false);
   const [isDisconnectingFathom, setIsDisconnectingFathom] = useState(false);
 
-  // Platform selector state
-  const [selectedPlatform, setSelectedPlatform] = useState("fireflies");
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
@@ -2388,54 +2386,40 @@ export const Settings = () => {
                   <CardTitle className="flex items-center space-x-2">
                     <Mic className="w-5 h-5" />
                     <span>Meeting Recording Integration</span>
-                    {selectedPlatform === "fireflies" &&
-                    firefliesStatus?.connected ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Connected
-                      </Badge>
-                    ) : selectedPlatform === "fathom" &&
-                      fathomStatus?.connected ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Connected
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-gray-100 text-gray-800 border-gray-200"
-                      >
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Not Connected
-                      </Badge>
-                    )}
                   </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="platform-selector">Select Platform</Label>
-                    <Select
-                      value={selectedPlatform}
-                      onValueChange={setSelectedPlatform}
-                    >
-                      <SelectTrigger id="platform-selector">
-                        <SelectValue placeholder="Choose a platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fireflies">Fireflies.ai</SelectItem>
-                        <SelectItem value="fathom">Fathom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPlatform === "fireflies"
-                      ? "Connect your Fireflies.ai account to automatically sync meeting transcripts and recordings."
-                      : "Connect your Fathom account to automatically sync meeting transcripts and recordings."}
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Connect your meeting recording platforms to automatically sync transcripts and recordings
                   </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Fireflies Integration Card */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm">Fireflies.ai</h4>
+                          <p className="text-xs text-muted-foreground">
+                            AI meeting transcription
+                          </p>
+                        </div>
+                      </div>
+                      {firefliesStatus?.connected ? (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Connected
+                        </Badge>
+                      )}
+                    </div>
 
-                  {selectedPlatform === "fireflies" ? (
-                    !firefliesStatus?.connected ? (
+                    {!firefliesStatus?.connected ? (
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="fireflies-token">
@@ -2502,11 +2486,11 @@ export const Settings = () => {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-2">
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-1">
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-sm font-medium text-green-800">
-                              Fireflies Integration Active
+                              Integration Active
                             </span>
                           </div>
                           <p className="text-sm text-green-700">
@@ -2531,93 +2515,123 @@ export const Settings = () => {
                           )}
                         </Button>
                       </div>
-                    )
-                  ) : !fathomStatus?.connected ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fathom-token">Fathom API Token</Label>
-                        <div className="relative">
-                          <Input
-                            id="fathom-token"
-                            type={showFathomToken ? "text" : "password"}
-                            placeholder="Enter your Fathom API token"
-                            value={fathomToken}
-                            onChange={(e) => setFathomToken(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowFathomToken(!showFathomToken)}
-                          >
-                            {showFathomToken ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
+                    )}
+                  </div>
+
+                  {/* Fathom Integration Card */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-white" />
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          <p className="mb-1">
-                            <strong>Note:</strong> You can find your Fathom API
-                            key in your Fathom account under:
+                        <div>
+                          <h4 className="font-semibold text-sm">Fathom</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Free meeting recorder
                           </p>
-                          <p>Settings → Generate/View API Key</p>
                         </div>
                       </div>
-
-                      <Button
-                        onClick={handleFathomConnect}
-                        disabled={isConnectingFathom || !fathomToken.trim()}
-                        className="w-full"
-                      >
-                        {isConnectingFathom ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Connect Fathom
-                          </>
-                        )}
-                      </Button>
+                      {fathomStatus?.connected ? (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Not Connected
+                        </Badge>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">
-                            Fathom Integration Active
-                          </span>
+
+                    {!fathomStatus?.connected ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="fathom-token">Fathom API Token</Label>
+                          <div className="relative">
+                            <Input
+                              id="fathom-token"
+                              type={showFathomToken ? "text" : "password"}
+                              placeholder="Enter your Fathom API token"
+                              value={fathomToken}
+                              onChange={(e) => setFathomToken(e.target.value)}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowFathomToken(!showFathomToken)}
+                            >
+                              {showFathomToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p className="mb-1">
+                              <strong>Note:</strong> You can find your Fathom API
+                              key in your Fathom account under:
+                            </p>
+                            <p>Settings → Generate/View API Key</p>
+                          </div>
                         </div>
-                        <p className="text-sm text-green-700">
-                          Your Fathom account is connected and ready to sync
-                          meeting data.
-                        </p>
-                      </div>
 
-                      <Button
-                        variant="outline"
-                        onClick={handleFathomDisconnect}
-                        disabled={isDisconnectingFathom}
-                        className="w-full"
-                      >
-                        {isDisconnectingFathom ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Disconnecting...
-                          </>
-                        ) : (
-                          "Disconnect Fathom"
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                        <Button
+                          onClick={handleFathomConnect}
+                          disabled={isConnectingFathom || !fathomToken.trim()}
+                          className="w-full"
+                        >
+                          {isConnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Connect Fathom
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Integration Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-700">
+                            Your Fathom account is connected and ready to sync
+                            meeting data.
+                          </p>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={handleFathomDisconnect}
+                          disabled={isDisconnectingFathom}
+                          className="w-full"
+                        >
+                          {isDisconnectingFathom ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Disconnecting...
+                            </>
+                          ) : (
+                            "Disconnect Fathom"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
