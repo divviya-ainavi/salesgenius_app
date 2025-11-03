@@ -43,9 +43,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [expandedFeatures, setExpandedFeatures] = useState<{
     [key: string]: boolean;
   }>({});
-  const [userQuantities, setUserQuantities] = useState<{
-    [key: string]: number;
-  }>({});
+  const [showOrgPlanDialog, setShowOrgPlanDialog] = useState(false);
+  const [selectedOrgPlan, setSelectedOrgPlan] = useState<any>(null);
+  const [orgUserQuantity, setOrgUserQuantity] = useState(2);
 
   // Organization plan stripe_price_id
   const ORG_PLAN_STRIPE_PRICE_ID = "price_1SPGu9DNBi73M7eXkf08ZKeu";
@@ -60,40 +60,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
-
-  // Initialize user quantities for organization plans
-  useEffect(() => {
-    if (availablePlans && availablePlans.length > 0) {
-      const quantities: { [key: string]: number } = {};
-      availablePlans.forEach((plan: any) => {
-        if (isOrganizationPlan(plan)) {
-          quantities[plan.id] = 2; // Default minimum 2 users
-        }
-      });
-      setUserQuantities(quantities);
-    }
-  }, [availablePlans]);
-
-  const handleUserQuantityChange = (planId: string, delta: number) => {
-    const plan = availablePlans.find((p: any) => p.id === planId);
-    if (!plan) return;
-
-    const minUsers = 2; // Minimum 2 users for organization plans
-    const currentQuantity = userQuantities[planId] || minUsers;
-    const newQuantity = Math.max(minUsers, currentQuantity + delta);
-
-    setUserQuantities((prev) => ({
-      ...prev,
-      [planId]: newQuantity,
-    }));
-  };
-
-  const calculateOrganizationPrice = (plan: any) => {
-    if (!isOrganizationPlan(plan)) return plan.price;
-    const quantity = userQuantities[plan.id] || 2;
-    const pricePerUser = plan.price; // Use plan.price as per-user price
-    return pricePerUser * quantity;
-  };
 
   const onClose = () => {
     // Remove coupon flag when modal closes
@@ -151,20 +117,88 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     return `${durationDays} days`;
   };
 
+  const handleOrgPlanSubmit = async () => {
+    if (!selectedOrgPlan) return;
+
+    setIsProcessingPayment(true);
+    setShowOrgPlanDialog(false);
+
+    try {
+      console.log("🔄 Creating organization plan checkout for:", selectedOrgPlan.plan_name, "with", orgUserQuantity, "users");
+
+      const payload = {
+        userid: user.id,
+        plan_id: selectedOrgPlan.stripe_price_id,
+        emailid: user.email,
+        dbplan_id: selectedOrgPlan.id,
+        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon: hasCoupon,
+        organization_id: organizationDetails?.id,
+        user_quantity: orgUserQuantity,
+        is_organization_plan: true,
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.organizationPlan}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Organization plan checkout failed: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const checkoutData = await response.json();
+      console.log("✅ Organization plan checkout created:", checkoutData);
+
+      if (
+        Array.isArray(checkoutData) &&
+        checkoutData.length > 0 &&
+        checkoutData[0].checkoutUrl
+      ) {
+        console.log("🔗 Redirecting to Stripe checkout:", checkoutData[0].checkoutUrl);
+        window.location.href = checkoutData[0].checkoutUrl;
+      } else if (checkoutData.checkoutUrl) {
+        console.log("🔗 Redirecting to Stripe checkout:", checkoutData.checkoutUrl);
+        window.location.href = checkoutData.checkoutUrl;
+      } else {
+        throw new Error("No checkout URL received from server");
+      }
+    } catch (error: any) {
+      console.error("❌ Organization plan checkout error:", error);
+      toast.error(error.message || "Failed to create organization plan checkout");
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handleUpgrade = async (plan: any) => {
     if (!plan.stripe_price_id) {
       toast.error("This plan is not available for purchase yet");
       return;
     }
 
+    // Check if this is an organization plan
+    if (isOrganizationPlan(plan)) {
+      // Show organization plan dialog
+      setSelectedOrgPlan(plan);
+      setOrgUserQuantity(2); // Reset to minimum
+      setShowOrgPlanDialog(true);
+      return;
+    }
+
+    // For regular plans, proceed with normal checkout
     setIsProcessingPayment(true);
 
     try {
       console.log("🔄 Creating checkout session for plan:", plan.plan_name);
-
-      // Check if this is an organization plan
-      const isOrgPlan = isOrganizationPlan(plan);
-      const userQuantity = isOrgPlan ? userQuantities[plan.id] || 2 : 1;
 
       const payload = {
         userid: user.id,
@@ -173,17 +207,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         dbplan_id: plan.id,
         coupon_id: hasCoupon ? "50LIFE" : "",
         coupon: hasCoupon,
-        ...(isOrgPlan && {
-          organization_id: organizationDetails?.id,
-          user_quantity: userQuantity,
-          is_organization_plan: true,
-        }),
       };
 
-      // Use different endpoint for organization plans
-      const endpoint = isOrgPlan
-        ? config.api.endpoints.organizationPlan
-        : config.api.endpoints.checkoutSubscriptionDev;
+      const endpoint = config.api.endpoints.checkoutSubscriptionDev;
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
@@ -242,7 +268,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   };
 
   return (
-    <Dialog open={showUpgradeModal} onOpenChange={onClose}>
+    <>
+      <Dialog open={showUpgradeModal} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-[90vw] max-h-[95vh] flex flex-col overflow-hidden no-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
@@ -360,48 +387,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         </p>
                       )}
 
-                      {/* User Quantity Selector for Organization Plans */}
-                      {isOrganizationPlan(plan) && (
-                        <div className="mb-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                          <Label className="text-xs font-medium text-gray-700 mb-2 block">
-                            Number of Users
-                          </Label>
-                          <div className="flex items-center justify-center space-x-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() =>
-                                handleUserQuantityChange(plan.id, -1)
-                              }
-                              disabled={(userQuantities[plan.id] || 2) <= 2}
-                            >
-                              -
-                            </Button>
-                            <div className="w-16 text-center">
-                              <span className="text-2xl font-bold text-gray-900">
-                                {userQuantities[plan.id] || 2}
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() =>
-                                handleUserQuantityChange(plan.id, 1)
-                              }
-                            >
-                              +
-                            </Button>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-2">
-                            Minimum 2 users
-                          </p>
-                        </div>
-                      )}
-
                       {/* Pricing */}
                       <div className="mb-3">
                         {hasCoupon && !isFreePlan(plan) ? (
@@ -412,11 +397,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                                 $
                               </span>
                               <span className="text-xl font-bold text-gray-500 line-through">
-                                {isOrganizationPlan(plan)
-                                  ? calculateOrganizationPrice(
-                                      plan
-                                    ).toLocaleString()
-                                  : plan.price.toLocaleString()}
+                                {plan.price.toLocaleString()}
                               </span>
                             </div>
 
@@ -426,23 +407,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                                 $
                               </span>
                               <span className="text-xl font-bold text-green-600">
-                                {isOrganizationPlan(plan)
-                                  ? (
-                                      calculateOrganizationPrice(plan) * 0.5
-                                    ).toLocaleString()
-                                  : (plan.price * 0.5).toLocaleString()}
+                                {(plan.price * 0.5).toLocaleString()}
                               </span>
                             </div>
 
                             {/* Savings Display */}
                             <div className="text-green-600 font-semibold text-sm">
-                              Save $
-                              {isOrganizationPlan(plan)
-                                ? Math.round(
-                                    calculateOrganizationPrice(plan) * 0.5
-                                  ).toLocaleString()
-                                : Math.round(plan.price * 0.5).toLocaleString()}
-                              !
+                              Save ${Math.round(plan.price * 0.5).toLocaleString()}!
                             </div>
                           </div>
                         ) : (
@@ -451,25 +422,20 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               $
                             </span>
                             <span className="text-xl font-bold text-gray-900">
-                              {isOrganizationPlan(plan)
-                                ? calculateOrganizationPrice(
-                                    plan
-                                  ).toLocaleString()
-                                : plan.price.toLocaleString()}
+                              {plan.price.toLocaleString()}
                             </span>
                           </div>
                         )}
                         <div className="text-gray-600 mt-1 text-xs">
-                          {isOrganizationPlan(plan) && (
-                            <span className="block text-gray-500">
-                              ${plan.price}/user /{" "}
-                            </span>
+                          {isOrganizationPlan(plan) ? (
+                            "per user / month"
+                          ) : (
+                            plan.duration_days === 30
+                              ? "/ month"
+                              : plan.duration_days === 365
+                              ? "/ year"
+                              : `/ ${plan.duration_days} days`
                           )}
-                          {plan.duration_days === 30
-                            ? "month"
-                            : plan.duration_days === 365
-                            ? "year"
-                            : `${plan.duration_days} days`}
                         </div>
                       </div>
 
@@ -567,6 +533,104 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {/* Organization Plan User Quantity Dialog */}
+      <Dialog open={showOrgPlanDialog} onOpenChange={setShowOrgPlanDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Number of Users</DialogTitle>
+          <DialogDescription>
+            {selectedOrgPlan?.plan_name} - Choose how many users you need for your organization
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* User Quantity Selector */}
+          <div className="flex flex-col items-center space-y-4">
+            <Label className="text-sm font-medium text-gray-700">
+              Number of Users
+            </Label>
+            <div className="flex items-center justify-center space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-12 w-12 p-0 rounded-full"
+                onClick={() => setOrgUserQuantity(Math.max(2, orgUserQuantity - 1))}
+                disabled={orgUserQuantity <= 2}
+              >
+                -
+              </Button>
+              <div className="w-24 text-center">
+                <span className="text-4xl font-bold text-gray-900">
+                  {orgUserQuantity}
+                </span>
+                <p className="text-xs text-gray-500 mt-1">users</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-12 w-12 p-0 rounded-full"
+                onClick={() => setOrgUserQuantity(orgUserQuantity + 1)}
+              >
+                +
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Minimum 2 users required
+            </p>
+          </div>
+
+          {/* Price Breakdown */}
+          {selectedOrgPlan && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Price per user:</span>
+                <span className="font-medium">₹{selectedOrgPlan.price.toLocaleString()}/month</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Number of users:</span>
+                <span className="font-medium">{orgUserQuantity}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-2 mt-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-gray-900">Total:</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    ₹{(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}/month
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowOrgPlanDialog(false)}
+            disabled={isProcessingPayment}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleOrgPlanSubmit}
+            disabled={isProcessingPayment}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
+          >
+            {isProcessingPayment ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Continue to Payment"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+      </Dialog>
+    </>
   );
 };
