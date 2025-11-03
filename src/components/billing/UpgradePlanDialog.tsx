@@ -33,7 +33,7 @@ interface UpgradePlanDialogProps {
 }
 
 export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, organizationDetails } = useSelector((state) => state.auth);
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -42,12 +42,47 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [expandedFeatures, setExpandedFeatures] = useState<{
     [key: string]: boolean;
   }>({});
+  const [userQuantities, setUserQuantities] = useState<{ [key: string]: number }>({});
 
   // Check for coupon on component mount
   useEffect(() => {
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
+
+  // Initialize user quantities for organization plans
+  useEffect(() => {
+    if (availablePlans && availablePlans.length > 0) {
+      const quantities: { [key: string]: number } = {};
+      availablePlans.forEach((plan: any) => {
+        if (plan.is_organization_plan) {
+          quantities[plan.id] = plan.minimum_users || 2;
+        }
+      });
+      setUserQuantities(quantities);
+    }
+  }, [availablePlans]);
+
+  const handleUserQuantityChange = (planId: string, delta: number) => {
+    const plan = availablePlans.find((p: any) => p.id === planId);
+    if (!plan) return;
+
+    const minUsers = plan.minimum_users || 2;
+    const currentQuantity = userQuantities[planId] || minUsers;
+    const newQuantity = Math.max(minUsers, currentQuantity + delta);
+
+    setUserQuantities((prev) => ({
+      ...prev,
+      [planId]: newQuantity,
+    }));
+  };
+
+  const calculateOrganizationPrice = (plan: any) => {
+    if (!plan.is_organization_plan) return plan.price;
+    const quantity = userQuantities[plan.id] || plan.minimum_users || 2;
+    const pricePerUser = plan.price_per_user || plan.price;
+    return pricePerUser * quantity;
+  };
 
   const onClose = () => {
     // Remove coupon flag when modal closes
@@ -116,6 +151,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     try {
       console.log("🔄 Creating checkout session for plan:", plan.plan_name);
 
+      // Check if this is an organization plan
+      const isOrgPlan = plan.is_organization_plan === true;
+      const userQuantity = isOrgPlan ? (userQuantities[plan.id] || plan.minimum_users || 2) : 1;
+
       const payload = {
         userid: user.id,
         plan_id: plan.stripe_price_id,
@@ -123,12 +162,20 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         dbplan_id: plan.id,
         coupon_id: hasCoupon ? "50LIFE" : "",
         coupon: hasCoupon,
+        ...(isOrgPlan && {
+          organization_id: organizationDetails?.id,
+          user_quantity: userQuantity,
+          is_organization_plan: true,
+        }),
       };
 
+      // Use different endpoint for organization plans
+      const endpoint = isOrgPlan
+        ? config.api.endpoints.organizationPlan
+        : config.api.endpoints.checkoutSubscriptionDev;
+
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.checkoutSubscriptionDev
-        }`,
+        `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
         {
           method: "POST",
           headers: {
@@ -302,6 +349,47 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         </p>
                       )}
 
+                      {/* User Quantity Selector for Organization Plans */}
+                      {plan.is_organization_plan && (
+                        <div className="mb-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                          <Label className="text-xs font-medium text-gray-700 mb-2 block">
+                            Number of Users
+                          </Label>
+                          <div className="flex items-center justify-center space-x-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleUserQuantityChange(plan.id, -1)}
+                              disabled={
+                                (userQuantities[plan.id] || plan.minimum_users || 2) <=
+                                (plan.minimum_users || 2)
+                              }
+                            >
+                              -
+                            </Button>
+                            <div className="w-16 text-center">
+                              <span className="text-2xl font-bold text-gray-900">
+                                {userQuantities[plan.id] || plan.minimum_users || 2}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleUserQuantityChange(plan.id, 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Minimum {plan.minimum_users || 2} users
+                          </p>
+                        </div>
+                      )}
+
                       {/* Pricing */}
                       <div className="mb-3">
                         {hasCoupon && !isFreePlan(plan) ? (
@@ -309,41 +397,53 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             {/* Original Price - Strikethrough */}
                             <div className="flex items-baseline justify-center opacity-60">
                               <span className="text-sm font-bold text-gray-500 mr-1 line-through">
-                                $
+                                ₹
                               </span>
                               <span className="text-xl font-bold text-gray-500 line-through">
-                                {plan.price.toLocaleString()}
+                                {plan.is_organization_plan
+                                  ? calculateOrganizationPrice(plan).toLocaleString()
+                                  : plan.price.toLocaleString()}
                               </span>
                             </div>
 
                             {/* Discounted Price */}
                             <div className="flex items-baseline justify-center">
                               <span className="text-lg font-bold text-green-600 mr-1">
-                                $
+                                ₹
                               </span>
                               <span className="text-xl font-bold text-green-600">
-                                {(plan.price * 0.5).toLocaleString()}
+                                {plan.is_organization_plan
+                                  ? (calculateOrganizationPrice(plan) * 0.5).toLocaleString()
+                                  : (plan.price * 0.5).toLocaleString()}
                               </span>
                             </div>
 
                             {/* Savings Display */}
                             <div className="text-green-600 font-semibold text-sm">
-                              Save $
-                              {Math.round(plan.price * 0.5).toLocaleString()}!
+                              Save ₹
+                              {plan.is_organization_plan
+                                ? Math.round(calculateOrganizationPrice(plan) * 0.5).toLocaleString()
+                                : Math.round(plan.price * 0.5).toLocaleString()}!
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-baseline justify-center">
                             <span className="text-lg font-bold text-gray-900 mr-1">
-                              $
+                              ₹
                             </span>
                             <span className="text-xl font-bold text-gray-900">
-                              {plan.price.toLocaleString()}
+                              {plan.is_organization_plan
+                                ? calculateOrganizationPrice(plan).toLocaleString()
+                                : plan.price.toLocaleString()}
                             </span>
                           </div>
                         )}
                         <div className="text-gray-600 mt-1 text-xs">
-                          /{" "}
+                          {plan.is_organization_plan && (
+                            <span className="block text-gray-500">
+                              ₹{plan.price_per_user || plan.price}/user /{" "}
+                            </span>
+                          )}
                           {plan.duration_days === 30
                             ? "month"
                             : plan.duration_days === 365

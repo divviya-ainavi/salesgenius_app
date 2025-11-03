@@ -68,6 +68,7 @@ export const config = {
       cancelSubscriptionProd: 'Cancle-sub-prod',
       checkoutSubscriptionDev: 'checkout-session',
       checkoutSubscriptionProd: 'checkout-session-prod',
+      organizationPlan: 'orgplan',
       fathomConnectionCheck: 'Fathom-check',
       getFathomFiles: 'get-Fathom-transcripts',
     }
