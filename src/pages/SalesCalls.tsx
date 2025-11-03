@@ -1520,7 +1520,7 @@ export const SalesCalls = () => {
   };
 
   const handleViewSummary = async (call, type) => {
-    console.log(type, call, "view summary called");
+    // console.log(type, call, "view summary called");
     if (type === "fireflies") {
       // setGetFirefliessummary(true);
       setProcessingFirefliesId(call.id);
@@ -1531,14 +1531,14 @@ export const SalesCalls = () => {
       setModalContent(shortSummary || "No summary available");
       // setGetFirefliessummary(false);
     } else if (type === "fathom") {
-      console.log(type, "check call in handleViewSummary");
+      // console.log(type, "check call in handleViewSummary");
       // setGetFirefliessummary(true);
       setProcessingFirefliesId(call.id);
 
       const shortSummary = call?.hasSummary;
       setModalTitle(`Summary - ${call?.title || call.callId}`);
       setModalContent(
-        cleanFathomSummary(shortSummary) || "No summary available"
+        shortSummary ? cleanFathomSummary(shortSummary) : "No summary available"
       );
     } else {
       setModalTitle(`Summary - ${call.callId}`);
