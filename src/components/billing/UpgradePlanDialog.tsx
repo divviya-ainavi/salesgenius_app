@@ -43,7 +43,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [expandedFeatures, setExpandedFeatures] = useState<{
     [key: string]: boolean;
   }>({});
-  const [userQuantities, setUserQuantities] = useState<{ [key: string]: number }>({});
+  const [userQuantities, setUserQuantities] = useState<{
+    [key: string]: number;
+  }>({});
 
   // Organization plan stripe_price_id
   const ORG_PLAN_STRIPE_PRICE_ID = "price_1SPGu9DNBi73M7eXkf08ZKeu";
@@ -162,7 +164,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
       // Check if this is an organization plan
       const isOrgPlan = isOrganizationPlan(plan);
-      const userQuantity = isOrgPlan ? (userQuantities[plan.id] || 2) : 1;
+      const userQuantity = isOrgPlan ? userQuantities[plan.id] || 2 : 1;
 
       const payload = {
         userid: user.id,
@@ -370,7 +372,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               variant="outline"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={() => handleUserQuantityChange(plan.id, -1)}
+                              onClick={() =>
+                                handleUserQuantityChange(plan.id, -1)
+                              }
                               disabled={(userQuantities[plan.id] || 2) <= 2}
                             >
                               -
@@ -385,7 +389,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               variant="outline"
                               size="sm"
                               className="h-8 w-8 p-0"
-                              onClick={() => handleUserQuantityChange(plan.id, 1)}
+                              onClick={() =>
+                                handleUserQuantityChange(plan.id, 1)
+                              }
                             >
                               +
                             </Button>
@@ -403,11 +409,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             {/* Original Price - Strikethrough */}
                             <div className="flex items-baseline justify-center opacity-60">
                               <span className="text-sm font-bold text-gray-500 mr-1 line-through">
-                                ₹
+                                $
                               </span>
                               <span className="text-xl font-bold text-gray-500 line-through">
                                 {isOrganizationPlan(plan)
-                                  ? calculateOrganizationPrice(plan).toLocaleString()
+                                  ? calculateOrganizationPrice(
+                                      plan
+                                    ).toLocaleString()
                                   : plan.price.toLocaleString()}
                               </span>
                             </div>
@@ -415,31 +423,38 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             {/* Discounted Price */}
                             <div className="flex items-baseline justify-center">
                               <span className="text-lg font-bold text-green-600 mr-1">
-                                ₹
+                                $
                               </span>
                               <span className="text-xl font-bold text-green-600">
                                 {isOrganizationPlan(plan)
-                                  ? (calculateOrganizationPrice(plan) * 0.5).toLocaleString()
+                                  ? (
+                                      calculateOrganizationPrice(plan) * 0.5
+                                    ).toLocaleString()
                                   : (plan.price * 0.5).toLocaleString()}
                               </span>
                             </div>
 
                             {/* Savings Display */}
                             <div className="text-green-600 font-semibold text-sm">
-                              Save ₹
+                              Save $
                               {isOrganizationPlan(plan)
-                                ? Math.round(calculateOrganizationPrice(plan) * 0.5).toLocaleString()
-                                : Math.round(plan.price * 0.5).toLocaleString()}!
+                                ? Math.round(
+                                    calculateOrganizationPrice(plan) * 0.5
+                                  ).toLocaleString()
+                                : Math.round(plan.price * 0.5).toLocaleString()}
+                              !
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-baseline justify-center">
                             <span className="text-lg font-bold text-gray-900 mr-1">
-                              ₹
+                              $
                             </span>
                             <span className="text-xl font-bold text-gray-900">
                               {isOrganizationPlan(plan)
-                                ? calculateOrganizationPrice(plan).toLocaleString()
+                                ? calculateOrganizationPrice(
+                                    plan
+                                  ).toLocaleString()
                                 : plan.price.toLocaleString()}
                             </span>
                           </div>
@@ -447,7 +462,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                         <div className="text-gray-600 mt-1 text-xs">
                           {isOrganizationPlan(plan) && (
                             <span className="block text-gray-500">
-                              ₹{plan.price}/user /{" "}
+                              ${plan.price}/user /{" "}
                             </span>
                           )}
                           {plan.duration_days === 30
