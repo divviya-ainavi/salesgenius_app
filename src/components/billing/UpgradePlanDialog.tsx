@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,8 @@ import {
   Shield,
   Loader2,
   ArrowUp,
+  Tag,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -40,6 +43,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const dispatch = useDispatch();
   const [hasCoupon, setHasCoupon] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
   const [expandedFeatures, setExpandedFeatures] = useState<{
     [key: string]: boolean;
   }>({});
@@ -58,14 +62,32 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   // Check for coupon on component mount
   useEffect(() => {
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
-    setHasCoupon(!!couponFlag);
+    if (couponFlag) {
+      setHasCoupon(true);
+      setCouponCode("50LIFE");
+    }
   }, [showUpgradeModal]);
 
   const onClose = () => {
     // Remove coupon flag when modal closes
     localStorage.removeItem("apply_coupon_50LIFE");
     setHasCoupon(false);
+    setCouponCode("");
     dispatch(setShowUpgradeModal(false));
+  };
+
+  const handleApplyCoupon = () => {
+    if (couponCode.trim()) {
+      setHasCoupon(true);
+      toast.success(`Coupon "${couponCode}" applied successfully!`);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode("");
+    setHasCoupon(false);
+    localStorage.removeItem("apply_coupon_50LIFE");
+    toast.success("Coupon removed");
   };
 
   const getPlanIcon = (plan: any) => {
@@ -131,7 +153,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         plan_id: selectedOrgPlan.stripe_price_id,
         emailid: user.email,
         dbplan_id: selectedOrgPlan.id,
-        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon_id: hasCoupon && couponCode ? couponCode : "",
         coupon: hasCoupon,
         organization_id: organizationDetails?.id,
         user_quantity: orgUserQuantity,
@@ -205,7 +227,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         plan_id: plan.stripe_price_id,
         emailid: user.email,
         dbplan_id: plan.id,
-        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon_id: hasCoupon && couponCode ? couponCode : "",
         coupon: hasCoupon,
       };
 
@@ -275,22 +297,62 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           <DialogTitle className="text-2xl font-bold text-center">
             Upgrade your plan
           </DialogTitle>
-          {hasCoupon && (
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-lg mt-2">
-              <div className="text-center">
-                <div className="text-base font-bold mb-1">
-                  🎉 Coupon Applied!
+
+          {/* Coupon Code Section */}
+          <div className="mt-4 space-y-2">
+            {!hasCoupon ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    className="pl-10"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && couponCode.trim()) {
+                        handleApplyCoupon();
+                      }
+                    }}
+                  />
                 </div>
-                <div className="text-sm opacity-90">
-                  Code{" "}
-                  <span className="font-bold bg-white/20 px-2 py-1 rounded">
-                    50LIFE
-                  </span>{" "}
-                  - Save 50% on all paid plans
+                <Button
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim()}
+                  variant="outline"
+                  className="whitespace-nowrap"
+                >
+                  Apply Coupon
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    <div>
+                      <div className="text-sm font-bold">
+                        🎉 Coupon Applied!
+                      </div>
+                      <div className="text-xs opacity-90">
+                        Code: <span className="font-bold bg-white/20 px-2 py-0.5 rounded">{couponCode}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRemoveCoupon}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
           <DialogDescription className="text-base text-center mt-2 text-muted-foreground">
             Choose the plan that best fits your needs
           </DialogDescription>
@@ -583,6 +645,18 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
             </p>
           </div>
 
+          {/* Coupon Code Display */}
+          {hasCoupon && (
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-lg">
+              <div className="flex items-center justify-center gap-2">
+                <Tag className="h-4 w-4" />
+                <div className="text-sm font-bold">
+                  Coupon Applied: {couponCode}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Price Breakdown */}
           {selectedOrgPlan && (
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -594,12 +668,28 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                 <span className="text-gray-600">Number of users:</span>
                 <span className="font-medium">{orgUserQuantity}</span>
               </div>
+              {hasCoupon && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="font-medium">Discount:</span>
+                  <span className="font-medium">50% off</span>
+                </div>
+              )}
               <div className="border-t border-gray-200 pt-2 mt-2">
                 <div className="flex justify-between">
                   <span className="font-semibold text-gray-900">Total:</span>
-                  <span className="text-xl font-bold text-gray-900">
-                    ₹{(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}/month
-                  </span>
+                  <div className="text-right">
+                    {hasCoupon && (
+                      <div className="text-sm text-gray-500 line-through">
+                        ₹{(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}
+                      </div>
+                    )}
+                    <span className={cn(
+                      "text-xl font-bold",
+                      hasCoupon ? "text-green-600" : "text-gray-900"
+                    )}>
+                      ₹{(selectedOrgPlan.price * orgUserQuantity * (hasCoupon ? 0.5 : 1)).toLocaleString()}/month
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
