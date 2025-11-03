@@ -45,6 +45,14 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   }>({});
   const [userQuantities, setUserQuantities] = useState<{ [key: string]: number }>({});
 
+  // Organization plan stripe_price_id
+  const ORG_PLAN_STRIPE_PRICE_ID = "price_1SPGu9DNBi73M7eXkf08ZKeu";
+
+  // Check if a plan is an organization plan
+  const isOrganizationPlan = (plan: any) => {
+    return plan.stripe_price_id === ORG_PLAN_STRIPE_PRICE_ID;
+  };
+
   // Check for coupon on component mount
   useEffect(() => {
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
@@ -56,8 +64,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     if (availablePlans && availablePlans.length > 0) {
       const quantities: { [key: string]: number } = {};
       availablePlans.forEach((plan: any) => {
-        if (plan.is_organization_plan) {
-          quantities[plan.id] = plan.minimum_users || 2;
+        if (isOrganizationPlan(plan)) {
+          quantities[plan.id] = 2; // Default minimum 2 users
         }
       });
       setUserQuantities(quantities);
@@ -68,7 +76,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     const plan = availablePlans.find((p: any) => p.id === planId);
     if (!plan) return;
 
-    const minUsers = plan.minimum_users || 2;
+    const minUsers = 2; // Minimum 2 users for organization plans
     const currentQuantity = userQuantities[planId] || minUsers;
     const newQuantity = Math.max(minUsers, currentQuantity + delta);
 
@@ -79,9 +87,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   };
 
   const calculateOrganizationPrice = (plan: any) => {
-    if (!plan.is_organization_plan) return plan.price;
-    const quantity = userQuantities[plan.id] || plan.minimum_users || 2;
-    const pricePerUser = plan.price_per_user || plan.price;
+    if (!isOrganizationPlan(plan)) return plan.price;
+    const quantity = userQuantities[plan.id] || 2;
+    const pricePerUser = plan.price; // Use plan.price as per-user price
     return pricePerUser * quantity;
   };
 
@@ -153,8 +161,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       console.log("🔄 Creating checkout session for plan:", plan.plan_name);
 
       // Check if this is an organization plan
-      const isOrgPlan = plan.is_organization_plan === true;
-      const userQuantity = isOrgPlan ? (userQuantities[plan.id] || plan.minimum_users || 2) : 1;
+      const isOrgPlan = isOrganizationPlan(plan);
+      const userQuantity = isOrgPlan ? (userQuantities[plan.id] || 2) : 1;
 
       const payload = {
         userid: user.id,
@@ -351,7 +359,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       )}
 
                       {/* User Quantity Selector for Organization Plans */}
-                      {plan.is_organization_plan && (
+                      {isOrganizationPlan(plan) && (
                         <div className="mb-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
                           <Label className="text-xs font-medium text-gray-700 mb-2 block">
                             Number of Users
@@ -363,16 +371,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               size="sm"
                               className="h-8 w-8 p-0"
                               onClick={() => handleUserQuantityChange(plan.id, -1)}
-                              disabled={
-                                (userQuantities[plan.id] || plan.minimum_users || 2) <=
-                                (plan.minimum_users || 2)
-                              }
+                              disabled={(userQuantities[plan.id] || 2) <= 2}
                             >
                               -
                             </Button>
                             <div className="w-16 text-center">
                               <span className="text-2xl font-bold text-gray-900">
-                                {userQuantities[plan.id] || plan.minimum_users || 2}
+                                {userQuantities[plan.id] || 2}
                               </span>
                             </div>
                             <Button
@@ -386,7 +391,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             </Button>
                           </div>
                           <p className="text-xs text-gray-500 mt-2">
-                            Minimum {plan.minimum_users || 2} users
+                            Minimum 2 users
                           </p>
                         </div>
                       )}
@@ -401,7 +406,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                                 ₹
                               </span>
                               <span className="text-xl font-bold text-gray-500 line-through">
-                                {plan.is_organization_plan
+                                {isOrganizationPlan(plan)
                                   ? calculateOrganizationPrice(plan).toLocaleString()
                                   : plan.price.toLocaleString()}
                               </span>
@@ -413,7 +418,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                                 ₹
                               </span>
                               <span className="text-xl font-bold text-green-600">
-                                {plan.is_organization_plan
+                                {isOrganizationPlan(plan)
                                   ? (calculateOrganizationPrice(plan) * 0.5).toLocaleString()
                                   : (plan.price * 0.5).toLocaleString()}
                               </span>
@@ -422,7 +427,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             {/* Savings Display */}
                             <div className="text-green-600 font-semibold text-sm">
                               Save ₹
-                              {plan.is_organization_plan
+                              {isOrganizationPlan(plan)
                                 ? Math.round(calculateOrganizationPrice(plan) * 0.5).toLocaleString()
                                 : Math.round(plan.price * 0.5).toLocaleString()}!
                             </div>
@@ -433,16 +438,16 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               ₹
                             </span>
                             <span className="text-xl font-bold text-gray-900">
-                              {plan.is_organization_plan
+                              {isOrganizationPlan(plan)
                                 ? calculateOrganizationPrice(plan).toLocaleString()
                                 : plan.price.toLocaleString()}
                             </span>
                           </div>
                         )}
                         <div className="text-gray-600 mt-1 text-xs">
-                          {plan.is_organization_plan && (
+                          {isOrganizationPlan(plan) && (
                             <span className="block text-gray-500">
-                              ₹{plan.price_per_user || plan.price}/user /{" "}
+                              ₹{plan.price}/user /{" "}
                             </span>
                           )}
                           {plan.duration_days === 30
