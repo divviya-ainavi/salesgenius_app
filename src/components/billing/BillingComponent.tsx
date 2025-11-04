@@ -365,106 +365,106 @@ export const BillingComponent = () => {
             <h3 className="text-lg font-semibold text-foreground">
               Workspace subscription
             </h3>
-              <div>
-                <p className="text-muted-foreground text-base">
-                  Your workspace is currently subscribed to the{" "}
-                  <span className="font-semibold text-foreground">
-                    {currentPlan.plan_name == "Pro 1"
-                      ? "Pro"
-                      : currentPlan.plan_name || "Unknown Plan"}
-                  </span>{" "}
-                  plan.
-                </p>
+            <div>
+              <p className="text-muted-foreground text-base">
+                Your workspace is currently subscribed to the{" "}
+                <span className="font-semibold text-foreground">
+                  {currentPlan.plan_name == "Pro 1"
+                    ? "Pro"
+                    : currentPlan.plan_name || "Unknown Plan"}
+                </span>{" "}
+                plan.
+              </p>
+            </div>
+            {console.log(planDetails, "plan details")}
+            {planDetails && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">
+                  {isFreePlan(planDetails)
+                    ? "Upgrade"
+                    : planDetails.isExpired
+                    ? "Expired"
+                    : "Renews"}{" "}
+                  on {planDetails.renewalDate}.
+                </span>
               </div>
-              {console.log(planDetails, "plan details")}
-              {planDetails && (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
+            )}
+
+            {planDetails?.status == "canceled" && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+
+                {planDetails?.status == "canceled" && (
                   <span className="text-sm">
-                    {isFreePlan(planDetails)
-                      ? "Upgrade"
-                      : planDetails.isExpired
-                      ? "Expired"
-                      : "Renews"}{" "}
-                    on {planDetails.renewalDate}.
+                    {planDetails.status == "canceled" ? "Canceled" : "Renews"}{" "}
+                    at {planDetails.canceled_at}.
                   </span>
-                </div>
-              )}
-
-              {planDetails?.status == "canceled" && (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-
-                  {planDetails?.status == "canceled" && (
-                    <span className="text-sm">
-                      {planDetails.status == "canceled" ? "Canceled" : "Renews"}{" "}
-                      at {planDetails.canceled_at}.
-                    </span>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Column - Plan Card and Actions */}
           <div className="space-y-4">
-              {/* Current Plan Card */}
-              <div
-                className={cn(
-                  "relative rounded-2xl p-8 text-white overflow-hidden",
-                  `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
-                )}
-              >
-                <div className="relative z-10">
-                  <h3 className="text-3xl font-bold mb-2">
-                    {currentPlan.plan_name == "Pro 1"
-                      ? "Pro"
-                      : currentPlan.plan_name || "Unknown"}
-                  </h3>
-                  <p className="text-white/80 text-lg">
-                    {getDurationText(currentPlan?.duration_days)}
-                  </p>
-                </div>
-
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
-                  {React.createElement(getPlanIcon(currentPlan), {
-                    className: "w-full h-full",
-                  })}
-                </div>
+            {/* Current Plan Card */}
+            <div
+              className={cn(
+                "relative rounded-2xl p-8 text-white overflow-hidden",
+                `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
+              )}
+            >
+              <div className="relative z-10">
+                <h3 className="text-3xl font-bold mb-2">
+                  {currentPlan.plan_name == "Pro 1"
+                    ? "Pro"
+                    : currentPlan.plan_name || "Unknown"}
+                </h3>
+                <p className="text-white/80 text-lg">
+                  {getDurationText(currentPlan?.duration_days)}
+                </p>
               </div>
 
-              {/* Upgrade Button */}
-              {showUpgradeOption && (
-                <Button
-                  onClick={() => dispatch(setShowUpgradeModal(true))}
-                  className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
-                  size="lg"
-                >
-                  <ArrowUp className="w-4 h-4 mr-2" />
-                  {planDetails?.isExpired && !isFreePlan(currentPlan)
-                    ? "Renew Plan"
-                    : nextTierPlan
-                    ? `Upgrade to ${
-                        nextTierPlan.plan_name == "Pro 1"
-                          ? "Pro"
-                          : nextTierPlan.plan_name
-                      }`
-                    : "Upgrade Plan"}
-                </Button>
-              )}
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+                {React.createElement(getPlanIcon(currentPlan), {
+                  className: "w-full h-full",
+                })}
+              </div>
+            </div>
 
-              {/* Cancel Subscription Button for Paid Plans */}
-              {isPaidPlan(currentPlan) && planDetails?.status != "canceled" && (
-                <Button
-                  onClick={() => setShowCancelModal(true)}
-                  variant="outline"
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                  size="lg"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel Subscription
-                </Button>
-              )}
+            {/* Upgrade Button */}
+            {showUpgradeOption && (
+              <Button
+                onClick={() => dispatch(setShowUpgradeModal(true))}
+                className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
+                size="lg"
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                {planDetails?.isExpired && !isFreePlan(currentPlan)
+                  ? "Renew Plan"
+                  : nextTierPlan
+                  ? `Upgrade to ${
+                      nextTierPlan.plan_name == "Pro 1"
+                        ? "Pro"
+                        : nextTierPlan.plan_name
+                    }`
+                  : "Upgrade Plan"}
+              </Button>
+            )}
+
+            {/* Cancel Subscription Button for Paid Plans */}
+            {isPaidPlan(currentPlan) && planDetails?.status != "canceled" && (
+              <Button
+                onClick={() => setShowCancelModal(true)}
+                variant="outline"
+                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                size="lg"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel Subscription
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -677,7 +677,7 @@ export const BillingComponent = () => {
                 <div className="flex justify-between">
                   <span>Price:</span>
                   <span className="font-medium">
-                    ₹{currentPlan?.price?.toLocaleString()} /{" "}
+                    ${currentPlan?.price?.toLocaleString()} /{" "}
                     {getDurationText(currentPlan?.duration_days)}
                   </span>
                 </div>
