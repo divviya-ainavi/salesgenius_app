@@ -3782,88 +3782,79 @@ export const Settings = () => {
                           return (
                             <div
                               key={invite.id}
-                              className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50/30 rounded-lg"
+                              className="group relative flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
                             >
-                              <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                                  <UserCheck className="w-5 h-5 text-amber-600" />
+                              <div className="flex items-center space-x-4 flex-1">
+                                <div className="relative">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
+                                    <UserCheck className="w-6 h-6 text-amber-700" />
+                                  </div>
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+                                    <Clock className="w-2.5 h-2.5 text-white" />
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium flex items-center gap-2">
-                                    {invite.email}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-semibold text-foreground truncate">
+                                      {invite.email}
+                                    </p>
                                     <Badge
                                       variant="outline"
-                                      className="text-xs bg-amber-100 text-amber-700 border-amber-300"
+                                      className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2 py-0.5"
                                     >
                                       Pending
                                     </Badge>
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mb-2">
                                     Awaiting acceptance
                                   </p>
-                                  <div className="flex items-center space-x-2 mt-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <Badge
                                       variant="outline"
-                                      className={cn("text-xs", role.color)}
+                                      className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
                                     >
                                       <role.icon className="w-3 h-3 mr-1" />
                                       {role?.label}
                                     </Badge>
+                                    <span className="text-xs text-amber-700/70 flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      Invited {invite.invited_at
+                                        ? new Date(invite.invited_at).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                          })
+                                        : "-"}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="text-right text-sm text-muted-foreground">
-                                  <p className="text-xs text-amber-600">
-                                    Invitation sent
-                                  </p>
-                                  <p>
-                                    {invite.invited_at
-                                      ? new Date(
-                                          invite.invited_at
-                                        ).toLocaleDateString()
-                                      : "-"}
-                                  </p>
-                                </div>
+                              <div className="flex items-center space-x-2 ml-4">
                                 <Button
-                                  variant="outline"
+                                  variant="ghost"
                                   size="sm"
-                                  className="text-muted-foreground hover:text-destructive"
+                                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 opacity-0 group-hover:opacity-100 transition-opacity"
                                   onClick={async () => {
-                                    // if (
-                                    //   confirm(
-                                    //     `Cancel invitation for ${invite.email}?`
-                                    //   )
-                                    // ) {
-                                    //   try {
-                                    //     const { error } =
-                                    //       await dbHelpers.supabase
-                                    //         .from("invites")
-                                    //         .delete()
-                                    //         .eq("id", invite.id);
+                                    if (confirm(`Cancel invitation for ${invite.email}?`)) {
+                                      try {
+                                        const { error } = await dbHelpers.supabase
+                                          .from("invites")
+                                          .delete()
+                                          .eq("id", invite.id);
 
-                                    //     if (error) throw error;
+                                        if (error) throw error;
 
-                                    //     setInvitedUsers(
-                                    //       invitedUsers.filter(
-                                    //         (u) => u.id !== invite.id
-                                    //       )
-                                    //     );
-                                    //     toast.success("Invitation cancelled");
-                                    //   } catch (err) {
-                                    //     console.error(
-                                    //       "Error cancelling invite:",
-                                    //       err
-                                    //     );
-                                    //     toast.error(
-                                    //       "Failed to cancel invitation"
-                                    //     );
-                                    //   }
-                                    // }
-                                    console.log("check");
+                                        setInvitedUsers(invitedUsers.filter(u => u.id !== invite.id));
+                                        toast.success("Invitation cancelled");
+                                      } catch (err) {
+                                        console.error("Error cancelling invite:", err);
+                                        toast.error("Failed to cancel invitation");
+                                      }
+                                    }
                                   }}
                                 >
-                                  <X className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Cancel
                                 </Button>
                               </div>
                             </div>
