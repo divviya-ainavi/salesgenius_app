@@ -1693,7 +1693,6 @@ export const Settings = () => {
 
   const handleInviteUser = async () => {
     if (planDetails?.isExpired) {
-      // Show plan expiry modal
       dispatch(
         setPlanExpiryModal({
           isOpen: true,
@@ -1704,6 +1703,7 @@ export const Settings = () => {
       );
       return;
     }
+
     setIsLoading(true);
     const email = newUserEmail.trim();
     if (!email) {
@@ -1712,11 +1712,35 @@ export const Settings = () => {
       return;
     }
 
+    const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
+
+    try {
+      const canAddResult = await dbHelpers.canAddUser(orgId);
+
+      if (!canAddResult.canAdd) {
+        setIsLoading(false);
+        if (canAddResult.reason === "User limit reached") {
+          toast.error(
+            `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.error(canAddResult.reason || "Cannot add user at this time");
+        }
+        return;
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error("Error checking seat availability:", error);
+      toast.error("Failed to verify team size availability");
+      return;
+    }
+
     const token = createJWT({ email }, "SG", "invite");
 
     const result = await dbHelpers.inviteUserByEmail(
       email,
-      organizationDetails?.id || CURRENT_USER.organization_id || null,
+      orgId,
       newUserRole,
       token,
       user?.id,
@@ -1724,23 +1748,41 @@ export const Settings = () => {
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
-      const formData = new FormData();
-      formData.append("id", result?.id);
-      const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
-        {
-          method: "POST",
-          body: formData,
+      try {
+        await dbHelpers.incrementUsedQuantity(orgId);
+
+        const formData = new FormData();
+        formData.append("id", result?.id);
+        const response = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        toast.success(
+          `Invitation ${
+            result.status === "re-invited" ? "re-" : ""
+          }sent to ${email}`
+        );
+
+        try {
+          const data = await dbHelpers.getInvitedPendingUsers(orgId);
+          setInvitedUsers(data || []);
+        } catch (err) {
+          console.error("Error refreshing invited users:", err);
         }
-      );
-      // console.log(response, "check response");
-      toast.success(
-        `Invitation ${
-          result.status === "re-invited" ? "re-" : ""
-        }sent to ${email}`
-      );
+
+        await fetchOrganizationPlan();
+
+        setNewUserEmail("");
+        setNewUserRole(null);
+      } catch (error) {
+        console.error("Error updating seat count:", error);
+        toast.error("Invitation sent but failed to update seat count. Please refresh the page.");
+      }
       setIsLoading(false);
-      // console.log("Invite ID:", result.id); // optional for webhook trigger
     } else if (result.status === "registered") {
       toast.info("User is already registered.");
       setIsLoading(false);
@@ -1751,10 +1793,6 @@ export const Settings = () => {
       toast.error(result.message || "Failed to invite user");
       setIsLoading(false);
     }
-
-    setNewUserEmail("");
-
-    setNewUserRole(null);
   };
 
   // Drag and drop configuration for business files
