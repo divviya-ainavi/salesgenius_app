@@ -1577,6 +1577,120 @@ export const Settings = () => {
     }
   };
 
+  // const handleInviteUser = async () => {
+  //   if (planDetails?.isExpired) {
+  //     // Show plan expiry modal
+  //     dispatch(
+  //       setPlanExpiryModal({
+  //         isOpen: true,
+  //         featureName: "Invite Users",
+  //         featureDescription:
+  //           "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+  //       })
+  //     );
+  //     return;
+  //   }
+  //   setIsLoading(true);
+  //   const email = newUserEmail.trim();
+  //   if (!email) {
+  //     setIsLoading(false);
+  //     toast.error("Please enter a valid email address");
+  //     return;
+  //   }
+
+  //   // Check organization plan seat availability
+  //   try {
+  //     const canAddResult = await dbHelpers.canAddUser(
+  //       organizationDetails?.id || CURRENT_USER.organization_id
+  //     );
+
+  //     if (!canAddResult.canAdd) {
+  //       setIsLoading(false);
+  //       if (canAddResult.reason === "User limit reached") {
+  //         toast.error(
+  //           `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
+  //           { duration: 5000 }
+  //         );
+  //       } else {
+  //         toast.error(canAddResult.reason || "Cannot add user at this time");
+  //       }
+  //       return;
+  //     }
+  //   } catch (error) {
+  //     setIsLoading(false);
+  //     console.error("Error checking seat availability:", error);
+  //     toast.error("Failed to verify team size availability");
+  //     return;
+  //   }
+
+  //   const token = createJWT({ email }, "SG", "invite");
+
+  //   const result = await dbHelpers.inviteUserByEmail(
+  //     email,
+  //     organizationDetails?.id || CURRENT_USER.organization_id || null,
+  //     newUserRole,
+  //     token,
+  //     user?.id,
+  //     isBetaUser ? "beta" : null
+  //   );
+
+  //   if (result.status === "invited" || result.status === "re-invited") {
+  //     const formData = new FormData();
+  //     formData.append("id", result?.id);
+  //     const response = await fetch(
+  //       `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+  //       {
+  //         method: "POST",
+  //         body: formData,
+  //       }
+  //     );
+  //     // console.log(response, "check response");
+  //     toast.success(
+  //       `Invitation ${
+  //         result.status === "re-invited" ? "re-" : ""
+  //       }sent to ${email}`
+  //     );
+
+  //     // Refresh invited users list
+  //     try {
+  //       const data = await dbHelpers.getInvitedPendingUsers(
+  //         organizationDetails?.id
+  //       );
+  //       // supabase
+  //       //   .from("invites")
+  //       //   .select("*")
+  //       //   .eq("organization_id", organizationDetails?.id)
+  //       //   .eq("status", "pending")
+  //       //   .order("invited_at", { ascending: false });
+
+  //       // if (!error) {
+  //       setInvitedUsers(data || []);
+  //       // }
+  //     } catch (err) {
+  //       console.error("Error refreshing invited users:", err);
+  //     }
+
+  //     // Refresh organization plan to update seat counts
+  //     await fetchOrganizationPlan();
+
+  //     setIsLoading(false);
+  //     // console.log("Invite ID:", result.id); // optional for webhook trigger
+  //   } else if (result.status === "registered") {
+  //     toast.info("User is already registered.");
+  //     setIsLoading(false);
+  //   } else if (result.status === "already-invited") {
+  //     toast.info("User was already invited within the last 24 hours");
+  //     setIsLoading(false);
+  //   } else {
+  //     toast.error(result.message || "Failed to invite user");
+  //     setIsLoading(false);
+  //   }
+
+  //   setNewUserEmail("");
+
+  //   setNewUserRole(null);
+  // };
+
   const handleInviteUser = async () => {
     if (planDetails?.isExpired) {
       // Show plan expiry modal
@@ -1595,31 +1709,6 @@ export const Settings = () => {
     if (!email) {
       setIsLoading(false);
       toast.error("Please enter a valid email address");
-      return;
-    }
-
-    // Check organization plan seat availability
-    try {
-      const canAddResult = await dbHelpers.canAddUser(
-        organizationDetails?.id || CURRENT_USER.organization_id
-      );
-
-      if (!canAddResult.canAdd) {
-        setIsLoading(false);
-        if (canAddResult.reason === "User limit reached") {
-          toast.error(
-            `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
-            { duration: 5000 }
-          );
-        } else {
-          toast.error(canAddResult.reason || "Cannot add user at this time");
-        }
-        return;
-      }
-    } catch (error) {
-      setIsLoading(false);
-      console.error("Error checking seat availability:", error);
-      toast.error("Failed to verify team size availability");
       return;
     }
 
@@ -1650,29 +1739,6 @@ export const Settings = () => {
           result.status === "re-invited" ? "re-" : ""
         }sent to ${email}`
       );
-
-      // Refresh invited users list
-      try {
-        const data = await dbHelpers.getInvitedPendingUsers(
-          organizationDetails?.id
-        );
-        // supabase
-        //   .from("invites")
-        //   .select("*")
-        //   .eq("organization_id", organizationDetails?.id)
-        //   .eq("status", "pending")
-        //   .order("invited_at", { ascending: false });
-
-        // if (!error) {
-        setInvitedUsers(data || []);
-        // }
-      } catch (err) {
-        console.error("Error refreshing invited users:", err);
-      }
-
-      // Refresh organization plan to update seat counts
-      await fetchOrganizationPlan();
-
       setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
     } else if (result.status === "registered") {
@@ -3593,30 +3659,52 @@ export const Settings = () => {
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Plus className="w-5 h-5" />
-                        <h3 className="text-xl font-semibold">Invite New User</h3>
+                        <h3 className="text-xl font-semibold">
+                          Invite New User
+                        </h3>
                       </div>
 
                       {!isLoadingOrgPlan && orgPlan && (
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-6 px-4 py-2 bg-muted/50 rounded-lg">
                             <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Team Size</p>
-                              <p className="text-lg font-bold">{orgPlan.buy_quantity}</p>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Team Size
+                              </p>
+                              <p className="text-lg font-bold">
+                                {orgPlan.buy_quantity}
+                              </p>
                             </div>
-                            <Separator orientation="vertical" className="h-10" />
+                            <Separator
+                              orientation="vertical"
+                              className="h-10"
+                            />
                             <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Used</p>
-                              <p className="text-lg font-bold">{orgPlan.used_quantity}</p>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Used
+                              </p>
+                              <p className="text-lg font-bold">
+                                {orgPlan.used_quantity}
+                              </p>
                             </div>
-                            <Separator orientation="vertical" className="h-10" />
+                            <Separator
+                              orientation="vertical"
+                              className="h-10"
+                            />
                             <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Available</p>
-                              <p className={cn(
-                                "text-lg font-bold",
-                                orgPlan.remaining_quantity === 0 ? "text-red-600" :
-                                orgPlan.remaining_quantity <= 2 ? "text-amber-600" :
-                                "text-green-600"
-                              )}>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Available
+                              </p>
+                              <p
+                                className={cn(
+                                  "text-lg font-bold",
+                                  orgPlan.remaining_quantity === 0
+                                    ? "text-red-600"
+                                    : orgPlan.remaining_quantity <= 2
+                                    ? "text-amber-600"
+                                    : "text-green-600"
+                                )}
+                              >
                                 {orgPlan.remaining_quantity}
                               </p>
                             </div>
@@ -3682,7 +3770,11 @@ export const Settings = () => {
                         </div>
                       )}
 
-                      <div className={user?.title_id != 45 ? "col-span-3" : "col-span-6"}>
+                      <div
+                        className={
+                          user?.title_id != 45 ? "col-span-3" : "col-span-6"
+                        }
+                      >
                         <Button
                           onClick={handleInviteUser}
                           disabled={
@@ -3711,15 +3803,19 @@ export const Settings = () => {
                       <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                         <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <p className="text-sm text-red-900 font-medium">Team size limit reached</p>
+                          <p className="text-sm text-red-900 font-medium">
+                            Team size limit reached
+                          </p>
                           <p className="text-xs text-red-700 mt-0.5">
-                            All {orgPlan.buy_quantity} seats are currently in use. Please upgrade your team size to invite more users.
+                            All {orgPlan.buy_quantity} seats are currently in
+                            use. Please upgrade your team size to invite more
+                            users.
                           </p>
                         </div>
                       </div>
                     )}
 
-                    {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
+                    {/* {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
                       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
@@ -3729,7 +3825,7 @@ export const Settings = () => {
                           </p>
                         </div>
                       </div>
-                    )}
+                    )} */}
                   </CardContent>
                 </Card>
               )}
