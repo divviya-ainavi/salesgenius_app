@@ -84,7 +84,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers, supabase } from "@/lib/supabase";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import {
@@ -756,6 +756,7 @@ export const Settings = () => {
   const [countrySearchValue, setCountrySearchValue] = useState("");
   const [citySearchValue, setCitySearchValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [removingInviteId, setRemovingInviteId] = useState(null);
 
   // Fireflies integration state
   const [firefliesToken, setFirefliesToken] = useState("");
@@ -1846,6 +1847,40 @@ export const Settings = () => {
     } else {
       toast.error(result.message || "Failed to invite user");
       setIsLoading(false);
+    }
+  };
+
+  const handleRemoveInvite = async (inviteId) => {
+    setRemovingInviteId(inviteId);
+
+    try {
+      const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
+
+      const { error } = await supabase
+        .from('invites')
+        .update({
+          status: 'completed',
+          token: null
+        })
+        .eq('id', inviteId);
+
+      if (error) {
+        throw error;
+      }
+
+      await authHelpers.decrementUsedQuantity(orgId);
+
+      const data = await dbHelpers.getInvitedPendingUsers(orgId);
+      setInvitedUsers(data || []);
+
+      await fetchOrganizationPlan();
+
+      toast.success('Invitation removed successfully');
+    } catch (error) {
+      console.error('Error removing invite:', error);
+      toast.error('Failed to remove invitation');
+    } finally {
+      setRemovingInviteId(null);
     }
   };
 
@@ -4056,13 +4091,28 @@ export const Settings = () => {
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-end gap-2 ml-4">
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
-                                    >
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      Pending
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
+                                      >
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        Pending
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemoveInvite(invite.id)}
+                                        disabled={removingInviteId === invite.id}
+                                        className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600 text-muted-foreground"
+                                      >
+                                        {removingInviteId === invite.id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <X className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                    </div>
                                     <span className="text-xs text-amber-700/70 flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
                                       {invite.invited_at
