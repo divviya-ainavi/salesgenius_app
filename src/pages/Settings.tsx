@@ -1715,7 +1715,7 @@ export const Settings = () => {
     const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
 
     try {
-      const canAddResult = await dbHelpers.canAddUser(orgId);
+      const canAddResult = await authHelpers.canAddUser(orgId);
 
       if (!canAddResult.canAdd) {
         setIsLoading(false);
@@ -1749,7 +1749,7 @@ export const Settings = () => {
 
     if (result.status === "invited" || result.status === "re-invited") {
       try {
-        await dbHelpers.incrementUsedQuantity(orgId);
+        await authHelpers.incrementUsedQuantity(orgId);
 
         const formData = new FormData();
         formData.append("id", result?.id);
@@ -1780,7 +1780,9 @@ export const Settings = () => {
         setNewUserRole(null);
       } catch (error) {
         console.error("Error updating seat count:", error);
-        toast.error("Invitation sent but failed to update seat count. Please refresh the page.");
+        toast.error(
+          "Invitation sent but failed to update seat count. Please refresh the page."
+        );
       }
       setIsLoading(false);
     } else if (result.status === "registered") {
