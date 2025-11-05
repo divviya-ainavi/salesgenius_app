@@ -119,6 +119,7 @@ import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
 import { BillingComponent } from "@/components/billing/BillingComponent";
+import { UpdateTeamSizeDialog } from "@/components/admin/UpdateTeamSizeDialog";
 
 // Active User Card Component
 const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
@@ -714,6 +715,7 @@ export const Settings = () => {
   const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
   const [orgPlan, setOrgPlan] = useState(null);
   const [isLoadingOrgPlan, setIsLoadingOrgPlan] = useState(false);
+  const [showUpdateTeamSizeDialog, setShowUpdateTeamSizeDialog] = useState(false);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -956,6 +958,12 @@ export const Settings = () => {
     } finally {
       setIsLoadingOrgPlan(false);
     }
+  };
+
+  // Handle team size update success
+  const handleTeamSizeUpdateSuccess = () => {
+    fetchOrganizationPlan();
+    toast.success("Team size updated successfully!");
   };
 
   // Load initial data
@@ -3915,6 +3923,7 @@ export const Settings = () => {
                                 variant="outline"
                                 size="sm"
                                 className="gap-2 h-10"
+                                onClick={() => setShowUpdateTeamSizeDialog(true)}
                               >
                                 <Target className="w-4 h-4" />
                                 Update Team Size
@@ -5364,6 +5373,23 @@ export const Settings = () => {
       </Dialog>
 
       <UpgradePlanDialog />
+
+      {orgPlan && (
+        <UpdateTeamSizeDialog
+          isOpen={showUpdateTeamSizeDialog}
+          onClose={() => setShowUpdateTeamSizeDialog(false)}
+          organizationPlan={{
+            id: orgPlan.id,
+            buy_quantity: orgPlan.buy_quantity || 0,
+            used_quantity: orgPlan.used_quantity || 0,
+            amount: orgPlan.amount || 0,
+            currency: orgPlan.currency || "usd",
+            plan_id: orgPlan.plan_id,
+            stripe_subscription_id: orgPlan.stripe_subscription_id,
+          }}
+          onSuccess={handleTeamSizeUpdateSuccess}
+        />
+      )}
     </div>
   );
 };
