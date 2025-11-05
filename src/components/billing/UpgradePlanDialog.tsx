@@ -110,6 +110,26 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     return !isFreePlan(plan);
   };
 
+  const isProPlan = (plan: any) => {
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return planName.includes("pro");
+  };
+
+  const sortPlans = (plans: any[]) => {
+    return [...plans].sort((a, b) => {
+      if (isFreePlan(a)) return -1;
+      if (isFreePlan(b)) return 1;
+
+      if (isProPlan(a) && !isProPlan(b) && !isOrganizationPlan(b)) return -1;
+      if (isProPlan(b) && !isProPlan(a) && !isOrganizationPlan(a)) return 1;
+
+      if (isOrganizationPlan(a)) return 1;
+      if (isOrganizationPlan(b)) return -1;
+
+      return a.price - b.price;
+    });
+  };
+
   const getDurationText = (durationDays: number) => {
     if (durationDays === 30) return "Monthly";
     if (durationDays === 365) return "Annual";
@@ -318,7 +338,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-                {availablePlans.map((plan) => {
+                {sortPlans(availablePlans).map((plan) => {
                   const PlanIcon = getPlanIcon(plan);
                   const isCurrentPlan = plan.id === currentPlan?.id;
                   const isUpgrade = plan.price > (currentPlan?.price || 0);
