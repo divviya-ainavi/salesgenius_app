@@ -96,6 +96,7 @@ import {
   setPersonalInsightKnowledge,
   setPlanExpiryModal,
   setSales_methodology,
+  setShowUpgradeModal,
 } from "../store/slices/orgSlice";
 import {
   setOrganizationDetails,
@@ -104,6 +105,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import { UpgradePlanDialog } from "@/components/billing/UpgradePlanDialog";
 import CryptoJS from "crypto-js";
 import {
   Dialog,
@@ -123,6 +125,31 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
   const [userPlan, setUserPlan] = useState(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [isRevoking, setIsRevoking] = useState(false);
+
+  const isOrganizationPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return planName.includes("organization");
+  };
+
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      parseFloat(plan.price) === 0
+    );
+  };
+
+  const isProPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return planName.includes("pro") && !planName.includes("organization");
+  };
+
+  const canInviteUsers = userPlan?.plan_master && isOrganizationPlan(userPlan.plan_master);
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -689,6 +716,31 @@ export const Settings = () => {
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
+
+  const isOrganizationPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return planName.includes("organization");
+  };
+
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      parseFloat(plan?.price || 0) === 0
+    );
+  };
+
+  const isProPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return planName.includes("pro") && !planName.includes("organization");
+  };
+
+  const canInviteUsers = planDetails?.plan_master && isOrganizationPlan(planDetails.plan_master);
 
   // Password change state
   const [passwordChange, setPasswordChange] = useState({
@@ -3694,6 +3746,62 @@ export const Settings = () => {
                 user
               )} */}
               {(userRole?.id == 2 || user?.title_id == 45) && (
+                <>
+                  {!canInviteUsers ? (
+                    <Card className="shadow-sm border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+                      <CardContent className="pt-6">
+                        <div className="text-center py-8">
+                          <div className="mb-6">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 mb-4">
+                              <Users className="w-10 h-10 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                              Invite Team Members
+                            </h3>
+                            <p className="text-gray-600 max-w-md mx-auto">
+                              Upgrade to an <span className="font-semibold text-blue-600">Organization Plan</span> to invite team members and collaborate together.
+                            </p>
+                          </div>
+
+                          <div className="bg-white rounded-lg p-6 max-w-lg mx-auto mb-6 shadow-sm">
+                            <div className="flex items-start gap-3 text-left mb-4">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">Unlimited Team Members</p>
+                                <p className="text-sm text-gray-600">Add as many users as you need</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3 text-left mb-4">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">Shared Workspace</p>
+                                <p className="text-sm text-gray-600">Collaborate on deals and insights</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3 text-left">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">Role-Based Access</p>
+                                <p className="text-sm text-gray-600">Control permissions for team members</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => dispatch(setShowUpgradeModal(true))}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl px-8 py-6 text-lg h-auto gap-2"
+                          >
+                            <Crown className="w-5 h-5" />
+                            Upgrade to Organization Plan
+                          </Button>
+
+                          <p className="text-xs text-gray-500 mt-4">
+                            Currently on {planDetails?.plan_master?.plan_name || 'Free'} plan
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
                 <Card className="shadow-sm">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between mb-6">
@@ -3868,6 +3976,8 @@ export const Settings = () => {
                     )} */}
                   </CardContent>
                 </Card>
+                  )}
+                </>
               )}
 
               {/* Invited Users List */}
@@ -5169,6 +5279,8 @@ export const Settings = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradePlanDialog />
     </div>
   );
 };
