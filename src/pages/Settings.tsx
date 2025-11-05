@@ -3756,10 +3756,18 @@ export const Settings = () => {
                               <Users className="w-10 h-10 text-white" />
                             </div>
                             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                              Invite Team Members
+                              {isProPlan(planDetails?.plan_master) ? "Team Collaboration" : "Invite Team Members"}
                             </h3>
                             <p className="text-gray-600 max-w-md mx-auto">
-                              Upgrade to an <span className="font-semibold text-blue-600">Organization Plan</span> to invite team members and collaborate together.
+                              {isProPlan(planDetails?.plan_master) ? (
+                                <>
+                                  Unlock team collaboration with the <span className="font-semibold text-blue-600">Organization Plan</span>. Add team members, share workspaces, and work together seamlessly.
+                                </>
+                              ) : (
+                                <>
+                                  Upgrade to an <span className="font-semibold text-blue-600">Organization Plan</span> to invite team members and collaborate together.
+                                </>
+                              )}
                             </p>
                           </div>
 
@@ -3792,11 +3800,12 @@ export const Settings = () => {
                             className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl px-8 py-6 text-lg h-auto gap-2"
                           >
                             <Crown className="w-5 h-5" />
-                            Upgrade to Organization Plan
+                            {isProPlan(planDetails?.plan_master) ? "Upgrade to Organization" : "Upgrade to Organization Plan"}
                           </Button>
 
                           <p className="text-xs text-gray-500 mt-4">
                             Currently on {planDetails?.plan_master?.plan_name || 'Free'} plan
+                            {isProPlan(planDetails?.plan_master) && " • Team features available in Organization Plan"}
                           </p>
                         </div>
                       </CardContent>
