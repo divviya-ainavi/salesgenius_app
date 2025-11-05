@@ -190,8 +190,8 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b sticky top-0 bg-white z-10">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-white z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center space-x-2">
               <Users className="w-5 h-5" />
@@ -381,7 +381,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
         )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t sticky bottom-0 bg-white z-10">
+        <DialogFooter className="px-6 py-4 border-t bg-white z-10 flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
