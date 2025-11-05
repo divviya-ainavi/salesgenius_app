@@ -3713,10 +3713,18 @@ export const Settings = () => {
                   <CollapsibleTrigger asChild>
                     <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                       <CardTitle className="flex items-center justify-between">
-                        <span>
-                          {user?.title_id == 45
-                            ? "Organizations"
-                            : "Active Users"}
+                        <span className="flex items-center gap-2">
+                          {user?.title_id == 45 ? (
+                            <>
+                              <Building className="w-5 h-5" />
+                              Organizations
+                            </>
+                          ) : (
+                            <>
+                              <Users className="w-5 h-5" />
+                              Active Users
+                            </>
+                          )}
                         </span>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">
