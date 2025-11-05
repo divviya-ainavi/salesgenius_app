@@ -3981,7 +3981,7 @@ export const Settings = () => {
               )}
 
               {/* Invited Users List */}
-              {user?.title_id != 45 && (
+              {user?.title_id != 45 && canInviteUsers && (
                 <Collapsible
                   open={isInvitedUsersOpen}
                   onOpenChange={setIsInvitedUsersOpen}
@@ -4093,6 +4093,7 @@ export const Settings = () => {
               )}
 
               {/* Active Users List */}
+              {canInviteUsers && (
               <Collapsible
                 open={isActiveUsersOpen}
                 onOpenChange={setIsActiveUsersOpen}
@@ -4300,6 +4301,7 @@ export const Settings = () => {
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
+              )}
             </div>
           </TabsContent>
         )}
