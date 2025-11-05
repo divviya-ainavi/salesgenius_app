@@ -78,6 +78,7 @@ import {
   Target,
   AlertTriangle,
   DollarSign,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -654,6 +655,8 @@ export const Settings = () => {
   );
   const [orgUsers, setOrgUsers] = useState(mockOrgUsers);
   const [invitedUsers, setInvitedUsers] = useState([]);
+  const [isActiveUsersOpen, setIsActiveUsersOpen] = useState(true);
+  const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -3584,19 +3587,34 @@ export const Settings = () => {
 
               {/* Invited Users List */}
               {user?.title_id != 45 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <UserCheck className="w-5 h-5" />
-                        Invited Users
-                      </span>
-                      <Badge variant="outline">
-                        {invitedUsers?.length || 0} invited
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <Collapsible
+                  open={isInvitedUsersOpen}
+                  onOpenChange={setIsInvitedUsersOpen}
+                >
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <UserCheck className="w-5 h-5" />
+                            Invited Users
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              {invitedUsers?.length || 0} invited
+                            </Badge>
+                            <ChevronDown
+                              className={cn(
+                                "w-5 h-5 transition-transform duration-200",
+                                isInvitedUsersOpen && "transform rotate-180"
+                              )}
+                            />
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
                     <div className="space-y-4">
                       {invitedUsers?.length > 0 &&
                         invitedUsers?.map((invite) => {
@@ -3672,32 +3690,49 @@ export const Settings = () => {
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
 
               {/* Active Users List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>
-                      {user?.title_id == 45 ? "Organizations" : "Active Users"}
-                    </span>
-                    <Badge variant="secondary">
-                      {user?.title_id == 45
-                        ? getOrgList?.length + " organizations"
-                        : getUserslist
-                            // ?.filter(
-                            //     (u) =>
-                            //       allStatus?.find((s) => s?.id == u.status_id)
-                            //         ?.label === "active"
-                            //   )
-                            ?.filter((u) => u.id != user?.id)?.length +
-                          " active users"}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Collapsible
+                open={isActiveUsersOpen}
+                onOpenChange={setIsActiveUsersOpen}
+              >
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <CardTitle className="flex items-center justify-between">
+                        <span>
+                          {user?.title_id == 45 ? "Organizations" : "Active Users"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {user?.title_id == 45
+                              ? getOrgList?.length + " organizations"
+                              : getUserslist
+                                  // ?.filter(
+                                  //     (u) =>
+                                  //       allStatus?.find((s) => s?.id == u.status_id)
+                                  //         ?.label === "active"
+                                  //   )
+                                  ?.filter((u) => u.id != user?.id)?.length +
+                                " active users"}
+                          </Badge>
+                          <ChevronDown
+                            className={cn(
+                              "w-5 h-5 transition-transform duration-200",
+                              isActiveUsersOpen && "transform rotate-180"
+                            )}
+                          />
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent>
                   {user?.title_id == 45 ? (
                     <div className="space-y-4">
                       {getOrgList?.length > 0 &&
@@ -3850,8 +3885,10 @@ export const Settings = () => {
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             </div>
           </TabsContent>
         )}
