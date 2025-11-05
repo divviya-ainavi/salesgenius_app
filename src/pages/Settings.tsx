@@ -3581,6 +3581,101 @@ export const Settings = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Invited Users List */}
+              {user?.title_id != 45 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <UserCheck className="w-5 h-5" />
+                        Invited Users
+                      </span>
+                      <Badge variant="outline">
+                        {invitedUsers?.length || 0} invited
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {invitedUsers?.length > 0 &&
+                        invitedUsers?.map((invite) => {
+                          const role = {
+                            label:
+                              allTitles?.find((x) => x.id == invite?.title_id)
+                                ?.name || "User",
+                            icon: User,
+                            color:
+                              "bg-amber-100 text-amber-800 border-amber-200",
+                          };
+
+                          return (
+                            <div
+                              key={invite.id}
+                              className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
+                            >
+                              <div className="flex items-center space-x-4 flex-1">
+                                <div className="relative">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
+                                    <UserCheck className="w-6 h-6 text-amber-700" />
+                                  </div>
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+                                    <Clock className="w-2.5 h-2.5 text-white" />
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-foreground truncate mb-1">
+                                    {invite.email}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    Awaiting acceptance
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
+                                    >
+                                      <role.icon className="w-3 h-3 mr-1" />
+                                      {role?.label}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2 ml-4">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
+                                >
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Pending
+                                </Badge>
+                                <span className="text-xs text-amber-700/70 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {invite.invited_at
+                                    ? new Date(
+                                        invite.invited_at
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })
+                                    : "-"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {invitedUsers?.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No pending invitations</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Active Users List */}
               <Card>
                 <CardHeader>
@@ -3591,11 +3686,14 @@ export const Settings = () => {
                     <Badge variant="secondary">
                       {user?.title_id == 45
                         ? getOrgList?.length + " organizations"
-                        : getUserslist?.filter(
-                            (u) =>
-                              allStatus?.find((s) => s?.id == u.status_id)
-                                ?.label === "active"
-                          )?.length + " active users"}
+                        : getUserslist
+                            // ?.filter(
+                            //     (u) =>
+                            //       allStatus?.find((s) => s?.id == u.status_id)
+                            //         ?.label === "active"
+                            //   )
+                            ?.filter((u) => u.id != user?.id)?.length +
+                          " active users"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -3704,12 +3802,13 @@ export const Settings = () => {
                     <div className="space-y-4">
                       {getUserslist?.length > 0 &&
                         getUserslist
-                          ?.filter(
-                            (u) =>
-                              u.id != user?.id &&
-                              allStatus?.find((s) => s?.id == u.status_id)
-                                ?.label === "active"
-                          )
+                          // ?.filter(
+                          //   (u) =>
+                          //     u.id != user?.id &&
+                          //     allStatus?.find((s) => s?.id == u.status_id)
+                          //       ?.label === "active"
+                          // )
+                          ?.filter((u) => u.id != user?.id)
                           ?.map((listUser) => {
                             const getId = allTitles?.find(
                               (x) => x.id == listUser?.title_id
@@ -3736,12 +3835,14 @@ export const Settings = () => {
                               />
                             );
                           })}
-                      {getUserslist?.filter(
-                        (u) =>
-                          u.id != user?.id &&
-                          allStatus?.find((s) => s?.id == u.status_id)
-                            ?.label === "active"
-                      )?.length === 0 && (
+                      {getUserslist
+                        // ?.filter(
+                        //   (u) =>
+                        //     u.id != user?.id &&
+                        //     allStatus?.find((s) => s?.id == u.status_id)
+                        //       ?.label === "active"
+                        // )
+                        ?.filter((u) => u.id != user?.id)?.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p>No active users found</p>
@@ -3751,98 +3852,6 @@ export const Settings = () => {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Invited Users List */}
-              {user?.title_id != 45 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <UserCheck className="w-5 h-5" />
-                        Invited Users
-                      </span>
-                      <Badge variant="outline">
-                        {invitedUsers?.length || 0} invited
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {invitedUsers?.length > 0 &&
-                        invitedUsers?.map((invite) => {
-                          const role = {
-                            label:
-                              allTitles?.find((x) => x.id == invite?.title_id)
-                                ?.name || "User",
-                            icon: User,
-                            color:
-                              "bg-amber-100 text-amber-800 border-amber-200",
-                          };
-
-                          return (
-                            <div
-                              key={invite.id}
-                              className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
-                            >
-                              <div className="flex items-center space-x-4 flex-1">
-                                <div className="relative">
-                                  <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
-                                    <UserCheck className="w-6 h-6 text-amber-700" />
-                                  </div>
-                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
-                                    <Clock className="w-2.5 h-2.5 text-white" />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-foreground truncate mb-1">
-                                    {invite.email}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mb-2">
-                                    Awaiting acceptance
-                                  </p>
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
-                                    >
-                                      <role.icon className="w-3 h-3 mr-1" />
-                                      {role?.label}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-2 ml-4">
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
-                                >
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  Pending
-                                </Badge>
-                                <span className="text-xs text-amber-700/70 flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {invite.invited_at
-                                    ? new Date(invite.invited_at).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                      })
-                                    : "-"}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      {invitedUsers?.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>No pending invitations</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </TabsContent>
         )}
