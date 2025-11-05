@@ -215,6 +215,33 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6">
+          {/* Warning Messages at Top */}
+          {showWarning && (
+            <Alert variant="destructive" className="mt-6 mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{warningMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {isDowngrade && newQuantity >= usedQuantity && !showWarning && (
+            <Alert className="mt-6 mb-4 bg-yellow-50 border-yellow-200">
+              <Info className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                You can only reduce to {usedQuantity} seats (currently used).
+                You have {availableSeats} unused seat(s) that can be removed.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {quantityChange === 0 && (
+            <Alert className="mt-6 mb-4 bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Please adjust the quantity to proceed with changes.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-2 gap-6 py-6">
             {/* Left Column - License Controls */}
             <div className="space-y-6">
@@ -366,33 +393,6 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Warning Messages */}
-          {showWarning && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{warningMessage}</AlertDescription>
-            </Alert>
-          )}
-
-          {isDowngrade && newQuantity >= usedQuantity && (
-            <Alert className="mb-4 bg-yellow-50 border-yellow-200">
-              <Info className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                You can only reduce to {usedQuantity} seats (currently used).
-                You have {availableSeats} unused seat(s) that can be removed.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {quantityChange === 0 && (
-            <Alert className="mb-4 bg-blue-50 border-blue-200">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                Please adjust the quantity to proceed with changes.
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
 
         <DialogFooter className="px-6 py-4 border-t bg-white z-10 flex-shrink-0">
