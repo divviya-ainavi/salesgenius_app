@@ -2773,6 +2773,20 @@ export const dbHelpers = {
   //   return data;
   // },
 
+  async getInvitedPendingUsers(orgId) {
+    let query = supabase
+      .from("invites")
+      .select("*")
+      .eq("organization_id", orgId)
+      .eq("status", "pending")
+      .order("invited_at", { ascending: false });
+
+    const { data, error } = await query;
+    console.log(data, "2785")
+    if (error) throw error;
+    return data;
+  },
+
   async getCompaniesByUserId(userId, companySearch = "") {
     let query = supabase
       .from("company")

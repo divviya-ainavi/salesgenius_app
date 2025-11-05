@@ -149,7 +149,13 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
   }, [listUser.id]);
 
   const handleRevokeAccess = async () => {
-    if (!confirm(`Are you sure you want to revoke Pro access for ${listUser.full_name || listUser.email}?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to revoke Pro access for ${
+          listUser.full_name || listUser.email
+        }?`
+      )
+    ) {
       return;
     }
 
@@ -174,8 +180,12 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
     }
   };
 
-  const isExpiringSoon = userPlan?.end_date && new Date(userPlan.end_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const isExpired = userPlan?.end_date && new Date(userPlan.end_date) < new Date();
+  const isExpiringSoon =
+    userPlan?.end_date &&
+    new Date(userPlan.end_date) <=
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const isExpired =
+    userPlan?.end_date && new Date(userPlan.end_date) < new Date();
 
   return (
     <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-gray-300 transition-colors">
@@ -194,7 +204,8 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
             {listUser.status_id && (
               <Badge
                 variant={
-                  allStatus?.find((x) => x?.id == listUser.status_id)?.label === "active"
+                  allStatus?.find((x) => x?.id == listUser.status_id)?.label ===
+                  "active"
                     ? "default"
                     : "secondary"
                 }
@@ -204,7 +215,10 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
               </Badge>
             )}
             {userPlan && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+              <Badge
+                variant="outline"
+                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+              >
                 <Crown className="w-3 h-3 mr-1" />
                 {userPlan.plan_master?.plan_name || "Pro"}
               </Badge>
@@ -221,17 +235,29 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
             </div>
           ) : userPlan ? (
             <>
-              <p className={cn(
-                "text-xs font-medium flex items-center justify-end gap-1",
-                isExpired ? "text-red-600" : isExpiringSoon ? "text-amber-600" : "text-muted-foreground"
-              )}>
+              <p
+                className={cn(
+                  "text-xs font-medium flex items-center justify-end gap-1",
+                  isExpired
+                    ? "text-red-600"
+                    : isExpiringSoon
+                    ? "text-amber-600"
+                    : "text-muted-foreground"
+                )}
+              >
                 <Calendar className="w-3 h-3" />
                 {isExpired ? "Expired" : "Expires"}
               </p>
-              <p className={cn(
-                "text-sm font-medium",
-                isExpired ? "text-red-600" : isExpiringSoon ? "text-amber-600" : "text-foreground"
-              )}>
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  isExpired
+                    ? "text-red-600"
+                    : isExpiringSoon
+                    ? "text-amber-600"
+                    : "text-foreground"
+                )}
+              >
                 {userPlan.end_date
                   ? new Date(userPlan.end_date).toLocaleDateString()
                   : "-"}
@@ -1260,20 +1286,19 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
+  console.log(user?.title_id, organizationDetails?.id, "check users list");
   // Fetch invited users
   useEffect(() => {
     const fetchInvitedUsers = async () => {
       try {
-        if (user?.title_id != 45 && organizationDetails?.id) {
+        if (organizationDetails?.id) {
+          console.log("1295");
           // Fetch invited users from invites table
-          const { data, error } = await dbHelpers.supabase
-            .from("invites")
-            .select("*")
-            .eq("organization_id", organizationDetails.id)
-            .eq("status", "pending")
-            .order("invited_at", { ascending: false });
-
-          if (error) throw error;
+          const data = await dbHelpers.getInvitedPendingUsers(
+            organizationDetails?.id
+          );
+          console.log(data, "invited users 1298");
+          // if (error) throw error;
           setInvitedUsers(data || []);
         }
       } catch (err) {
@@ -1283,7 +1308,7 @@ export const Settings = () => {
 
     fetchInvitedUsers();
   }, [user, organizationDetails?.id]);
-
+  console.log(invitedUsers, "check invited users");
   // console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
@@ -1552,16 +1577,19 @@ export const Settings = () => {
 
       // Refresh invited users list
       try {
-        const { data, error } = await dbHelpers.supabase
-          .from("invites")
-          .select("*")
-          .eq("organization_id", organizationDetails?.id)
-          .eq("status", "pending")
-          .order("invited_at", { ascending: false });
+        const data = await dbHelpers.getInvitedPendingUsers(
+          organizationDetails?.id
+        );
+        // supabase
+        //   .from("invites")
+        //   .select("*")
+        //   .eq("organization_id", organizationDetails?.id)
+        //   .eq("status", "pending")
+        //   .order("invited_at", { ascending: false });
 
-        if (!error) {
-          setInvitedUsers(data || []);
-        }
+        // if (!error) {
+        setInvitedUsers(data || []);
+        // }
       } catch (err) {
         console.error("Error refreshing invited users:", err);
       }
@@ -3558,15 +3586,15 @@ export const Settings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
-                      {user?.title_id == 45
-                        ? "Organizations"
-                        : "Active Users"}
+                      {user?.title_id == 45 ? "Organizations" : "Active Users"}
                     </span>
                     <Badge variant="secondary">
                       {user?.title_id == 45
                         ? getOrgList?.length + " organizations"
-                        : getUserslist?.filter((u) =>
-                            allStatus?.find((s) => s?.id == u.status_id)?.label === "active"
+                        : getUserslist?.filter(
+                            (u) =>
+                              allStatus?.find((s) => s?.id == u.status_id)
+                                ?.label === "active"
                           )?.length + " active users"}
                     </Badge>
                   </CardTitle>
@@ -3676,7 +3704,12 @@ export const Settings = () => {
                     <div className="space-y-4">
                       {getUserslist?.length > 0 &&
                         getUserslist
-                          ?.filter((u) => u.id != user?.id && allStatus?.find((s) => s?.id == u.status_id)?.label === "active")
+                          ?.filter(
+                            (u) =>
+                              u.id != user?.id &&
+                              allStatus?.find((s) => s?.id == u.status_id)
+                                ?.label === "active"
+                          )
                           ?.map((listUser) => {
                             const getId = allTitles?.find(
                               (x) => x.id == listUser?.title_id
@@ -3703,7 +3736,12 @@ export const Settings = () => {
                               />
                             );
                           })}
-                      {getUserslist?.filter((u) => u.id != user?.id && allStatus?.find((s) => s?.id == u.status_id)?.label === "active")?.length === 0 && (
+                      {getUserslist?.filter(
+                        (u) =>
+                          u.id != user?.id &&
+                          allStatus?.find((s) => s?.id == u.status_id)
+                            ?.label === "active"
+                      )?.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p>No active users found</p>
@@ -3733,11 +3771,12 @@ export const Settings = () => {
                       {invitedUsers?.length > 0 &&
                         invitedUsers?.map((invite) => {
                           const role = {
-                            label: allTitles?.find(
-                              (x) => x.id == invite?.title_id
-                            )?.name || "User",
+                            label:
+                              allTitles?.find((x) => x.id == invite?.title_id)
+                                ?.name || "User",
                             icon: User,
-                            color: "bg-amber-100 text-amber-800 border-amber-200",
+                            color:
+                              "bg-amber-100 text-amber-800 border-amber-200",
                           };
 
                           return (
@@ -3752,7 +3791,10 @@ export const Settings = () => {
                                 <div>
                                   <p className="font-medium flex items-center gap-2">
                                     {invite.email}
-                                    <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-300">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-amber-100 text-amber-700 border-amber-300"
+                                    >
                                       Pending
                                     </Badge>
                                   </p>
@@ -3788,22 +3830,37 @@ export const Settings = () => {
                                   size="sm"
                                   className="text-muted-foreground hover:text-destructive"
                                   onClick={async () => {
-                                    if (confirm(`Cancel invitation for ${invite.email}?`)) {
-                                      try {
-                                        const { error } = await dbHelpers.supabase
-                                          .from("invites")
-                                          .delete()
-                                          .eq("id", invite.id);
+                                    // if (
+                                    //   confirm(
+                                    //     `Cancel invitation for ${invite.email}?`
+                                    //   )
+                                    // ) {
+                                    //   try {
+                                    //     const { error } =
+                                    //       await dbHelpers.supabase
+                                    //         .from("invites")
+                                    //         .delete()
+                                    //         .eq("id", invite.id);
 
-                                        if (error) throw error;
+                                    //     if (error) throw error;
 
-                                        setInvitedUsers(invitedUsers.filter(u => u.id !== invite.id));
-                                        toast.success("Invitation cancelled");
-                                      } catch (err) {
-                                        console.error("Error cancelling invite:", err);
-                                        toast.error("Failed to cancel invitation");
-                                      }
-                                    }
+                                    //     setInvitedUsers(
+                                    //       invitedUsers.filter(
+                                    //         (u) => u.id !== invite.id
+                                    //       )
+                                    //     );
+                                    //     toast.success("Invitation cancelled");
+                                    //   } catch (err) {
+                                    //     console.error(
+                                    //       "Error cancelling invite:",
+                                    //       err
+                                    //     );
+                                    //     toast.error(
+                                    //       "Failed to cancel invitation"
+                                    //     );
+                                    //   }
+                                    // }
+                                    console.log("check");
                                   }}
                                 >
                                   <X className="w-4 h-4" />
