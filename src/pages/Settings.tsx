@@ -276,7 +276,8 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
               </div>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Joined {listUser.created_at
+                Joined{" "}
+                {listUser.created_at
                   ? new Date(listUser.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -288,7 +289,8 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
           ) : (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              Joined {listUser.created_at
+              Joined{" "}
+              {listUser.created_at
                 ? new Date(listUser.created_at).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
@@ -890,12 +892,12 @@ export const Settings = () => {
 
     setIsLoadingOrgPlan(true);
     try {
-      const plan = await dbHelpers.getOrganizationPlan(
+      const plan = await authHelpers.getOrganizationPlan(
         organizationDetails?.id || CURRENT_USER.organization_id
       );
       setOrgPlan(plan);
     } catch (error) {
-      console.error('Error fetching organization plan:', error);
+      console.error("Error fetching organization plan:", error);
     } finally {
       setIsLoadingOrgPlan(false);
     }
@@ -1604,20 +1606,20 @@ export const Settings = () => {
 
       if (!canAddResult.canAdd) {
         setIsLoading(false);
-        if (canAddResult.reason === 'User limit reached') {
+        if (canAddResult.reason === "User limit reached") {
           toast.error(
             `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
             { duration: 5000 }
           );
         } else {
-          toast.error(canAddResult.reason || 'Cannot add user at this time');
+          toast.error(canAddResult.reason || "Cannot add user at this time");
         }
         return;
       }
     } catch (error) {
       setIsLoading(false);
-      console.error('Error checking seat availability:', error);
-      toast.error('Failed to verify team size availability');
+      console.error("Error checking seat availability:", error);
+      toast.error("Failed to verify team size availability");
       return;
     }
 
@@ -3598,31 +3600,41 @@ export const Settings = () => {
                           <div className="text-sm text-right">
                             <div className="flex items-center gap-4">
                               <div>
-                                <p className="text-xs text-muted-foreground">Team Size</p>
-                                <p className="font-semibold">{orgPlan.buy_quantity}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Team Size
+                                </p>
+                                <p className="font-semibold">
+                                  {orgPlan.buy_quantity}
+                                </p>
                               </div>
                               <div>
-                                <p className="text-xs text-muted-foreground">Used</p>
-                                <p className="font-semibold">{orgPlan.used_quantity}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Used
+                                </p>
+                                <p className="font-semibold">
+                                  {orgPlan.used_quantity}
+                                </p>
                               </div>
                               <div>
-                                <p className="text-xs text-muted-foreground">Available</p>
-                                <p className={cn(
-                                  "font-semibold",
-                                  orgPlan.remaining_quantity === 0 ? "text-red-600" :
-                                  orgPlan.remaining_quantity <= 2 ? "text-amber-600" :
-                                  "text-green-600"
-                                )}>
+                                <p className="text-xs text-muted-foreground">
+                                  Available
+                                </p>
+                                <p
+                                  className={cn(
+                                    "font-semibold",
+                                    orgPlan.remaining_quantity === 0
+                                      ? "text-red-600"
+                                      : orgPlan.remaining_quantity <= 2
+                                      ? "text-amber-600"
+                                      : "text-green-600"
+                                  )}
+                                >
                                   {orgPlan.remaining_quantity}
                                 </p>
                               </div>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                          >
+                          <Button variant="outline" size="sm" className="gap-2">
                             <Target className="w-4 h-4" />
                             Update Team Size
                           </Button>
@@ -3684,7 +3696,13 @@ export const Settings = () => {
                         </div>
                       )}
 
-                      <Button onClick={handleInviteUser} disabled={isLoading || (orgPlan && orgPlan.remaining_quantity === 0)}>
+                      <Button
+                        onClick={handleInviteUser}
+                        disabled={
+                          isLoading ||
+                          (orgPlan && orgPlan.remaining_quantity === 0)
+                        }
+                      >
                         {isLoading ? (
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
