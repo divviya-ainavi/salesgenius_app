@@ -627,6 +627,7 @@ export const Settings = () => {
     allTitles?.find((f) => f.role_id != 2)?.id
   );
   const [orgUsers, setOrgUsers] = useState(mockOrgUsers);
+  const [invitedUsers, setInvitedUsers] = useState([]);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -1259,6 +1260,30 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
+  // Fetch invited users
+  useEffect(() => {
+    const fetchInvitedUsers = async () => {
+      try {
+        if (user?.title_id != 45 && organizationDetails?.id) {
+          // Fetch invited users from invites table
+          const { data, error } = await dbHelpers.supabase
+            .from("invites")
+            .select("*")
+            .eq("organization_id", organizationDetails.id)
+            .eq("status", "pending")
+            .order("invited_at", { ascending: false });
+
+          if (error) throw error;
+          setInvitedUsers(data || []);
+        }
+      } catch (err) {
+        console.error("Error fetching invited users:", err.message);
+      }
+    };
+
+    fetchInvitedUsers();
+  }, [user, organizationDetails?.id]);
+
   // console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
@@ -1524,6 +1549,23 @@ export const Settings = () => {
           result.status === "re-invited" ? "re-" : ""
         }sent to ${email}`
       );
+
+      // Refresh invited users list
+      try {
+        const { data, error } = await dbHelpers.supabase
+          .from("invites")
+          .select("*")
+          .eq("organization_id", organizationDetails?.id)
+          .eq("status", "pending")
+          .order("invited_at", { ascending: false });
+
+        if (!error) {
+          setInvitedUsers(data || []);
+        }
+      } catch (err) {
+        console.error("Error refreshing invited users:", err);
+      }
+
       setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
     } else if (result.status === "registered") {
@@ -3682,81 +3724,95 @@ export const Settings = () => {
                         Invited Users
                       </span>
                       <Badge variant="outline">
-                        {getUserslist?.filter((u) =>
-                          allStatus?.find((s) => s?.id == u.status_id)?.label === "invited"
-                        )?.length + " invited"}
+                        {invitedUsers?.length || 0} invited
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {getUserslist?.length > 0 &&
-                        getUserslist
-                          ?.filter((u) => allStatus?.find((s) => s?.id == u.status_id)?.label === "invited")
-                          ?.map((invitedUser) => {
-                            const role = {
-                              label: allTitles?.find(
-                                (x) => x.id == invitedUser?.title_id
-                              )?.name,
-                              icon: User,
-                              color: "bg-amber-100 text-amber-800 border-amber-200",
-                            };
+                      {invitedUsers?.length > 0 &&
+                        invitedUsers?.map((invite) => {
+                          const role = {
+                            label: allTitles?.find(
+                              (x) => x.id == invite?.title_id
+                            )?.name || "User",
+                            icon: User,
+                            color: "bg-amber-100 text-amber-800 border-amber-200",
+                          };
 
-                            return (
-                              <div
-                                key={invitedUser.id}
-                                className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50/30 rounded-lg"
-                              >
-                                <div className="flex items-center space-x-4">
-                                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                                    <UserCheck className="w-5 h-5 text-amber-600" />
-                                  </div>
-                                  <div>
-                                    <p className="font-medium flex items-center gap-2">
-                                      {invitedUser.full_name || invitedUser.email}
-                                      <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-300">
-                                        Pending
-                                      </Badge>
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {invitedUser.email}
-                                    </p>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-xs", role.color)}
-                                      >
-                                        <role.icon className="w-3 h-3 mr-1" />
-                                        {role?.label}
-                                      </Badge>
-                                    </div>
-                                  </div>
+                          return (
+                            <div
+                              key={invite.id}
+                              className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50/30 rounded-lg"
+                            >
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                  <UserCheck className="w-5 h-5 text-amber-600" />
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="text-right text-sm text-muted-foreground">
-                                    <p className="text-xs text-amber-600">
-                                      Invitation sent
-                                    </p>
-                                    <p>
-                                      {invitedUser.created_at
-                                        ? new Date(
-                                            invitedUser.created_at
-                                          ).toLocaleDateString()
-                                        : "-"}
-                                    </p>
+                                <div>
+                                  <p className="font-medium flex items-center gap-2">
+                                    {invite.email}
+                                    <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-300">
+                                      Pending
+                                    </Badge>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Awaiting acceptance
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn("text-xs", role.color)}
+                                    >
+                                      <role.icon className="w-3 h-3 mr-1" />
+                                      {role?.label}
+                                    </Badge>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-destructive"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
                                 </div>
                               </div>
-                            );
-                          })}
-                      {getUserslist?.filter((u) => allStatus?.find((s) => s?.id == u.status_id)?.label === "invited")?.length === 0 && (
+                              <div className="flex items-center space-x-2">
+                                <div className="text-right text-sm text-muted-foreground">
+                                  <p className="text-xs text-amber-600">
+                                    Invitation sent
+                                  </p>
+                                  <p>
+                                    {invite.invited_at
+                                      ? new Date(
+                                          invite.invited_at
+                                        ).toLocaleDateString()
+                                      : "-"}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-destructive"
+                                  onClick={async () => {
+                                    if (confirm(`Cancel invitation for ${invite.email}?`)) {
+                                      try {
+                                        const { error } = await dbHelpers.supabase
+                                          .from("invites")
+                                          .delete()
+                                          .eq("id", invite.id);
+
+                                        if (error) throw error;
+
+                                        setInvitedUsers(invitedUsers.filter(u => u.id !== invite.id));
+                                        toast.success("Invitation cancelled");
+                                      } catch (err) {
+                                        console.error("Error cancelling invite:", err);
+                                        toast.error("Failed to cancel invitation");
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {invitedUsers?.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p>No pending invitations</p>
