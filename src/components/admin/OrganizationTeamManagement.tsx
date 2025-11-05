@@ -50,7 +50,8 @@ export const OrganizationTeamManagement: React.FC = () => {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No organization details found. Please ensure you're part of an organization.
+          No organization details found. Please ensure you're part of an
+          organization.
         </AlertDescription>
       </Alert>
     );
@@ -62,7 +63,9 @@ export const OrganizationTeamManagement: React.FC = () => {
         <CardContent className="py-8">
           <div className="text-center">
             <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading organization plan...</p>
+            <p className="text-muted-foreground">
+              Loading organization plan...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -74,7 +77,8 @@ export const OrganizationTeamManagement: React.FC = () => {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No active organization plan found. Please upgrade to an organization plan to manage team members.
+          No active organization plan found. Please upgrade to an organization
+          plan to manage team members.
         </AlertDescription>
       </Alert>
     );
@@ -108,19 +112,27 @@ export const OrganizationTeamManagement: React.FC = () => {
           <div className="grid grid-cols-3 gap-6">
             {/* Team Size */}
             <div className="text-center">
-              <div className="text-sm text-muted-foreground mb-2">Team Size</div>
-              <div className="text-4xl font-bold text-foreground">{buyQuantity}</div>
+              <div className="text-sm text-muted-foreground mb-2">
+                Team Size
+              </div>
+              <div className="text-4xl font-bold text-foreground">
+                {buyQuantity}
+              </div>
             </div>
 
             {/* Used */}
             <div className="text-center">
               <div className="text-sm text-muted-foreground mb-2">Used</div>
-              <div className="text-4xl font-bold text-blue-600">{usedQuantity}</div>
+              <div className="text-4xl font-bold text-blue-600">
+                {usedQuantity}
+              </div>
             </div>
 
             {/* Available */}
             <div className="text-center">
-              <div className="text-sm text-muted-foreground mb-2">Available</div>
+              <div className="text-sm text-muted-foreground mb-2">
+                Available
+              </div>
               <div
                 className={`text-4xl font-bold ${
                   availableSeats === 0 ? "text-red-600" : "text-green-600"
@@ -136,8 +148,8 @@ export const OrganizationTeamManagement: React.FC = () => {
             <Alert variant="destructive" className="mt-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Team size limit reached. All {buyQuantity} seats are currently in use.
-                Please upgrade your team size to invite more users.
+                Team size limit reached. All {buyQuantity} seats are currently
+                in use. Please upgrade your team size to invite more users.
               </AlertDescription>
             </Alert>
           )}
@@ -148,7 +160,8 @@ export const OrganizationTeamManagement: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Plan Name:</span>
                 <span className="font-medium">
-                  {organizationPlan.plan_master?.plan_name || "Organization Plan"}
+                  {organizationPlan.plan_master?.plan_name ||
+                    "Organization Plan"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -169,14 +182,15 @@ export const OrganizationTeamManagement: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total cost:</span>
                 <span className="font-medium">
-                  ${((organizationPlan.amount || 0) * buyQuantity).toFixed(2)} / month
+                  ${((organizationPlan.amount || 0) * buyQuantity).toFixed(2)} /
+                  month
                 </span>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
-
+      {console.log(organizationPlan, "organizationPlan 183")}
       <UpdateTeamSizeDialog
         isOpen={showUpdateDialog}
         onClose={() => setShowUpdateDialog(false)}

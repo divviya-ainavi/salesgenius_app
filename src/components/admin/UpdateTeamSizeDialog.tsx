@@ -104,17 +104,19 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
 
     try {
       const payload = {
-        organization_plan_id: organizationPlan.id,
-        new_quantity: newQuantity,
-        current_quantity: currentQuantity,
-        used_quantity: usedQuantity,
+        // organization_plan_id: organizationPlan.id,
+        quantity: newQuantity,
+        // current_quantity: currentQuantity,
+        // used_quantity: usedQuantity,
         stripe_subscription_id: organizationPlan.stripe_subscription_id,
-        plan_id: organizationPlan.plan_id,
+        // plan_id: organizationPlan.plan_id,
         action: isUpgrade ? "upgrade" : "downgrade",
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.updateTeamSize || "update-team-size"}`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.updateTeamSizeDev
+        }`,
         {
           method: "POST",
           headers: {
@@ -210,12 +212,12 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                 Current plan
               </Label>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+                {/* <div className="flex justify-between">
                   <span className="text-gray-600">Organization Plan</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Monthly Payments</span>
-                </div>
+                </div> */}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Current licenses</span>
                   <span className="font-medium">{currentQuantity}</span>
@@ -237,12 +239,12 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                   Updated
                 </Label>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span className="text-gray-600">Organization Plan</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Monthly Payments</span>
-                  </div>
+                  </div> */}
                   <div className="flex justify-between">
                     <span className="text-gray-600">New licenses</span>
                     <span className="font-medium">{newQuantity}</span>
@@ -339,11 +341,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isProcessing}
-          >
+          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
           <Button

@@ -806,7 +806,7 @@ export const authHelpers = {
     try {
       const { data, error } = await supabase
         .from('organization_plan')
-        .select('id, buy_quantity, used_quantity, plan_id, start_date, end_date, status')
+        .select('id, buy_quantity, used_quantity, plan_id, start_date, end_date, status, stripe_subscription_id')
         .eq('organization_id', organizationId)
         .eq('is_active', true)
         .maybeSingle();

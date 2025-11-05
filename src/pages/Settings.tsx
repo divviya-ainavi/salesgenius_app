@@ -715,7 +715,8 @@ export const Settings = () => {
   const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
   const [orgPlan, setOrgPlan] = useState(null);
   const [isLoadingOrgPlan, setIsLoadingOrgPlan] = useState(false);
-  const [showUpdateTeamSizeDialog, setShowUpdateTeamSizeDialog] = useState(false);
+  const [showUpdateTeamSizeDialog, setShowUpdateTeamSizeDialog] =
+    useState(false);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -3923,7 +3924,9 @@ export const Settings = () => {
                                 variant="outline"
                                 size="sm"
                                 className="gap-2 h-10"
-                                onClick={() => setShowUpdateTeamSizeDialog(true)}
+                                onClick={() =>
+                                  setShowUpdateTeamSizeDialog(true)
+                                }
                               >
                                 <Target className="w-4 h-4" />
                                 Update Team Size
@@ -5373,7 +5376,7 @@ export const Settings = () => {
       </Dialog>
 
       <UpgradePlanDialog />
-
+      {console.log(orgPlan, "organizationPlan 326")}
       {orgPlan && (
         <UpdateTeamSizeDialog
           isOpen={showUpdateTeamSizeDialog}
