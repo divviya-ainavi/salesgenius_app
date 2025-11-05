@@ -2782,7 +2782,23 @@ export const dbHelpers = {
       .order("invited_at", { ascending: false });
 
     const { data, error } = await query;
-    console.log(data, "2785")
+    // console.log(data, "2785")
+    if (error) throw error;
+    return data;
+  },
+
+  async getUserPlanDetails(userId) {
+    let query = supabase
+      .from("user_plan")
+      .select("*, plan_master(*)")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data, error } = await query;
+    // console.log(data, "2785")
     if (error) throw error;
     return data;
   },

@@ -119,7 +119,7 @@ import { PersonalInsightsModal } from "../components/personal/PersonalInsightsMo
 import { BillingComponent } from "@/components/billing/BillingComponent";
 
 // Active User Card Component
-const ActiveUserCard = ({ listUser, role, allStatus }) => {
+const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
   const [userPlan, setUserPlan] = useState(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -127,18 +127,19 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
   useEffect(() => {
     const fetchUserPlan = async () => {
       try {
-        const { data, error } = await dbHelpers.supabase
-          .from("user_plan")
-          .select("*, plan_master(*)")
-          .eq("user_id", listUser.id)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const data = await dbHelpers.getUserPlanDetails(listUser.id);
+        // supabase
+        //   .from("user_plan")
+        //   .select("*, plan_master(*)")
+        //   .eq("user_id", listUser.id)
+        //   .eq("is_active", true)
+        //   .order("created_at", { ascending: false })
+        //   .limit(1)
+        //   .maybeSingle();
 
-        if (!error && data) {
-          setUserPlan(data);
-        }
+        // if (!error && data) {
+        setUserPlan(data);
+        // }
       } catch (err) {
         console.error("Error fetching user plan:", err);
       } finally {
@@ -150,35 +151,37 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
   }, [listUser.id]);
 
   const handleRevokeAccess = async () => {
-    if (
-      !confirm(
-        `Are you sure you want to revoke Pro access for ${
-          listUser.full_name || listUser.email
-        }?`
-      )
-    ) {
-      return;
-    }
+    // if (
+    //   !confirm(
+    //     `Are you sure you want to revoke Pro access for ${
+    //       listUser.full_name || listUser.email
+    //     }?`
+    //   )
+    // ) {
+    //   return;
+    // }
 
-    setIsRevoking(true);
-    try {
-      // Update user_plan to set is_active = false
-      const { error } = await dbHelpers.supabase
-        .from("user_plan")
-        .update({ is_active: false, canceled_at: new Date().toISOString() })
-        .eq("user_id", listUser.id)
-        .eq("is_active", true);
+    // setIsRevoking(true);
+    // try {
+    //   // Update user_plan to set is_active = false
+    //   const { error } = await dbHelpers.supabase
+    //     .from("user_plan")
+    //     .update({ is_active: false, canceled_at: new Date().toISOString() })
+    //     .eq("user_id", listUser.id)
+    //     .eq("is_active", true);
 
-      if (error) throw error;
+    //   if (error) throw error;
 
-      toast.success("Pro access revoked successfully");
-      setUserPlan(null);
-    } catch (err) {
-      console.error("Error revoking access:", err);
-      toast.error("Failed to revoke access");
-    } finally {
-      setIsRevoking(false);
-    }
+    //   toast.success("Pro access revoked successfully");
+    //   setUserPlan(null);
+    // } catch (err) {
+    //   console.error("Error revoking access:", err);
+    //   toast.error("Failed to revoke access");
+    // } finally {
+    //   setIsRevoking(false);
+    // }
+
+    console.log("Revoke Pro access clicked for user:", listUser.id);
   };
 
   const isExpiringSoon =
@@ -187,6 +190,8 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const isExpired =
     userPlan?.end_date && new Date(userPlan.end_date) < new Date();
+
+  const isOrgAdmin = listUser.id == user?.id;
 
   return (
     <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-gray-300 transition-colors">
@@ -293,13 +298,15 @@ const ActiveUserCard = ({ listUser, role, allStatus }) => {
             )}
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        {!isOrgAdmin && !isExpired && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -3615,81 +3622,82 @@ export const Settings = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <CardContent>
-                    <div className="space-y-4">
-                      {invitedUsers?.length > 0 &&
-                        invitedUsers?.map((invite) => {
-                          const role = {
-                            label:
-                              allTitles?.find((x) => x.id == invite?.title_id)
-                                ?.name || "User",
-                            icon: User,
-                            color:
-                              "bg-amber-100 text-amber-800 border-amber-200",
-                          };
+                        <div className="space-y-4">
+                          {invitedUsers?.length > 0 &&
+                            invitedUsers?.map((invite) => {
+                              const role = {
+                                label:
+                                  allTitles?.find(
+                                    (x) => x.id == invite?.title_id
+                                  )?.name || "User",
+                                icon: User,
+                                color:
+                                  "bg-amber-100 text-amber-800 border-amber-200",
+                              };
 
-                          return (
-                            <div
-                              key={invite.id}
-                              className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
-                            >
-                              <div className="flex items-center space-x-4 flex-1">
-                                <div className="relative">
-                                  <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
-                                    <UserCheck className="w-6 h-6 text-amber-700" />
+                              return (
+                                <div
+                                  key={invite.id}
+                                  className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
+                                >
+                                  <div className="flex items-center space-x-4 flex-1">
+                                    <div className="relative">
+                                      <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
+                                        <UserCheck className="w-6 h-6 text-amber-700" />
+                                      </div>
+                                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+                                        <Clock className="w-2.5 h-2.5 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-foreground truncate mb-1">
+                                        {invite.email}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mb-2">
+                                        Awaiting acceptance
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
+                                        >
+                                          <role.icon className="w-3 h-3 mr-1" />
+                                          {role?.label}
+                                        </Badge>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
-                                    <Clock className="w-2.5 h-2.5 text-white" />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-foreground truncate mb-1">
-                                    {invite.email}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mb-2">
-                                    Awaiting acceptance
-                                  </p>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-col items-end gap-2 ml-4">
                                     <Badge
                                       variant="outline"
-                                      className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
+                                      className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
                                     >
-                                      <role.icon className="w-3 h-3 mr-1" />
-                                      {role?.label}
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      Pending
                                     </Badge>
+                                    <span className="text-xs text-amber-700/70 flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {invite.invited_at
+                                        ? new Date(
+                                            invite.invited_at
+                                          ).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })
+                                        : "-"}
+                                    </span>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="flex flex-col items-end gap-2 ml-4">
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
-                                >
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  Pending
-                                </Badge>
-                                <span className="text-xs text-amber-700/70 flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {invite.invited_at
-                                    ? new Date(
-                                        invite.invited_at
-                                      ).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })
-                                    : "-"}
-                                </span>
-                              </div>
+                              );
+                            })}
+                          {invitedUsers?.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                              <p>No pending invitations</p>
                             </div>
-                          );
-                        })}
-                      {invitedUsers?.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>No pending invitations</p>
+                          )}
                         </div>
-                      )}
-                    </div>
                       </CardContent>
                     </CollapsibleContent>
                   </Card>
@@ -3706,19 +3714,21 @@ export const Settings = () => {
                     <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                       <CardTitle className="flex items-center justify-between">
                         <span>
-                          {user?.title_id == 45 ? "Organizations" : "Active Users"}
+                          {user?.title_id == 45
+                            ? "Organizations"
+                            : "Active Users"}
                         </span>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">
                             {user?.title_id == 45
                               ? getOrgList?.length + " organizations"
-                              : getUserslist
-                                  // ?.filter(
-                                  //     (u) =>
-                                  //       allStatus?.find((s) => s?.id == u.status_id)
-                                  //         ?.label === "active"
-                                  //   )
-                                  ?.filter((u) => u.id != user?.id)?.length +
+                              : getUserslist?.length +
+                                // ?.filter(
+                                //     (u) =>
+                                //       allStatus?.find((s) => s?.id == u.status_id)
+                                //         ?.label === "active"
+                                //   )
+                                // ?.filter((u) => u.id != user?.id)?.length +
                                 " active users"}
                           </Badge>
                           <ChevronDown
@@ -3733,77 +3743,81 @@ export const Settings = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent>
-                  {user?.title_id == 45 ? (
-                    <div className="space-y-4">
-                      {getOrgList?.length > 0 &&
-                        getOrgList?.map((org) => {
-                          const role = userRoles[org.role] || {
-                            label: "Unknown",
-                            icon: User,
-                            color: "bg-gray-100 text-gray-700 border-gray-200",
-                          };
+                      {user?.title_id == 45 ? (
+                        <div className="space-y-4">
+                          {getOrgList?.length > 0 &&
+                            getOrgList?.map((org) => {
+                              const role = userRoles[org.role] || {
+                                label: "Unknown",
+                                icon: User,
+                                color:
+                                  "bg-gray-100 text-gray-700 border-gray-200",
+                              };
 
-                          return (
-                            <div
-                              key={org.id}
-                              className="flex items-center justify-between p-4 border border-border rounded-lg"
-                            >
-                              <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                  <User className="w-5 h-5 text-muted-foreground" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{org.name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {org.domain}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    {org.industry_id && (
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-xs", role.color)}
-                                      >
-                                        <role.icon className="w-3 h-3 mr-1" />
-                                        {
-                                          industry?.find(
-                                            (x) => x.id == org.industry_id
-                                          )?.label
-                                        }
-                                      </Badge>
-                                    )}
+                              return (
+                                <div
+                                  key={org.id}
+                                  className="flex items-center justify-between p-4 border border-border rounded-lg"
+                                >
+                                  <div className="flex items-center space-x-4">
+                                    <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                      <User className="w-5 h-5 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{org.name}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {org.domain}
+                                      </p>
+                                      <div className="flex items-center space-x-2 mt-1">
+                                        {org.industry_id && (
+                                          <Badge
+                                            variant="outline"
+                                            className={cn(
+                                              "text-xs",
+                                              role.color
+                                            )}
+                                          >
+                                            <role.icon className="w-3 h-3 mr-1" />
+                                            {
+                                              industry?.find(
+                                                (x) => x.id == org.industry_id
+                                              )?.label
+                                            }
+                                          </Badge>
+                                        )}
 
-                                    {org.status_id && (
-                                      <Badge
-                                        variant={
-                                          allStatus?.find(
-                                            (x) => x?.id == org.status_id
-                                          )?.label === "active"
-                                            ? "default"
-                                            : "secondary"
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {
-                                          allStatus?.find(
-                                            (x) => x?.id == org.status_id
-                                          )?.label
-                                        }
-                                      </Badge>
-                                    )}
-                                    {org.organization && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-muted"
-                                      >
-                                        {org.organization}
-                                      </Badge>
-                                    )}
+                                        {org.status_id && (
+                                          <Badge
+                                            variant={
+                                              allStatus?.find(
+                                                (x) => x?.id == org.status_id
+                                              )?.label === "active"
+                                                ? "default"
+                                                : "secondary"
+                                            }
+                                            className="text-xs"
+                                          >
+                                            {
+                                              allStatus?.find(
+                                                (x) => x?.id == org.status_id
+                                              )?.label
+                                            }
+                                          </Badge>
+                                        )}
+                                        {org.organization && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs bg-muted"
+                                          >
+                                            {org.organization}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="text-right text-sm text-muted-foreground">
-                                  {/* <p>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="text-right text-sm text-muted-foreground">
+                                      {/* <p>
                                     Last login:{" "}
                                     {user.lastLogin
                                       ? new Date(
@@ -3811,16 +3825,16 @@ export const Settings = () => {
                                         ).toLocaleDateString()
                                       : "Never"}
                                   </p> */}
-                                  <p>
-                                    Joined:{" "}
-                                    {org.created_at
-                                      ? new Date(
-                                          org.created_at
-                                        ).toLocaleDateString()
-                                      : "-"}
-                                  </p>
-                                </div>
-                                {/* <Button
+                                      <p>
+                                        Joined:{" "}
+                                        {org.created_at
+                                          ? new Date(
+                                              org.created_at
+                                            ).toLocaleDateString()
+                                          : "-"}
+                                      </p>
+                                    </div>
+                                    {/* <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleRemoveUser(user.id)}
@@ -3828,63 +3842,64 @@ export const Settings = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button> */}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {getUserslist?.length > 0 &&
-                        getUserslist
-                          // ?.filter(
-                          //   (u) =>
-                          //     u.id != user?.id &&
-                          //     allStatus?.find((s) => s?.id == u.status_id)
-                          //       ?.label === "active"
-                          // )
-                          ?.filter((u) => u.id != user?.id)
-                          ?.map((listUser) => {
-                            const getId = allTitles?.find(
-                              (x) => x.id == listUser?.title_id
-                            )?.role_id;
-                            const role = {
-                              label: allTitles?.find(
-                                (x) => x.id == listUser?.title_id
-                              )?.name,
-                              icon: User,
-                              color:
-                                getId == 3
-                                  ? "bg-purple-100 text-purple-800 border-purple-200"
-                                  : getId == 4
-                                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                                  : "bg-green-100 text-green-800 border-green-200",
-                            };
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {getUserslist?.length > 0 &&
+                            getUserslist
+                              // ?.filter(
+                              //   (u) =>
+                              //     u.id != user?.id &&
+                              //     allStatus?.find((s) => s?.id == u.status_id)
+                              //       ?.label === "active"
+                              // )
+                              // ?.filter((u) => u.id != user?.id)
+                              ?.map((listUser) => {
+                                const getId = allTitles?.find(
+                                  (x) => x.id == listUser?.title_id
+                                )?.role_id;
+                                const role = {
+                                  label: allTitles?.find(
+                                    (x) => x.id == listUser?.title_id
+                                  )?.name,
+                                  icon: User,
+                                  color:
+                                    getId == 3
+                                      ? "bg-purple-100 text-purple-800 border-purple-200"
+                                      : getId == 4
+                                      ? "bg-blue-100 text-blue-800 border-blue-200"
+                                      : "bg-green-100 text-green-800 border-green-200",
+                                };
 
-                            return (
-                              <ActiveUserCard
-                                key={listUser.id}
-                                listUser={listUser}
-                                role={role}
-                                allStatus={allStatus}
-                              />
-                            );
-                          })}
-                      {getUserslist
-                        // ?.filter(
-                        //   (u) =>
-                        //     u.id != user?.id &&
-                        //     allStatus?.find((s) => s?.id == u.status_id)
-                        //       ?.label === "active"
-                        // )
-                        ?.filter((u) => u.id != user?.id)?.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>No active users found</p>
+                                return (
+                                  <ActiveUserCard
+                                    key={listUser.id}
+                                    listUser={listUser}
+                                    role={role}
+                                    allStatus={allStatus}
+                                    user={user}
+                                  />
+                                );
+                              })}
+                          {getUserslist?.length === 0 && (
+                            // ?.filter(
+                            //   (u) =>
+                            //     u.id != user?.id &&
+                            //     allStatus?.find((s) => s?.id == u.status_id)
+                            //       ?.label === "active"
+                            // )
+                            // ?.filter((u) => u.id != user?.id)?.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                              <p>No active users found</p>
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
