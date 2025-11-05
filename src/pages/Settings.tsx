@@ -3588,69 +3588,59 @@ export const Settings = () => {
                 user
               )} */}
               {(userRole?.id == 2 || user?.title_id == 45) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                <Card className="shadow-sm">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-2">
                         <Plus className="w-5 h-5" />
-                        <span>Invite New User</span>
+                        <h3 className="text-xl font-semibold">Invite New User</h3>
                       </div>
+
                       {!isLoadingOrgPlan && orgPlan && (
                         <div className="flex items-center gap-3">
-                          <div className="text-sm text-right">
-                            <div className="flex items-center gap-4">
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Team Size
-                                </p>
-                                <p className="font-semibold">
-                                  {orgPlan.buy_quantity}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Used
-                                </p>
-                                <p className="font-semibold">
-                                  {orgPlan.used_quantity}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Available
-                                </p>
-                                <p
-                                  className={cn(
-                                    "font-semibold",
-                                    orgPlan.remaining_quantity === 0
-                                      ? "text-red-600"
-                                      : orgPlan.remaining_quantity <= 2
-                                      ? "text-amber-600"
-                                      : "text-green-600"
-                                  )}
-                                >
-                                  {orgPlan.remaining_quantity}
-                                </p>
-                              </div>
+                          <div className="flex items-center gap-6 px-4 py-2 bg-muted/50 rounded-lg">
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Team Size</p>
+                              <p className="text-lg font-bold">{orgPlan.buy_quantity}</p>
+                            </div>
+                            <Separator orientation="vertical" className="h-10" />
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Used</p>
+                              <p className="text-lg font-bold">{orgPlan.used_quantity}</p>
+                            </div>
+                            <Separator orientation="vertical" className="h-10" />
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Available</p>
+                              <p className={cn(
+                                "text-lg font-bold",
+                                orgPlan.remaining_quantity === 0 ? "text-red-600" :
+                                orgPlan.remaining_quantity <= 2 ? "text-amber-600" :
+                                "text-green-600"
+                              )}>
+                                {orgPlan.remaining_quantity}
+                              </p>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm" className="gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 h-10"
+                          >
                             <Target className="w-4 h-4" />
                             Update Team Size
                           </Button>
                         </div>
                       )}
                       {isLoadingOrgPlan && (
-                        <div className="flex items-center text-muted-foreground">
+                        <div className="flex items-center text-muted-foreground px-4 py-2">
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           <span className="text-sm">Loading...</span>
                         </div>
                       )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-end space-x-4">
-                      <div className="flex-1">
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-4 items-end">
+                      <div className="col-span-6">
                         <label className="text-sm font-medium mb-2 block">
                           Email Address
                         </label>
@@ -3659,25 +3649,21 @@ export const Settings = () => {
                           onChange={(e) => setNewUserEmail(e.target.value)}
                           placeholder="user@acmecorp.com"
                           type="email"
+                          className="h-11"
                         />
                       </div>
                       {user?.title_id != 45 && (
-                        <div>
+                        <div className="col-span-3">
                           <label className="text-sm font-medium mb-2 block">
                             Role
                           </label>
-                          {/* {console.log(
-                            newUserRole,
-                            "check new user role",
-                            allTitles
-                          )} */}
                           <Select
                             value={newUserRole?.toString()}
                             onValueChange={(value) =>
                               setNewUserRole(Number(value))
                             }
                           >
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Select role" />
                             </SelectTrigger>
                             <SelectContent>
@@ -3696,26 +3682,54 @@ export const Settings = () => {
                         </div>
                       )}
 
-                      <Button
-                        onClick={handleInviteUser}
-                        disabled={
-                          isLoading ||
-                          (orgPlan && orgPlan.remaining_quantity === 0)
-                        }
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Sending invite ...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 mr-1" />
-                            Send Invite
-                          </>
-                        )}
-                      </Button>
+                      <div className={user?.title_id != 45 ? "col-span-3" : "col-span-6"}>
+                        <Button
+                          onClick={handleInviteUser}
+                          disabled={
+                            isLoading ||
+                            (orgPlan && orgPlan.remaining_quantity === 0)
+                          }
+                          className="w-full h-11 gap-2"
+                          size="lg"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Sending invite...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" />
+                              Send Invite
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
+
+                    {orgPlan && orgPlan.remaining_quantity === 0 && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-red-900 font-medium">Team size limit reached</p>
+                          <p className="text-xs text-red-700 mt-0.5">
+                            All {orgPlan.buy_quantity} seats are currently in use. Please upgrade your team size to invite more users.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-amber-900 font-medium">Low availability</p>
+                          <p className="text-xs text-amber-700 mt-0.5">
+                            Only {orgPlan.remaining_quantity} seat{orgPlan.remaining_quantity === 1 ? '' : 's'} remaining. Consider upgrading your team size.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
