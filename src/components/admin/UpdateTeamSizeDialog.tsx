@@ -94,7 +94,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
   const isUpgrade = quantityChange > 0;
   const isDowngrade = quantityChange < 0;
   const totalAmount = pricePerUser * newQuantity;
-  const changeAmount = pricePerUser * Math.abs(quantityChange);
+  const changeAmount = pricePerUser * Math.abs(newQuantity);
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -314,20 +314,20 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                   </span>
                 </div>
 
-                <div className="flex justify-between text-sm">
+                {/* <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax (21%)</span>
                   <span className="font-medium">
                     {getCurrencySymbol(displayCurrency)}
                     {(changeAmount * 0.21).toFixed(2)}
                   </span>
-                </div>
+                </div> */}
 
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between">
                     <span className="font-semibold">Total</span>
                     <span className="text-xl font-bold">
                       {getCurrencySymbol(displayCurrency)}
-                      {(changeAmount * 1.21).toFixed(2)}
+                      {changeAmount.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -353,32 +353,32 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
             </div>
           </div>
 
-        {/* Warning Messages */}
-        {showWarning && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{warningMessage}</AlertDescription>
-          </Alert>
-        )}
+          {/* Warning Messages */}
+          {showWarning && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{warningMessage}</AlertDescription>
+            </Alert>
+          )}
 
-        {isDowngrade && newQuantity >= usedQuantity && (
-          <Alert className="mb-4 bg-yellow-50 border-yellow-200">
-            <Info className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
-              You can only reduce to {usedQuantity} seats (currently used). You
-              have {availableSeats} unused seat(s) that can be removed.
-            </AlertDescription>
-          </Alert>
-        )}
+          {isDowngrade && newQuantity >= usedQuantity && (
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+              <Info className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                You can only reduce to {usedQuantity} seats (currently used).
+                You have {availableSeats} unused seat(s) that can be removed.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {quantityChange === 0 && (
-          <Alert className="mb-4 bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              Please adjust the quantity to proceed with changes.
-            </AlertDescription>
-          </Alert>
-        )}
+          {quantityChange === 0 && (
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Please adjust the quantity to proceed with changes.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <DialogFooter className="px-6 py-4 border-t bg-white z-10 flex-shrink-0">
