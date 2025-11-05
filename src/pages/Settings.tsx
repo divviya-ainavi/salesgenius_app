@@ -116,6 +116,168 @@ import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
 import { BillingComponent } from "@/components/billing/BillingComponent";
+
+// Active User Card Component
+const ActiveUserCard = ({ listUser, role, allStatus }) => {
+  const [userPlan, setUserPlan] = useState(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+  const [isRevoking, setIsRevoking] = useState(false);
+
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const { data, error } = await dbHelpers.supabase
+          .from("user_plan")
+          .select("*, plan_master(*)")
+          .eq("user_id", listUser.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          setUserPlan(data);
+        }
+      } catch (err) {
+        console.error("Error fetching user plan:", err);
+      } finally {
+        setIsLoadingPlan(false);
+      }
+    };
+
+    fetchUserPlan();
+  }, [listUser.id]);
+
+  const handleRevokeAccess = async () => {
+    if (!confirm(`Are you sure you want to revoke Pro access for ${listUser.full_name || listUser.email}?`)) {
+      return;
+    }
+
+    setIsRevoking(true);
+    try {
+      // Update user_plan to set is_active = false
+      const { error } = await dbHelpers.supabase
+        .from("user_plan")
+        .update({ is_active: false, canceled_at: new Date().toISOString() })
+        .eq("user_id", listUser.id)
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      toast.success("Pro access revoked successfully");
+      setUserPlan(null);
+    } catch (err) {
+      console.error("Error revoking access:", err);
+      toast.error("Failed to revoke access");
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const isExpiringSoon = userPlan?.end_date && new Date(userPlan.end_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const isExpired = userPlan?.end_date && new Date(userPlan.end_date) < new Date();
+
+  return (
+    <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-gray-300 transition-colors">
+      <div className="flex items-center space-x-4">
+        <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+          <User className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div>
+          <p className="font-medium">{listUser.full_name}</p>
+          <p className="text-sm text-muted-foreground">{listUser.email}</p>
+          <div className="flex items-center space-x-2 mt-1 flex-wrap gap-1">
+            <Badge variant="outline" className={cn("text-xs", role.color)}>
+              <role.icon className="w-3 h-3 mr-1" />
+              {role?.label}
+            </Badge>
+            {listUser.status_id && (
+              <Badge
+                variant={
+                  allStatus?.find((x) => x?.id == listUser.status_id)?.label === "active"
+                    ? "default"
+                    : "secondary"
+                }
+                className="text-xs"
+              >
+                {allStatus?.find((x) => x?.id == listUser.status_id)?.label}
+              </Badge>
+            )}
+            {userPlan && (
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <Crown className="w-3 h-3 mr-1" />
+                {userPlan.plan_master?.plan_name || "Pro"}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center space-x-3">
+        <div className="text-right text-sm">
+          {isLoadingPlan ? (
+            <div className="flex items-center text-muted-foreground">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              <span className="text-xs">Loading...</span>
+            </div>
+          ) : userPlan ? (
+            <>
+              <p className={cn(
+                "text-xs font-medium flex items-center justify-end gap-1",
+                isExpired ? "text-red-600" : isExpiringSoon ? "text-amber-600" : "text-muted-foreground"
+              )}>
+                <Calendar className="w-3 h-3" />
+                {isExpired ? "Expired" : "Expires"}
+              </p>
+              <p className={cn(
+                "text-sm font-medium",
+                isExpired ? "text-red-600" : isExpiringSoon ? "text-amber-600" : "text-foreground"
+              )}>
+                {userPlan.end_date
+                  ? new Date(userPlan.end_date).toLocaleDateString()
+                  : "-"}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Joined</p>
+              <p className="text-sm">
+                {listUser.created_at
+                  ? new Date(listUser.created_at).toLocaleDateString()
+                  : "-"}
+              </p>
+            </>
+          )}
+        </div>
+        {userPlan && !isExpired && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRevokeAccess}
+            disabled={isRevoking}
+            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+          >
+            {isRevoking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Lock className="w-4 h-4 mr-1" />
+                Revoke Pro
+              </>
+            )}
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -3349,19 +3511,21 @@ export const Settings = () => {
                   </CardContent>
                 </Card>
               )}
-              {/* Users List */}
+              {/* Active Users List */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
                       {user?.title_id == 45
                         ? "Organizations"
-                        : "Organization Users"}
+                        : "Active Users"}
                     </span>
                     <Badge variant="secondary">
                       {user?.title_id == 45
                         ? getOrgList?.length + " organizations"
-                        : getUserslist?.length + " users"}
+                        : getUserslist?.filter((u) =>
+                            allStatus?.find((s) => s?.id == u.status_id)?.label === "active"
+                          )?.length + " active users"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -3470,14 +3634,14 @@ export const Settings = () => {
                     <div className="space-y-4">
                       {getUserslist?.length > 0 &&
                         getUserslist
-                          ?.filter((u) => u.id != user?.id)
-                          ?.map((user) => {
+                          ?.filter((u) => u.id != user?.id && allStatus?.find((s) => s?.id == u.status_id)?.label === "active")
+                          ?.map((listUser) => {
                             const getId = allTitles?.find(
-                              (x) => x.id == user?.title_id
+                              (x) => x.id == listUser?.title_id
                             )?.role_id;
                             const role = {
                               label: allTitles?.find(
-                                (x) => x.id == user?.title_id
+                                (x) => x.id == listUser?.title_id
                               )?.name,
                               icon: User,
                               color:
@@ -3489,20 +3653,73 @@ export const Settings = () => {
                             };
 
                             return (
+                              <ActiveUserCard
+                                key={listUser.id}
+                                listUser={listUser}
+                                role={role}
+                                allStatus={allStatus}
+                              />
+                            );
+                          })}
+                      {getUserslist?.filter((u) => u.id != user?.id && allStatus?.find((s) => s?.id == u.status_id)?.label === "active")?.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No active users found</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Invited Users List */}
+              {user?.title_id != 45 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <UserCheck className="w-5 h-5" />
+                        Invited Users
+                      </span>
+                      <Badge variant="outline">
+                        {getUserslist?.filter((u) =>
+                          allStatus?.find((s) => s?.id == u.status_id)?.label === "invited"
+                        )?.length + " invited"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {getUserslist?.length > 0 &&
+                        getUserslist
+                          ?.filter((u) => allStatus?.find((s) => s?.id == u.status_id)?.label === "invited")
+                          ?.map((invitedUser) => {
+                            const role = {
+                              label: allTitles?.find(
+                                (x) => x.id == invitedUser?.title_id
+                              )?.name,
+                              icon: User,
+                              color: "bg-amber-100 text-amber-800 border-amber-200",
+                            };
+
+                            return (
                               <div
-                                key={user.id}
-                                className="flex items-center justify-between p-4 border border-border rounded-lg"
+                                key={invitedUser.id}
+                                className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50/30 rounded-lg"
                               >
                                 <div className="flex items-center space-x-4">
-                                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                    <User className="w-5 h-5 text-muted-foreground" />
+                                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                    <UserCheck className="w-5 h-5 text-amber-600" />
                                   </div>
                                   <div>
-                                    <p className="font-medium">
-                                      {user.full_name}
+                                    <p className="font-medium flex items-center gap-2">
+                                      {invitedUser.full_name || invitedUser.email}
+                                      <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-300">
+                                        Pending
+                                      </Badge>
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                      {user.email}
+                                      {invitedUser.email}
                                     </p>
                                     <div className="flex items-center space-x-2 mt-1">
                                       <Badge
@@ -3512,50 +3729,18 @@ export const Settings = () => {
                                         <role.icon className="w-3 h-3 mr-1" />
                                         {role?.label}
                                       </Badge>
-                                      {user.status_id && (
-                                        <Badge
-                                          variant={
-                                            allStatus?.find(
-                                              (x) => x?.id == user.status_id
-                                            )?.label === "active"
-                                              ? "default"
-                                              : "secondary"
-                                          }
-                                          className="text-xs"
-                                        >
-                                          {
-                                            allStatus?.find(
-                                              (x) => x?.id == user.status_id
-                                            )?.label
-                                          }
-                                        </Badge>
-                                      )}
-                                      {user.organization && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs bg-muted"
-                                        >
-                                          {user.organization}
-                                        </Badge>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="text-right text-sm text-muted-foreground">
-                                    {/* <p>
-                                      Last login:{" "}
-                                      {user.lastLogin
-                                        ? new Date(
-                                            user.lastLogin
-                                          ).toLocaleDateString()
-                                        : "Never"}
-                                    </p> */}
+                                    <p className="text-xs text-amber-600">
+                                      Invitation sent
+                                    </p>
                                     <p>
-                                      Joined:{" "}
-                                      {user.created_at
+                                      {invitedUser.created_at
                                         ? new Date(
-                                            user.created_at
+                                            invitedUser.created_at
                                           ).toLocaleDateString()
                                         : "-"}
                                     </p>
@@ -3563,19 +3748,24 @@ export const Settings = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    // onClick={() => handleDeleteClick(user)}
-                                    className="text-destructive hover:text-destructive"
+                                    className="text-muted-foreground hover:text-destructive"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <X className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </div>
                             );
                           })}
+                      {getUserslist?.filter((u) => allStatus?.find((s) => s?.id == u.status_id)?.label === "invited")?.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No pending invitations</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         )}
