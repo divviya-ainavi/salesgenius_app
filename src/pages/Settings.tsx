@@ -682,7 +682,6 @@ export const Settings = () => {
   const [invitedUsers, setInvitedUsers] = useState([]);
   const [isActiveUsersOpen, setIsActiveUsersOpen] = useState(true);
   const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
-  const [orgPlanLimits, setOrgPlanLimits] = useState(null);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -882,31 +881,11 @@ export const Settings = () => {
   useEffect(() => {
     loadPersonalInsightsData();
   }, [personalInsightsData]);
-
-  // Fetch organization plan limits
-  const fetchOrgPlanLimits = async () => {
-    try {
-      const { data, error } = await dbHelpers.supabase
-        .from("organization_plan")
-        .select("buy_quantity, used_quantity")
-        .eq("organization_id", organizationDetails?.id || CURRENT_USER.organization_id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (!error && data) {
-        setOrgPlanLimits(data);
-      }
-    } catch (err) {
-      console.error("Error fetching organization plan limits:", err);
-    }
-  };
-
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
     checkFathomStatus();
     getInternalUploadedFiles();
-    fetchOrgPlanLimits();
   }, []);
 
   const handleViewBusinessKnowledge = (knowledgeData) => {
@@ -1596,47 +1575,6 @@ export const Settings = () => {
       return;
     }
 
-    // Check organization plan limits
-    try {
-      const { data: orgPlan, error: planError } = await dbHelpers.supabase
-        .from("organization_plan")
-        .select("buy_quantity, used_quantity")
-        .eq("organization_id", organizationDetails?.id || CURRENT_USER.organization_id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (planError) {
-        console.error("Error fetching organization plan:", planError);
-        setIsLoading(false);
-        toast.error("Failed to verify organization plan");
-        return;
-      }
-
-      if (!orgPlan) {
-        setIsLoading(false);
-        toast.error("No active plan found for this organization");
-        return;
-      }
-
-      // Check if organization has available seats
-      if (orgPlan.used_quantity >= orgPlan.buy_quantity) {
-        setIsLoading(false);
-        toast.error(
-          `User limit reached. You have ${orgPlan.buy_quantity} seats and ${orgPlan.used_quantity} are currently in use. Please upgrade your plan to invite more users.`
-        );
-        return;
-      }
-
-      // Show available seats info
-      const availableSeats = orgPlan.buy_quantity - orgPlan.used_quantity;
-      console.log(`Available seats: ${availableSeats}`);
-    } catch (err) {
-      console.error("Error checking organization plan:", err);
-      setIsLoading(false);
-      toast.error("Failed to verify organization plan");
-      return;
-    }
-
     const token = createJWT({ email }, "SG", "invite");
 
     const result = await dbHelpers.inviteUserByEmail(
@@ -1683,9 +1621,6 @@ export const Settings = () => {
       } catch (err) {
         console.error("Error refreshing invited users:", err);
       }
-
-      // Refresh organization plan limits
-      await fetchOrgPlanLimits();
 
       setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
@@ -3604,25 +3539,9 @@ export const Settings = () => {
               {(userRole?.id == 2 || user?.title_id == 45) && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Plus className="w-5 h-5" />
-                        <span>Invite New User</span>
-                      </div>
-                      {orgPlanLimits && (
-                        <Badge
-                          variant={
-                            orgPlanLimits.used_quantity >= orgPlanLimits.buy_quantity
-                              ? "destructive"
-                              : orgPlanLimits.buy_quantity - orgPlanLimits.used_quantity <= 2
-                              ? "outline"
-                              : "secondary"
-                          }
-                          className="text-xs"
-                        >
-                          {orgPlanLimits.buy_quantity - orgPlanLimits.used_quantity} / {orgPlanLimits.buy_quantity} seats available
-                        </Badge>
-                      )}
+                    <CardTitle className="flex items-center space-x-2">
+                      <Plus className="w-5 h-5" />
+                      <span>Invite New User</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
