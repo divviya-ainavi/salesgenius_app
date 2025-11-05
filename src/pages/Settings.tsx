@@ -149,7 +149,8 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
     return planName.includes("pro") && !planName.includes("organization");
   };
 
-  const canInviteUsers = userPlan?.plan_master && isOrganizationPlan(userPlan.plan_master);
+  const canInviteUsers =
+    userPlan?.plan_master && isOrganizationPlan(userPlan.plan_master);
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -740,7 +741,8 @@ export const Settings = () => {
     return planName.includes("pro") && !planName.includes("organization");
   };
 
-  const canInviteUsers = planDetails?.plan_master && isOrganizationPlan(planDetails.plan_master);
+  const canInviteUsers =
+    planDetails?.plan_master && isOrganizationPlan(planDetails.plan_master);
 
   // Password change state
   const [passwordChange, setPasswordChange] = useState({
@@ -1830,7 +1832,7 @@ export const Settings = () => {
         await fetchOrganizationPlan();
 
         setNewUserEmail("");
-        setNewUserRole(null);
+        setNewUserRole(allTitles?.find((f) => f.role_id != 2)?.id);
       } catch (error) {
         console.error("Error updating seat count:", error);
         toast.error(
@@ -1857,12 +1859,12 @@ export const Settings = () => {
       const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
 
       const { error } = await supabase
-        .from('invites')
+        .from("invites")
         .update({
-          status: 'completed',
-          token: null
+          status: "completed",
+          token: null,
         })
-        .eq('id', inviteId);
+        .eq("id", inviteId);
 
       if (error) {
         throw error;
@@ -1875,10 +1877,10 @@ export const Settings = () => {
 
       await fetchOrganizationPlan();
 
-      toast.success('Invitation removed successfully');
+      toast.success("Invitation removed successfully");
     } catch (error) {
-      console.error('Error removing invite:', error);
-      toast.error('Failed to remove invitation');
+      console.error("Error removing invite:", error);
+      toast.error("Failed to remove invitation");
     } finally {
       setRemovingInviteId(null);
     }
@@ -3794,7 +3796,11 @@ export const Settings = () => {
                               Invite Team Members
                             </h3>
                             <p className="text-gray-600 max-w-md mx-auto">
-                              Upgrade to an <span className="font-semibold text-blue-600">Organization Plan</span> to invite team members and collaborate together.
+                              Upgrade to an{" "}
+                              <span className="font-semibold text-blue-600">
+                                Organization Plan
+                              </span>{" "}
+                              to invite team members and collaborate together.
                             </p>
                           </div>
 
@@ -3802,22 +3808,34 @@ export const Settings = () => {
                             <div className="flex items-start gap-3 text-left mb-4">
                               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Unlimited Team Members</p>
-                                <p className="text-sm text-gray-600">Add as many users as you need</p>
+                                <p className="font-medium text-gray-900">
+                                  Unlimited Team Members
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Add as many users as you need
+                                </p>
                               </div>
                             </div>
                             <div className="flex items-start gap-3 text-left mb-4">
                               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Shared Workspace</p>
-                                <p className="text-sm text-gray-600">Collaborate on deals and insights</p>
+                                <p className="font-medium text-gray-900">
+                                  Shared Workspace
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Collaborate on deals and insights
+                                </p>
                               </div>
                             </div>
                             <div className="flex items-start gap-3 text-left">
                               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                               <div>
-                                <p className="font-medium text-gray-900">Role-Based Access</p>
-                                <p className="text-sm text-gray-600">Control permissions for team members</p>
+                                <p className="font-medium text-gray-900">
+                                  Role-Based Access
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Control permissions for team members
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -3831,174 +3849,175 @@ export const Settings = () => {
                           </Button>
 
                           <p className="text-xs text-gray-500 mt-4">
-                            Currently on {planDetails?.plan_master?.plan_name || 'Free'} plan
+                            Currently on{" "}
+                            {planDetails?.plan_master?.plan_name || "Free"} plan
                           </p>
                         </div>
                       </CardContent>
                     </Card>
                   ) : (
-                <Card className="shadow-sm">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center gap-2">
-                        <Plus className="w-5 h-5" />
-                        <h3 className="text-xl font-semibold">
-                          Invite New User
-                        </h3>
-                      </div>
+                    <Card className="shadow-sm">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-5 h-5" />
+                            <h3 className="text-xl font-semibold">
+                              Invite New User
+                            </h3>
+                          </div>
 
-                      {!isLoadingOrgPlan && orgPlan && (
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-6 px-4 py-2 bg-muted/50 rounded-lg">
-                            <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                Team Size
-                              </p>
-                              <p className="text-lg font-bold">
-                                {orgPlan.buy_quantity}
-                              </p>
-                            </div>
-                            <Separator
-                              orientation="vertical"
-                              className="h-10"
-                            />
-                            <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                Used
-                              </p>
-                              <p className="text-lg font-bold">
-                                {orgPlan.used_quantity}
-                              </p>
-                            </div>
-                            <Separator
-                              orientation="vertical"
-                              className="h-10"
-                            />
-                            <div className="text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                Available
-                              </p>
-                              <p
-                                className={cn(
-                                  "text-lg font-bold",
-                                  orgPlan.remaining_quantity === 0
-                                    ? "text-red-600"
-                                    : orgPlan.remaining_quantity <= 2
-                                    ? "text-amber-600"
-                                    : "text-green-600"
-                                )}
+                          {!isLoadingOrgPlan && orgPlan && (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-6 px-4 py-2 bg-muted/50 rounded-lg">
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Team Size
+                                  </p>
+                                  <p className="text-lg font-bold">
+                                    {orgPlan.buy_quantity}
+                                  </p>
+                                </div>
+                                <Separator
+                                  orientation="vertical"
+                                  className="h-10"
+                                />
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Used
+                                  </p>
+                                  <p className="text-lg font-bold">
+                                    {orgPlan.used_quantity}
+                                  </p>
+                                </div>
+                                <Separator
+                                  orientation="vertical"
+                                  className="h-10"
+                                />
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Available
+                                  </p>
+                                  <p
+                                    className={cn(
+                                      "text-lg font-bold",
+                                      orgPlan.remaining_quantity === 0
+                                        ? "text-red-600"
+                                        : orgPlan.remaining_quantity <= 2
+                                        ? "text-amber-600"
+                                        : "text-green-600"
+                                    )}
+                                  >
+                                    {orgPlan.remaining_quantity}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 h-10"
                               >
-                                {orgPlan.remaining_quantity}
+                                <Target className="w-4 h-4" />
+                                Update Team Size
+                              </Button>
+                            </div>
+                          )}
+                          {isLoadingOrgPlan && (
+                            <div className="flex items-center text-muted-foreground px-4 py-2">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              <span className="text-sm">Loading...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-4 items-end">
+                          <div className="col-span-6">
+                            <label className="text-sm font-medium mb-2 block">
+                              Email Address
+                            </label>
+                            <Input
+                              value={newUserEmail}
+                              onChange={(e) => setNewUserEmail(e.target.value)}
+                              placeholder="user@acmecorp.com"
+                              type="email"
+                              className="h-11"
+                            />
+                          </div>
+                          {user?.title_id != 45 && (
+                            <div className="col-span-3">
+                              <label className="text-sm font-medium mb-2 block">
+                                Role
+                              </label>
+                              <Select
+                                value={newUserRole?.toString()}
+                                onValueChange={(value) =>
+                                  setNewUserRole(Number(value))
+                                }
+                              >
+                                <SelectTrigger className="h-11">
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allTitles
+                                    ?.filter((f) => f.role_id != 2)
+                                    ?.map((x) => (
+                                      <SelectItem
+                                        key={x.id}
+                                        value={x.id.toString()}
+                                      >
+                                        {x.name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div
+                            className={
+                              user?.title_id != 45 ? "col-span-3" : "col-span-6"
+                            }
+                          >
+                            <Button
+                              onClick={handleInviteUser}
+                              disabled={
+                                isLoading ||
+                                (orgPlan && orgPlan.remaining_quantity === 0)
+                              }
+                              className="w-full h-11 gap-2"
+                              size="lg"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Sending invite...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4" />
+                                  Send Invite
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {orgPlan && orgPlan.remaining_quantity === 0 && (
+                          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-red-900 font-medium">
+                                Team size limit reached
+                              </p>
+                              <p className="text-xs text-red-700 mt-0.5">
+                                All {orgPlan.buy_quantity} seats are currently
+                                in use. Please upgrade your team size to invite
+                                more users.
                               </p>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 h-10"
-                          >
-                            <Target className="w-4 h-4" />
-                            Update Team Size
-                          </Button>
-                        </div>
-                      )}
-                      {isLoadingOrgPlan && (
-                        <div className="flex items-center text-muted-foreground px-4 py-2">
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          <span className="text-sm">Loading...</span>
-                        </div>
-                      )}
-                    </div>
+                        )}
 
-                    <div className="grid grid-cols-12 gap-4 items-end">
-                      <div className="col-span-6">
-                        <label className="text-sm font-medium mb-2 block">
-                          Email Address
-                        </label>
-                        <Input
-                          value={newUserEmail}
-                          onChange={(e) => setNewUserEmail(e.target.value)}
-                          placeholder="user@acmecorp.com"
-                          type="email"
-                          className="h-11"
-                        />
-                      </div>
-                      {user?.title_id != 45 && (
-                        <div className="col-span-3">
-                          <label className="text-sm font-medium mb-2 block">
-                            Role
-                          </label>
-                          <Select
-                            value={newUserRole?.toString()}
-                            onValueChange={(value) =>
-                              setNewUserRole(Number(value))
-                            }
-                          >
-                            <SelectTrigger className="h-11">
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allTitles
-                                ?.filter((f) => f.role_id != 2)
-                                ?.map((x) => (
-                                  <SelectItem
-                                    key={x.id}
-                                    value={x.id.toString()}
-                                  >
-                                    {x.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
-                      <div
-                        className={
-                          user?.title_id != 45 ? "col-span-3" : "col-span-6"
-                        }
-                      >
-                        <Button
-                          onClick={handleInviteUser}
-                          disabled={
-                            isLoading ||
-                            (orgPlan && orgPlan.remaining_quantity === 0)
-                          }
-                          className="w-full h-11 gap-2"
-                          size="lg"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Sending invite...
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-4 h-4" />
-                              Send Invite
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {orgPlan && orgPlan.remaining_quantity === 0 && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm text-red-900 font-medium">
-                            Team size limit reached
-                          </p>
-                          <p className="text-xs text-red-700 mt-0.5">
-                            All {orgPlan.buy_quantity} seats are currently in
-                            use. Please upgrade your team size to invite more
-                            users.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
+                        {/* {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
                       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
@@ -4009,8 +4028,8 @@ export const Settings = () => {
                         </div>
                       </div>
                     )} */}
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
                   )}
                 </>
               )}
@@ -4102,8 +4121,12 @@ export const Settings = () => {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleRemoveInvite(invite.id)}
-                                        disabled={removingInviteId === invite.id}
+                                        onClick={() =>
+                                          handleRemoveInvite(invite.id)
+                                        }
+                                        disabled={
+                                          removingInviteId === invite.id
+                                        }
                                         className="h-7 px-3 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-muted-foreground text-xs"
                                       >
                                         {removingInviteId === invite.id ? (
@@ -4150,127 +4173,129 @@ export const Settings = () => {
 
               {/* Active Users List */}
               {canInviteUsers && (
-              <Collapsible
-                open={isActiveUsersOpen}
-                onOpenChange={setIsActiveUsersOpen}
-              >
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          {user?.title_id == 45 ? (
-                            <>
-                              <Building className="w-5 h-5" />
-                              Organizations
-                            </>
-                          ) : (
-                            <>
-                              <Users className="w-5 h-5" />
-                              Active Users
-                            </>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">
-                            {user?.title_id == 45
-                              ? getOrgList?.length + " organizations"
-                              : getUserslist?.length +
-                                // ?.filter(
-                                //     (u) =>
-                                //       allStatus?.find((s) => s?.id == u.status_id)
-                                //         ?.label === "active"
-                                //   )
-                                // ?.filter((u) => u.id != user?.id)?.length +
-                                " active users"}
-                          </Badge>
-                          <ChevronDown
-                            className={cn(
-                              "w-5 h-5 transition-transform duration-200",
-                              isActiveUsersOpen && "transform rotate-180"
+                <Collapsible
+                  open={isActiveUsersOpen}
+                  onOpenChange={setIsActiveUsersOpen}
+                >
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            {user?.title_id == 45 ? (
+                              <>
+                                <Building className="w-5 h-5" />
+                                Organizations
+                              </>
+                            ) : (
+                              <>
+                                <Users className="w-5 h-5" />
+                                Active Users
+                              </>
                             )}
-                          />
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      {user?.title_id == 45 ? (
-                        <div className="space-y-4">
-                          {getOrgList?.length > 0 &&
-                            getOrgList?.map((org) => {
-                              const role = userRoles[org.role] || {
-                                label: "Unknown",
-                                icon: User,
-                                color:
-                                  "bg-gray-100 text-gray-700 border-gray-200",
-                              };
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {user?.title_id == 45
+                                ? getOrgList?.length + " organizations"
+                                : getUserslist?.length +
+                                  // ?.filter(
+                                  //     (u) =>
+                                  //       allStatus?.find((s) => s?.id == u.status_id)
+                                  //         ?.label === "active"
+                                  //   )
+                                  // ?.filter((u) => u.id != user?.id)?.length +
+                                  " active users"}
+                            </Badge>
+                            <ChevronDown
+                              className={cn(
+                                "w-5 h-5 transition-transform duration-200",
+                                isActiveUsersOpen && "transform rotate-180"
+                              )}
+                            />
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        {user?.title_id == 45 ? (
+                          <div className="space-y-4">
+                            {getOrgList?.length > 0 &&
+                              getOrgList?.map((org) => {
+                                const role = userRoles[org.role] || {
+                                  label: "Unknown",
+                                  icon: User,
+                                  color:
+                                    "bg-gray-100 text-gray-700 border-gray-200",
+                                };
 
-                              return (
-                                <div
-                                  key={org.id}
-                                  className="flex items-center justify-between p-4 border border-border rounded-lg"
-                                >
-                                  <div className="flex items-center space-x-4">
-                                    <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                      <User className="w-5 h-5 text-muted-foreground" />
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{org.name}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {org.domain}
-                                      </p>
-                                      <div className="flex items-center space-x-2 mt-1">
-                                        {org.industry_id && (
-                                          <Badge
-                                            variant="outline"
-                                            className={cn(
-                                              "text-xs",
-                                              role.color
-                                            )}
-                                          >
-                                            <role.icon className="w-3 h-3 mr-1" />
-                                            {
-                                              industry?.find(
-                                                (x) => x.id == org.industry_id
-                                              )?.label
-                                            }
-                                          </Badge>
-                                        )}
+                                return (
+                                  <div
+                                    key={org.id}
+                                    className="flex items-center justify-between p-4 border border-border rounded-lg"
+                                  >
+                                    <div className="flex items-center space-x-4">
+                                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                        <User className="w-5 h-5 text-muted-foreground" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium">
+                                          {org.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {org.domain}
+                                        </p>
+                                        <div className="flex items-center space-x-2 mt-1">
+                                          {org.industry_id && (
+                                            <Badge
+                                              variant="outline"
+                                              className={cn(
+                                                "text-xs",
+                                                role.color
+                                              )}
+                                            >
+                                              <role.icon className="w-3 h-3 mr-1" />
+                                              {
+                                                industry?.find(
+                                                  (x) => x.id == org.industry_id
+                                                )?.label
+                                              }
+                                            </Badge>
+                                          )}
 
-                                        {org.status_id && (
-                                          <Badge
-                                            variant={
-                                              allStatus?.find(
-                                                (x) => x?.id == org.status_id
-                                              )?.label === "active"
-                                                ? "default"
-                                                : "secondary"
-                                            }
-                                            className="text-xs"
-                                          >
-                                            {
-                                              allStatus?.find(
-                                                (x) => x?.id == org.status_id
-                                              )?.label
-                                            }
-                                          </Badge>
-                                        )}
-                                        {org.organization && (
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs bg-muted"
-                                          >
-                                            {org.organization}
-                                          </Badge>
-                                        )}
+                                          {org.status_id && (
+                                            <Badge
+                                              variant={
+                                                allStatus?.find(
+                                                  (x) => x?.id == org.status_id
+                                                )?.label === "active"
+                                                  ? "default"
+                                                  : "secondary"
+                                              }
+                                              className="text-xs"
+                                            >
+                                              {
+                                                allStatus?.find(
+                                                  (x) => x?.id == org.status_id
+                                                )?.label
+                                              }
+                                            </Badge>
+                                          )}
+                                          {org.organization && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs bg-muted"
+                                            >
+                                              {org.organization}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="text-right text-sm text-muted-foreground">
-                                      {/* <p>
+                                    <div className="flex items-center space-x-2">
+                                      <div className="text-right text-sm text-muted-foreground">
+                                        {/* <p>
                                     Last login:{" "}
                                     {user.lastLogin
                                       ? new Date(
@@ -4278,16 +4303,16 @@ export const Settings = () => {
                                         ).toLocaleDateString()
                                       : "Never"}
                                   </p> */}
-                                      <p>
-                                        Joined:{" "}
-                                        {org.created_at
-                                          ? new Date(
-                                              org.created_at
-                                            ).toLocaleDateString()
-                                          : "-"}
-                                      </p>
-                                    </div>
-                                    {/* <Button
+                                        <p>
+                                          Joined:{" "}
+                                          {org.created_at
+                                            ? new Date(
+                                                org.created_at
+                                              ).toLocaleDateString()
+                                            : "-"}
+                                        </p>
+                                      </div>
+                                      {/* <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleRemoveUser(user.id)}
@@ -4295,68 +4320,68 @@ export const Settings = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button> */}
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {getUserslist?.length > 0 &&
-                            getUserslist
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {getUserslist?.length > 0 &&
+                              getUserslist
+                                // ?.filter(
+                                //   (u) =>
+                                //     u.id != user?.id &&
+                                //     allStatus?.find((s) => s?.id == u.status_id)
+                                //       ?.label === "active"
+                                // )
+                                // ?.filter((u) => u.id != user?.id)
+                                ?.map((listUser) => {
+                                  const getId = allTitles?.find(
+                                    (x) => x.id == listUser?.title_id
+                                  )?.role_id;
+                                  const role = {
+                                    label: allTitles?.find(
+                                      (x) => x.id == listUser?.title_id
+                                    )?.name,
+                                    icon: User,
+                                    color:
+                                      getId == 3
+                                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                                        : getId == 4
+                                        ? "bg-blue-100 text-blue-800 border-blue-200"
+                                        : "bg-green-100 text-green-800 border-green-200",
+                                  };
+
+                                  return (
+                                    <ActiveUserCard
+                                      key={listUser.id}
+                                      listUser={listUser}
+                                      role={role}
+                                      allStatus={allStatus}
+                                      user={user}
+                                    />
+                                  );
+                                })}
+                            {getUserslist?.length === 0 && (
                               // ?.filter(
                               //   (u) =>
                               //     u.id != user?.id &&
                               //     allStatus?.find((s) => s?.id == u.status_id)
                               //       ?.label === "active"
                               // )
-                              // ?.filter((u) => u.id != user?.id)
-                              ?.map((listUser) => {
-                                const getId = allTitles?.find(
-                                  (x) => x.id == listUser?.title_id
-                                )?.role_id;
-                                const role = {
-                                  label: allTitles?.find(
-                                    (x) => x.id == listUser?.title_id
-                                  )?.name,
-                                  icon: User,
-                                  color:
-                                    getId == 3
-                                      ? "bg-purple-100 text-purple-800 border-purple-200"
-                                      : getId == 4
-                                      ? "bg-blue-100 text-blue-800 border-blue-200"
-                                      : "bg-green-100 text-green-800 border-green-200",
-                                };
-
-                                return (
-                                  <ActiveUserCard
-                                    key={listUser.id}
-                                    listUser={listUser}
-                                    role={role}
-                                    allStatus={allStatus}
-                                    user={user}
-                                  />
-                                );
-                              })}
-                          {getUserslist?.length === 0 && (
-                            // ?.filter(
-                            //   (u) =>
-                            //     u.id != user?.id &&
-                            //     allStatus?.find((s) => s?.id == u.status_id)
-                            //       ?.label === "active"
-                            // )
-                            // ?.filter((u) => u.id != user?.id)?.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                              <p>No active users found</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+                              // ?.filter((u) => u.id != user?.id)?.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                <p>No active users found</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
             </div>
           </TabsContent>
