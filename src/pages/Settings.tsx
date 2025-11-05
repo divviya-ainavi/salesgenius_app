@@ -3782,7 +3782,7 @@ export const Settings = () => {
                           return (
                             <div
                               key={invite.id}
-                              className="group relative flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
+                              className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
                             >
                               <div className="flex items-center space-x-4 flex-1">
                                 <div className="relative">
@@ -3794,21 +3794,13 @@ export const Settings = () => {
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-semibold text-foreground truncate">
-                                      {invite.email}
-                                    </p>
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2 py-0.5"
-                                    >
-                                      Pending
-                                    </Badge>
-                                  </div>
+                                  <p className="font-semibold text-foreground truncate mb-1">
+                                    {invite.email}
+                                  </p>
                                   <p className="text-xs text-muted-foreground mb-2">
                                     Awaiting acceptance
                                   </p>
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="flex items-center gap-2">
                                     <Badge
                                       variant="outline"
                                       className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
@@ -3816,46 +3808,27 @@ export const Settings = () => {
                                       <role.icon className="w-3 h-3 mr-1" />
                                       {role?.label}
                                     </Badge>
-                                    <span className="text-xs text-amber-700/70 flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      Invited {invite.invited_at
-                                        ? new Date(invite.invited_at).toLocaleDateString('en-US', {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            year: 'numeric'
-                                          })
-                                        : "-"}
-                                    </span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2 ml-4">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={async () => {
-                                    if (confirm(`Cancel invitation for ${invite.email}?`)) {
-                                      try {
-                                        const { error } = await dbHelpers.supabase
-                                          .from("invites")
-                                          .delete()
-                                          .eq("id", invite.id);
-
-                                        if (error) throw error;
-
-                                        setInvitedUsers(invitedUsers.filter(u => u.id !== invite.id));
-                                        toast.success("Invitation cancelled");
-                                      } catch (err) {
-                                        console.error("Error cancelling invite:", err);
-                                        toast.error("Failed to cancel invitation");
-                                      }
-                                    }
-                                  }}
+                              <div className="flex flex-col items-end gap-2 ml-4">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
                                 >
-                                  <Trash2 className="w-4 h-4 mr-1" />
-                                  Cancel
-                                </Button>
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Pending
+                                </Badge>
+                                <span className="text-xs text-amber-700/70 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {invite.invited_at
+                                    ? new Date(invite.invited_at).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })
+                                    : "-"}
+                                </span>
                               </div>
                             </div>
                           );
