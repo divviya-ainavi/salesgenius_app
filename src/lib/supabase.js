@@ -4789,6 +4789,42 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+  async getOrganizationPlan(organization_id) {
+    try {
+      const { data, error } = await supabase
+        .from("organization_plan")
+        .select(
+          `
+            *,
+            plan_master (
+              id,
+              plan_name,
+              description,
+              price,
+              currency,
+              duration_days,
+              features
+            )
+          `
+        )
+        .eq("organization_id", organization_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching organization plan:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Error fetching organization plan:', error);
+      return null;
+    }
+  },
+
   // Tour Steps Management
   async getTourSteps() {
     try {
