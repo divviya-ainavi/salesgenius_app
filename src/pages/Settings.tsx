@@ -233,7 +233,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
         </div>
       </div>
       <div className="flex items-center space-x-3">
-        <div className="text-right text-sm">
+        <div className="flex flex-col items-end gap-2">
           {isLoadingPlan ? (
             <div className="flex items-center text-muted-foreground">
               <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -241,43 +241,61 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
             </div>
           ) : userPlan ? (
             <>
-              <p
-                className={cn(
-                  "text-xs font-medium flex items-center justify-end gap-1",
-                  isExpired
-                    ? "text-red-600"
-                    : isExpiringSoon
-                    ? "text-amber-600"
-                    : "text-muted-foreground"
-                )}
-              >
+              <div className="text-right">
+                <p
+                  className={cn(
+                    "text-xs font-medium flex items-center justify-end gap-1",
+                    isExpired
+                      ? "text-red-600"
+                      : isExpiringSoon
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="w-3 h-3" />
+                  {isExpired ? "Expired" : "Expires"}
+                </p>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    isExpired
+                      ? "text-red-600"
+                      : isExpiringSoon
+                      ? "text-amber-600"
+                      : "text-foreground"
+                  )}
+                >
+                  {userPlan.end_date
+                    ? new Date(userPlan.end_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "-"}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {isExpired ? "Expired" : "Expires"}
-              </p>
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  isExpired
-                    ? "text-red-600"
-                    : isExpiringSoon
-                    ? "text-amber-600"
-                    : "text-foreground"
-                )}
-              >
-                {userPlan.end_date
-                  ? new Date(userPlan.end_date).toLocaleDateString()
+                Joined {listUser.created_at
+                  ? new Date(listUser.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
                   : "-"}
-              </p>
+              </span>
             </>
           ) : (
-            <>
-              <p className="text-xs text-muted-foreground">Joined</p>
-              <p className="text-sm">
-                {listUser.created_at
-                  ? new Date(listUser.created_at).toLocaleDateString()
-                  : "-"}
-              </p>
-            </>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              Joined {listUser.created_at
+                ? new Date(listUser.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "-"}
+            </span>
           )}
         </div>
         {userPlan && !isExpired && (
