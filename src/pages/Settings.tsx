@@ -682,6 +682,8 @@ export const Settings = () => {
   const [invitedUsers, setInvitedUsers] = useState([]);
   const [isActiveUsersOpen, setIsActiveUsersOpen] = useState(true);
   const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
+  const [orgPlan, setOrgPlan] = useState(null);
+  const [isLoadingOrgPlan, setIsLoadingOrgPlan] = useState(false);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
@@ -881,11 +883,30 @@ export const Settings = () => {
   useEffect(() => {
     loadPersonalInsightsData();
   }, [personalInsightsData]);
+
+  // Fetch organization plan
+  const fetchOrganizationPlan = async () => {
+    if (!organizationDetails?.id && !CURRENT_USER.organization_id) return;
+
+    setIsLoadingOrgPlan(true);
+    try {
+      const plan = await dbHelpers.getOrganizationPlan(
+        organizationDetails?.id || CURRENT_USER.organization_id
+      );
+      setOrgPlan(plan);
+    } catch (error) {
+      console.error('Error fetching organization plan:', error);
+    } finally {
+      setIsLoadingOrgPlan(false);
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
     checkFathomStatus();
     getInternalUploadedFiles();
+    fetchOrganizationPlan();
   }, []);
 
   const handleViewBusinessKnowledge = (knowledgeData) => {
@@ -1575,6 +1596,31 @@ export const Settings = () => {
       return;
     }
 
+    // Check organization plan seat availability
+    try {
+      const canAddResult = await dbHelpers.canAddUser(
+        organizationDetails?.id || CURRENT_USER.organization_id
+      );
+
+      if (!canAddResult.canAdd) {
+        setIsLoading(false);
+        if (canAddResult.reason === 'User limit reached') {
+          toast.error(
+            `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.error(canAddResult.reason || 'Cannot add user at this time');
+        }
+        return;
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Error checking seat availability:', error);
+      toast.error('Failed to verify team size availability');
+      return;
+    }
+
     const token = createJWT({ email }, "SG", "invite");
 
     const result = await dbHelpers.inviteUserByEmail(
@@ -1621,6 +1667,9 @@ export const Settings = () => {
       } catch (err) {
         console.error("Error refreshing invited users:", err);
       }
+
+      // Refresh organization plan to update seat counts
+      await fetchOrganizationPlan();
 
       setIsLoading(false);
       // console.log("Invite ID:", result.id); // optional for webhook trigger
@@ -3539,9 +3588,52 @@ export const Settings = () => {
               {(userRole?.id == 2 || user?.title_id == 45) && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Plus className="w-5 h-5" />
-                      <span>Invite New User</span>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Plus className="w-5 h-5" />
+                        <span>Invite New User</span>
+                      </div>
+                      {!isLoadingOrgPlan && orgPlan && (
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm text-right">
+                            <div className="flex items-center gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Team Size</p>
+                                <p className="font-semibold">{orgPlan.buy_quantity}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Used</p>
+                                <p className="font-semibold">{orgPlan.used_quantity}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Available</p>
+                                <p className={cn(
+                                  "font-semibold",
+                                  orgPlan.remaining_quantity === 0 ? "text-red-600" :
+                                  orgPlan.remaining_quantity <= 2 ? "text-amber-600" :
+                                  "text-green-600"
+                                )}>
+                                  {orgPlan.remaining_quantity}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <Target className="w-4 h-4" />
+                            Update Team Size
+                          </Button>
+                        </div>
+                      )}
+                      {isLoadingOrgPlan && (
+                        <div className="flex items-center text-muted-foreground">
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <span className="text-sm">Loading...</span>
+                        </div>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -3592,7 +3684,7 @@ export const Settings = () => {
                         </div>
                       )}
 
-                      <Button onClick={handleInviteUser} disabled={isLoading}>
+                      <Button onClick={handleInviteUser} disabled={isLoading || (orgPlan && orgPlan.remaining_quantity === 0)}>
                         {isLoading ? (
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
