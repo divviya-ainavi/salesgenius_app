@@ -4100,16 +4100,22 @@ export const Settings = () => {
                                         Pending
                                       </Badge>
                                       <Button
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => handleRemoveInvite(invite.id)}
                                         disabled={removingInviteId === invite.id}
-                                        className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600 text-muted-foreground"
+                                        className="h-7 px-3 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-muted-foreground text-xs"
                                       >
                                         {removingInviteId === invite.id ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          <>
+                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                            Removing...
+                                          </>
                                         ) : (
-                                          <X className="w-4 h-4" />
+                                          <>
+                                            <X className="w-3 h-3 mr-1" />
+                                            Revoke
+                                          </>
                                         )}
                                       </Button>
                                     </div>
