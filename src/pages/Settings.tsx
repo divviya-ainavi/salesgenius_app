@@ -2491,6 +2491,7 @@ export const Settings = () => {
               <span>Organization</span>
             </TabsTrigger>
           )}
+          {console.log(userRoleId, userRole, "check user role id")}
           {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
             <TabsTrigger
               value="users"

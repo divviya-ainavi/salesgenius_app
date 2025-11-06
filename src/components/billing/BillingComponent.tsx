@@ -52,7 +52,9 @@ import { dbHelpers } from "../../lib/supabase";
 import { config } from "../../lib/config";
 
 export const BillingComponent = () => {
-  const { user, organizationDetails } = useSelector((state) => state.auth);
+  const { user, organizationDetails, userRole, userRoleId } = useSelector(
+    (state) => state.auth
+  );
   const [isLoading, setIsLoading] = useState(true);
   // const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -63,6 +65,7 @@ export const BillingComponent = () => {
   const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
     useSelector((state) => state.org);
 
+  // console.log(userRole, "user role in billing");
   useEffect(() => {
     loadPlanData();
     loadBillingHistory();
@@ -162,7 +165,10 @@ export const BillingComponent = () => {
             .order("created_at", { ascending: false });
 
           if (orgError) {
-            console.error("Error loading organization billing history:", orgError);
+            console.error(
+              "Error loading organization billing history:",
+              orgError
+            );
           } else {
             // Transform organization plan data to match expected format
             const transformedOrgData = (orgPlanData || []).map((item) => ({
@@ -177,7 +183,7 @@ export const BillingComponent = () => {
               hosted_invoice_url: item.hosted_invoice_url,
               receipt_url: item.receipt_url,
               created_at: item.created_at,
-              source: "organization_plan"
+              source: "organization_plan",
             }));
             allBillingData.push(...transformedOrgData);
           }
@@ -198,25 +204,37 @@ export const BillingComponent = () => {
           } else {
             const transformedUserData = (userPlanData || []).map((item) => ({
               ...item,
-              source: "user_plan"
+              source: "user_plan",
             }));
             allBillingData.push(...transformedUserData);
           }
 
           // Sort all billing data by created_at descending
-          allBillingData.sort((a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          allBillingData.sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
           );
         } else {
           // For non-org admin: only get user_plan billing history
+          // const { data: userPlanData, error: userError } = await supabase
+          //   .from("user_plan")
+          //   .select(
+          //     "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+          //   )
+          //   .eq("user_id", user.id)
+          //   .not("amount", "is", null)
+          //   .gt("amount", 0)
+          //   .order("created_at", { ascending: false });
           const { data: userPlanData, error: userError } = await supabase
             .from("user_plan")
             .select(
-              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, plan_id, hosted_invoice_url, receipt_url, created_at"
             )
             .eq("user_id", user.id)
             .not("amount", "is", null)
             .gt("amount", 0)
+            .not("plan_id", "in", "(95055d03-4c67-4cfc-a1c6-b7c27f79ac1f)") // ✅ Exclude plan_id 1, 2, and 3
             .order("created_at", { ascending: false });
 
           if (userError) {
@@ -225,7 +243,7 @@ export const BillingComponent = () => {
           } else {
             allBillingData = (userPlanData || []).map((item) => ({
               ...item,
-              source: "user_plan"
+              source: "user_plan",
             }));
           }
         }
@@ -529,19 +547,23 @@ export const BillingComponent = () => {
                   : "Upgrade Plan"}
               </Button>
             )}
-
+            {console.log(planDetails, "plan details for cancel button")}
             {/* Cancel Subscription Button for Paid Plans */}
-            {isPaidPlan(currentPlan) && planDetails?.status != "canceled" && (
-              <Button
-                onClick={() => setShowCancelModal(true)}
-                variant="outline"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                size="lg"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancel Subscription
-              </Button>
-            )}
+            {isPaidPlan(currentPlan) &&
+              planDetails?.status !== "canceled" &&
+              (planDetails?.plan_id !==
+                "95055d03-4c67-4cfc-a1c6-b7c27f79ac1f" ||
+                userRoleId === 2) && (
+                <Button
+                  onClick={() => setShowCancelModal(true)}
+                  variant="outline"
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  size="lg"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Subscription
+                </Button>
+              )}
           </div>
         </div>
       </div>
