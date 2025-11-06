@@ -180,37 +180,28 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
   }, [listUser.id]);
 
   const handleRevokeAccess = async () => {
-    // if (
-    //   !confirm(
-    //     `Are you sure you want to revoke Pro access for ${
-    //       listUser.full_name || listUser.email
-    //     }?`
-    //   )
-    // ) {
-    //   return;
-    // }
+    if (
+      !confirm(
+        `Are you sure you want to revoke access for ${
+          listUser.full_name || listUser.email
+        }?`
+      )
+    ) {
+      return;
+    }
 
-    // setIsRevoking(true);
-    // try {
-    //   // Update user_plan to set is_active = false
-    //   const { error } = await dbHelpers.supabase
-    //     .from("user_plan")
-    //     .update({ is_active: false, canceled_at: new Date().toISOString() })
-    //     .eq("user_id", listUser.id)
-    //     .eq("is_active", true);
+    setIsRevoking(true);
+    try {
+      await dbHelpers.revokeUserAccess(listUser.id);
 
-    //   if (error) throw error;
-
-    //   toast.success("Pro access revoked successfully");
-    //   setUserPlan(null);
-    // } catch (err) {
-    //   console.error("Error revoking access:", err);
-    //   toast.error("Failed to revoke access");
-    // } finally {
-    //   setIsRevoking(false);
-    // }
-
-    console.log("Revoke Pro access clicked for user:", listUser.id);
+      toast.success("Access revoked successfully");
+      setUserPlan(null);
+    } catch (err) {
+      console.error("Error revoking access:", err);
+      toast.error("Failed to revoke access");
+    } finally {
+      setIsRevoking(false);
+    }
   };
 
   const isExpiringSoon =

@@ -2914,6 +2914,17 @@ export const dbHelpers = {
     return data;
   },
 
+  async revokeUserAccess(userId) {
+    const { data, error } = await supabase
+      .from("user_plan")
+      .update({ is_cancel: true })
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (error) throw error;
+    return data;
+  },
+
   async getCompaniesByUserId(userId, companySearch = "") {
     let query = supabase
       .from("company")
