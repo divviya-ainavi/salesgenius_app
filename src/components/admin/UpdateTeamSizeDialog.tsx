@@ -93,8 +93,8 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
   const quantityChange = newQuantity - currentQuantity;
   const isUpgrade = quantityChange > 0;
   const isDowngrade = quantityChange < 0;
-  const totalAmount = pricePerUser * newQuantity;
-  const changeAmount = pricePerUser * Math.abs(newQuantity);
+  const currentTotalAmount = pricePerUser * currentQuantity;
+  const newTotalAmount = pricePerUser * newQuantity;
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -190,23 +190,21 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-[750px] max-h-[90vh] p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b bg-white z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center space-x-2">
+            <DialogTitle className="flex items-center space-x-2 text-xl">
               <Users className="w-5 h-5" />
               <span>Change team size</span>
             </DialogTitle>
-            {!isLoadingPlan && planDetails && (
-              <Badge variant="secondary" className="text-sm font-semibold">
-                {planDetails.plan_name}
-              </Badge>
-            )}
+            <Badge variant="secondary" className="text-sm font-normal bg-gray-100 text-gray-700">
+              Organization
+            </Badge>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-base">
             Adjust the number of user licenses for your organization
             {!isLoadingPlan && planDetails && (
-              <span className="block mt-1 font-medium text-gray-700">
+              <span className="block mt-1 text-sm text-gray-600">
                 {getCurrencySymbol(displayCurrency)}
                 {pricePerUser.toFixed(2)} per user/month
               </span>
@@ -242,32 +240,32 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
             </Alert>
           )}
 
-          <div className="grid grid-cols-2 gap-6 py-6">
+          <div className="grid grid-cols-2 gap-8 py-6">
             {/* Left Column - License Controls */}
             <div className="space-y-6">
               <div>
-                <Label className="text-base font-semibold mb-4 block">
+                <Label className="text-lg font-semibold mb-6 block">
                   Licenses
                 </Label>
 
                 {/* Quantity Selector */}
-                <div className="flex items-center justify-center space-x-4 mb-6">
+                <div className="flex items-center justify-center space-x-6 mb-8">
                   <Button
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="h-12 w-12 p-0 rounded-full"
+                    className="h-14 w-14 p-0 rounded-full border-2 hover:bg-gray-100"
                     onClick={() => handleQuantityChange(false)}
                     disabled={newQuantity <= 2 || isProcessing}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-5 h-5" />
                   </Button>
 
-                  <div className="w-24 text-center">
-                    <div className="text-4xl font-bold text-gray-900">
+                  <div className="w-28 text-center">
+                    <div className="text-5xl font-bold text-gray-900">
                       {newQuantity}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 mt-2">
                       {newQuantity === 1 ? "member" : "members"}
                     </p>
                   </div>
@@ -276,120 +274,110 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="h-12 w-12 p-0 rounded-full"
+                    className="h-14 w-14 p-0 rounded-full border-2 hover:bg-gray-100"
                     onClick={() => handleQuantityChange(true)}
                     disabled={isProcessing}
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
 
               {/* Current Plan Details */}
-              <div className="space-y-3 pt-4 border-t">
-                <Label className="text-sm font-medium text-gray-500">
+              <div className="space-y-4 pt-6 border-t">
+                <Label className="text-base font-semibold text-gray-700">
                   Current plan
                 </Label>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Current licenses</span>
-                    <span className="font-medium">{currentQuantity}</span>
+                    <span className="font-semibold text-gray-900">{currentQuantity}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Price per user</span>
-                    <span className="font-medium">
+                    <span className="font-semibold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
                       {pricePerUser.toFixed(2)} / month
                     </span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t">
-                    <span className="text-gray-900 font-semibold">
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <span className="text-gray-900 font-bold">
                       Total amount
                     </span>
                     <span className="font-bold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
-                      {(pricePerUser * currentQuantity).toFixed(2)} / month
+                      {currentTotalAmount.toFixed(2)} / month
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Updated Plan Details */}
-              {quantityChange !== 0 && (
-                <div className="space-y-3 pt-4 border-t">
-                  <Label className="text-sm font-medium text-gray-500">
-                    Updated
-                  </Label>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">New licenses</span>
-                      <span className="font-medium">{newQuantity}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Price per user</span>
-                      <span className="font-medium">
-                        {getCurrencySymbol(displayCurrency)}
-                        {pricePerUser.toFixed(2)} / month
-                      </span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-900 font-semibold">
-                        Total amount
-                      </span>
-                      <span className="font-bold text-gray-900">
-                        {getCurrencySymbol(displayCurrency)}
-                        {(pricePerUser * newQuantity).toFixed(2)} / month
-                      </span>
-                    </div>
+              <div className="space-y-4 pt-6 border-t">
+                <Label className="text-base font-semibold text-gray-700">
+                  Updated
+                </Label>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">New licenses</span>
+                    <span className="font-semibold text-gray-900">{newQuantity}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Price per user</span>
+                    <span className="font-semibold text-gray-900">
+                      {getCurrencySymbol(displayCurrency)}
+                      {pricePerUser.toFixed(2)} / month
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <span className="text-gray-900 font-bold">
+                      Total amount
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      {getCurrencySymbol(displayCurrency)}
+                      {newTotalAmount.toFixed(2)} / month
+                    </span>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Right Column - Order Summary */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-base font-semibold mb-4">Order summary</h3>
+            <div className="bg-gray-50 rounded-lg p-6 h-fit">
+              <h3 className="text-lg font-semibold mb-6 text-gray-900">Order summary</h3>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
                   <span className="text-gray-600">Change team size</span>
-                  <span className="font-medium">
+                  <span className="font-semibold text-gray-900">
                     {newQuantity} * {getCurrencySymbol(displayCurrency)}
                     {pricePerUser.toFixed(2)}
                   </span>
                 </div>
 
-                {/* <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax (21%)</span>
-                  <span className="font-medium">
-                    {getCurrencySymbol(displayCurrency)}
-                    {(changeAmount * 0.21).toFixed(2)}
-                  </span>
-                </div> */}
-
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Total</span>
-                    <span className="text-xl font-bold">
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900 text-lg">Total</span>
+                    <span className="text-2xl font-bold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
-                      {changeAmount.toFixed(2)}
+                      {newTotalAmount.toFixed(2)}
                     </span>
                   </div>
                 </div>
 
                 {/* Usage Information */}
-                <div className="mt-6 pt-6 border-t space-y-2">
-                  <div className="flex justify-between text-sm">
+                <div className="mt-6 pt-6 border-t space-y-3">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Current seats</span>
-                    <span className="font-medium">{currentQuantity}</span>
+                    <span className="font-semibold text-gray-900">{currentQuantity}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Used seats</span>
-                    <span className="font-medium">{usedQuantity}</span>
+                    <span className="font-semibold text-gray-900">{usedQuantity}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Available seats</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-semibold text-green-600">
                       {availableSeats}
                     </span>
                   </div>
@@ -399,14 +387,19 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-white z-10 flex-shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+        <DialogFooter className="px-6 py-4 border-t bg-white z-10 flex-shrink-0 flex justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isProcessing}
+            className="min-w-[100px]"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit() || isProcessing}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
           >
             {isProcessing ? (
               <>
