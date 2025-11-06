@@ -346,56 +346,79 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               )}
             </div>
 
-            {/* Right Column - Order Summary */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-base font-semibold mb-4">Order summary</h3>
+            {/* Right Column - Order Summary / Current Usage */}
+            {isUpgrade ? (
+              <div className="bg-gray-50 rounded-lg p-6 h-fit">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900">Order summary</h3>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Change team size</span>
-                  <span className="font-medium">
-                    {newQuantity} * {getCurrencySymbol(displayCurrency)}
-                    {pricePerUser.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax (21%)</span>
-                  <span className="font-medium">
-                    {getCurrencySymbol(displayCurrency)}
-                    {(changeAmount * 0.21).toFixed(2)}
-                  </span>
-                </div> */}
-
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Total</span>
-                    <span className="text-xl font-bold">
-                      {getCurrencySymbol(displayCurrency)}
-                      {changeAmount.toFixed(2)}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Change team size</span>
+                    <span className="font-semibold text-gray-900">
+                      {Math.abs(quantityChange)} * {getCurrencySymbol(displayCurrency)}
+                      {pricePerUser.toFixed(2)}
                     </span>
                   </div>
-                </div>
 
-                {/* Usage Information */}
-                <div className="mt-6 pt-6 border-t space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="border-t pt-4 mt-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Amount for added seats</span>
+                      <span className="font-semibold text-gray-900">
+                        {getCurrencySymbol(displayCurrency)}
+                        {(Math.abs(quantityChange) * pricePerUser).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="font-bold text-gray-900 text-lg">Next billing amount</span>
+                      <span className="text-2xl font-bold text-gray-900">
+                        {getCurrencySymbol(displayCurrency)}
+                        {newTotalAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Usage Information */}
+                  <div className="mt-6 pt-6 border-t space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Current seats</span>
+                      <span className="font-semibold text-gray-900">{currentQuantity}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Used seats</span>
+                      <span className="font-semibold text-gray-900">{usedQuantity}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Available seats</span>
+                      <span className="font-semibold text-green-600">
+                        {availableSeats}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-6 h-fit">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900">Current usage</h3>
+
+                {/* Usage Information Only for Downgrade */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Current seats</span>
-                    <span className="font-medium">{currentQuantity}</span>
+                    <span className="font-semibold text-gray-900">{currentQuantity}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Used seats</span>
-                    <span className="font-medium">{usedQuantity}</span>
+                    <span className="font-semibold text-gray-900">{usedQuantity}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Available seats</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-semibold text-green-600">
                       {availableSeats}
                     </span>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
