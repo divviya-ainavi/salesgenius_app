@@ -115,6 +115,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/ui/alert-dialog";
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
@@ -126,6 +136,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
   const [userPlan, setUserPlan] = useState(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
 
   const isOrganizationPlan = (plan) => {
     if (!plan) return false;
@@ -180,17 +191,8 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
   }, [listUser.id]);
 
   const handleRevokeAccess = async () => {
-    if (
-      !confirm(
-        `Are you sure you want to revoke access for ${
-          listUser.full_name || listUser.email
-        }?`
-      )
-    ) {
-      return;
-    }
-
     setIsRevoking(true);
+    setShowRevokeDialog(false);
     try {
       await dbHelpers.revokeUserAccess(listUser.id);
 
@@ -326,7 +328,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRevokeAccess}
+            onClick={() => setShowRevokeDialog(true)}
             disabled={isRevoking}
             className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
           >
@@ -350,6 +352,54 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
           </Button>
         )} */}
       </div>
+
+      {/* Revoke Access Confirmation Dialog */}
+      <AlertDialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              Revoke User Access
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              <p className="text-base">
+                Are you sure you want to remove access for{" "}
+                <span className="font-semibold text-gray-900">
+                  {listUser.full_name || listUser.email}
+                </span>
+                ?
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-900 flex items-start gap-2">
+                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    If you remove access, this user will continue to have access until the end of this month. After that, they will no longer be able to access the platform.
+                  </span>
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevoking}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeAccess}
+              disabled={isRevoking}
+              className="bg-orange-600 hover:bg-orange-700 focus:ring-orange-600"
+            >
+              {isRevoking ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Revoking...
+                </>
+              ) : (
+                "Yes, Revoke Access"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
