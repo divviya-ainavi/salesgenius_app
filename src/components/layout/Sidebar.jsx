@@ -76,12 +76,12 @@ const mainNavItems = [
   //   icon: BarChart3,
   //   description: "Performance metrics and insights",
   // },
-  {
-    title: "Deal Hub",
-    href: "/dealhub",
-    icon: BarChart3,
-    description: "Our CRM integration and deal tracking",
-  },
+  // {
+  //   title: "Deal Hub",
+  //   href: "/dealhub",
+  //   icon: BarChart3,
+  //   description: "Our CRM integration and deal tracking",
+  // },
   {
     title: "Settings",
     href: "/settings",
