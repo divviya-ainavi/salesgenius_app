@@ -59,6 +59,8 @@ export const BillingComponent = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [billingHistory, setBillingHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const [isOnOrgPlan, setIsOnOrgPlan] = useState(false);
   const dispatch = useDispatch();
   const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
     useSelector((state) => state.org);
@@ -423,7 +425,7 @@ export const BillingComponent = () => {
 
   const nextTierPlan = getNextTierPlan();
   const showUpgradeOption =
-    (isFreePlan(currentPlan) && nextTierPlan) || planDetails?.isExpired;
+    !isOnOrgPlan && ((isFreePlan(currentPlan) && nextTierPlan) || planDetails?.isExpired);
   // console.log(isFreePlan(currentPlan), nextTierPlan, planDetails, currentPlan);
   return (
     <div className="space-y-8">
