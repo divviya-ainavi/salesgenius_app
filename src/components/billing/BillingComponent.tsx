@@ -66,7 +66,7 @@ export const BillingComponent = () => {
   useEffect(() => {
     loadPlanData();
     loadBillingHistory();
-  }, [user]);
+  }, [user, organizationDetails]);
 
   const loadPlanData = async () => {
     try {
@@ -137,23 +137,100 @@ export const BillingComponent = () => {
     try {
       setIsLoadingHistory(true);
 
-      if (user?.id) {
-        const { data, error } = await supabase
-          .from("user_plan")
-          .select(
-            "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
-          )
-          .eq("user_id", user.id)
-          .not("amount", "is", null)
-          .gt("amount", 0)
-          .order("created_at", { ascending: false });
+      if (user?.id && organizationDetails?.id) {
+        // Check if user is org admin by checking their title/role
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("title_id, titles(role_id, roles(key))")
+          .eq("id", user.id)
+          .single();
 
-        if (error) {
-          console.error("Error loading billing history:", error);
-          toast.error("Failed to load billing history");
+        const isOrgAdmin = profileData?.titles?.roles?.key === "org_admin";
+
+        let allBillingData = [];
+
+        if (isOrgAdmin) {
+          // For org admin: get organization plan billing history
+          const { data: orgPlanData, error: orgError } = await supabase
+            .from("organization_plan")
+            .select(
+              "id, plan_id, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at, plan_master(plan_name)"
+            )
+            .eq("organization_id", organizationDetails.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .order("created_at", { ascending: false });
+
+          if (orgError) {
+            console.error("Error loading organization billing history:", orgError);
+          } else {
+            // Transform organization plan data to match expected format
+            const transformedOrgData = (orgPlanData || []).map((item) => ({
+              id: item.id,
+              plan_name: item.plan_master?.plan_name || "Organization Plan",
+              amount: item.amount,
+              currency: item.currency,
+              invoice_number: item.invoice_number,
+              start_date: item.start_date,
+              status: item.status,
+              invoice_pdf: item.invoice_pdf,
+              hosted_invoice_url: item.hosted_invoice_url,
+              receipt_url: item.receipt_url,
+              created_at: item.created_at,
+              source: "organization_plan"
+            }));
+            allBillingData.push(...transformedOrgData);
+          }
+
+          // Also get user's personal Pro plan history (if any)
+          const { data: userPlanData, error: userError } = await supabase
+            .from("user_plan")
+            .select(
+              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+            )
+            .eq("user_id", user.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .order("created_at", { ascending: false });
+
+          if (userError) {
+            console.error("Error loading user billing history:", userError);
+          } else {
+            const transformedUserData = (userPlanData || []).map((item) => ({
+              ...item,
+              source: "user_plan"
+            }));
+            allBillingData.push(...transformedUserData);
+          }
+
+          // Sort all billing data by created_at descending
+          allBillingData.sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         } else {
-          setBillingHistory(data || []);
+          // For non-org admin: only get user_plan billing history
+          const { data: userPlanData, error: userError } = await supabase
+            .from("user_plan")
+            .select(
+              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+            )
+            .eq("user_id", user.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .order("created_at", { ascending: false });
+
+          if (userError) {
+            console.error("Error loading billing history:", userError);
+            toast.error("Failed to load billing history");
+          } else {
+            allBillingData = (userPlanData || []).map((item) => ({
+              ...item,
+              source: "user_plan"
+            }));
+          }
         }
+
+        setBillingHistory(allBillingData);
       }
     } catch (error) {
       console.error("Error loading billing history:", error);
@@ -537,10 +614,35 @@ export const BillingComponent = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-foreground max-w-xs truncate">
-                              {invoice?.plan_name == "Pro 1"
-                                ? "Pro"
-                                : invoice?.plan_name || "Unknown Plan"}
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm text-foreground max-w-xs truncate">
+                                {invoice?.plan_name == "Pro 1"
+                                  ? "Pro"
+                                  : invoice?.plan_name || "Unknown Plan"}
+                              </div>
+                              {invoice.source && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs w-fit",
+                                    invoice.source === "organization_plan"
+                                      ? "bg-purple-50 text-purple-700 border-purple-200"
+                                      : "bg-blue-50 text-blue-700 border-blue-200"
+                                  )}
+                                >
+                                  {invoice.source === "organization_plan" ? (
+                                    <>
+                                      <Users className="w-3 h-3 mr-1" />
+                                      Organization
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Crown className="w-3 h-3 mr-1" />
+                                      Personal
+                                    </>
+                                  )}
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
