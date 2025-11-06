@@ -48,11 +48,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [orgUserQuantity, setOrgUserQuantity] = useState(2);
 
   // Organization plan stripe_price_id
-  const ORG_PLAN_STRIPE_PRICE_ID = "price_1SPGu9DNBi73M7eXkf08ZKeu";
+  const ORG_PLAN_STRIPE_PRICE_ID = "Organization";
 
   // Check if a plan is an organization plan
   const isOrganizationPlan = (plan: any) => {
-    return plan.stripe_price_id === ORG_PLAN_STRIPE_PRICE_ID;
+    return plan.plan_name === ORG_PLAN_STRIPE_PRICE_ID;
   };
 
   // Check for coupon on component mount

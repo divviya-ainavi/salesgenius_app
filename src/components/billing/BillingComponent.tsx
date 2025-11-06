@@ -234,7 +234,7 @@ export const BillingComponent = () => {
             .eq("user_id", user.id)
             .not("amount", "is", null)
             .gt("amount", 0)
-            .not("plan_id", "in", "(95055d03-4c67-4cfc-a1c6-b7c27f79ac1f)") // ✅ Exclude plan_id 1, 2, and 3
+            .not("plan_name", "in", "(Organization)") // ✅ Exclude plan_id 1, 2, and 3
             .order("created_at", { ascending: false });
 
           if (userError) {
@@ -547,12 +547,12 @@ export const BillingComponent = () => {
                   : "Upgrade Plan"}
               </Button>
             )}
+
             {console.log(planDetails, "plan details for cancel button")}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
-              (planDetails?.plan_id !==
-                "95055d03-4c67-4cfc-a1c6-b7c27f79ac1f" ||
+              (planDetails?.plan_name !== "Organization" ||
                 userRoleId === 2) && (
                 <Button
                   onClick={() => setShowCancelModal(true)}

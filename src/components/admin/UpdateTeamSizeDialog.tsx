@@ -95,6 +95,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
   const isDowngrade = quantityChange < 0;
   const totalAmount = pricePerUser * newQuantity;
   const changeAmount = pricePerUser * Math.abs(newQuantity);
+  const addedAmount = pricePerUser * Math.max(0, quantityChange);
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -304,7 +305,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                   </div>
                   <div className="flex justify-between pt-2 border-t">
                     <span className="text-gray-900 font-semibold">
-                      Total amount
+                      Current Billing
                     </span>
                     <span className="font-bold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
@@ -318,7 +319,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               {quantityChange !== 0 && (
                 <div className="space-y-3 pt-4 border-t">
                   <Label className="text-sm font-medium text-gray-500">
-                    Updated
+                    Updated Plan
                   </Label>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -334,7 +335,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                     </div>
                     <div className="flex justify-between pt-2 border-t">
                       <span className="text-gray-900 font-semibold">
-                        Total amount
+                        Next Billing
                       </span>
                       <span className="font-bold text-gray-900">
                         {getCurrencySymbol(displayCurrency)}
@@ -347,55 +348,62 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
             </div>
 
             {/* Right Column - Order Summary */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-base font-semibold mb-4">Order summary</h3>
+            {quantityChange >= 0 && (
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-base font-semibold mb-4">Order summary</h3>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Change team size</span>
-                  <span className="font-medium">
-                    {newQuantity} * {getCurrencySymbol(displayCurrency)}
-                    {pricePerUser.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax (21%)</span>
-                  <span className="font-medium">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Added team count</span>
+                    <span className="font-medium">
+                      {quantityChange}
+                      {/* *{" "}
                     {getCurrencySymbol(displayCurrency)}
-                    {(changeAmount * 0.21).toFixed(2)}
-                  </span>
-                </div> */}
+                    {pricePerUser.toFixed(2)} */}
+                    </span>
+                  </div>
 
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Total</span>
-                    <span className="text-xl font-bold">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Added Amount</span>
+                    <span className="font-medium">
+                      {quantityChange} *{" "}
+                      {/* {getCurrencySymbol(displayCurrency)} */}
+                      {/* {addedAmount.toFixed(2)} */}
                       {getCurrencySymbol(displayCurrency)}
-                      {changeAmount.toFixed(2)}
+                      {pricePerUser.toFixed(2)}
                     </span>
                   </div>
-                </div>
 
-                {/* Usage Information */}
-                <div className="mt-6 pt-6 border-t space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Current seats</span>
-                    <span className="font-medium">{currentQuantity}</span>
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total</span>
+                      <span className="text-xl font-bold">
+                        {getCurrencySymbol(displayCurrency)}
+                        {addedAmount.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Used seats</span>
-                    <span className="font-medium">{usedQuantity}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Available seats</span>
-                    <span className="font-medium text-green-600">
-                      {availableSeats}
-                    </span>
+
+                  {/* Usage Information */}
+                  <div className="mt-6 pt-6 border-t space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Current seats</span>
+                      <span className="font-medium">{currentQuantity}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Used seats</span>
+                      <span className="font-medium">{usedQuantity}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Available seats</span>
+                      <span className="font-medium text-green-600">
+                        {availableSeats}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
