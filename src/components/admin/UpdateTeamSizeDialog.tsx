@@ -303,7 +303,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                     </span>
                   </div>
                   <div className="flex justify-between pt-2 border-t">
-                    <span className="text-gray-900 font-semibold">Total amount</span>
+                    <span className="text-gray-900 font-semibold">
+                      Total amount
+                    </span>
                     <span className="font-bold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
                       {(pricePerUser * currentQuantity).toFixed(2)} / month
@@ -331,7 +333,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                       </span>
                     </div>
                     <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-900 font-semibold">Total amount</span>
+                      <span className="text-gray-900 font-semibold">
+                        Total amount
+                      </span>
                       <span className="font-bold text-gray-900">
                         {getCurrencySymbol(displayCurrency)}
                         {(pricePerUser * newQuantity).toFixed(2)} / month
@@ -350,8 +354,8 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Change team size</span>
                   <span className="font-medium">
-                    {getCurrencySymbol(displayCurrency)}
-                    {changeAmount.toFixed(2)}
+                    {newQuantity} * {getCurrencySymbol(displayCurrency)}
+                    {pricePerUser.toFixed(2)}
                   </span>
                 </div>
 
