@@ -52,7 +52,9 @@ import { dbHelpers } from "../../lib/supabase";
 import { config } from "../../lib/config";
 
 export const BillingComponent = () => {
-  const { user, organizationDetails } = useSelector((state) => state.auth);
+  const { user, organizationDetails, userRole, userRoleId } = useSelector(
+    (state) => state.auth
+  );
   const [isLoading, setIsLoading] = useState(true);
   // const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -63,10 +65,11 @@ export const BillingComponent = () => {
   const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
     useSelector((state) => state.org);
 
+  // console.log(userRole, "user role in billing");
   useEffect(() => {
     loadPlanData();
     loadBillingHistory();
-  }, [user]);
+  }, [user, organizationDetails]);
 
   const loadPlanData = async () => {
     try {
@@ -137,23 +140,115 @@ export const BillingComponent = () => {
     try {
       setIsLoadingHistory(true);
 
-      if (user?.id) {
-        const { data, error } = await supabase
-          .from("user_plan")
-          .select(
-            "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
-          )
-          .eq("user_id", user.id)
-          .not("amount", "is", null)
-          .gt("amount", 0)
-          .order("created_at", { ascending: false });
+      if (user?.id && organizationDetails?.id) {
+        // Check if user is org admin by checking their title/role
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("title_id, titles(role_id, roles(key))")
+          .eq("id", user.id)
+          .single();
 
-        if (error) {
-          console.error("Error loading billing history:", error);
-          toast.error("Failed to load billing history");
+        const isOrgAdmin = profileData?.titles?.roles?.key === "org_admin";
+
+        let allBillingData = [];
+
+        if (isOrgAdmin) {
+          // For org admin: get organization plan billing history
+          const { data: orgPlanData, error: orgError } = await supabase
+            .from("organization_plan")
+            .select(
+              "id, plan_id, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at, plan_master(plan_name)"
+            )
+            .eq("organization_id", organizationDetails.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .order("created_at", { ascending: false });
+
+          if (orgError) {
+            console.error(
+              "Error loading organization billing history:",
+              orgError
+            );
+          } else {
+            // Transform organization plan data to match expected format
+            const transformedOrgData = (orgPlanData || []).map((item) => ({
+              id: item.id,
+              plan_name: item.plan_master?.plan_name || "Organization Plan",
+              amount: item.amount,
+              currency: item.currency,
+              invoice_number: item.invoice_number,
+              start_date: item.start_date,
+              status: item.status,
+              invoice_pdf: item.invoice_pdf,
+              hosted_invoice_url: item.hosted_invoice_url,
+              receipt_url: item.receipt_url,
+              created_at: item.created_at,
+              source: "organization_plan",
+            }));
+            allBillingData.push(...transformedOrgData);
+          }
+
+          // Also get user's personal Pro plan history (if any)
+          const { data: userPlanData, error: userError } = await supabase
+            .from("user_plan")
+            .select(
+              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+            )
+            .eq("user_id", user.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .order("created_at", { ascending: false });
+
+          if (userError) {
+            console.error("Error loading user billing history:", userError);
+          } else {
+            const transformedUserData = (userPlanData || []).map((item) => ({
+              ...item,
+              source: "user_plan",
+            }));
+            allBillingData.push(...transformedUserData);
+          }
+
+          // Sort all billing data by created_at descending
+          allBillingData.sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          );
         } else {
-          setBillingHistory(data || []);
+          // For non-org admin: only get user_plan billing history
+          // const { data: userPlanData, error: userError } = await supabase
+          //   .from("user_plan")
+          //   .select(
+          //     "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, hosted_invoice_url, receipt_url, created_at"
+          //   )
+          //   .eq("user_id", user.id)
+          //   .not("amount", "is", null)
+          //   .gt("amount", 0)
+          //   .order("created_at", { ascending: false });
+          const { data: userPlanData, error: userError } = await supabase
+            .from("user_plan")
+            .select(
+              "id, plan_name, amount, currency, invoice_number, start_date, status, invoice_pdf, plan_id, hosted_invoice_url, receipt_url, created_at"
+            )
+            .eq("user_id", user.id)
+            .not("amount", "is", null)
+            .gt("amount", 0)
+            .not("plan_name", "in", "(Organization)") // ✅ Exclude plan_id 1, 2, and 3
+            .order("created_at", { ascending: false });
+
+          if (userError) {
+            console.error("Error loading billing history:", userError);
+            toast.error("Failed to load billing history");
+          } else {
+            allBillingData = (userPlanData || []).map((item) => ({
+              ...item,
+              source: "user_plan",
+            }));
+          }
         }
+
+        setBillingHistory(allBillingData);
       }
     } catch (error) {
       console.error("Error loading billing history:", error);
@@ -365,96 +460,100 @@ export const BillingComponent = () => {
             <h3 className="text-lg font-semibold text-foreground">
               Workspace subscription
             </h3>
-              <div>
-                <p className="text-muted-foreground text-base">
-                  Your workspace is currently subscribed to the{" "}
-                  <span className="font-semibold text-foreground">
-                    {currentPlan.plan_name == "Pro 1"
-                      ? "Pro"
-                      : currentPlan.plan_name || "Unknown Plan"}
-                  </span>{" "}
-                  plan.
-                </p>
+            <div>
+              <p className="text-muted-foreground text-base">
+                Your workspace is currently subscribed to the{" "}
+                <span className="font-semibold text-foreground">
+                  {currentPlan.plan_name == "Pro 1"
+                    ? "Pro"
+                    : currentPlan.plan_name || "Unknown Plan"}
+                </span>{" "}
+                plan.
+              </p>
+            </div>
+            {console.log(planDetails, "plan details")}
+            {planDetails && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">
+                  {isFreePlan(planDetails)
+                    ? "Upgrade"
+                    : planDetails.isExpired
+                    ? "Expired"
+                    : "Renews"}{" "}
+                  on {planDetails.renewalDate}.
+                </span>
               </div>
-              {console.log(planDetails, "plan details")}
-              {planDetails && (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
+            )}
+
+            {planDetails?.status == "canceled" && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+
+                {planDetails?.status == "canceled" && (
                   <span className="text-sm">
-                    {isFreePlan(planDetails)
-                      ? "Upgrade"
-                      : planDetails.isExpired
-                      ? "Expired"
-                      : "Renews"}{" "}
-                    on {planDetails.renewalDate}.
+                    {planDetails.status == "canceled" ? "Canceled" : "Renews"}{" "}
+                    at {planDetails.canceled_at}.
                   </span>
-                </div>
-              )}
-
-              {planDetails?.status == "canceled" && (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-
-                  {planDetails?.status == "canceled" && (
-                    <span className="text-sm">
-                      {planDetails.status == "canceled" ? "Canceled" : "Renews"}{" "}
-                      at {planDetails.canceled_at}.
-                    </span>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Column - Plan Card and Actions */}
           <div className="space-y-4">
-              {/* Current Plan Card */}
-              <div
-                className={cn(
-                  "relative rounded-2xl p-8 text-white overflow-hidden",
-                  `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
-                )}
-              >
-                <div className="relative z-10">
-                  <h3 className="text-3xl font-bold mb-2">
-                    {currentPlan.plan_name == "Pro 1"
-                      ? "Pro"
-                      : currentPlan.plan_name || "Unknown"}
-                  </h3>
-                  <p className="text-white/80 text-lg">
-                    {getDurationText(currentPlan?.duration_days)}
-                  </p>
-                </div>
-
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
-                  {React.createElement(getPlanIcon(currentPlan), {
-                    className: "w-full h-full",
-                  })}
-                </div>
+            {/* Current Plan Card */}
+            <div
+              className={cn(
+                "relative rounded-2xl p-8 text-white overflow-hidden",
+                `bg-gradient-to-br ${getPlanGradient(currentPlan)}`
+              )}
+            >
+              <div className="relative z-10">
+                <h3 className="text-3xl font-bold mb-2">
+                  {currentPlan.plan_name == "Pro 1"
+                    ? "Pro"
+                    : currentPlan.plan_name || "Unknown"}
+                </h3>
+                <p className="text-white/80 text-lg">
+                  {getDurationText(currentPlan?.duration_days)}
+                </p>
               </div>
 
-              {/* Upgrade Button */}
-              {showUpgradeOption && (
-                <Button
-                  onClick={() => dispatch(setShowUpgradeModal(true))}
-                  className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
-                  size="lg"
-                >
-                  <ArrowUp className="w-4 h-4 mr-2" />
-                  {planDetails?.isExpired && !isFreePlan(currentPlan)
-                    ? "Renew Plan"
-                    : nextTierPlan
-                    ? `Upgrade to ${
-                        nextTierPlan.plan_name == "Pro 1"
-                          ? "Pro"
-                          : nextTierPlan.plan_name
-                      }`
-                    : "Upgrade Plan"}
-                </Button>
-              )}
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+                {React.createElement(getPlanIcon(currentPlan), {
+                  className: "w-full h-full",
+                })}
+              </div>
+            </div>
 
-              {/* Cancel Subscription Button for Paid Plans */}
-              {isPaidPlan(currentPlan) && planDetails?.status != "canceled" && (
+            {/* Upgrade Button */}
+            {showUpgradeOption && (
+              <Button
+                onClick={() => dispatch(setShowUpgradeModal(true))}
+                className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
+                size="lg"
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                {planDetails?.isExpired && !isFreePlan(currentPlan)
+                  ? "Renew Plan"
+                  : nextTierPlan
+                  ? `Upgrade to ${
+                      nextTierPlan.plan_name == "Pro 1"
+                        ? "Pro"
+                        : nextTierPlan.plan_name
+                    }`
+                  : "Upgrade Plan"}
+              </Button>
+            )}
+
+            {console.log(planDetails, "plan details for cancel button")}
+            {/* Cancel Subscription Button for Paid Plans */}
+            {isPaidPlan(currentPlan) &&
+              planDetails?.status !== "canceled" &&
+              (planDetails?.plan_name !== "Organization" ||
+                userRoleId === 2) && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
@@ -537,10 +636,35 @@ export const BillingComponent = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-foreground max-w-xs truncate">
-                              {invoice?.plan_name == "Pro 1"
-                                ? "Pro"
-                                : invoice?.plan_name || "Unknown Plan"}
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm text-foreground max-w-xs truncate">
+                                {invoice?.plan_name == "Pro 1"
+                                  ? "Pro"
+                                  : invoice?.plan_name || "Unknown Plan"}
+                              </div>
+                              {invoice.source && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs w-fit",
+                                    invoice.source === "organization_plan"
+                                      ? "bg-purple-50 text-purple-700 border-purple-200"
+                                      : "bg-blue-50 text-blue-700 border-blue-200"
+                                  )}
+                                >
+                                  {invoice.source === "organization_plan" ? (
+                                    <>
+                                      <Users className="w-3 h-3 mr-1" />
+                                      Organization
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Crown className="w-3 h-3 mr-1" />
+                                      Personal
+                                    </>
+                                  )}
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -677,7 +801,7 @@ export const BillingComponent = () => {
                 <div className="flex justify-between">
                   <span>Price:</span>
                   <span className="font-medium">
-                    ₹{currentPlan?.price?.toLocaleString()} /{" "}
+                    ${currentPlan?.price?.toLocaleString()} /{" "}
                     {getDurationText(currentPlan?.duration_days)}
                   </span>
                 </div>

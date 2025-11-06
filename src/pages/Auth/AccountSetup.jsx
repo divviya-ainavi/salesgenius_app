@@ -376,56 +376,108 @@ const AccountSetup = () => {
         console.warn("Failed to update invite status:", updateError);
       }
 
-      // Step 5: Create free plan entry for new user
+      // Step 5: Check for organization plan and assign user plan accordingly
       try {
-        // Get the free plan from plan_master table
-        const { data: freePlan, error: freePlanError } = await supabase
-          .from("plan_master")
-          .select("*")
-          .or("plan_name.ilike.%free%,plan_name.ilike.%trial%,plan_name.ilike.%beta%,price.eq.0")
-          .order("price", { ascending: true })
-          .limit(1)
-          .single();
+        let planAssigned = false;
 
-        if (freePlanError) {
-          console.warn("No free plan found, skipping plan assignment:", freePlanError);
-        } else {
-          // Calculate plan dates
-          const startDate = new Date();
-          const endDate = new Date();
-          endDate.setDate(startDate.getDate() + freePlan.duration_days);
+        // Check if organization has an active organization plan
+        if (organizationId) {
+          const { data: orgPlan, error: orgPlanError } = await supabase
+            .from("organization_plan")
+            .select("*, plan_master(*)")
+            .eq("organization_id", organizationId)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-          // Create user_plan entry
-          const { data: userPlan, error: userPlanError } = await supabase
-            .from("user_plan")
-            .insert([{
-              user_id: profile.id,
-              plan_id: freePlan.id,
-              plan_name: freePlan.plan_name,
-              amount: freePlan.price,
-              currency: freePlan.currency || 'usd',
-              start_date: startDate.toISOString(),
-              end_date: endDate.toISOString(),
-              status: 'active',
-              is_active: true,
-              payment_status: 'completed', // Free plan is automatically completed
-            }])
-            .select()
+          if (!orgPlanError && orgPlan) {
+            // Organization has an active plan - assign user to this plan
+            console.log("✅ Found active organization plan:", orgPlan);
+
+            const { data: userPlan, error: userPlanError } = await supabase
+              .from("user_plan")
+              .insert([{
+                user_id: profile.id,
+                plan_id: orgPlan.plan_id,
+                plan_name: orgPlan.plan_master?.plan_name || "Organization Plan",
+                amount: orgPlan.amount,
+                currency: orgPlan.currency || 'usd',
+                start_date: orgPlan.start_date,
+                end_date: orgPlan.end_date,
+                status: orgPlan.status,
+                is_active: true,
+                stripe_subscription_id: orgPlan.stripe_subscription_id,
+                stripe_customer_id: orgPlan.stripe_customer_id,
+                payment_status: 'completed',
+              }])
+              .select()
+              .single();
+
+            if (userPlanError) {
+              console.warn("Failed to create user plan from organization plan:", userPlanError);
+            } else {
+              console.log("✅ Organization plan assigned to new user:", {
+                userId: profile.id,
+                planName: orgPlan.plan_master?.plan_name,
+                orgPlanId: orgPlan.id,
+                endDate: orgPlan.end_date
+              });
+              planAssigned = true;
+            }
+          }
+        }
+
+        // If no organization plan found, assign free plan
+        if (!planAssigned) {
+          const { data: freePlan, error: freePlanError } = await supabase
+            .from("plan_master")
+            .select("*")
+            .or("plan_name.ilike.%free%,plan_name.ilike.%trial%,plan_name.ilike.%beta%,price.eq.0")
+            .order("price", { ascending: true })
+            .limit(1)
             .single();
 
-          if (userPlanError) {
-            console.warn("Failed to create user plan entry:", userPlanError);
+          if (freePlanError) {
+            console.warn("No free plan found, skipping plan assignment:", freePlanError);
           } else {
-            console.log("✅ Free plan assigned to new user:", {
-              userId: profile.id,
-              planName: freePlan.plan_name,
-              duration: freePlan.duration_days,
-              endDate: endDate.toISOString()
-            });
+            // Calculate plan dates
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setDate(startDate.getDate() + freePlan.duration_days);
+
+            // Create user_plan entry
+            const { data: userPlan, error: userPlanError } = await supabase
+              .from("user_plan")
+              .insert([{
+                user_id: profile.id,
+                plan_id: freePlan.id,
+                plan_name: freePlan.plan_name,
+                amount: freePlan.price,
+                currency: freePlan.currency || 'usd',
+                start_date: startDate.toISOString(),
+                end_date: endDate.toISOString(),
+                status: 'active',
+                is_active: true,
+                payment_status: 'completed', // Free plan is automatically completed
+              }])
+              .select()
+              .single();
+
+            if (userPlanError) {
+              console.warn("Failed to create user plan entry:", userPlanError);
+            } else {
+              console.log("✅ Free plan assigned to new user:", {
+                userId: profile.id,
+                planName: freePlan.plan_name,
+                duration: freePlan.duration_days,
+                endDate: endDate.toISOString()
+              });
+            }
           }
         }
       } catch (planError) {
-        console.warn("Error assigning free plan to user:", planError);
+        console.warn("Error assigning plan to user:", planError);
         // Don't fail account creation if plan assignment fails
       }
 
