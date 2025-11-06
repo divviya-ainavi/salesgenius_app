@@ -210,6 +210,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const isExpired =
     userPlan?.end_date && new Date(userPlan.end_date) < new Date();
+  const isRevoked = userPlan?.is_cancel;
 
   const isOrgAdmin = listUser.id == user?.id;
 
@@ -320,7 +321,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
             </span>
           )}
         </div>
-        {userPlan && !isExpired && (
+        {userPlan && !isExpired && !isRevoked && (
           <Button
             variant="outline"
             size="sm"
@@ -338,7 +339,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
             )}
           </Button>
         )}
-        {!isOrgAdmin && !isExpired && (
+        {/* {!isOrgAdmin && !isExpired && (
           <Button
             variant="outline"
             size="sm"
@@ -346,7 +347,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
           >
             <Trash2 className="w-4 h-4" />
           </Button>
-        )}
+        )} */}
       </div>
     </div>
   );
