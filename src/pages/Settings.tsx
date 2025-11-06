@@ -122,7 +122,7 @@ import { BillingComponent } from "@/components/billing/BillingComponent";
 import { UpdateTeamSizeDialog } from "@/components/admin/UpdateTeamSizeDialog";
 
 // Active User Card Component
-const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
+const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
   const [userPlan, setUserPlan] = useState(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -321,7 +321,8 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
             </span>
           )}
         </div>
-        {userPlan && !isExpired && !isRevoked && (
+        {console.log(userRoleId, "user role id in active user card")}
+        {userPlan && !isExpired && !isRevoked && user.id != listUser.id && (
           <Button
             variant="outline"
             size="sm"
@@ -334,7 +335,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user }) => {
             ) : (
               <>
                 <Lock className="w-4 h-4 mr-1" />
-                Revoke Pro
+                Revoke Access
               </>
             )}
           </Button>
@@ -4365,6 +4366,7 @@ export const Settings = () => {
                                       role={role}
                                       allStatus={allStatus}
                                       user={user}
+                                      userRoleId={userRoleId}
                                     />
                                   );
                                 })}
