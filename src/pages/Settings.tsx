@@ -323,7 +323,7 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
             </span>
           )}
         </div>
-        {console.log(userRoleId, "user role id in active user card")}
+        {/* {console.log(userRoleId, "user role id in active user card")} */}
         {userPlan && !isExpired && !isRevoked && user.id != listUser.id && (
           <Button
             variant="outline"
@@ -373,16 +373,16 @@ const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
                 <p className="text-sm text-blue-900 flex items-start gap-2">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    If you remove access, this user will continue to have access until the end of this month. After that, they will no longer be able to access the platform.
+                    If you revoke the access, the user will no longer be able to
+                    process transcripts, but they will still be able to view the
+                    previously processed data.
                   </span>
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRevoking}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRevokeAccess}
               disabled={isRevoking}
@@ -5223,7 +5223,7 @@ export const Settings = () => {
 
         {/* Analytics Access */}
         <TabsContent value="billing" className="mt-6">
-          <BillingComponent />
+          <BillingComponent orgPlan={orgPlan} />
         </TabsContent>
       </Tabs>
 
