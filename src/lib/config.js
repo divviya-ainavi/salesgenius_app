@@ -72,6 +72,8 @@ export const config = {
       updateTeamSizeDev: 'update-team-size-dev',
       fathomConnectionCheck: 'Fathom-check',
       getFathomFiles: 'get-Fathom-transcripts',
+      orgCancelSubscriptionDev: 'cancel-orgsub-dev',
+      billingPreviewDev: 'billingPreview-dev',
     }
   }
 };

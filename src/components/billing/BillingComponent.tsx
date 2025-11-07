@@ -51,7 +51,7 @@ import {
 import { dbHelpers } from "../../lib/supabase";
 import { config } from "../../lib/config";
 
-export const BillingComponent = () => {
+export const BillingComponent = ({ orgPlan }) => {
   const { user, organizationDetails, userRole, userRoleId } = useSelector(
     (state) => state.auth
   );
@@ -196,9 +196,15 @@ export const BillingComponent = () => {
             )
             .eq("user_id", user.id)
             .not("amount", "is", null)
+            .neq("plan_name", "Organization")
+            .neq("plan_name", "Salesgenius AI Organization ")
+            // .not("plan_name", "in", "Organization, Salesgenius AI Organization")
             .gt("amount", 0)
             .order("created_at", { ascending: false });
-
+          // console.log(
+          //   userPlanData?.filter((x) => x.plan_name != "Organization"),
+          //   "user plan data in billing history"
+          // );
           if (userError) {
             console.error("Error loading user billing history:", userError);
           } else {
@@ -234,9 +240,14 @@ export const BillingComponent = () => {
             .eq("user_id", user.id)
             .not("amount", "is", null)
             .gt("amount", 0)
-            .not("plan_name", "in", "(Organization)") // ✅ Exclude plan_id 1, 2, and 3
+            .neq("plan_name", "Organization")
+            .neq("plan_name", "Salesgenius AI Organization ") // <-- no trailing space
             .order("created_at", { ascending: false });
 
+          console.log(
+            userPlanData,
+            "user plan data in billing history non admin"
+          );
           if (userError) {
             console.error("Error loading billing history:", userError);
             toast.error("Failed to load billing history");
@@ -301,6 +312,7 @@ export const BillingComponent = () => {
     return `${durationDays} days`;
   };
 
+  console.log(planDetails, "plan details before cancel");
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
 
@@ -321,20 +333,21 @@ export const BillingComponent = () => {
         "📤 Sending cancellation request to API:",
         cancellationPayload
       );
-
-      const apiResponse = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.cancelSubscriptionDev
-        }`,
-
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(cancellationPayload),
-        }
-      );
+      const cancelSubscription =
+        planDetails?.plan_master?.plan_name == "Organization"
+          ? `${import.meta.env.VITE_API_BASE_URL}${
+              config.api.endpoints.orgCancelSubscriptionDev
+            }`
+          : `${import.meta.env.VITE_API_BASE_URL}${
+              config.api.endpoints.cancelSubscriptionDev
+            }`;
+      const apiResponse = await fetch(cancelSubscription, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cancellationPayload),
+      });
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
@@ -362,8 +375,9 @@ export const BillingComponent = () => {
       //   throw updateError;
       // }
 
-      // Reload plan data to reflect changes
+      // Reload plan data and billing history to reflect changes
       await loadPlanData();
+      await loadBillingHistory();
 
       setShowCancelModal(false);
       toast.success(
@@ -549,11 +563,19 @@ export const BillingComponent = () => {
             )}
 
             {console.log(planDetails, "plan details for cancel button")}
+            {console.log(
+              isPaidPlan(currentPlan),
+              planDetails?.status !== "canceled",
+              planDetails?.plan_master?.isExpired,
+              "current plan for cancel button"
+            )}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
-              (planDetails?.plan_name !== "Organization" ||
-                userRoleId === 2) && (
+              !planDetails?.plan_master?.isExpired && (
+                // (planDetails?.plan_name == "Organization" ||
+                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
+                // userRoleId === 2 &&
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
@@ -800,8 +822,9 @@ export const BillingComponent = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Price:</span>
+                  {console.log(planDetails, "plan details in cancel modal")}
                   <span className="font-medium">
-                    ${currentPlan?.price?.toLocaleString()} /{" "}
+                    ${planDetails?.amount?.toLocaleString()} /{" "}
                     {getDurationText(currentPlan?.duration_days)}
                   </span>
                 </div>
