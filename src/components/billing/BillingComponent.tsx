@@ -561,22 +561,30 @@ export const BillingComponent = ({ orgPlan }) => {
               </Button>
             )}
 
-            {/* {console.log(planDetails, "plan details for cancel button")} */}
-            {/* Cancel Subscription Button for Paid Plans */}
-            {isPaidPlan(currentPlan) && planDetails?.status !== "canceled" && (
-              // (planDetails?.plan_name == "Organization" ||
-              //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
-              // userRoleId === 2 &&
-              <Button
-                onClick={() => setShowCancelModal(true)}
-                variant="outline"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                size="lg"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancel Subscription
-              </Button>
+            {console.log(planDetails, "plan details for cancel button")}
+            {console.log(
+              isPaidPlan(currentPlan),
+              planDetails?.status !== "canceled",
+              !planDetails?.plan_master?.isExpired,
+              "current plan for cancel button"
             )}
+            {/* Cancel Subscription Button for Paid Plans */}
+            {isPaidPlan(currentPlan) &&
+              planDetails?.status !== "canceled" &&
+              !planDetails?.plan_master?.isExpired && (
+                // (planDetails?.plan_name == "Organization" ||
+                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
+                // userRoleId === 2 &&
+                <Button
+                  onClick={() => setShowCancelModal(true)}
+                  variant="outline"
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  size="lg"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel Subscription
+                </Button>
+              )}
           </div>
         </div>
       </div>
@@ -813,8 +821,9 @@ export const BillingComponent = ({ orgPlan }) => {
                 </div>
                 <div className="flex justify-between">
                   <span>Price:</span>
+                  {console.log(planDetails, "plan details in cancel modal")}
                   <span className="font-medium">
-                    ${currentPlan?.price?.toLocaleString()} /{" "}
+                    ${planDetails?.amount?.toLocaleString()} /{" "}
                     {getDurationText(currentPlan?.duration_days)}
                   </span>
                 </div>
