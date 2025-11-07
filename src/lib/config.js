@@ -70,7 +70,6 @@ export const config = {
       checkoutSubscriptionProd: 'checkout-session-prod',
       organizationPlan: 'orgplan',
       updateTeamSizeDev: 'update-team-size-dev',
-      billingPreviewDev: 'billingPreview-dev',
       fathomConnectionCheck: 'Fathom-check',
       getFathomFiles: 'get-Fathom-transcripts',
       orgCancelSubscriptionDev: 'cancel-orgsub-dev'
