@@ -562,13 +562,12 @@ export const BillingComponent = ({ orgPlan }) => {
               </Button>
             )}
 
-            {console.log(planDetails, "plan details for cancel button")}
+            {/* {console.log(planDetails, "plan details for cancel button")}
             {console.log(
-              isPaidPlan(currentPlan),
-              planDetails?.status !== "canceled",
-              planDetails?.plan_master?.isExpired,
+              planDetails?.plan_master?.plan_name,
+              planDetails?.plan_name,
               "current plan for cancel button"
-            )}
+            )} */}
             {/* // (planDetails?.plan_name == "Organization" ||
                 //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
                 // userRoleId === 2 && */}
@@ -576,7 +575,7 @@ export const BillingComponent = ({ orgPlan }) => {
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
               !planDetails?.plan_master?.isExpired &&
-              (planDetails?.plan_name !== "Organization" ||
+              (planDetails?.plan_master?.plan_name !== "Organization" ||
                 userRoleId === 2) && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
