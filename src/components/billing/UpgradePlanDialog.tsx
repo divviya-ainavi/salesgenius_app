@@ -183,7 +183,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           `Organization plan checkout failed: ${response.status} ${response.statusText} - ${errorText}`
         );
       }
-
+      dispatch(setShowUpgradeModal(false));
       const checkoutData = await response.json();
       console.log("✅ Organization plan checkout created:", checkoutData);
 
