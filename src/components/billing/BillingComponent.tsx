@@ -569,13 +569,15 @@ export const BillingComponent = ({ orgPlan }) => {
               planDetails?.plan_master?.isExpired,
               "current plan for cancel button"
             )}
+            {/* // (planDetails?.plan_name == "Organization" ||
+                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
+                // userRoleId === 2 && */}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
-              !planDetails?.plan_master?.isExpired && (
-                // (planDetails?.plan_name == "Organization" ||
-                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
-                // userRoleId === 2 &&
+              !planDetails?.plan_master?.isExpired &&
+              (planDetails?.plan_name !== "Organization" ||
+                userRoleId === 2) && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="outline"
