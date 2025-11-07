@@ -566,7 +566,7 @@ export const BillingComponent = ({ orgPlan }) => {
             {console.log(
               isPaidPlan(currentPlan),
               planDetails?.status !== "canceled",
-              !planDetails?.plan_master?.isExpired,
+              planDetails?.plan_master?.isExpired,
               "current plan for cancel button"
             )}
             {/* Cancel Subscription Button for Paid Plans */}

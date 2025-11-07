@@ -3964,17 +3964,20 @@ export const Settings = () => {
                                   </p>
                                 </div>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-2 h-10"
-                                onClick={() =>
-                                  setShowUpdateTeamSizeDialog(true)
-                                }
-                              >
-                                <Target className="w-4 h-4" />
-                                Update Team Size
-                              </Button>
+                              {console.log(orgPlan, "org plan details")}
+                              {orgPlan.status != "canceled" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2 h-10"
+                                  onClick={() =>
+                                    setShowUpdateTeamSizeDialog(true)
+                                  }
+                                >
+                                  <Target className="w-4 h-4" />
+                                  Update Team Size
+                                </Button>
+                              )}
                             </div>
                           )}
                           {isLoadingOrgPlan && (
@@ -5421,7 +5424,7 @@ export const Settings = () => {
       </Dialog>
 
       <UpgradePlanDialog />
-      {console.log(orgPlan, "organizationPlan 326")}
+      {/* {console.log(orgPlan, "organizationPlan 326")} */}
       {orgPlan && (
         <UpdateTeamSizeDialog
           isOpen={showUpdateTeamSizeDialog}
