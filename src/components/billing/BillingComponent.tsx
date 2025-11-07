@@ -375,8 +375,9 @@ export const BillingComponent = ({ orgPlan }) => {
       //   throw updateError;
       // }
 
-      // Reload plan data to reflect changes
+      // Reload plan data and billing history to reflect changes
       await loadPlanData();
+      await loadBillingHistory();
 
       setShowCancelModal(false);
       toast.success(
