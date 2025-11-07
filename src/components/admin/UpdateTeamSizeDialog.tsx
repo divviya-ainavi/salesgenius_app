@@ -47,6 +47,22 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
     currency: string;
   } | null>(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+  const [billingPreview, setBillingPreview] = useState<{
+    success: boolean;
+    change_summary: {
+      current_quantity: number;
+      new_quantity: number;
+      quantity_change: number;
+      is_upgrade: boolean;
+      is_downgrade: boolean;
+      change_type: string;
+    };
+    has_proration: boolean;
+    proration_amount: number;
+    current_monthly_cost: number;
+    new_monthly_cost: number;
+  } | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   useEffect(() => {
     if (organizationPlan) {
@@ -54,6 +70,14 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
       fetchPlanDetails();
     }
   }, [organizationPlan]);
+
+  useEffect(() => {
+    if (organizationPlan && quantityChange !== 0) {
+      fetchBillingPreview();
+    } else {
+      setBillingPreview(null);
+    }
+  }, [newQuantity]);
 
   const fetchPlanDetails = async () => {
     if (!organizationPlan?.plan_id) return;
@@ -83,6 +107,44 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
     }
   };
 
+  const fetchBillingPreview = async () => {
+    if (!organizationPlan?.stripe_subscription_id) return;
+
+    setIsLoadingPreview(true);
+    try {
+      const changeType = quantityChange > 0 ? "inc" : "dec";
+      const payload = {
+        action: "preview",
+        id: organizationPlan.stripe_subscription_id,
+        newquantaty: newQuantity,
+        type: changeType,
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.billingPreviewDev}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch billing preview: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setBillingPreview(result);
+    } catch (error) {
+      console.error("Error fetching billing preview:", error);
+      toast.error("Failed to load billing preview");
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
   if (!organizationPlan) return null;
 
   const currentQuantity = organizationPlan.buy_quantity;
@@ -93,9 +155,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
   const quantityChange = newQuantity - currentQuantity;
   const isUpgrade = quantityChange > 0;
   const isDowngrade = quantityChange < 0;
-  const totalAmount = pricePerUser * newQuantity;
-  const changeAmount = pricePerUser * Math.abs(newQuantity);
-  const addedAmount = pricePerUser * Math.max(0, quantityChange);
+  const newTotalAmount = billingPreview?.new_monthly_cost || pricePerUser * newQuantity;
+  const currentTotalAmount = billingPreview?.current_monthly_cost || pricePerUser * currentQuantity;
+  const addedAmount = pricePerUser * Math.abs(quantityChange);
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -309,7 +371,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                     </span>
                     <span className="font-bold text-gray-900">
                       {getCurrencySymbol(displayCurrency)}
-                      {(pricePerUser * currentQuantity).toFixed(2)} / month
+                      {currentTotalAmount.toFixed(2)} / month
                     </span>
                   </div>
                 </div>
@@ -339,7 +401,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                       </span>
                       <span className="font-bold text-gray-900">
                         {getCurrencySymbol(displayCurrency)}
-                        {(pricePerUser * newQuantity).toFixed(2)} / month
+                        {newTotalAmount.toFixed(2)} / month
                       </span>
                     </div>
                   </div>
@@ -347,59 +409,103 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               )}
             </div>
 
-            {/* Right Column - Order Summary */}
-            {quantityChange >= 0 && (
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-base font-semibold mb-4">Order summary</h3>
+            {/* Right Column - Order Summary / Current Usage */}
+            {isUpgrade ? (
+              <div className="bg-gray-50 rounded-lg p-6 h-fit">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900">Order summary</h3>
 
+                {isLoadingPreview ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Change team size</span>
+                      <span className="font-semibold text-gray-900">
+                        {Math.abs(quantityChange)} × {getCurrencySymbol(displayCurrency)}
+                        {pricePerUser.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {billingPreview?.has_proration && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-start gap-2 flex-1">
+                            <Info className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-blue-900">
+                                Prorated charge (remaining days)
+                              </p>
+                              <p className="text-xs text-blue-700 mt-1">
+                                This amount will be charged immediately for the remaining days in this billing period.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-bold text-blue-900 ml-2">
+                            {getCurrencySymbol(displayCurrency)}
+                            {billingPreview.proration_amount.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border-t pt-4 mt-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Current billing</span>
+                        <span className="font-semibold text-gray-900">
+                          {getCurrencySymbol(displayCurrency)}
+                          {currentTotalAmount.toFixed(2)} / month
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="font-bold text-gray-900 text-lg">Next billing</span>
+                        <span className="text-2xl font-bold text-gray-900">
+                          {getCurrencySymbol(displayCurrency)}
+                          {newTotalAmount.toFixed(2)} / month
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Usage Information */}
+                    <div className="mt-6 pt-6 border-t space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Current seats</span>
+                        <span className="font-semibold text-gray-900">{currentQuantity}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Used seats</span>
+                        <span className="font-semibold text-gray-900">{usedQuantity}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Available seats</span>
+                        <span className="font-semibold text-green-600">
+                          {availableSeats}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-6 h-fit">
+                <h3 className="text-lg font-semibold mb-6 text-gray-900">Current usage</h3>
+
+                {/* Usage Information Only for Downgrade or No Change */}
                 <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Added team count</span>
-                    <span className="font-medium">
-                      {quantityChange}
-                      {/* *{" "}
-                    {getCurrencySymbol(displayCurrency)}
-                    {pricePerUser.toFixed(2)} */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Current seats</span>
+                    <span className="font-semibold text-gray-900">{currentQuantity}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Used seats</span>
+                    <span className="font-semibold text-gray-900">{usedQuantity}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Available seats</span>
+                    <span className="font-semibold text-green-600">
+                      {availableSeats}
                     </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Added Amount</span>
-                    <span className="font-medium">
-                      {quantityChange} *{" "}
-                      {/* {getCurrencySymbol(displayCurrency)} */}
-                      {/* {addedAmount.toFixed(2)} */}
-                      {getCurrencySymbol(displayCurrency)}
-                      {pricePerUser.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Total</span>
-                      <span className="text-xl font-bold">
-                        {getCurrencySymbol(displayCurrency)}
-                        {addedAmount.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Usage Information */}
-                  <div className="mt-6 pt-6 border-t space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Current seats</span>
-                      <span className="font-medium">{currentQuantity}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Used seats</span>
-                      <span className="font-medium">{usedQuantity}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Available seats</span>
-                      <span className="font-medium text-green-600">
-                        {availableSeats}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
