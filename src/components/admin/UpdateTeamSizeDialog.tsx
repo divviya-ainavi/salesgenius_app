@@ -418,18 +418,18 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
             {/* Right Column - Order Summary / Current Usage */}
             {isUpgrade ? (
               <div className="bg-gray-50 rounded-lg p-6 h-fit">
-                <h3 className="text-lg font-semibold mb-6 text-gray-900">Order summary</h3>
+                <h3 className="text-base font-semibold mb-4 text-gray-900">Order summary</h3>
 
                 {isLoadingPreview ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                     <span className="ml-2 text-sm text-gray-500">Loading preview...</span>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Change team size</span>
-                      <span className="font-semibold text-gray-900">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Additional licenses</span>
+                      <span className="font-medium text-gray-900">
                         {Math.abs(quantityChange)} × {getCurrencySymbol(displayCurrency)}
                         {pricePerUser.toFixed(2)}
                       </span>
@@ -437,19 +437,19 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
 
                     {billingPreview?.has_proration && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start gap-2">
                           <div className="flex items-start gap-2 flex-1">
-                            <Info className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                            <Info className="w-3.5 h-3.5 mt-0.5 text-blue-600 flex-shrink-0" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-blue-900">
+                              <p className="text-xs font-medium text-blue-900">
                                 Prorated charge
                               </p>
-                              <p className="text-xs text-blue-700 mt-1">
+                              <p className="text-xs text-blue-700 mt-0.5">
                                 Charged immediately for remaining days in this billing period
                               </p>
                             </div>
                           </div>
-                          <span className="font-bold text-blue-900 ml-2 whitespace-nowrap">
+                          <span className="text-sm font-bold text-blue-900 whitespace-nowrap">
                             {getCurrencySymbol(displayCurrency)}
                             {billingPreview.proration_amount.toFixed(2)}
                           </span>
@@ -457,17 +457,17 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                       </div>
                     )}
 
-                    <div className="border-t pt-4 mt-4 space-y-3">
-                      <div className="flex justify-between items-center">
+                    <div className="border-t pt-3 mt-3 space-y-2">
+                      <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-600">Current billing</span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-medium text-gray-900">
                           {getCurrencySymbol(displayCurrency)}
                           {billingPreview?.current_monthly_cost?.toFixed(2) || (pricePerUser * currentQuantity).toFixed(2)} / month
                         </span>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t">
-                        <span className="font-bold text-gray-900 text-lg">Next billing</span>
-                        <span className="text-2xl font-bold text-gray-900">
+                        <span className="text-gray-900 font-semibold">Next billing</span>
+                        <span className="font-bold text-gray-900">
                           {getCurrencySymbol(displayCurrency)}
                           {billingPreview?.new_monthly_cost?.toFixed(2) || (pricePerUser * newQuantity).toFixed(2)} / month
                         </span>
@@ -475,18 +475,18 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                     </div>
 
                     {/* Usage Information */}
-                    <div className="mt-6 pt-6 border-t space-y-3">
-                      <div className="flex justify-between items-center">
+                    <div className="mt-6 pt-6 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Current seats</span>
-                        <span className="font-semibold text-gray-900">{currentQuantity}</span>
+                        <span className="font-medium">{currentQuantity}</span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Used seats</span>
-                        <span className="font-semibold text-gray-900">{usedQuantity}</span>
+                        <span className="font-medium">{usedQuantity}</span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Available seats</span>
-                        <span className="font-semibold text-green-600">
+                        <span className="font-medium text-green-600">
                           {availableSeats}
                         </span>
                       </div>
@@ -496,21 +496,21 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               </div>
             ) : isDowngrade ? (
               <div className="bg-gray-50 rounded-lg p-6 h-fit">
-                <h3 className="text-lg font-semibold mb-6 text-gray-900">Current usage</h3>
+                <h3 className="text-base font-semibold mb-4 text-gray-900">Current usage</h3>
 
                 {/* Usage Information Only for Downgrade */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Current seats</span>
-                    <span className="font-semibold text-gray-900">{currentQuantity}</span>
+                    <span className="font-medium">{currentQuantity}</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Used seats</span>
-                    <span className="font-semibold text-gray-900">{usedQuantity}</span>
+                    <span className="font-medium">{usedQuantity}</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Available seats</span>
-                    <span className="font-semibold text-green-600">
+                    <span className="font-medium text-green-600">
                       {availableSeats}
                     </span>
                   </div>
