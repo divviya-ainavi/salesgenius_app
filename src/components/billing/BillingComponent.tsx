@@ -395,11 +395,30 @@ export const BillingComponent = ({ orgPlan }) => {
     // console.log(currentPlan, availablePlans, "get next tier");
     if (!currentPlan || !availablePlans.length) return null;
 
+    // Check if current plan is Pro (Pro or Pro 1)
+    const isProPlan =
+      currentPlan.plan_name === "Pro" ||
+      currentPlan.plan_name === "Pro 1";
+
+    // If user is on Pro plan, check for Organization plan at same price
+    if (isProPlan) {
+      const orgPlan = availablePlans.find(
+        (plan) => plan.plan_name === "Organization"
+      );
+
+      // If Organization plan exists and has same or similar price, show it as next tier
+      if (orgPlan && orgPlan.price >= currentPlan.price) {
+        console.log("Next tier: Organization plan (upgrade from Pro)");
+        return orgPlan;
+      }
+    }
+
     // Find plans with higher price than current plan
     const higherPlans = availablePlans.filter(
       (plan) => plan.price > currentPlan.price
     );
     console.log(higherPlans, "higher plans");
+
     // Return the cheapest higher plan (next tier)
     return higherPlans.length > 0
       ? higherPlans.reduce((min, plan) => (plan.price < min.price ? plan : min))
