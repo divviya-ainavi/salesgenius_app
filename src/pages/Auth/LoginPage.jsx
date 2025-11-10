@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { supabase, authHelpers } from "@/lib/supabase";
+import { supabase, authHelpers, clearSessionCache } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { config } from "@/lib/config";
@@ -274,6 +274,9 @@ const LoginPage = () => {
             dispatch(setUserRole(null));
           }
         }
+
+        // Clear session cache to start fresh
+        clearSessionCache();
 
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);

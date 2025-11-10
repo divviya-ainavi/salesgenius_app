@@ -74,6 +74,44 @@ export const setupAuthStateListener = (callback) => {
   };
 };
 
+// Session cache to prevent excessive getSession() calls
+let sessionCache = null;
+let sessionCacheTimestamp = null;
+const SESSION_CACHE_DURATION = 10000; // 10 seconds cache
+
+// Helper to get cached session or fetch new one
+export const getCachedSession = async () => {
+  const now = Date.now();
+
+  // Return cached session if it's still valid
+  if (sessionCache && sessionCacheTimestamp && (now - sessionCacheTimestamp) < SESSION_CACHE_DURATION) {
+    console.log('✅ Using cached session (age: ' + Math.round((now - sessionCacheTimestamp) / 1000) + 's)');
+    return sessionCache;
+  }
+
+  // Fetch new session
+  console.log('🔄 Fetching fresh session...');
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  if (!error && session) {
+    sessionCache = session;
+    sessionCacheTimestamp = now;
+  } else if (error) {
+    // Clear cache on error
+    sessionCache = null;
+    sessionCacheTimestamp = null;
+  }
+
+  return session;
+};
+
+// Clear session cache (call this on login/logout)
+export const clearSessionCache = () => {
+  sessionCache = null;
+  sessionCacheTimestamp = null;
+  console.log('🗑️ Session cache cleared');
+};
+
 // Helper function to get current authenticated user
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();

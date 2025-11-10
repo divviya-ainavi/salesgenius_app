@@ -30,7 +30,7 @@ import {
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { CURRENT_USER, authHelpers, clearSessionCache } from "@/lib/supabase";
 import { resetOrgState } from "@/store/slices/orgSlice";
 import { resetAuthState } from "../../store/slices/authSlice";
 import { supabase } from "../../lib/supabase";
@@ -212,6 +212,9 @@ export const UserDropdown = () => {
       if (session) {
         await supabase.auth.signOut();
       }
+
+      // Clear session cache
+      clearSessionCache();
 
       const result = await authHelpers.signOut();
 
