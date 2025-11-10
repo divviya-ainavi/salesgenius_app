@@ -80,6 +80,8 @@ export const config = {
       billingPreviewProd: 'billingPreview-prod',
       renewSubscriptionDev: 'renew-sub-dev',
       renewSubscriptionProd: 'renew-sub-prod',
+      upgradePlanDev: 'upgrade-plan-dev',
+      upgradePlanProd: 'upgrade-plan-prod',
     }
   }
 };

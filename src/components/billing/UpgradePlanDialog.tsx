@@ -144,6 +144,72 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     setShowOrgPlanDialog(false);
 
     try {
+      // Check if user has an active Pro plan (not expired, not canceled)
+      const hasActivePaidPlan =
+        currentPlan &&
+        isPaidPlan(currentPlan) &&
+        planDetails?.status !== "canceled" &&
+        !planDetails?.isExpired &&
+        planDetails?.stripe_subscription_id;
+
+      // If user has active paid plan, use upgrade endpoint
+      if (hasActivePaidPlan) {
+        console.log(
+          "🔄 Upgrading from",
+          currentPlan.plan_name,
+          "to Organization plan with",
+          orgUserQuantity,
+          "users"
+        );
+
+        const upgradePayload = {
+          subscription_id: planDetails.stripe_subscription_id,
+          new_price_id: selectedOrgPlan.stripe_price_id,
+          quantity: orgUserQuantity,
+          userid: user.id,
+          emailid: user.email,
+          dbplan_id: selectedOrgPlan.id,
+          organization_id: organizationDetails?.id,
+        };
+
+        console.log("📤 Sending upgrade request to API:", upgradePayload);
+
+        const upgradeResponse = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}${
+            config.api.endpoints.upgradePlanDev
+          }`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(upgradePayload),
+          }
+        );
+
+        if (!upgradeResponse.ok) {
+          const errorText = await upgradeResponse.text();
+          throw new Error(
+            `Plan upgrade failed: ${upgradeResponse.status} ${upgradeResponse.statusText} - ${errorText}`
+          );
+        }
+
+        const upgradeResult = await upgradeResponse.json();
+        console.log("✅ Plan upgraded successfully:", upgradeResult);
+
+        toast.success(
+          "Successfully upgraded to Organization plan! Refreshing your subscription details..."
+        );
+
+        // Reload the page to refresh all data
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+
+        return;
+      }
+
+      // If no active plan, create new checkout session
       console.log(
         "🔄 Creating organization plan checkout for:",
         selectedOrgPlan.plan_name,
@@ -207,9 +273,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         throw new Error("No checkout URL received from server");
       }
     } catch (error: any) {
-      console.error("❌ Organization plan checkout error:", error);
+      console.error("❌ Organization plan error:", error);
       toast.error(
-        error.message || "Failed to create organization plan checkout"
+        error.message || "Failed to process organization plan request"
       );
       setIsProcessingPayment(false);
     }
