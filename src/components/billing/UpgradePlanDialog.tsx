@@ -230,6 +230,74 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       return;
     }
 
+    // Check if the plan is canceled but still active (within the billing period)
+    const isCanceledPlan = planDetails?.status === "canceled";
+    const isCurrentPlanRenewal = currentPlan?.id === plan.id;
+
+    if (isCanceledPlan && isCurrentPlanRenewal) {
+      // Check if today's date is between start date and end date
+      const today = new Date();
+      const startDate = new Date(planDetails.start_date);
+      const endDate = new Date(planDetails.end_date);
+
+      const isBetweenDates = today >= startDate && today <= endDate;
+
+      if (isBetweenDates) {
+        // Call renew subscription endpoint
+        setIsProcessingPayment(true);
+
+        try {
+          console.log("🔄 Renewing subscription for plan:", plan.plan_name);
+
+          const renewPayload = {
+            subscription_Id: planDetails?.stripe_subscription_id,
+            cancel_at_period_end: false,
+            userid: user.id,
+            name: user.full_name || user.email,
+            email: user.email,
+            dbid: planDetails?.id,
+          };
+
+          const renewEndpoint = planDetails?.plan_master?.plan_name === "Organization"
+            ? `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.renewSubscriptionDev}`
+            : `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.renewSubscriptionDev}`;
+
+          console.log("📤 Sending renewal request to API:", renewPayload);
+
+          const response = await fetch(renewEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(renewPayload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Renewal failed: ${response.status} ${response.statusText} - ${errorText}`
+            );
+          }
+
+          const renewalResult = await response.json();
+          console.log("✅ Subscription renewed successfully:", renewalResult);
+
+          toast.success("Subscription renewed successfully! Your plan is now active.");
+
+          // Reload the page to refresh all data
+          window.location.reload();
+
+          return;
+        } catch (error: any) {
+          console.error("❌ Error renewing subscription:", error);
+          toast.error("Failed to renew subscription: " + error.message);
+          setIsProcessingPayment(false);
+          dispatch(setShowUpgradeModal(false));
+          return;
+        }
+      }
+    }
+
     // For regular plans, proceed with normal checkout
     setIsProcessingPayment(true);
 
@@ -350,9 +418,20 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     plan.plan_name?.toLowerCase().includes("plus") ||
                     plan.plan_name?.toLowerCase().includes("starter");
 
-                  // For expired users, allow them to choose their current plan again
+                  // For expired users or canceled users (within billing period), allow them to choose their current plan again
+                  const isCanceledWithinPeriod = (() => {
+                    if (planDetails?.status !== "canceled" || plan.id !== currentPlan?.id) {
+                      return false;
+                    }
+                    const today = new Date();
+                    const startDate = new Date(planDetails.start_date);
+                    const endDate = new Date(planDetails.end_date);
+                    return today >= startDate && today <= endDate;
+                  })();
+
                   const canSelectExpiredPlan =
-                    planDetails?.isExpired && plan.id === currentPlan?.id;
+                    (planDetails?.isExpired && plan.id === currentPlan?.id) ||
+                    isCanceledWithinPeriod;
 
                   // Disable free plans for expired users (but still show them)
                   const isDisabledFreePlan =
@@ -401,8 +480,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
                       {isCurrentPlan && (
                         <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-10">
-                          <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-0.5 text-xs font-medium shadow-md">
-                            {planDetails?.isExpired
+                          <Badge className={cn(
+                            "text-white px-2 py-0.5 text-xs font-medium shadow-md",
+                            isCanceledWithinPeriod
+                              ? "bg-gradient-to-r from-orange-500 to-red-600"
+                              : "bg-gradient-to-r from-gray-500 to-gray-600"
+                          )}>
+                            {isCanceledWithinPeriod
+                              ? "Canceled - Click to renew"
+                              : planDetails?.isExpired
                               ? "Your expired plan"
                               : "Your current plan"}
                           </Badge>

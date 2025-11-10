@@ -562,15 +562,28 @@ export const BillingComponent = ({ orgPlan }) => {
               </Button>
             )}
 
-            {/* {console.log(planDetails, "plan details for cancel button")}
-            {console.log(
-              planDetails?.plan_master?.plan_name,
-              planDetails?.plan_name,
-              "current plan for cancel button"
-            )} */}
-            {/* // (planDetails?.plan_name == "Organization" ||
-                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
-                // userRoleId === 2 && */}
+            {/* Renew Subscription Button for Canceled Plans (within billing period) */}
+            {(() => {
+              if (planDetails?.status !== "canceled") return null;
+              const today = new Date();
+              const startDate = new Date(planDetails.start_date);
+              const endDate = new Date(planDetails.end_date);
+              const isBetweenDates = today >= startDate && today <= endDate;
+
+              if (!isBetweenDates) return null;
+
+              return (
+                <Button
+                  onClick={() => dispatch(setShowUpgradeModal(true))}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-md"
+                  size="lg"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Renew Subscription
+                </Button>
+              );
+            })()}
+
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
