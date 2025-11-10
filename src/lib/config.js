@@ -68,12 +68,16 @@ export const config = {
       cancelSubscriptionProd: 'Cancle-sub-prod',
       checkoutSubscriptionDev: 'checkout-session',
       checkoutSubscriptionProd: 'checkout-session-prod',
-      organizationPlan: 'orgplan',
+      organizationPlanDev: 'orgplan',
+      organizationPlanProd: 'orgplan-prod',
       updateTeamSizeDev: 'update-team-size-dev',
+      updateTeamSizeProd: 'update-team-size-prod',
       fathomConnectionCheck: 'Fathom-check',
       getFathomFiles: 'get-Fathom-transcripts',
       orgCancelSubscriptionDev: 'cancel-orgsub-dev',
+      orgCancelSubscriptionProd: 'cancel-orgsub-prod',
       billingPreviewDev: 'billingPreview-dev',
+      billingPreviewProd: 'billingPreview-prod',
     }
   }
 };
