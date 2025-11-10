@@ -439,9 +439,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                     (planDetails?.isExpired && plan.id === currentPlan?.id) ||
                     isCanceledWithinPeriod;
 
-                  // Disable free plans for expired users (but still show them)
+                  // Disable free plans for:
+                  // 1. Expired users trying to downgrade
+                  // 2. Users currently on any paid plan (Pro, Organization, etc.)
+                  const isCurrentlyOnPaidPlan = currentPlan && isPaidPlan(currentPlan);
                   const isDisabledFreePlan =
-                    isFreePlan(plan) && planDetails?.isExpired;
+                    isFreePlan(plan) &&
+                    (planDetails?.isExpired || isCurrentlyOnPaidPlan);
 
                   return (
                     <div
@@ -449,9 +453,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                       className={cn(
                         "relative bg-white rounded-lg border-2 transition-all duration-200 overflow-hidden h-auto w-full",
                         !isDisabledFreePlan && "hover:shadow-lg",
-                        // isDisabledFreePlan
-                        // ? "border-gray-300 opacity-50"
-                        //   : "",
+                        isDisabledFreePlan && isCurrentlyOnPaidPlan
+                          ? "border-gray-300 opacity-60 bg-gray-50"
+                          : "",
                         isCurrentPlan
                           ? planDetails?.isExpired && !isFreePlan(plan)
                             ? "border-red-400 shadow-lg ring-2 ring-red-100"
@@ -603,7 +607,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               Processing...
                             </>
                           ) : isDisabledFreePlan ? (
-                            "Free Trail"
+                            isCurrentlyOnPaidPlan
+                              ? "Not Available"
+                              : "Free Trial"
                           ) : isCurrentPlan && !canSelectExpiredPlan ? (
                             planDetails?.isExpired ? (
                               "Your expired plan"
@@ -628,6 +634,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                             }`
                           )}
                         </Button>
+
+                        {/* Message for disabled free plan when user is on paid plan */}
+                        {isDisabledFreePlan && isCurrentlyOnPaidPlan && (
+                          <div className="mb-3 px-2 py-2 bg-amber-50 border border-amber-200 rounded-md">
+                            <p className="text-xs text-amber-800 text-center leading-tight">
+                              Free plan is not available for users on paid plans
+                            </p>
+                          </div>
+                        )}
 
                         {/* Features List - Full Display */}
                         {plan.features && plan.features.length > 0 && (
