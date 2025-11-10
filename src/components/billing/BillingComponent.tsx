@@ -473,9 +473,7 @@ export const BillingComponent = ({ orgPlan }) => {
   }
 
   const nextTierPlan = getNextTierPlan();
-  const showUpgradeOption =
-    (isFreePlan(currentPlan) && nextTierPlan) || planDetails?.isExpired;
-  // console.log(isFreePlan(currentPlan), nextTierPlan, planDetails, currentPlan);
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -561,44 +559,54 @@ export const BillingComponent = ({ orgPlan }) => {
               </div>
             </div>
 
-            {/* Upgrade Button */}
-            {showUpgradeOption && (
-              <Button
-                onClick={() => dispatch(setShowUpgradeModal(true))}
-                className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
-                size="lg"
-              >
-                <ArrowUp className="w-4 h-4 mr-2" />
-                {planDetails?.isExpired && !isFreePlan(currentPlan)
-                  ? "Renew Plan"
-                  : nextTierPlan
-                  ? `Upgrade to ${
-                      nextTierPlan.plan_name == "Pro 1"
-                        ? "Pro"
-                        : nextTierPlan.plan_name
-                    }`
-                  : "Upgrade Plan"}
-              </Button>
-            )}
-
-            {/* Renew Subscription Button for Canceled Plans (within billing period) */}
+            {/* Combined Upgrade/Renew Button */}
             {(() => {
-              if (planDetails?.status !== "canceled") return null;
-              const today = new Date();
-              const startDate = new Date(planDetails.start_date);
-              const endDate = new Date(planDetails.end_date);
-              const isBetweenDates = today >= startDate && today <= endDate;
+              // Check if plan is canceled but still within billing period
+              const isCanceledWithinPeriod = (() => {
+                if (planDetails?.status !== "canceled") return false;
+                const today = new Date();
+                const startDate = new Date(planDetails.start_date);
+                const endDate = new Date(planDetails.end_date);
+                return today >= startDate && today <= endDate;
+              })();
 
-              if (!isBetweenDates) return null;
+              // Show button if:
+              // 1. Next tier plan is available (for upgrades), OR
+              // 2. Plan is canceled (within billing period), OR
+              // 3. Plan is expired
+              const shouldShowButton =
+                nextTierPlan || isCanceledWithinPeriod || planDetails?.isExpired;
+
+              if (!shouldShowButton) return null;
+
+              // Determine button style and content
+              const isRenewal =
+                isCanceledWithinPeriod ||
+                (planDetails?.isExpired && !isFreePlan(currentPlan));
+              const buttonText = isRenewal
+                ? "Renew Subscription"
+                : nextTierPlan
+                ? `Upgrade to ${
+                    nextTierPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : nextTierPlan.plan_name
+                  }`
+                : "Upgrade Plan";
+              const ButtonIcon = isRenewal ? CheckCircle : ArrowUp;
 
               return (
                 <Button
                   onClick={() => dispatch(setShowUpgradeModal(true))}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-md"
+                  className={cn(
+                    "w-full shadow-md",
+                    isRenewal
+                      ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                      : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
+                  )}
                   size="lg"
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Renew Subscription
+                  <ButtonIcon className="w-4 h-4 mr-2" />
+                  {buttonText}
                 </Button>
               );
             })()}
