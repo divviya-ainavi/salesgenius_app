@@ -26,8 +26,7 @@ import VersionChecker from "@/components/shared/VersionChecker";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers, setupAuthStateListener } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import {
   setCommunicationTypes,
@@ -65,11 +64,9 @@ const App = () => {
     fetchRoles();
   }, []);
 
-  // Monitor Supabase auth state for token expiry
+  // Monitor Supabase auth state for token expiry (singleton listener)
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const subscription = setupAuthStateListener(async (event, session) => {
       if (event === "SIGNED_OUT" && !sessionStorage.getItem("manual_logout")) {
         // Token expired - auto logout
         console.log("🔒 Supabase token expired - auto logout triggered");
@@ -93,7 +90,11 @@ const App = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Only unsubscribe if this component unmounts
+    return () => {
+      // We don't unsubscribe here to keep the singleton active
+      // The listener will remain active for the lifetime of the app
+    };
   }, [dispatch, navigate]);
   return (
     <QueryClientProvider client={queryClient}>

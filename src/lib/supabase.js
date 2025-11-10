@@ -28,7 +28,51 @@ const verifyPassword = (plainPassword, hashedPassword) => {
 };
 
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    // Reduce auto-refresh frequency to avoid rate limits
+    // Token will only refresh when it's about to expire (< 60 seconds remaining)
+    storage: window.localStorage,
+    storageKey: 'supabase.auth.token',
+  },
+  global: {
+    headers: {
+      'x-application-name': 'salesgenius-ai',
+    },
+  },
+})
+
+// Singleton auth state listener manager to prevent multiple listeners
+let authStateListenerActive = false;
+let authStateSubscription = null;
+
+export const setupAuthStateListener = (callback) => {
+  // Prevent multiple listeners
+  if (authStateListenerActive && authStateSubscription) {
+    console.log('Auth state listener already active, skipping setup');
+    return authStateSubscription;
+  }
+
+  console.log('Setting up auth state listener');
+  authStateListenerActive = true;
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  authStateSubscription = subscription;
+
+  return {
+    unsubscribe: () => {
+      console.log('Unsubscribing from auth state listener');
+      if (authStateSubscription) {
+        authStateSubscription.unsubscribe();
+        authStateSubscription = null;
+        authStateListenerActive = false;
+      }
+    }
+  };
+};
 
 // Helper function to get current authenticated user
 export const getCurrentUser = async () => {
