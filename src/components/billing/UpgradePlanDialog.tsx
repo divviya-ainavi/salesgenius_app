@@ -207,70 +207,61 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         }, 2000);
 
         return;
-      }
-
-      // If no active plan, create new checkout session
-      console.log(
-        "🔄 Creating organization plan checkout for:",
-        selectedOrgPlan.plan_name,
-        "with",
-        orgUserQuantity,
-        "users"
-      );
-
-      const payload = {
-        userid: user.id,
-        plan_id: selectedOrgPlan.stripe_price_id,
-        emailid: user.email,
-        dbplan_id: selectedOrgPlan.id,
-        coupon_id: hasCoupon ? "50LIFE" : "",
-        coupon: hasCoupon,
-        organization_id: organizationDetails?.id,
-        quantity: orgUserQuantity,
-        is_organization_plan: true,
-      };
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.organizationPlanDev
-        }`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Organization plan checkout failed: ${response.status} ${response.statusText} - ${errorText}`
-        );
-      }
-      dispatch(setShowUpgradeModal(false));
-      const checkoutData = await response.json();
-      console.log("✅ Organization plan checkout created:", checkoutData);
-
-      if (
-        Array.isArray(checkoutData) &&
-        checkoutData.length > 0 &&
-        checkoutData[0].checkoutUrl
-      ) {
-        console.log(
-          "🔗 Redirecting to Stripe checkout:",
-          checkoutData[0].checkoutUrl
-        );
-        window.location.href = checkoutData[0].checkoutUrl;
-      } else if (checkoutData.checkoutUrl) {
-        console.log(
-          "🔗 Redirecting to Stripe checkout:",
-          checkoutData.checkoutUrl
-        );
-        window.location.href = checkoutData.checkoutUrl;
       } else {
-        throw new Error("No checkout URL received from server");
+        const payload = {
+          userid: user.id,
+          plan_id: selectedOrgPlan.stripe_price_id,
+          emailid: user.email,
+          dbplan_id: selectedOrgPlan.id,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
+          organization_id: organizationDetails?.id,
+          quantity: orgUserQuantity,
+          is_organization_plan: true,
+        };
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}${
+            config.api.endpoints.organizationPlanDev
+          }`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Organization plan checkout failed: ${response.status} ${response.statusText} - ${errorText}`
+          );
+        }
+        dispatch(setShowUpgradeModal(false));
+        const checkoutData = await response.json();
+        console.log("✅ Organization plan checkout created:", checkoutData);
+
+        if (
+          Array.isArray(checkoutData) &&
+          checkoutData.length > 0 &&
+          checkoutData[0].checkoutUrl
+        ) {
+          console.log(
+            "🔗 Redirecting to Stripe checkout:",
+            checkoutData[0].checkoutUrl
+          );
+          window.location.href = checkoutData[0].checkoutUrl;
+        } else if (checkoutData.checkoutUrl) {
+          console.log(
+            "🔗 Redirecting to Stripe checkout:",
+            checkoutData.checkoutUrl
+          );
+          window.location.href = checkoutData.checkoutUrl;
+        } else {
+          throw new Error("No checkout URL received from server");
+        }
       }
     } catch (error: any) {
       console.error("❌ Organization plan error:", error);
@@ -508,7 +499,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                   // Disable free plans for:
                   // 1. Expired users trying to downgrade
                   // 2. Users currently on any paid plan (Pro, Organization, etc.)
-                  const isCurrentlyOnPaidPlan = currentPlan && isPaidPlan(currentPlan);
+                  const isCurrentlyOnPaidPlan =
+                    currentPlan && isPaidPlan(currentPlan);
                   const isDisabledFreePlan =
                     isFreePlan(plan) &&
                     (planDetails?.isExpired || isCurrentlyOnPaidPlan);
@@ -673,9 +665,11 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
                               Processing...
                             </>
                           ) : isDisabledFreePlan ? (
-                            isCurrentlyOnPaidPlan
-                              ? "Not Available"
-                              : "Free Trial"
+                            isCurrentlyOnPaidPlan ? (
+                              "Not Available"
+                            ) : (
+                              "Free Trial"
+                            )
                           ) : isCurrentPlan && !canSelectExpiredPlan ? (
                             planDetails?.isExpired ? (
                               "Your expired plan"
