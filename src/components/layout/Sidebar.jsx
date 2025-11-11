@@ -304,11 +304,11 @@ export const Sidebar = () => {
                     {/* {console.log(currentPlan, "check current plan")} */}
                     {currentPlan.plan_name}
                   </p>
-                  {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
+                  {/* {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
                     <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
                       PRO
                     </span>
-                  )}
+                  )} */}
                 </div>
                 {isFreePlan(currentPlan) &&
                   planDetails &&
