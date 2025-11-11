@@ -68,6 +68,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
 
   // Fetch upgrade preview when organization dialog opens or quantity changes
   useEffect(() => {
+    console.log(showOrgPlanDialog, selectedOrgPlan, "check org plan");
     if (showOrgPlanDialog && selectedOrgPlan) {
       fetchUpgradePreview(orgUserQuantity);
     }
@@ -814,6 +815,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
         </DialogContent>
       </Dialog>
 
+      {console.log(upgradePreview, "check upgrade preview")}
       {/* Organization Plan User Quantity Dialog */}
       <Dialog open={showOrgPlanDialog} onOpenChange={setShowOrgPlanDialog}>
         <DialogContent className="sm:max-w-md">
@@ -879,8 +881,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Price per user:</span>
                       <span className="font-medium">
-                        {upgradePreview.summary?.["Per Seat"] ||
-                          `$${selectedOrgPlan.price.toLocaleString()}`}/month
+                        ${selectedOrgPlan.price.toLocaleString()}/month
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -889,11 +890,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                     </div>
 
                     {/* Show next billing amount with strikethrough */}
-                    {upgradePreview.summary?.["Next Billing amount"] && (
+                    {upgradePreview.summary?.next_billing_amount && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Next billing cycle:</span>
-                        <span className="font-medium line-through text-gray-400">
-                          {upgradePreview.summary["Next Billing amount"]}
+                        <span className="text-gray-600">
+                          Next billing cycle:
+                        </span>
+                        <span className="font-medium text-gray-600">
+                          {upgradePreview.summary?.next_billing_amount}
                         </span>
                       </div>
                     )}
@@ -904,17 +907,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                           Charges Now:
                         </span>
                         <span className="text-xl font-bold text-green-600">
-                          {upgradePreview.summary?.["Charges Now"] ||
-                            `$${(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}`}
+                          {upgradePreview.summary?.charges_now ||
+                            `$${upgradePreview.summary?.charges_now}`}
                         </span>
                       </div>
                     </div>
 
                     {/* Additional details */}
-                    {upgradePreview.summary?.Credit && (
+                    {upgradePreview?.summary?.credit && (
                       <div className="flex justify-between text-xs text-gray-500 pt-1">
                         <span>Credit from current plan:</span>
-                        <span>{upgradePreview.summary.Credit}</span>
+                        <span>{upgradePreview.summary.credit}</span>
                       </div>
                     )}
                   </>
@@ -933,7 +936,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                     </div>
                     <div className="border-t border-gray-200 pt-2 mt-2">
                       <div className="flex justify-between">
-                        <span className="font-semibold text-gray-900">Total:</span>
+                        <span className="font-semibold text-gray-900">
+                          Total:
+                        </span>
                         <span className="text-xl font-bold text-gray-900">
                           $
                           {(
