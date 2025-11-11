@@ -66,11 +66,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
 
-  // Fetch upgrade preview when organization dialog opens or quantity changes
+  // Fetch upgrade preview when organization dialog opens or quantity changes (with debounce)
   useEffect(() => {
-    console.log(showOrgPlanDialog, selectedOrgPlan, "check org plan");
     if (showOrgPlanDialog && selectedOrgPlan) {
-      fetchUpgradePreview(orgUserQuantity);
+      // Debounce the preview fetch by 500ms
+      const debounceTimer = setTimeout(() => {
+        fetchUpgradePreview(orgUserQuantity);
+      }, 500);
+
+      return () => clearTimeout(debounceTimer);
     }
   }, [showOrgPlanDialog, orgUserQuantity, selectedOrgPlan]);
 
@@ -889,37 +893,28 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                       <span className="font-medium">{orgUserQuantity}</span>
                     </div>
 
-                    {/* Show next billing amount with strikethrough */}
-                    {upgradePreview.summary?.next_billing_amount && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          Next billing cycle:
-                        </span>
-                        <span className="font-medium text-gray-600">
-                          {upgradePreview.summary?.next_billing_amount}
-                        </span>
-                      </div>
-                    )}
+                    <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
+                      {/* Show total amount with strikethrough */}
+                      {upgradePreview.summary?.["Next Billing amount"] && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Total:</span>
+                          <span className="text-lg font-semibold line-through text-gray-400">
+                            {upgradePreview.summary["Next Billing amount"]}
+                          </span>
+                        </div>
+                      )}
 
-                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      {/* Show actual charges now */}
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900">
                           Charges Now:
                         </span>
                         <span className="text-xl font-bold text-green-600">
-                          {upgradePreview.summary?.charges_now ||
-                            `$${upgradePreview.summary?.charges_now}`}
+                          {upgradePreview.summary?.["Charges Now"] ||
+                            `$${(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}`}
                         </span>
                       </div>
                     </div>
-
-                    {/* Additional details */}
-                    {upgradePreview?.summary?.credit && (
-                      <div className="flex justify-between text-xs text-gray-500 pt-1">
-                        <span>Credit from current plan:</span>
-                        <span>{upgradePreview.summary.credit}</span>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <>
