@@ -28,12 +28,15 @@ import { setShowUpgradeModal } from "../../store/slices/orgSlice";
 import { config } from "../../lib/config";
 
 interface UpgradePlanDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onUpgrade?: (plan: any) => void;
+  onPlanUpdated?: () => Promise<void>;
 }
 
-export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
+export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
+  onPlanUpdated,
+}) => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
@@ -201,10 +204,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           "Successfully upgraded to Organization plan! Refreshing your subscription details..."
         );
 
-        // Reload the page to refresh all data
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        // Call the callback to refresh plan data
+        if (onPlanUpdated) {
+          await onPlanUpdated();
+        }
+
+        dispatch(setShowUpgradeModal(false));
+        setIsProcessingPayment(false);
 
         return;
       } else {
@@ -343,15 +349,19 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           }
 
           const renewalResult = await response.json();
-          // console.log("✅ Subscription renewed successfully:", renewalResult);
+          console.log("✅ Subscription renewed successfully:", renewalResult);
 
           toast.success(
             "Subscription renewed successfully! Your plan is now active."
           );
+
+          // Call the callback to refresh plan data
+          if (onPlanUpdated) {
+            await onPlanUpdated();
+          }
+
           setIsProcessingPayment(false);
           dispatch(setShowUpgradeModal(false));
-          // Reload the page to refresh all data
-          // window.location.reload();
 
           return;
         } catch (error: any) {

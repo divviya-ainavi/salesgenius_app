@@ -854,7 +854,7 @@ export const BillingComponent = ({ orgPlan }) => {
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradePlanDialog />
+      <UpgradePlanDialog onPlanUpdated={loadPlanData} />
 
       {/* Cancel Subscription Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
