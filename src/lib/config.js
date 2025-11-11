@@ -78,6 +78,10 @@ export const config = {
       orgCancelSubscriptionProd: 'cancel-orgsub-prod',
       billingPreviewDev: 'billingPreview-dev',
       billingPreviewProd: 'billingPreview-prod',
+      renewSubscriptionDev: 'renew-sub-dev',
+      renewSubscriptionProd: 'renew-sub-prod',
+      upgradePlanDev: 'upgrade-plan-dev',
+      upgradePlanProd: 'upgrade-plan-prod',
     }
   }
 };

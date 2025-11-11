@@ -64,7 +64,7 @@ export const BillingComponent = ({ orgPlan }) => {
   const dispatch = useDispatch();
   const { currentPlan, planDetails, availablePlans, showUpgradeModal } =
     useSelector((state) => state.org);
-
+  console.log(planDetails, "plan details in billing component");
   // console.log(userRole, "user role in billing");
   useEffect(() => {
     loadPlanData();
@@ -78,7 +78,7 @@ export const BillingComponent = ({ orgPlan }) => {
       if (user?.id) {
         // Get user's current plan from user_plan table with plan_master details
         const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
-
+        console.log(userPlanData, "user plan data in load plan data");
         if (userPlanData && userPlanData.length > 0) {
           // console.log(userPlanData, "user plan data");
           const userPlan = userPlanData[0];
@@ -198,6 +198,7 @@ export const BillingComponent = ({ orgPlan }) => {
             .not("amount", "is", null)
             .neq("plan_name", "Organization")
             .neq("plan_name", "Salesgenius AI Organization ")
+            .neq("plan_id", "95055d03-4c67-4cfc-a1c6-b7c27f79ac1f")
             // .not("plan_name", "in", "Organization, Salesgenius AI Organization")
             .gt("amount", 0)
             .order("created_at", { ascending: false });
@@ -241,7 +242,8 @@ export const BillingComponent = ({ orgPlan }) => {
             .not("amount", "is", null)
             .gt("amount", 0)
             .neq("plan_name", "Organization")
-            .neq("plan_name", "Salesgenius AI Organization ") // <-- no trailing space
+            .neq("plan_id", "95055d03-4c67-4cfc-a1c6-b7c27f79ac1f") // <-- no trailing space
+            // .neq("plan_name", "Salesgenius AI Organization") // <-- no trailing space
             .order("created_at", { ascending: false });
 
           console.log(
@@ -312,9 +314,12 @@ export const BillingComponent = ({ orgPlan }) => {
     return `${durationDays} days`;
   };
 
-  console.log(planDetails, "plan details before cancel");
+  // console.log(planDetails, "plan details before cancel");
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
+
+    // 👇 simple delay helper
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     try {
       console.log("🔄 Cancelling subscription for user:", user.id);
@@ -333,14 +338,16 @@ export const BillingComponent = ({ orgPlan }) => {
         "📤 Sending cancellation request to API:",
         cancellationPayload
       );
+
       const cancelSubscription =
-        planDetails?.plan_master?.plan_name == "Organization"
+        planDetails?.plan_master?.plan_name === "Organization"
           ? `${import.meta.env.VITE_API_BASE_URL}${
               config.api.endpoints.orgCancelSubscriptionDev
             }`
           : `${import.meta.env.VITE_API_BASE_URL}${
               config.api.endpoints.cancelSubscriptionDev
             }`;
+
       const apiResponse = await fetch(cancelSubscription, {
         method: "POST",
         headers: {
@@ -359,23 +366,9 @@ export const BillingComponent = ({ orgPlan }) => {
       const apiResult = await apiResponse.json();
       console.log("✅ Cancellation API response:", apiResult);
 
-      // Update user_plan to mark as cancelled
-      // const { error: updateError } = await supabase
-      //   .from("user_plan")
-      //   .update({
-      //     status: "cancelled",
-      //     canceled_at: new Date().toISOString(),
-      //     // Keep is_active true until period ends
-      //     is_active: true,
-      //   })
-      //   .eq("user_id", user.id)
-      //   .eq("is_active", true);
+      // 👇 wait for 5 seconds before reloading data
+      await delay(5000);
 
-      // if (updateError) {
-      //   throw updateError;
-      // }
-
-      // Reload plan data and billing history to reflect changes
       await loadPlanData();
       await loadBillingHistory();
 
@@ -395,11 +388,29 @@ export const BillingComponent = ({ orgPlan }) => {
     // console.log(currentPlan, availablePlans, "get next tier");
     if (!currentPlan || !availablePlans.length) return null;
 
+    // Check if current plan is Pro (Pro or Pro 1)
+    const isProPlan =
+      currentPlan.plan_name === "Pro" || currentPlan.plan_name === "Pro 1";
+
+    // If user is on Pro plan, check for Organization plan at same price
+    if (isProPlan) {
+      const orgPlan = availablePlans.find(
+        (plan) => plan.plan_name === "Organization"
+      );
+
+      // If Organization plan exists and has same or similar price, show it as next tier
+      if (orgPlan && orgPlan.price >= currentPlan.price) {
+        console.log("Next tier: Organization plan (upgrade from Pro)");
+        return orgPlan;
+      }
+    }
+
     // Find plans with higher price than current plan
     const higherPlans = availablePlans.filter(
       (plan) => plan.price > currentPlan.price
     );
     console.log(higherPlans, "higher plans");
+
     // Return the cheapest higher plan (next tier)
     return higherPlans.length > 0
       ? higherPlans.reduce((min, plan) => (plan.price < min.price ? plan : min))
@@ -454,9 +465,7 @@ export const BillingComponent = ({ orgPlan }) => {
   }
 
   const nextTierPlan = getNextTierPlan();
-  const showUpgradeOption =
-    (isFreePlan(currentPlan) && nextTierPlan) || planDetails?.isExpired;
-  // console.log(isFreePlan(currentPlan), nextTierPlan, planDetails, currentPlan);
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -542,50 +551,107 @@ export const BillingComponent = ({ orgPlan }) => {
               </div>
             </div>
 
-            {/* Upgrade Button */}
-            {showUpgradeOption && (
-              <Button
-                onClick={() => dispatch(setShowUpgradeModal(true))}
-                className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
-                size="lg"
-              >
-                <ArrowUp className="w-4 h-4 mr-2" />
-                {planDetails?.isExpired && !isFreePlan(currentPlan)
-                  ? "Renew Plan"
-                  : nextTierPlan
-                  ? `Upgrade to ${
-                      nextTierPlan.plan_name == "Pro 1"
-                        ? "Pro"
-                        : nextTierPlan.plan_name
-                    }`
-                  : "Upgrade Plan"}
-              </Button>
-            )}
+            {/* Combined Upgrade/Renew Button */}
+            {(() => {
+              // Check if plan is canceled but still within billing period
+              const isCanceledWithinPeriod = (() => {
+                if (planDetails?.status !== "canceled") return false;
+                const today = new Date();
+                const startDate = new Date(planDetails.start_date);
+                const endDate = new Date(planDetails.end_date);
+                return today >= startDate && today <= endDate;
+              })();
 
-            {/* {console.log(planDetails, "plan details for cancel button")}
+              // Show button if:
+              // 1. Next tier plan is available (for upgrades), OR
+              // 2. Plan is canceled (within billing period), OR
+              // 3. Plan is expired
+              const shouldShowButton =
+                nextTierPlan ||
+                isCanceledWithinPeriod ||
+                planDetails?.isExpired;
+
+              if (!shouldShowButton) return null;
+
+              // Determine button style and content
+              const isRenewal =
+                isCanceledWithinPeriod ||
+                (planDetails?.isExpired && !isFreePlan(currentPlan));
+              const buttonText = isRenewal
+                ? "Renew Subscription"
+                : nextTierPlan
+                ? `Upgrade to ${
+                    nextTierPlan.plan_name == "Pro 1"
+                      ? "Pro"
+                      : nextTierPlan.plan_name
+                  }`
+                : "Upgrade Plan";
+              const ButtonIcon = isRenewal ? CheckCircle : ArrowUp;
+
+              return (
+                <Button
+                  onClick={() => dispatch(setShowUpgradeModal(true))}
+                  // className={cn(
+                  //   "w-full shadow-md",
+                  //   isRenewal
+                  //     ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700"
+                  //     : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
+                  // )}
+                  className="w-full bg-white text-gray-900 hover:bg-gray-50 border border-gray-200 shadow-sm"
+                  size="lg"
+                >
+                  <ButtonIcon className="w-4 h-4 mr-2" />
+                  {buttonText}
+                </Button>
+              );
+            })()}
             {console.log(
-              planDetails?.plan_master?.plan_name,
-              planDetails?.plan_name,
-              "current plan for cancel button"
-            )} */}
-            {/* // (planDetails?.plan_name == "Organization" ||
-                //   planDetails?.plan_name !== "Salesgenius AI Organization ") &&
-                // userRoleId === 2 && */}
+              planDetails,
+              "planDetails.renewalDate",
+              isPaidPlan(currentPlan) &&
+                planDetails?.status !== "canceled" &&
+                !planDetails?.isExpired &&
+                (planDetails?.plan_master?.plan_name !== "Organization" ||
+                  userRoleId === 2),
+              isPaidPlan(currentPlan),
+              planDetails?.status !== "canceled",
+              !planDetails?.plan_master?.isExpired,
+              planDetails?.plan_master?.plan_name !== "Organization" ||
+                userRoleId === 2,
+              "check current plan",
+              currentPlan
+            )}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
-              !planDetails?.plan_master?.isExpired &&
+              !planDetails?.isExpired &&
               (planDetails?.plan_master?.plan_name !== "Organization" ||
                 userRoleId === 2) && (
-                <Button
-                  onClick={() => setShowCancelModal(true)}
-                  variant="outline"
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                  size="lg"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel Subscription
-                </Button>
+                <>
+                  <Button
+                    onClick={() => setShowCancelModal(true)}
+                    variant="outline"
+                    className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                    size="lg"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel Subscription
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    If you cancel now, you can still access your subscription
+                    until{" "}
+                    {planDetails?.end_date
+                      ? new Date(planDetails.end_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          }
+                        )
+                      : ""}
+                  </span>
+                </>
               )}
           </div>
         </div>

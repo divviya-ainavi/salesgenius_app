@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { authHelpers, supabase } from "@/lib/supabase";
+import { authHelpers, supabase, getCachedSession } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { CURRENT_USER } from "@/lib/supabase";
 
@@ -12,20 +12,21 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check Supabase Auth first
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        // Use cached session to prevent excessive API calls
+        const session = await getCachedSession();
+
         let isAuth = false;
-        
+
         if (session) {
           // User is authenticated with Supabase Auth
           // Verify they have a valid profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
-            .eq('auth_user_id', session.user.id);
-          
-          isAuth = !!(profile && profile.length > 0);
+            .eq('auth_user_id', session.user.id)
+            .maybeSingle();
+
+          isAuth = !!profile;
         } else {
           // Fall back to custom authentication
           isAuth = await authHelpers.isAuthenticated();

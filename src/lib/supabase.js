@@ -28,7 +28,123 @@ const verifyPassword = (plainPassword, hashedPassword) => {
 };
 
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // Disable to reduce session checks
+    storage: window.localStorage,
+    storageKey: 'supabase.auth.token',
+    // Prevent excessive token refresh checks
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'x-application-name': 'salesgenius-ai',
+    },
+  },
+  // Reduce realtime connections that might trigger auth checks
+  realtime: {
+    params: {
+      eventsPerSecond: 2,
+    },
+  },
+})
+
+// Singleton auth state listener manager to prevent multiple listeners
+let authStateListenerActive = false;
+let authStateSubscription = null;
+
+export const setupAuthStateListener = (callback) => {
+  // Prevent multiple listeners
+  if (authStateListenerActive && authStateSubscription) {
+    console.log('Auth state listener already active, skipping setup');
+    return authStateSubscription;
+  }
+
+  console.log('Setting up auth state listener');
+  authStateListenerActive = true;
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  authStateSubscription = subscription;
+
+  return {
+    unsubscribe: () => {
+      console.log('Unsubscribing from auth state listener');
+      if (authStateSubscription) {
+        authStateSubscription.unsubscribe();
+        authStateSubscription = null;
+        authStateListenerActive = false;
+      }
+    }
+  };
+};
+
+// Session cache to prevent excessive getSession() calls
+let sessionCache = null;
+let sessionCacheTimestamp = null;
+let pendingSessionRequest = null; // For request deduplication
+const SESSION_CACHE_DURATION = 30000; // 30 seconds cache (increased from 10s)
+
+// Store the original getSession function
+const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
+
+// Override Supabase's getSession to use caching + request deduplication
+supabase.auth.getSession = async () => {
+  const now = Date.now();
+
+  // Return cached session if it's still valid
+  if (sessionCache && sessionCacheTimestamp && (now - sessionCacheTimestamp) < SESSION_CACHE_DURATION) {
+    console.log('✅ Using cached session (age: ' + Math.round((now - sessionCacheTimestamp) / 1000) + 's)');
+    return { data: { session: sessionCache }, error: null };
+  }
+
+  // If there's already a pending request, wait for it instead of making a new one
+  if (pendingSessionRequest) {
+    console.log('⏳ Waiting for pending session request...');
+    return await pendingSessionRequest;
+  }
+
+  // Fetch new session using original function
+  console.log('🔄 Fetching fresh session...');
+  pendingSessionRequest = originalGetSession().then(result => {
+    // Clear the pending request
+    pendingSessionRequest = null;
+
+    if (!result.error && result.data.session) {
+      sessionCache = result.data.session;
+      sessionCacheTimestamp = Date.now();
+    } else if (result.error) {
+      // Clear cache on error
+      sessionCache = null;
+      sessionCacheTimestamp = null;
+    }
+
+    return result;
+  }).catch(error => {
+    // Clear pending request on error
+    pendingSessionRequest = null;
+    sessionCache = null;
+    sessionCacheTimestamp = null;
+    throw error;
+  });
+
+  return await pendingSessionRequest;
+};
+
+// Helper to get cached session (now just calls the overridden function)
+export const getCachedSession = async () => {
+  const result = await supabase.auth.getSession();
+  return result.data.session;
+};
+
+// Clear session cache (call this on login/logout)
+export const clearSessionCache = () => {
+  sessionCache = null;
+  sessionCacheTimestamp = null;
+  pendingSessionRequest = null;
+  console.log('🗑️ Session cache cleared');
+};
 
 // Helper function to get current authenticated user
 export const getCurrentUser = async () => {
