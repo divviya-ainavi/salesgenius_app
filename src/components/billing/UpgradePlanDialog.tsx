@@ -49,6 +49,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
   const [showOrgPlanDialog, setShowOrgPlanDialog] = useState(false);
   const [selectedOrgPlan, setSelectedOrgPlan] = useState<any>(null);
   const [orgUserQuantity, setOrgUserQuantity] = useState(2);
+  const [upgradePreview, setUpgradePreview] = useState<any>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // Organization plan stripe_price_id
   const ORG_PLAN_STRIPE_PRICE_ID = "Organization";
@@ -63,6 +65,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
+
+  // Fetch upgrade preview when organization dialog opens or quantity changes
+  useEffect(() => {
+    if (showOrgPlanDialog && selectedOrgPlan) {
+      fetchUpgradePreview(orgUserQuantity);
+    }
+  }, [showOrgPlanDialog, orgUserQuantity, selectedOrgPlan]);
 
   const onClose = () => {
     // Remove coupon flag when modal closes
@@ -138,6 +147,58 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
     if (durationDays === 365) return "Annual";
     if (durationDays <= 31) return "Trial";
     return `${durationDays} days`;
+  };
+
+  const fetchUpgradePreview = async (quantity: number) => {
+    // Only fetch preview if user has an active paid plan
+    const hasActivePaidPlan =
+      currentPlan &&
+      isPaidPlan(currentPlan) &&
+      planDetails?.status !== "canceled" &&
+      !planDetails?.isExpired &&
+      planDetails?.stripe_subscription_id;
+
+    if (!hasActivePaidPlan || !selectedOrgPlan) {
+      setUpgradePreview(null);
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    try {
+      const previewPayload = {
+        org_price_id: selectedOrgPlan.stripe_price_id,
+        subscription_id: planDetails.stripe_subscription_id,
+        quantity: quantity,
+      };
+
+      console.log("📤 Fetching upgrade preview:", previewPayload);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.previewUpgradeDev
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(previewPayload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch upgrade preview");
+      }
+
+      const previewData = await response.json();
+      console.log("✅ Upgrade preview received:", previewData);
+      setUpgradePreview(previewData);
+    } catch (error) {
+      console.error("❌ Error fetching upgrade preview:", error);
+      setUpgradePreview(null);
+    } finally {
+      setIsLoadingPreview(false);
+    }
   };
 
   const handleOrgPlanSubmit = async () => {
@@ -805,28 +866,85 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
             {/* Price Breakdown */}
             {selectedOrgPlan && (
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Price per user:</span>
-                  <span className="font-medium">
-                    ${selectedOrgPlan.price.toLocaleString()}/month
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Number of users:</span>
-                  <span className="font-medium">{orgUserQuantity}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Total:</span>
-                    <span className="text-xl font-bold text-gray-900">
-                      $
-                      {(
-                        selectedOrgPlan.price * orgUserQuantity
-                      ).toLocaleString()}
-                      /month
+                {isLoadingPreview ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <span className="ml-2 text-sm text-gray-500">
+                      Calculating pricing...
                     </span>
                   </div>
-                </div>
+                ) : upgradePreview ? (
+                  <>
+                    {/* Upgrade Preview - Show actual billing */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Price per user:</span>
+                      <span className="font-medium">
+                        {upgradePreview.summary?.["Per Seat"] ||
+                          `$${selectedOrgPlan.price.toLocaleString()}`}/month
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Number of users:</span>
+                      <span className="font-medium">{orgUserQuantity}</span>
+                    </div>
+
+                    {/* Show next billing amount with strikethrough */}
+                    {upgradePreview.summary?.["Next Billing amount"] && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Next billing cycle:</span>
+                        <span className="font-medium line-through text-gray-400">
+                          {upgradePreview.summary["Next Billing amount"]}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-gray-900">
+                          Charges Now:
+                        </span>
+                        <span className="text-xl font-bold text-green-600">
+                          {upgradePreview.summary?.["Charges Now"] ||
+                            `$${(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Additional details */}
+                    {upgradePreview.summary?.Credit && (
+                      <div className="flex justify-between text-xs text-gray-500 pt-1">
+                        <span>Credit from current plan:</span>
+                        <span>{upgradePreview.summary.Credit}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Default pricing - No upgrade preview */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Price per user:</span>
+                      <span className="font-medium">
+                        ${selectedOrgPlan.price.toLocaleString()}/month
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Number of users:</span>
+                      <span className="font-medium">{orgUserQuantity}</span>
+                    </div>
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="font-semibold text-gray-900">Total:</span>
+                        <span className="text-xl font-bold text-gray-900">
+                          $
+                          {(
+                            selectedOrgPlan.price * orgUserQuantity
+                          ).toLocaleString()}
+                          /month
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
