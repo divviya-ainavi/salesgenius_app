@@ -220,9 +220,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       toast.error("This plan is not available for purchase yet");
       return;
     }
-
+    console.log(currentPlan, plan, "check plan details");
     // Check if this is an organization plan
-    if (isOrganizationPlan(plan)) {
+    if (isOrganizationPlan(plan) && currentPlan?.id !== plan.id) {
       // Show organization plan dialog
       setSelectedOrgPlan(plan);
       setOrgUserQuantity(2); // Reset to minimum
@@ -230,11 +230,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       return;
     }
 
-    // Check if the plan is canceled but still active (within the billing period)
-    const isCanceledPlan = planDetails?.status === "canceled";
-    const isCurrentPlanRenewal = currentPlan?.id === plan.id;
+    // }
 
-    if (isCanceledPlan && isCurrentPlanRenewal) {
+    // For regular plans, proceed with normal checkout
+    setIsProcessingPayment(true);
+
+    try {
+      // Check if the plan is canceled but still active (within the billing period)
+      const isCanceledPlan = planDetails?.status === "canceled";
+      const isCurrentPlanRenewal = currentPlan?.id === plan.id;
+
+      // if (isCanceledPlan && isCurrentPlanRenewal) {
       // Check if today's date is between start date and end date
       const today = new Date();
       const startDate = new Date(planDetails.start_date);
@@ -242,7 +248,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
       const isBetweenDates = today >= startDate && today <= endDate;
 
-      if (isBetweenDates) {
+      if (isCanceledPlan && isCurrentPlanRenewal && isBetweenDates) {
         // Call renew subscription endpoint
         setIsProcessingPayment(true);
 
@@ -258,9 +264,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
             dbid: planDetails?.id,
           };
 
-          const renewEndpoint = planDetails?.plan_master?.plan_name === "Organization"
-            ? `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.renewSubscriptionDev}`
-            : `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.renewSubscriptionDev}`;
+          const renewEndpoint = `${import.meta.env.VITE_API_BASE_URL}${
+            config.api.endpoints.renewSubscriptionDev
+          }`;
 
           console.log("📤 Sending renewal request to API:", renewPayload);
 
@@ -282,7 +288,9 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           const renewalResult = await response.json();
           console.log("✅ Subscription renewed successfully:", renewalResult);
 
-          toast.success("Subscription renewed successfully! Your plan is now active.");
+          toast.success(
+            "Subscription renewed successfully! Your plan is now active."
+          );
 
           // Reload the page to refresh all data
           window.location.reload();
@@ -295,67 +303,62 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           dispatch(setShowUpgradeModal(false));
           return;
         }
-      }
-    }
-
-    // For regular plans, proceed with normal checkout
-    setIsProcessingPayment(true);
-
-    try {
-      console.log("🔄 Creating checkout session for plan:", plan.plan_name);
-
-      const payload = {
-        userid: user.id,
-        plan_id: plan.stripe_price_id,
-        emailid: user.email,
-        dbplan_id: plan.id,
-        coupon_id: hasCoupon ? "50LIFE" : "",
-        coupon: hasCoupon,
-      };
-
-      const endpoint = config.api.endpoints.checkoutSubscriptionDev;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
-        );
-      }
-
-      const checkoutData = await response.json();
-      console.log("✅ Checkout session created:", checkoutData);
-
-      // Handle the response array format
-      if (
-        Array.isArray(checkoutData) &&
-        checkoutData.length > 0 &&
-        checkoutData[0].checkoutUrl
-      ) {
-        console.log(
-          "🔗 Redirecting to Stripe checkout:",
-          checkoutData[0].checkoutUrl
-        );
-        window.location.href = checkoutData[0].checkoutUrl;
-      } else if (checkoutData.checkoutUrl) {
-        console.log(
-          "🔗 Redirecting to Stripe checkout:",
-          checkoutData.checkoutUrl
-        );
-        window.location.href = checkoutData.checkoutUrl;
       } else {
-        console.error("❌ Invalid checkout response format:", checkoutData);
-        throw new Error("No checkout URL received from server");
+        console.log("🔄 Creating checkout session for plan:", plan.plan_name);
+
+        const payload = {
+          userid: user.id,
+          plan_id: plan.stripe_price_id,
+          emailid: user.email,
+          dbplan_id: plan.id,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
+        };
+
+        const endpoint = config.api.endpoints.checkoutSubscriptionDev;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
+          );
+        }
+
+        const checkoutData = await response.json();
+        console.log("✅ Checkout session created:", checkoutData);
+
+        // Handle the response array format
+        if (
+          Array.isArray(checkoutData) &&
+          checkoutData.length > 0 &&
+          checkoutData[0].checkoutUrl
+        ) {
+          console.log(
+            "🔗 Redirecting to Stripe checkout:",
+            checkoutData[0].checkoutUrl
+          );
+          window.location.href = checkoutData[0].checkoutUrl;
+        } else if (checkoutData.checkoutUrl) {
+          console.log(
+            "🔗 Redirecting to Stripe checkout:",
+            checkoutData.checkoutUrl
+          );
+          window.location.href = checkoutData.checkoutUrl;
+        } else {
+          console.error("❌ Invalid checkout response format:", checkoutData);
+          throw new Error("No checkout URL received from server");
+        }
       }
 
       // Call onUpgrade callback if provided
@@ -420,7 +423,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
                   // For expired users or canceled users (within billing period), allow them to choose their current plan again
                   const isCanceledWithinPeriod = (() => {
-                    if (planDetails?.status !== "canceled" || plan.id !== currentPlan?.id) {
+                    if (
+                      planDetails?.status !== "canceled" ||
+                      plan.id !== currentPlan?.id
+                    ) {
                       return false;
                     }
                     const today = new Date();
@@ -480,17 +486,22 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
 
                       {isCurrentPlan && (
                         <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-10">
-                          <Badge className={cn(
-                            "text-white px-2 py-0.5 text-xs font-medium shadow-md",
-                            isCanceledWithinPeriod
-                              ? "bg-gradient-to-r from-orange-500 to-red-600"
-                              : "bg-gradient-to-r from-gray-500 to-gray-600"
-                          )}>
-                            {isCanceledWithinPeriod
-                              ? "Canceled - Click to renew"
-                              : planDetails?.isExpired
-                              ? "Your expired plan"
-                              : "Your current plan"}
+                          <Badge
+                            className={cn(
+                              "text-white px-2 py-0.5 text-xs font-medium shadow-md",
+                              isCanceledWithinPeriod
+                                ? "bg-gradient-to-r from-orange-500 to-red-600"
+                                : "bg-gradient-to-r from-gray-500 to-gray-600"
+                            )}
+                          >
+                            {
+                              // isCanceledWithinPeriod
+                              //   ? "Canceled - Click to renew"
+                              //   :
+                              planDetails?.isExpired
+                                ? "Your expired plan"
+                                : "Your current plan"
+                            }
                           </Badge>
                         </div>
                       )}
