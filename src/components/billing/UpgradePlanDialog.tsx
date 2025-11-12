@@ -895,23 +895,50 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
 
                     <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
                       {/* Show total amount with strikethrough */}
-                      {upgradePreview.summary?.["Next Billing amount"] && (
+
+                      {upgradePreview.summary?.next_billing_amount && (
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Total:</span>
-                          <span className="text-lg font-semibold line-through text-gray-400">
-                            {upgradePreview.summary["Next Billing amount"]}
+                          <span className="text-sm text-gray-600">
+                            Next Billing Amount:
+                          </span>
+                          <span className="text-lg font-semibold text-gray-400">
+                            {`$${parseFloat(
+                              (
+                                upgradePreview.summary?.next_billing_amount ||
+                                "0"
+                              )
+                                .toString()
+                                .replace(/[^0-9.]/g, "")
+                            ).toFixed(0)}`}
+                            /month
                           </span>
                         </div>
                       )}
 
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total:</span>
+                        <span className="text-lg font-semibold line-through text-gray-400">
+                          ${" "}
+                          {(
+                            selectedOrgPlan.price * orgUserQuantity
+                          ).toLocaleString()}
+                          /month
+                        </span>
+                      </div>
+
                       {/* Show actual charges now */}
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900">
-                          Charges Now:
+                          Immediate charge:
                         </span>
                         <span className="text-xl font-bold text-green-600">
-                          {upgradePreview.summary?.["Charges Now"] ||
-                            `$${(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}`}
+                          {/* {`$${Number(upgradePreview.summary?.next_billing_amount ?? 0).toFixed(0)}`} */}
+
+                          {`$${parseFloat(
+                            (upgradePreview.summary?.charges_now || "0")
+                              .toString()
+                              .replace(/[^0-9.]/g, "")
+                          ).toFixed(0)}`}
                         </span>
                       </div>
                     </div>
