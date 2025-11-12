@@ -561,9 +561,10 @@ export const BillingComponent = ({ orgPlan }) => {
                 const today = new Date();
                 const startDate = new Date(planDetails.start_date);
                 const endDate = new Date(planDetails.end_date);
+                console.log(today, startDate, endDate, "date check");
                 return today >= startDate && today <= endDate;
               })();
-
+              console.log(isCanceledWithinPeriod, "is canceled within period");
               // Show button if:
               // 1. Next tier plan is available (for upgrades), OR
               // 2. Plan is canceled (within billing period), OR
@@ -607,7 +608,7 @@ export const BillingComponent = ({ orgPlan }) => {
                 </Button>
               );
             })()}
-            {console.log(
+            {/* {console.log(
               planDetails,
               "planDetails.renewalDate",
               isPaidPlan(currentPlan) &&
@@ -622,7 +623,18 @@ export const BillingComponent = ({ orgPlan }) => {
                 userRoleId === 2,
               "check current plan",
               currentPlan
-            )}
+            )} */}
+            {/* {console.log(
+              planDetails?.isExpired,
+              isPaidPlan(currentPlan),
+              planDetails?.status,
+              planDetails?.status !== "canceled",
+              !planDetails?.isExpired &&
+                (planDetails?.plan_master?.plan_name !== "Organization" ||
+                  userRoleId === 2),
+              planDetails,
+              "is expired"
+            )} */}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
