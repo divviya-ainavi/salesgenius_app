@@ -558,12 +558,27 @@ export const BillingComponent = ({ orgPlan }) => {
               // Check if plan is canceled but still within billing period
               const isCanceledWithinPeriod = (() => {
                 if (planDetails?.status !== "canceled") return false;
+
                 const today = new Date();
                 const startDate = new Date(planDetails.start_date);
                 const endDate = new Date(planDetails.end_date);
-                console.log(today, startDate, endDate, "date check");
-                return today >= startDate && today <= endDate;
+
+                // Normalize to only compare date (set time to 00:00:00)
+                const normalizeDate = (date) => {
+                  const d = new Date(date);
+                  d.setHours(0, 0, 0, 0);
+                  return d;
+                };
+
+                const t = normalizeDate(today);
+                const s = normalizeDate(startDate);
+                const e = normalizeDate(endDate);
+
+                console.log(t, s, e, "date check");
+
+                return t >= s && t <= e;
               })();
+
               console.log(isCanceledWithinPeriod, "is canceled within period");
               // Show button if:
               // 1. Next tier plan is available (for upgrades), OR
