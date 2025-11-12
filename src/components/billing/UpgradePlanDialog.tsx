@@ -24,8 +24,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
-import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import {
+  setCurrentPlan,
+  setPlanDetails,
+  setShowUpgradeModal,
+} from "../../store/slices/orgSlice";
 import { config } from "../../lib/config";
+import { dbHelpers } from "../../lib/supabase";
 
 interface UpgradePlanDialogProps {
   isOpen?: boolean;
@@ -34,9 +39,7 @@ interface UpgradePlanDialogProps {
   onPlanUpdated?: () => Promise<void>;
 }
 
-export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
-  onPlanUpdated,
-}) => {
+export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
@@ -99,6 +102,72 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
       ...prev,
       [planId]: !prev[planId],
     }));
+  };
+
+  const onPlanUpdated = async () => {
+    try {
+      // setIsLoading(true);
+
+      if (user?.id) {
+        // Get user's current plan from user_plan table with plan_master details
+        const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
+        console.log(userPlanData, "user plan data in load plan data");
+        if (userPlanData && userPlanData.length > 0) {
+          // console.log(userPlanData, "user plan data");
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+
+          const endDate = new Date(userPlan.end_date);
+          const canceled_at = new Date(userPlan.canceled_at);
+          const today = new Date();
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          console.log(
+            endDate,
+            today,
+            "check date",
+            isDateExpired,
+            endDate?.toLocaleDateString("en-CA") <
+              today?.toLocaleDateString("en-CA")
+          );
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
+          const isExpired = isDateExpired || isStatusExpired;
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          );
+          // console.log(userPlan, "user plan 109");
+          dispatch(setCurrentPlan(planMaster));
+          dispatch(
+            setPlanDetails({
+              ...userPlan,
+              // ...planMaster,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              canceled_at: canceled_at.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            })
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading plan data:", error);
+    } finally {
+      // setIsLoading(false);
+      console.log("finally called");
+    }
   };
 
   const getPlanBorderColor = (plan: any) => {
@@ -170,6 +239,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
 
     setIsLoadingPreview(true);
     try {
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
       const previewPayload = {
         org_price_id: selectedOrgPlan.stripe_price_id,
         subscription_id: planDetails.stripe_subscription_id,
@@ -895,23 +966,50 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
 
                     <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
                       {/* Show total amount with strikethrough */}
-                      {upgradePreview.summary?.["Next Billing amount"] && (
+
+                      {upgradePreview.summary?.next_billing_amount && (
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Total:</span>
-                          <span className="text-lg font-semibold line-through text-gray-400">
-                            {upgradePreview.summary["Next Billing amount"]}
+                          <span className="text-sm text-gray-600">
+                            Next Billing Amount:
+                          </span>
+                          <span className="text-lg font-semibold text-gray-400">
+                            {`$${parseFloat(
+                              (
+                                upgradePreview.summary?.next_billing_amount ||
+                                "0"
+                              )
+                                .toString()
+                                .replace(/[^0-9.]/g, "")
+                            ).toFixed(0)}`}
+                            /month
                           </span>
                         </div>
                       )}
 
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total:</span>
+                        <span className="text-lg font-semibold line-through text-gray-400">
+                          ${" "}
+                          {(
+                            selectedOrgPlan.price * orgUserQuantity
+                          ).toLocaleString()}
+                          /month
+                        </span>
+                      </div>
+
                       {/* Show actual charges now */}
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900">
-                          Charges Now:
+                          Immediate charge:
                         </span>
                         <span className="text-xl font-bold text-green-600">
-                          {upgradePreview.summary?.["Charges Now"] ||
-                            `$${(selectedOrgPlan.price * orgUserQuantity).toLocaleString()}`}
+                          {/* {`$${Number(upgradePreview.summary?.next_billing_amount ?? 0).toFixed(0)}`} */}
+
+                          {`$${parseFloat(
+                            (upgradePreview.summary?.charges_now || "0")
+                              .toString()
+                              .replace(/[^0-9.]/g, "")
+                          ).toFixed(0)}`}
                         </span>
                       </div>
                     </div>
@@ -929,16 +1027,49 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
                       <span className="text-gray-600">Number of users:</span>
                       <span className="font-medium">{orgUserQuantity}</span>
                     </div>
-                    <div className="border-t border-gray-200 pt-2 mt-2">
-                      <div className="flex justify-between">
+
+                    {hasCoupon && (
+                      <div className="flex items-center justify-center py-2">
+                        <Badge className="bg-green-100 text-green-700 border-green-300">
+                          50% OFF - Coupon Applied!
+                        </Badge>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
+                      {hasCoupon && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Original Total:
+                          </span>
+                          <span className="text-lg font-semibold line-through text-gray-400">
+                            $
+                            {(
+                              selectedOrgPlan.price * orgUserQuantity
+                            ).toLocaleString()}
+                            /month
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900">
-                          Total:
+                          {hasCoupon ? "Discounted Price:" : "Total:"}
                         </span>
-                        <span className="text-xl font-bold text-gray-900">
+                        <span
+                          className={`text-xl font-bold ${
+                            hasCoupon ? "text-green-600" : "text-gray-900"
+                          }`}
+                        >
                           $
-                          {(
-                            selectedOrgPlan.price * orgUserQuantity
-                          ).toLocaleString()}
+                          {hasCoupon
+                            ? (
+                                (selectedOrgPlan.price * orgUserQuantity) /
+                                2
+                              ).toLocaleString()
+                            : (
+                                selectedOrgPlan.price * orgUserQuantity
+                              ).toLocaleString()}
                           /month
                         </span>
                       </div>
