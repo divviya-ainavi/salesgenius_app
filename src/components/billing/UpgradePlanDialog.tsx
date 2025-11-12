@@ -24,8 +24,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
-import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import {
+  setCurrentPlan,
+  setPlanDetails,
+  setShowUpgradeModal,
+} from "../../store/slices/orgSlice";
 import { config } from "../../lib/config";
+import { dbHelpers } from "../../lib/supabase";
 
 interface UpgradePlanDialogProps {
   isOpen?: boolean;
@@ -34,9 +39,7 @@ interface UpgradePlanDialogProps {
   onPlanUpdated?: () => Promise<void>;
 }
 
-export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
-  onPlanUpdated,
-}) => {
+export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   const { user, organizationDetails } = useSelector((state) => state.auth);
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
@@ -99,6 +102,72 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({
       ...prev,
       [planId]: !prev[planId],
     }));
+  };
+
+  const onPlanUpdated = async () => {
+    try {
+      // setIsLoading(true);
+
+      if (user?.id) {
+        // Get user's current plan from user_plan table with plan_master details
+        const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
+        console.log(userPlanData, "user plan data in load plan data");
+        if (userPlanData && userPlanData.length > 0) {
+          // console.log(userPlanData, "user plan data");
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+
+          const endDate = new Date(userPlan.end_date);
+          const canceled_at = new Date(userPlan.canceled_at);
+          const today = new Date();
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          console.log(
+            endDate,
+            today,
+            "check date",
+            isDateExpired,
+            endDate?.toLocaleDateString("en-CA") <
+              today?.toLocaleDateString("en-CA")
+          );
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
+          const isExpired = isDateExpired || isStatusExpired;
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          );
+          // console.log(userPlan, "user plan 109");
+          dispatch(setCurrentPlan(planMaster));
+          dispatch(
+            setPlanDetails({
+              ...userPlan,
+              // ...planMaster,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              canceled_at: canceled_at.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            })
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading plan data:", error);
+    } finally {
+      // setIsLoading(false);
+      console.log("finally called");
+    }
   };
 
   const getPlanBorderColor = (plan: any) => {
