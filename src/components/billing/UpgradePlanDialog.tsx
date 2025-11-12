@@ -239,12 +239,12 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
     setIsLoadingPreview(true);
     try {
-          coupon_id: hasCoupon ? "50LIFE" : "",
-          coupon: hasCoupon,
       const previewPayload = {
         org_price_id: selectedOrgPlan.stripe_price_id,
         subscription_id: planDetails.stripe_subscription_id,
         quantity: quantity,
+        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon: hasCoupon,
       };
 
       console.log("📤 Fetching upgrade preview:", previewPayload);
@@ -310,6 +310,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           emailid: user.email,
           dbplan_id: selectedOrgPlan.id,
           organization_id: organizationDetails?.id,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
         };
 
         console.log("📤 Sending upgrade request to API:", upgradePayload);
