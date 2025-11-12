@@ -310,7 +310,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         setIsProcessingPayment(true);
 
         try {
-          console.log("🔄 Renewing subscription for plan:", plan.plan_name);
+          // console.log("🔄 Renewing subscription for plan:", plan.plan_name);
 
           const renewPayload = {
             subscription_Id: planDetails?.stripe_subscription_id,
@@ -343,14 +343,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           }
 
           const renewalResult = await response.json();
-          console.log("✅ Subscription renewed successfully:", renewalResult);
+          // console.log("✅ Subscription renewed successfully:", renewalResult);
 
           toast.success(
             "Subscription renewed successfully! Your plan is now active."
           );
-
+          setIsProcessingPayment(false);
+          dispatch(setShowUpgradeModal(false));
           // Reload the page to refresh all data
-          window.location.reload();
+          // window.location.reload();
 
           return;
         } catch (error: any) {
