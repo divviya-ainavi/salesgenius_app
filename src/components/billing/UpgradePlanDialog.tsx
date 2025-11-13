@@ -40,7 +40,9 @@ interface UpgradePlanDialogProps {
 }
 
 export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
-  const { user, organizationDetails } = useSelector((state) => state.auth);
+  const { user, organizationDetails, userRoleId } = useSelector(
+    (state) => state.auth
+  );
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -202,7 +204,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   };
 
   const sortPlans = (plans: any[]) => {
-    return [...plans].sort((a, b) => {
+    console.log(userRoleId, "check user role id");
+    // Step 1: Filter Organization plans based on userRoleId
+    const filteredPlans = plans.filter((plan) => {
+      if (isOrganizationPlan(plan) && userRoleId !== 2) {
+        return false; // hide org plan
+      }
+      return true;
+    });
+
+    // Step 2: Sort as before
+    return [...filteredPlans].sort((a, b) => {
       if (isFreePlan(a)) return -1;
       if (isFreePlan(b)) return 1;
 
