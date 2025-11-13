@@ -24,17 +24,25 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
-import { setShowUpgradeModal } from "../../store/slices/orgSlice";
+import {
+  setCurrentPlan,
+  setPlanDetails,
+  setShowUpgradeModal,
+} from "../../store/slices/orgSlice";
 import { config } from "../../lib/config";
+import { dbHelpers } from "../../lib/supabase";
 
 interface UpgradePlanDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onUpgrade?: (plan: any) => void;
+  onPlanUpdated?: () => Promise<void>;
 }
 
-export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
-  const { user, organizationDetails } = useSelector((state) => state.auth);
+export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
+  const { user, organizationDetails, userRoleId } = useSelector(
+    (state) => state.auth
+  );
   const { currentPlan, availablePlans, showUpgradeModal, planDetails } =
     useSelector((state) => state.org);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -46,6 +54,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   const [showOrgPlanDialog, setShowOrgPlanDialog] = useState(false);
   const [selectedOrgPlan, setSelectedOrgPlan] = useState<any>(null);
   const [orgUserQuantity, setOrgUserQuantity] = useState(2);
+  const [upgradePreview, setUpgradePreview] = useState<any>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // Organization plan stripe_price_id
   const ORG_PLAN_STRIPE_PRICE_ID = "Organization";
@@ -60,6 +70,18 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     const couponFlag = localStorage.getItem("apply_coupon_50LIFE");
     setHasCoupon(!!couponFlag);
   }, [showUpgradeModal]);
+
+  // Fetch upgrade preview when organization dialog opens or quantity changes (with debounce)
+  useEffect(() => {
+    if (showOrgPlanDialog && selectedOrgPlan) {
+      // Debounce the preview fetch by 500ms
+      const debounceTimer = setTimeout(() => {
+        fetchUpgradePreview(orgUserQuantity);
+      }, 500);
+
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [showOrgPlanDialog, orgUserQuantity, selectedOrgPlan]);
 
   const onClose = () => {
     // Remove coupon flag when modal closes
@@ -82,6 +104,72 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
       ...prev,
       [planId]: !prev[planId],
     }));
+  };
+
+  const onPlanUpdated = async () => {
+    try {
+      // setIsLoading(true);
+
+      if (user?.id) {
+        // Get user's current plan from user_plan table with plan_master details
+        const userPlanData = await dbHelpers.getUserPlanAndPlanMasters(user.id);
+        console.log(userPlanData, "user plan data in load plan data");
+        if (userPlanData && userPlanData.length > 0) {
+          // console.log(userPlanData, "user plan data");
+          const userPlan = userPlanData[0];
+          const planMaster = userPlan.plan_master;
+
+          const endDate = new Date(userPlan.end_date);
+          const canceled_at = new Date(userPlan.canceled_at);
+          const today = new Date();
+          const isDateExpired =
+            endDate?.toLocaleDateString("en-CA") <
+            today?.toLocaleDateString("en-CA");
+          console.log(
+            endDate,
+            today,
+            "check date",
+            isDateExpired,
+            endDate?.toLocaleDateString("en-CA") <
+              today?.toLocaleDateString("en-CA")
+          );
+          const isStatusExpired =
+            userPlan.status === "expired" ||
+            userPlan.status === "cancelled" ||
+            userPlan.is_active === false;
+          const isExpired = isDateExpired || isStatusExpired;
+          const daysRemaining = Math.max(
+            0,
+            Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
+          );
+          // console.log(userPlan, "user plan 109");
+          dispatch(setCurrentPlan(planMaster));
+          dispatch(
+            setPlanDetails({
+              ...userPlan,
+              // ...planMaster,
+              isExpired,
+              daysRemaining,
+              renewalDate: endDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              canceled_at: canceled_at.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            })
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading plan data:", error);
+    } finally {
+      // setIsLoading(false);
+      console.log("finally called");
+    }
   };
 
   const getPlanBorderColor = (plan: any) => {
@@ -116,7 +204,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
   };
 
   const sortPlans = (plans: any[]) => {
-    return [...plans].sort((a, b) => {
+    console.log(userRoleId, "check user role id");
+    // Step 1: Filter Organization plans based on userRoleId
+    const filteredPlans = plans.filter((plan) => {
+      if (isOrganizationPlan(plan) && userRoleId !== 2) {
+        return false; // hide org plan
+      }
+      return true;
+    });
+
+    // Step 2: Sort as before
+    return [...filteredPlans].sort((a, b) => {
       if (isFreePlan(a)) return -1;
       if (isFreePlan(b)) return 1;
 
@@ -135,6 +233,60 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
     if (durationDays === 365) return "Annual";
     if (durationDays <= 31) return "Trial";
     return `${durationDays} days`;
+  };
+
+  const fetchUpgradePreview = async (quantity: number) => {
+    // Only fetch preview if user has an active paid plan
+    const hasActivePaidPlan =
+      currentPlan &&
+      isPaidPlan(currentPlan) &&
+      planDetails?.status !== "canceled" &&
+      !planDetails?.isExpired &&
+      planDetails?.stripe_subscription_id;
+
+    if (!hasActivePaidPlan || !selectedOrgPlan) {
+      setUpgradePreview(null);
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    try {
+      const previewPayload = {
+        org_price_id: selectedOrgPlan.stripe_price_id,
+        subscription_id: planDetails.stripe_subscription_id,
+        quantity: quantity,
+        coupon_id: hasCoupon ? "50LIFE" : "",
+        coupon: hasCoupon,
+      };
+
+      console.log("📤 Fetching upgrade preview:", previewPayload);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.previewUpgradeDev
+        }`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(previewPayload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch upgrade preview");
+      }
+
+      const previewData = await response.json();
+      console.log("✅ Upgrade preview received:", previewData);
+      setUpgradePreview(previewData);
+    } catch (error) {
+      console.error("❌ Error fetching upgrade preview:", error);
+      setUpgradePreview(null);
+    } finally {
+      setIsLoadingPreview(false);
+    }
   };
 
   const handleOrgPlanSubmit = async () => {
@@ -170,6 +322,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           emailid: user.email,
           dbplan_id: selectedOrgPlan.id,
           organization_id: organizationDetails?.id,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
         };
 
         console.log("📤 Sending upgrade request to API:", upgradePayload);
@@ -201,10 +355,13 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           "Successfully upgraded to Organization plan! Refreshing your subscription details..."
         );
 
-        // Reload the page to refresh all data
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        // Call the callback to refresh plan data
+        if (onPlanUpdated) {
+          await onPlanUpdated();
+        }
+
+        dispatch(setShowUpgradeModal(false));
+        setIsProcessingPayment(false);
 
         return;
       } else {
@@ -343,15 +500,19 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
           }
 
           const renewalResult = await response.json();
-          // console.log("✅ Subscription renewed successfully:", renewalResult);
+          console.log("✅ Subscription renewed successfully:", renewalResult);
 
           toast.success(
             "Subscription renewed successfully! Your plan is now active."
           );
+
+          // Call the callback to refresh plan data
+          if (onPlanUpdated) {
+            await onPlanUpdated();
+          }
+
           setIsProcessingPayment(false);
           dispatch(setShowUpgradeModal(false));
-          // Reload the page to refresh all data
-          // window.location.reload();
 
           return;
         } catch (error: any) {
@@ -743,6 +904,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
         </DialogContent>
       </Dialog>
 
+      {console.log(upgradePreview, "check upgrade preview")}
       {/* Organization Plan User Quantity Dialog */}
       <Dialog open={showOrgPlanDialog} onOpenChange={setShowOrgPlanDialog}>
         <DialogContent className="sm:max-w-md">
@@ -795,28 +957,139 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = ({}) => {
             {/* Price Breakdown */}
             {selectedOrgPlan && (
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Price per user:</span>
-                  <span className="font-medium">
-                    ${selectedOrgPlan.price.toLocaleString()}/month
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Number of users:</span>
-                  <span className="font-medium">{orgUserQuantity}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Total:</span>
-                    <span className="text-xl font-bold text-gray-900">
-                      $
-                      {(
-                        selectedOrgPlan.price * orgUserQuantity
-                      ).toLocaleString()}
-                      /month
+                {isLoadingPreview ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <span className="ml-2 text-sm text-gray-500">
+                      Calculating pricing...
                     </span>
                   </div>
-                </div>
+                ) : upgradePreview ? (
+                  <>
+                    {/* Upgrade Preview - Show actual billing */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Price per user:</span>
+                      <span className="font-medium">
+                        ${selectedOrgPlan.price.toLocaleString()}/month
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Number of users:</span>
+                      <span className="font-medium">{orgUserQuantity}</span>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
+                      {/* Show total amount with strikethrough */}
+
+                      {upgradePreview.summary?.next_billing_amount && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Next Billing Amount:
+                          </span>
+                          <span className="text-lg font-semibold text-gray-400">
+                            {`$${parseFloat(
+                              (
+                                upgradePreview.summary?.next_billing_amount ||
+                                "0"
+                              )
+                                .toString()
+                                .replace(/[^0-9.]/g, "")
+                            ).toFixed(0)}`}
+                            /month
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total:</span>
+                        <span className="text-lg font-semibold line-through text-gray-400">
+                          ${" "}
+                          {(
+                            selectedOrgPlan.price * orgUserQuantity
+                          ).toLocaleString()}
+                          /month
+                        </span>
+                      </div>
+
+                      {/* Show actual charges now */}
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-gray-900">
+                          Immediate charge:
+                        </span>
+                        <span className="text-xl font-bold text-green-600">
+                          {/* {`$${Number(upgradePreview.summary?.next_billing_amount ?? 0).toFixed(0)}`} */}
+
+                          {`$${parseFloat(
+                            (upgradePreview.summary?.charges_now || "0")
+                              .toString()
+                              .replace(/[^0-9.]/g, "")
+                          ).toFixed(0)}`}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Default pricing - No upgrade preview */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Price per user:</span>
+                      <span className="font-medium">
+                        ${selectedOrgPlan.price.toLocaleString()}/month
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Number of users:</span>
+                      <span className="font-medium">{orgUserQuantity}</span>
+                    </div>
+
+                    {hasCoupon && (
+                      <div className="flex items-center justify-center py-2">
+                        <Badge className="bg-green-100 text-green-700 border-green-300">
+                          50% OFF - Coupon Applied!
+                        </Badge>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
+                      {hasCoupon && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Original Total:
+                          </span>
+                          <span className="text-lg font-semibold line-through text-gray-400">
+                            $
+                            {(
+                              selectedOrgPlan.price * orgUserQuantity
+                            ).toLocaleString()}
+                            /month
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-gray-900">
+                          {hasCoupon ? "Discounted Price:" : "Total:"}
+                        </span>
+                        <span
+                          className={`text-xl font-bold ${
+                            hasCoupon ? "text-green-600" : "text-gray-900"
+                          }`}
+                        >
+                          $
+                          {hasCoupon
+                            ? (
+                                (selectedOrgPlan.price * orgUserQuantity) /
+                                2
+                              ).toLocaleString()
+                            : (
+                                selectedOrgPlan.price * orgUserQuantity
+                              ).toLocaleString()}
+                          /month
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

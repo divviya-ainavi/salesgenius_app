@@ -82,6 +82,8 @@ export const config = {
       renewSubscriptionProd: 'renew-sub-prod',
       upgradePlanDev: 'upgrade-plan-dev',
       upgradePlanProd: 'upgrade-plan-prod',
+      previewUpgradeDev: 'preview-upgrade-dev',
+      previewUpgradeProd: 'preview-upgrade-prod',
     }
   }
 };

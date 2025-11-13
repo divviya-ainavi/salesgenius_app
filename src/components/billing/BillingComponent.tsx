@@ -390,30 +390,32 @@ export const BillingComponent = ({ orgPlan }) => {
 
     // Check if current plan is Pro (Pro or Pro 1)
     const isProPlan =
-      currentPlan.plan_name === "Pro" || currentPlan.plan_name === "Pro 1";
+      currentPlan?.plan_name === "Pro" || currentPlan?.plan_name === "Pro 1";
 
     // If user is on Pro plan, check for Organization plan at same price
     if (isProPlan) {
       const orgPlan = availablePlans.find(
-        (plan) => plan.plan_name === "Organization"
+        (plan) => plan?.plan_name === "Organization"
       );
 
       // If Organization plan exists and has same or similar price, show it as next tier
-      if (orgPlan && orgPlan.price >= currentPlan.price) {
+      if (orgPlan && orgPlan?.price >= currentPlan?.price) {
         console.log("Next tier: Organization plan (upgrade from Pro)");
         return orgPlan;
       }
     }
 
     // Find plans with higher price than current plan
-    const higherPlans = availablePlans.filter(
-      (plan) => plan.price > currentPlan.price
+    const higherPlans = availablePlans?.filter(
+      (plan) => plan?.price > currentPlan?.price
     );
-    console.log(higherPlans, "higher plans");
+    // console.log(higherPlans, "higher plans");
 
     // Return the cheapest higher plan (next tier)
     return higherPlans.length > 0
-      ? higherPlans.reduce((min, plan) => (plan.price < min.price ? plan : min))
+      ? higherPlans?.reduce((min, plan) =>
+          plan?.price < min?.price ? plan : min
+        )
       : null;
   };
 
@@ -487,9 +489,9 @@ export const BillingComponent = ({ orgPlan }) => {
               <p className="text-muted-foreground text-base">
                 Your workspace is currently subscribed to the{" "}
                 <span className="font-semibold text-foreground">
-                  {currentPlan.plan_name == "Pro 1"
+                  {currentPlan?.plan_name == "Pro 1"
                     ? "Pro"
-                    : currentPlan.plan_name || "Unknown Plan"}
+                    : currentPlan?.plan_name || "Unknown Plan"}
                 </span>{" "}
                 plan.
               </p>
@@ -534,9 +536,9 @@ export const BillingComponent = ({ orgPlan }) => {
             >
               <div className="relative z-10">
                 <h3 className="text-3xl font-bold mb-2">
-                  {currentPlan.plan_name == "Pro 1"
+                  {currentPlan?.plan_name == "Pro 1"
                     ? "Pro"
-                    : currentPlan.plan_name || "Unknown"}
+                    : currentPlan?.plan_name || "Unknown"}
                 </h3>
                 <p className="text-white/80 text-lg">
                   {getDurationText(currentPlan?.duration_days)}
@@ -556,12 +558,28 @@ export const BillingComponent = ({ orgPlan }) => {
               // Check if plan is canceled but still within billing period
               const isCanceledWithinPeriod = (() => {
                 if (planDetails?.status !== "canceled") return false;
+
                 const today = new Date();
                 const startDate = new Date(planDetails.start_date);
                 const endDate = new Date(planDetails.end_date);
-                return today >= startDate && today <= endDate;
+
+                // Normalize to only compare date (set time to 00:00:00)
+                const normalizeDate = (date) => {
+                  const d = new Date(date);
+                  d.setHours(0, 0, 0, 0);
+                  return d;
+                };
+
+                const t = normalizeDate(today);
+                const s = normalizeDate(startDate);
+                const e = normalizeDate(endDate);
+
+                console.log(t, s, e, "date check");
+
+                return t >= s && t <= e;
               })();
 
+              console.log(isCanceledWithinPeriod, "is canceled within period");
               // Show button if:
               // 1. Next tier plan is available (for upgrades), OR
               // 2. Plan is canceled (within billing period), OR
@@ -605,7 +623,7 @@ export const BillingComponent = ({ orgPlan }) => {
                 </Button>
               );
             })()}
-            {console.log(
+            {/* {console.log(
               planDetails,
               "planDetails.renewalDate",
               isPaidPlan(currentPlan) &&
@@ -620,7 +638,18 @@ export const BillingComponent = ({ orgPlan }) => {
                 userRoleId === 2,
               "check current plan",
               currentPlan
-            )}
+            )} */}
+            {/* {console.log(
+              planDetails?.isExpired,
+              isPaidPlan(currentPlan),
+              planDetails?.status,
+              planDetails?.status !== "canceled",
+              !planDetails?.isExpired &&
+                (planDetails?.plan_master?.plan_name !== "Organization" ||
+                  userRoleId === 2),
+              planDetails,
+              "is expired"
+            )} */}
             {/* Cancel Subscription Button for Paid Plans */}
             {isPaidPlan(currentPlan) &&
               planDetails?.status !== "canceled" &&
@@ -854,7 +883,7 @@ export const BillingComponent = ({ orgPlan }) => {
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradePlanDialog />
+      <UpgradePlanDialog onPlanUpdated={loadPlanData} />
 
       {/* Cancel Subscription Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
