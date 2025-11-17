@@ -56,10 +56,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   const [orgUserQuantity, setOrgUserQuantity] = useState(2);
   const [upgradePreview, setUpgradePreview] = useState<any>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-  const [couponError, setCouponError] = useState("");
 
   // Organization plan stripe_price_id
   const ORG_PLAN_STRIPE_PRICE_ID = "Organization";
@@ -239,80 +235,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
     return `${durationDays} days`;
   };
 
-  const validateCouponCode = async () => {
-    if (!couponCode.trim()) {
-      setCouponError("Please enter a coupon code");
-      return;
-    }
-
-    setIsValidatingCoupon(true);
-    setCouponError("");
-
-    try {
-      const payload = {
-        coupon_code: couponCode.trim(),
-        quantity: orgUserQuantity,
-        price_id: selectedOrgPlan?.stripe_price_id,
-      };
-
-      console.log("📤 Validating coupon:", payload);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.checkValidCouponDev
-        }`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Invalid coupon code");
-      }
-
-      const couponData = await response.json();
-      console.log("✅ Coupon validated:", couponData);
-
-      if (Array.isArray(couponData) && couponData.length > 0) {
-        setAppliedCoupon({
-          code: couponCode.trim(),
-          percentage: couponData[0].percentage,
-        });
-        setCouponError("");
-        toast.success(`Coupon applied! ${couponData[0].percentage} discount`);
-      } else {
-        throw new Error("Invalid coupon response");
-      }
-    } catch (error: any) {
-      console.error("❌ Coupon validation error:", error);
-      setCouponError(error.message || "Invalid coupon code");
-      setAppliedCoupon(null);
-      toast.error(error.message || "Invalid coupon code");
-    } finally {
-      setIsValidatingCoupon(false);
-    }
-  };
-
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
-    setCouponError("");
-  };
-
-  const calculateDiscountedPrice = (originalPrice: number) => {
-    if (!appliedCoupon) return originalPrice;
-
-    // Parse percentage (e.g., "20%" -> 20)
-    const percentageValue = parseFloat(appliedCoupon.percentage.replace("%", ""));
-    const discountAmount = (originalPrice * percentageValue) / 100;
-    return originalPrice - discountAmount;
-  };
-
   const fetchUpgradePreview = async (quantity: number) => {
     // Only fetch preview if user has an active paid plan
     const hasActivePaidPlan =
@@ -400,12 +322,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           emailid: user.email,
           dbplan_id: selectedOrgPlan.id,
           organization_id: organizationDetails?.id,
-          coupon_id: appliedCoupon
-            ? appliedCoupon.code
-            : hasCoupon
-            ? "50LIFE"
-            : "",
-          coupon: appliedCoupon ? true : hasCoupon,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
         };
 
         console.log("📤 Sending upgrade request to API:", upgradePayload);
@@ -452,12 +370,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           plan_id: selectedOrgPlan.stripe_price_id,
           emailid: user.email,
           dbplan_id: selectedOrgPlan.id,
-          coupon_id: appliedCoupon
-            ? appliedCoupon.code
-            : hasCoupon
-            ? "50LIFE"
-            : "",
-          coupon: appliedCoupon ? true : hasCoupon,
+          coupon_id: hasCoupon ? "50LIFE" : "",
+          coupon: hasCoupon,
           organization_id: organizationDetails?.id,
           quantity: orgUserQuantity,
           is_organization_plan: true,
@@ -1040,71 +954,6 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
               <p className="text-xs text-gray-500">Minimum 2 users required</p>
             </div>
 
-            {/* Coupon Code Section */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">
-                Have a coupon code?
-              </Label>
-
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center space-x-2">
-                    <Badge className="bg-green-100 text-green-700 border-green-300">
-                      {appliedCoupon.code}
-                    </Badge>
-                    <span className="text-sm text-green-700 font-medium">
-                      {appliedCoupon.percentage} discount applied
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={removeCoupon}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex space-x-2">
-                    <Input
-                      type="text"
-                      placeholder="Enter coupon code"
-                      value={couponCode}
-                      onChange={(e) => {
-                        setCouponCode(e.target.value.toUpperCase());
-                        setCouponError("");
-                      }}
-                      className={`flex-1 ${
-                        couponError ? "border-red-500" : ""
-                      }`}
-                      disabled={isValidatingCoupon}
-                    />
-                    <Button
-                      type="button"
-                      onClick={validateCouponCode}
-                      disabled={isValidatingCoupon || !couponCode.trim()}
-                      className="bg-blue-600 text-white hover:bg-blue-700"
-                    >
-                      {isValidatingCoupon ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Validating...
-                        </>
-                      ) : (
-                        "Apply"
-                      )}
-                    </Button>
-                  </div>
-                  {couponError && (
-                    <p className="text-xs text-red-600">{couponError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Price Breakdown */}
             {selectedOrgPlan && (
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -1193,8 +1042,16 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
                       <span className="font-medium">{orgUserQuantity}</span>
                     </div>
 
+                    {hasCoupon && (
+                      <div className="flex items-center justify-center py-2">
+                        <Badge className="bg-green-100 text-green-700 border-green-300">
+                          50% OFF - Coupon Applied!
+                        </Badge>
+                      </div>
+                    )}
+
                     <div className="border-t border-gray-200 pt-2 mt-2 space-y-2">
-                      {(appliedCoupon || hasCoupon) && (
+                      {hasCoupon && (
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">
                             Original Total:
@@ -1211,23 +1068,15 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-900">
-                          {appliedCoupon || hasCoupon
-                            ? "Discounted Price:"
-                            : "Total:"}
+                          {hasCoupon ? "Discounted Price:" : "Total:"}
                         </span>
                         <span
                           className={`text-xl font-bold ${
-                            appliedCoupon || hasCoupon
-                              ? "text-green-600"
-                              : "text-gray-900"
+                            hasCoupon ? "text-green-600" : "text-gray-900"
                           }`}
                         >
                           $
-                          {appliedCoupon
-                            ? calculateDiscountedPrice(
-                                selectedOrgPlan.price * orgUserQuantity
-                              ).toFixed(2)
-                            : hasCoupon
+                          {hasCoupon
                             ? (
                                 (selectedOrgPlan.price * orgUserQuantity) /
                                 2

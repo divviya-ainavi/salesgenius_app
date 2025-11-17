@@ -84,8 +84,6 @@ export const config = {
       upgradePlanProd: 'upgrade-plan-prod',
       previewUpgradeDev: 'preview-upgrade-dev',
       previewUpgradeProd: 'preview-upgrade-prod',
-      checkValidCouponDev: 'check_valid_coupon',
-      checkValidCouponProd: 'check_valid_coupon',
     }
   }
 };
