@@ -31,7 +31,6 @@ import {
 } from "../../store/slices/orgSlice";
 import { config } from "../../lib/config";
 import { dbHelpers } from "../../lib/supabase";
-import { Input } from "@/components/ui/input";
 
 interface UpgradePlanDialogProps {
   isOpen?: boolean;
@@ -309,9 +308,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
     if (!appliedCoupon) return originalPrice;
 
     // Parse percentage (e.g., "20%" -> 20)
-    const percentageValue = parseFloat(
-      appliedCoupon.percentage.replace("%", "")
-    );
+    const percentageValue = parseFloat(appliedCoupon.percentage.replace("%", ""));
     const discountAmount = (originalPrice * percentageValue) / 100;
     return originalPrice - discountAmount;
   };
