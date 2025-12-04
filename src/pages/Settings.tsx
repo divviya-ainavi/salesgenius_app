@@ -2546,23 +2546,6 @@ export const Settings = () => {
             </TabsTrigger>
           )}
           {console.log(userRoleId, userRole, "check user role id")}
-          {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
-            <TabsTrigger
-              value="users"
-              className="flex items-center space-x-2"
-              data-tour="settings-tab-users"
-            >
-              <Users className="w-4 h-4" />
-              <span>Users</span>
-            </TabsTrigger>
-          )}
-          {isSuperAdmin && (
-            <TabsTrigger value="tour-management">Tour Management</TabsTrigger>
-          )}
-          <TabsTrigger value="security" className="flex items-center space-x-2">
-            <Shield className="w-4 h-4" />
-            <span>Security</span>
-          </TabsTrigger>
           {userRoleId !== 1 && (
             <TabsTrigger
               value="ai-training"
@@ -2573,6 +2556,24 @@ export const Settings = () => {
               <span>AI Training</span>
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="tour-management">Tour Management</TabsTrigger>
+          )}
+          <TabsTrigger value="security" className="flex items-center space-x-2">
+            <Shield className="w-4 h-4" />
+            <span>Security</span>
+          </TabsTrigger>
+          {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
+            <TabsTrigger
+              value="users"
+              className="flex items-center space-x-2"
+              data-tour="settings-tab-users"
+            >
+              <Users className="w-4 h-4" />
+              <span>Users</span>
+            </TabsTrigger>
+          )}
+
           <TabsTrigger value="billing" className="flex items-center space-x-2">
             <DollarSign className="w-4 h-4" />
             <span>Billing</span>
@@ -3972,9 +3973,8 @@ export const Settings = () => {
                               {console.log(orgPlan, "org plan details")}
                               {orgPlan.status != "canceled" && (
                                 <Button
-                                  variant="outline"
                                   size="sm"
-                                  className="gap-2 h-10"
+                                  className="gap-2 h-10 bg-[#E8F0FF] text-[#2F6FDB] hover:bg-[#D7E6FF] border border-[#BFD4FF]"
                                   onClick={() =>
                                     setShowUpdateTeamSizeDialog(true)
                                   }
