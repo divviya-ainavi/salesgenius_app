@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,25 @@ const SignupPage = () => {
   // Email validation
   const isValidEmail = /\S+@\S+\.\S+/.test(email);
   const isFormValid = email.trim() !== "" && isValidEmail;
+
+  // Clean up any lingering modal overlays on mount
+  useEffect(() => {
+    // Remove any Radix UI portal overlays that might be lingering
+    const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+    overlays.forEach((overlay) => overlay.remove());
+
+    // Remove any backdrop elements
+    const backdrops = document.querySelectorAll('.fixed.inset-0');
+    backdrops.forEach((backdrop) => {
+      if (backdrop.style.zIndex && parseInt(backdrop.style.zIndex) > 1000) {
+        backdrop.remove();
+      }
+    });
+
+    // Ensure body scroll is enabled
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+  }, []);
 
   const checkEmailExists = async (email) => {
     try {

@@ -205,6 +205,9 @@ export const UserDropdown = () => {
         sessionStorage.setItem("manual_logout", "true");
       }
 
+      // Close dialog FIRST to ensure proper cleanup
+      setShowLogoutDialog(false);
+
       // Sign out from Supabase Auth if user is authenticated there
       const {
         data: { session },
@@ -219,13 +222,13 @@ export const UserDropdown = () => {
       const result = await authHelpers.signOut();
 
       if (result.success) {
+        // Clear Redux state
+        dispatch(resetOrgState());
+        dispatch(resetAuthState());
+
         // Clear storage
         localStorage.clear(); // ✅ Clears all localStorage
         sessionStorage.clear(); // ✅ Clears all sessionStorage
-
-        // Optionally clear Redux state
-        dispatch(resetOrgState());
-        dispatch(resetAuthState());
 
         // Show appropriate message based on logout type
         if (isAutoLogout) {
@@ -238,10 +241,10 @@ export const UserDropdown = () => {
           toast.success("Logged out successfully");
         }
 
-        setShowLogoutDialog(false);
-
-        // Reload the page to clear any in-memory data
-        navigate("/auth/login"); // or use window.location.href
+        // Wait for React to process state updates and cleanup DOM
+        setTimeout(() => {
+          navigate("/auth/login");
+        }, 100);
       } else {
         toast.error("Failed to logout: " + result.error);
       }
