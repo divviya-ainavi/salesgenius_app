@@ -456,9 +456,16 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
       // if (isCanceledPlan && isCurrentPlanRenewal) {
       // Check if today's date is between start date and end date
-      const today = new Date();
-      const startDate = new Date(planDetails.start_date);
-      const endDate = new Date(planDetails.end_date);
+      // Normalize dates to only compare date (set time to 00:00:00)
+      const normalizeDate = (date) => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      const today = normalizeDate(new Date());
+      const startDate = normalizeDate(planDetails.start_date);
+      const endDate = normalizeDate(planDetails.end_date);
 
       const isBetweenDates = today >= startDate && today <= endDate;
 
@@ -648,15 +655,47 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
                     ) {
                       return false;
                     }
-                    const today = new Date();
-                    const startDate = new Date(planDetails.start_date);
-                    const endDate = new Date(planDetails.end_date);
-                    return today >= startDate && today <= endDate;
+
+                    // Normalize dates to only compare date (set time to 00:00:00)
+                    const normalizeDate = (date) => {
+                      const d = new Date(date);
+                      d.setHours(0, 0, 0, 0);
+                      return d;
+                    };
+
+                    const today = normalizeDate(new Date());
+                    const startDate = normalizeDate(planDetails.start_date);
+                    const endDate = normalizeDate(planDetails.end_date);
+
+                    const isWithinPeriod = today >= startDate && today <= endDate;
+
+                    console.log(`[Renewal Check] Plan: ${plan.plan_name}`, {
+                      status: planDetails?.status,
+                      isCurrentPlan: plan.id === currentPlan?.id,
+                      today: today.toISOString(),
+                      startDate: startDate.toISOString(),
+                      endDate: endDate.toISOString(),
+                      isWithinPeriod,
+                    });
+
+                    return isWithinPeriod;
                   })();
 
                   const canSelectExpiredPlan =
                     (planDetails?.isExpired && plan.id === currentPlan?.id) ||
                     isCanceledWithinPeriod;
+
+                  console.log(`[Button State] Plan: ${plan.plan_name}`, {
+                    isCurrentPlan,
+                    isCanceledWithinPeriod,
+                    canSelectExpiredPlan,
+                    isExpired: planDetails?.isExpired,
+                    status: planDetails?.status,
+                    willBeDisabled:
+                      (isCurrentPlan && !canSelectExpiredPlan) ||
+                      isDisabledFreePlan ||
+                      (isDowngrade && planDetails?.isExpired),
+                  });
 
                   // Disable free plans for:
                   // 1. Expired users trying to downgrade
