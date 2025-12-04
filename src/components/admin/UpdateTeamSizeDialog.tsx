@@ -127,7 +127,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${config.api.endpoints.billingPreviewDev}`,
+        `${import.meta.env.VITE_API_BASE_URL}${
+          config.api.endpoints.billingPreviewProd
+        }`,
         {
           method: "POST",
           headers: {
@@ -138,7 +140,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch billing preview: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch billing preview: ${response.statusText}`
+        );
       }
 
       const result = await response.json();
@@ -222,7 +226,7 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.updateTeamSizeDev
+          config.api.endpoints.updateTeamSizeProd
         }`,
         {
           method: "POST",
@@ -418,19 +422,24 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
             {/* Right Column - Order Summary / Current Usage */}
             {isUpgrade ? (
               <div className="bg-gray-50 rounded-lg p-6 h-fit">
-                <h3 className="text-base font-semibold mb-4 text-gray-900">Order summary</h3>
+                <h3 className="text-base font-semibold mb-4 text-gray-900">
+                  Order summary
+                </h3>
 
                 {isLoadingPreview ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                    <span className="ml-2 text-sm text-gray-500">Loading preview...</span>
+                    <span className="ml-2 text-sm text-gray-500">
+                      Loading preview...
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-600">Additional licenses</span>
                       <span className="font-medium text-gray-900">
-                        {Math.abs(quantityChange)} × {getCurrencySymbol(displayCurrency)}
+                        {Math.abs(quantityChange)} ×{" "}
+                        {getCurrencySymbol(displayCurrency)}
                         {pricePerUser.toFixed(2)}
                       </span>
                     </div>
@@ -445,7 +454,8 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                                 Prorated charge
                               </p>
                               <p className="text-xs text-blue-700 mt-0.5">
-                                Charged immediately for remaining days in this billing period
+                                Charged immediately for remaining days in this
+                                billing period
                               </p>
                             </div>
                           </div>
@@ -462,14 +472,20 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
                         <span className="text-gray-600">Current billing</span>
                         <span className="font-medium text-gray-900">
                           {getCurrencySymbol(displayCurrency)}
-                          {billingPreview?.current_monthly_cost?.toFixed(2) || (pricePerUser * currentQuantity).toFixed(2)} / month
+                          {billingPreview?.current_monthly_cost?.toFixed(2) ||
+                            (pricePerUser * currentQuantity).toFixed(2)}{" "}
+                          / month
                         </span>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t">
-                        <span className="text-gray-900 font-semibold">Next billing</span>
+                        <span className="text-gray-900 font-semibold">
+                          Next billing
+                        </span>
                         <span className="font-bold text-gray-900">
                           {getCurrencySymbol(displayCurrency)}
-                          {billingPreview?.new_monthly_cost?.toFixed(2) || (pricePerUser * newQuantity).toFixed(2)} / month
+                          {billingPreview?.new_monthly_cost?.toFixed(2) ||
+                            (pricePerUser * newQuantity).toFixed(2)}{" "}
+                          / month
                         </span>
                       </div>
                     </div>
@@ -496,7 +512,9 @@ export const UpdateTeamSizeDialog: React.FC<UpdateTeamSizeDialogProps> = ({
               </div>
             ) : isDowngrade ? (
               <div className="bg-gray-50 rounded-lg p-6 h-fit">
-                <h3 className="text-base font-semibold mb-4 text-gray-900">Current usage</h3>
+                <h3 className="text-base font-semibold mb-4 text-gray-900">
+                  Current usage
+                </h3>
 
                 {/* Usage Information Only for Downgrade */}
                 <div className="space-y-2">

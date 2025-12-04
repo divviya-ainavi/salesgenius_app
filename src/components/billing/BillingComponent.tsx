@@ -342,10 +342,10 @@ export const BillingComponent = ({ orgPlan, onPlanUpdate }) => {
       const cancelSubscription =
         planDetails?.plan_master?.plan_name === "Organization"
           ? `${import.meta.env.VITE_API_BASE_URL}${
-              config.api.endpoints.orgCancelSubscriptionDev
+              config.api.endpoints.orgCancelSubscriptionProd
             }`
           : `${import.meta.env.VITE_API_BASE_URL}${
-              config.api.endpoints.cancelSubscriptionDev
+              config.api.endpoints.cancelSubscriptionProd
             }`;
 
       const apiResponse = await fetch(cancelSubscription, {

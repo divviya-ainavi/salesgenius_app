@@ -263,7 +263,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}${
-          config.api.endpoints.previewUpgradeDev
+          config.api.endpoints.previewUpgradeProd
         }`,
         {
           method: "POST",
@@ -330,7 +330,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
         const upgradeResponse = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}${
-            config.api.endpoints.upgradePlanDev
+            config.api.endpoints.upgradePlanProd
           }`,
           {
             method: "POST",
@@ -379,7 +379,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
         const response = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}${
-            config.api.endpoints.organizationPlanDev
+            config.api.endpoints.organizationPlanProd
           }`,
           {
             method: "POST",
@@ -493,7 +493,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           };
 
           const renewEndpoint = `${import.meta.env.VITE_API_BASE_URL}${
-            config.api.endpoints.renewSubscriptionDev
+            config.api.endpoints.renewSubscriptionProd
           }`;
 
           console.log("📤 Sending renewal request to API:", renewPayload);
@@ -556,7 +556,7 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
             coupon: hasCoupon,
           };
 
-          const endpoint = config.api.endpoints.checkoutSubscriptionDev;
+          const endpoint = config.api.endpoints.checkoutSubscriptionProd;
 
           const response = await fetch(
             `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,

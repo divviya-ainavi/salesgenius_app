@@ -32,11 +32,11 @@ const SignupPage = () => {
   // Clean up any lingering modal overlays on mount
   useEffect(() => {
     // Remove any Radix UI portal overlays that might be lingering
-    const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+    const overlays = document.querySelectorAll("[data-radix-dialog-overlay]");
     overlays.forEach((overlay) => overlay.remove());
 
     // Remove any backdrop elements
-    const backdrops = document.querySelectorAll('.fixed.inset-0');
+    const backdrops = document.querySelectorAll(".fixed.inset-0");
     backdrops.forEach((backdrop) => {
       if (backdrop.style.zIndex && parseInt(backdrop.style.zIndex) > 1000) {
         backdrop.remove();
@@ -44,8 +44,8 @@ const SignupPage = () => {
     });
 
     // Ensure body scroll is enabled
-    document.body.style.overflow = '';
-    document.body.style.pointerEvents = '';
+    document.body.style.overflow = "";
+    document.body.style.pointerEvents = "";
   }, []);
 
   const checkEmailExists = async (email) => {
