@@ -5226,7 +5226,10 @@ export const Settings = () => {
 
         {/* Analytics Access */}
         <TabsContent value="billing" className="mt-6">
-          <BillingComponent orgPlan={orgPlan} />
+          <BillingComponent
+            orgPlan={orgPlan}
+            onPlanUpdate={fetchOrganizationPlan}
+          />
         </TabsContent>
       </Tabs>
 
