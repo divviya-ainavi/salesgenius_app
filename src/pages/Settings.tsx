@@ -1015,8 +1015,11 @@ export const Settings = () => {
     checkFirefliesStatus();
     checkFathomStatus();
     getInternalUploadedFiles();
-    fetchOrganizationPlan();
   }, []);
+
+  useEffect(() => {
+    fetchOrganizationPlan();
+  }, [planDetails]);
 
   const handleViewBusinessKnowledge = (knowledgeData) => {
     console.log(knowledgeData, "check knowledge data 505");

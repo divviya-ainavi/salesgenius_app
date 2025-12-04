@@ -667,7 +667,8 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
                     const startDate = normalizeDate(planDetails.start_date);
                     const endDate = normalizeDate(planDetails.end_date);
 
-                    const isWithinPeriod = today >= startDate && today <= endDate;
+                    const isWithinPeriod =
+                      today >= startDate && today <= endDate;
 
                     console.log(`[Renewal Check] Plan: ${plan.plan_name}`, {
                       status: planDetails?.status,
@@ -685,17 +686,17 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
                     (planDetails?.isExpired && plan.id === currentPlan?.id) ||
                     isCanceledWithinPeriod;
 
-                  console.log(`[Button State] Plan: ${plan.plan_name}`, {
-                    isCurrentPlan,
-                    isCanceledWithinPeriod,
-                    canSelectExpiredPlan,
-                    isExpired: planDetails?.isExpired,
-                    status: planDetails?.status,
-                    willBeDisabled:
-                      (isCurrentPlan && !canSelectExpiredPlan) ||
-                      isDisabledFreePlan ||
-                      (isDowngrade && planDetails?.isExpired),
-                  });
+                  // console.log(`[Button State] Plan: ${plan.plan_name}`, {
+                  //   isCurrentPlan,
+                  //   isCanceledWithinPeriod,
+                  //   canSelectExpiredPlan,
+                  //   isExpired: planDetails?.isExpired,
+                  //   status: planDetails?.status,
+                  //   willBeDisabled:
+                  //     (isCurrentPlan && !canSelectExpiredPlan) ||
+                  //     isDisabledFreePlan ||
+                  //     (isDowngrade && planDetails?.isExpired),
+                  // });
 
                   // Disable free plans for:
                   // 1. Expired users trying to downgrade
