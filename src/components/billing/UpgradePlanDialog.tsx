@@ -430,11 +430,18 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   };
 
   const handleUpgrade = async (plan: any) => {
+    console.log(
+      currentPlan,
+      plan,
+      isOrganizationPlan(plan) && currentPlan?.id !== plan.id,
+
+      "check plan details 441"
+    );
     if (!plan.stripe_price_id) {
       toast.error("This plan is not available for purchase yet");
       return;
     }
-    console.log(currentPlan, plan, "check plan details");
+
     // Check if this is an organization plan
     if (isOrganizationPlan(plan) && currentPlan?.id !== plan.id) {
       // Show organization plan dialog
@@ -456,9 +463,16 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
 
       // if (isCanceledPlan && isCurrentPlanRenewal) {
       // Check if today's date is between start date and end date
-      const today = new Date();
-      const startDate = new Date(planDetails.start_date);
-      const endDate = new Date(planDetails.end_date);
+      // Normalize dates to only compare date (set time to 00:00:00)
+      const normalizeDate = (date) => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      const today = normalizeDate(new Date());
+      const startDate = normalizeDate(planDetails.start_date);
+      const endDate = normalizeDate(planDetails.end_date);
 
       const isBetweenDates = today >= startDate && today <= endDate;
 
@@ -511,8 +525,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
             await onPlanUpdated();
           }
 
-          setIsProcessingPayment(false);
-          dispatch(setShowUpgradeModal(false));
+          setTimeout(() => {
+            setIsProcessingPayment(false);
+            dispatch(setShowUpgradeModal(false));
+          }, 2000);
 
           return;
         } catch (error: any) {
@@ -523,60 +539,67 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           return;
         }
       } else {
-        console.log("🔄 Creating checkout session for plan:", plan.plan_name);
-
-        const payload = {
-          userid: user.id,
-          plan_id: plan.stripe_price_id,
-          emailid: user.email,
-          dbplan_id: plan.id,
-          coupon_id: hasCoupon ? "50LIFE" : "",
-          coupon: hasCoupon,
-        };
-
-        const endpoint = config.api.endpoints.checkoutSubscriptionDev;
-
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
-          );
-        }
-
-        const checkoutData = await response.json();
-        console.log("✅ Checkout session created:", checkoutData);
-
-        // Handle the response array format
-        if (
-          Array.isArray(checkoutData) &&
-          checkoutData.length > 0 &&
-          checkoutData[0].checkoutUrl
-        ) {
-          console.log(
-            "🔗 Redirecting to Stripe checkout:",
-            checkoutData[0].checkoutUrl
-          );
-          window.location.href = checkoutData[0].checkoutUrl;
-        } else if (checkoutData.checkoutUrl) {
-          console.log(
-            "🔗 Redirecting to Stripe checkout:",
-            checkoutData.checkoutUrl
-          );
-          window.location.href = checkoutData.checkoutUrl;
+        if (isOrganizationPlan(plan)) {
+          setSelectedOrgPlan(plan);
+          setOrgUserQuantity(2); // Reset to minimum
+          setShowOrgPlanDialog(true);
+          return;
         } else {
-          console.error("❌ Invalid checkout response format:", checkoutData);
-          throw new Error("No checkout URL received from server");
+          console.log("🔄 Creating checkout session for plan:", plan.plan_name);
+
+          const payload = {
+            userid: user.id,
+            plan_id: plan.stripe_price_id,
+            emailid: user.email,
+            dbplan_id: plan.id,
+            coupon_id: hasCoupon ? "50LIFE" : "",
+            coupon: hasCoupon,
+          };
+
+          const endpoint = config.api.endpoints.checkoutSubscriptionDev;
+
+          const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
+            );
+          }
+
+          const checkoutData = await response.json();
+          console.log("✅ Checkout session created:", checkoutData);
+
+          // Handle the response array format
+          if (
+            Array.isArray(checkoutData) &&
+            checkoutData.length > 0 &&
+            checkoutData[0].checkoutUrl
+          ) {
+            console.log(
+              "🔗 Redirecting to Stripe checkout:",
+              checkoutData[0].checkoutUrl
+            );
+            window.location.href = checkoutData[0].checkoutUrl;
+          } else if (checkoutData.checkoutUrl) {
+            console.log(
+              "🔗 Redirecting to Stripe checkout:",
+              checkoutData.checkoutUrl
+            );
+            window.location.href = checkoutData.checkoutUrl;
+          } else {
+            console.error("❌ Invalid checkout response format:", checkoutData);
+            throw new Error("No checkout URL received from server");
+          }
         }
       }
 
@@ -648,15 +671,48 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
                     ) {
                       return false;
                     }
-                    const today = new Date();
-                    const startDate = new Date(planDetails.start_date);
-                    const endDate = new Date(planDetails.end_date);
-                    return today >= startDate && today <= endDate;
+
+                    // Normalize dates to only compare date (set time to 00:00:00)
+                    const normalizeDate = (date) => {
+                      const d = new Date(date);
+                      d.setHours(0, 0, 0, 0);
+                      return d;
+                    };
+
+                    const today = normalizeDate(new Date());
+                    const startDate = normalizeDate(planDetails.start_date);
+                    const endDate = normalizeDate(planDetails.end_date);
+
+                    const isWithinPeriod =
+                      today >= startDate && today <= endDate;
+
+                    console.log(`[Renewal Check] Plan: ${plan.plan_name}`, {
+                      status: planDetails?.status,
+                      isCurrentPlan: plan.id === currentPlan?.id,
+                      today: today.toISOString(),
+                      startDate: startDate.toISOString(),
+                      endDate: endDate.toISOString(),
+                      isWithinPeriod,
+                    });
+
+                    return isWithinPeriod;
                   })();
 
                   const canSelectExpiredPlan =
                     (planDetails?.isExpired && plan.id === currentPlan?.id) ||
                     isCanceledWithinPeriod;
+
+                  // console.log(`[Button State] Plan: ${plan.plan_name}`, {
+                  //   isCurrentPlan,
+                  //   isCanceledWithinPeriod,
+                  //   canSelectExpiredPlan,
+                  //   isExpired: planDetails?.isExpired,
+                  //   status: planDetails?.status,
+                  //   willBeDisabled:
+                  //     (isCurrentPlan && !canSelectExpiredPlan) ||
+                  //     isDisabledFreePlan ||
+                  //     (isDowngrade && planDetails?.isExpired),
+                  // });
 
                   // Disable free plans for:
                   // 1. Expired users trying to downgrade

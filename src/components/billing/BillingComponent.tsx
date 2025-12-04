@@ -51,7 +51,7 @@ import {
 import { dbHelpers } from "../../lib/supabase";
 import { config } from "../../lib/config";
 
-export const BillingComponent = ({ orgPlan }) => {
+export const BillingComponent = ({ orgPlan, onPlanUpdate }) => {
   const { user, organizationDetails, userRole, userRoleId } = useSelector(
     (state) => state.auth
   );
@@ -372,6 +372,10 @@ export const BillingComponent = ({ orgPlan }) => {
       await loadPlanData();
       await loadBillingHistory();
 
+      if (onPlanUpdate) {
+        await onPlanUpdate();
+      }
+
       setShowCancelModal(false);
       toast.success(
         "Subscription cancelled successfully. You'll retain access until your current billing period ends."
@@ -422,6 +426,11 @@ export const BillingComponent = ({ orgPlan }) => {
   const handleUpgradeFromDialog = async (plan) => {
     // Reload plan data after successful upgrade
     await loadPlanData();
+
+    if (onPlanUpdate) {
+      await onPlanUpdate();
+    }
+
     dispatch(setShowUpgradeModal(false));
   };
 
@@ -883,7 +892,7 @@ export const BillingComponent = ({ orgPlan }) => {
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradePlanDialog onPlanUpdated={loadPlanData} />
+      <UpgradePlanDialog onPlanUpdated={handleUpgradeFromDialog} />
 
       {/* Cancel Subscription Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
