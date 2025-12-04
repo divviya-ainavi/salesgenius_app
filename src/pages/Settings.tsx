@@ -3915,8 +3915,10 @@ export const Settings = () => {
                     <Card className="shadow-sm">
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between mb-6">
+                          {console.log(orgPlan, "org plan details")}
                           <div className="flex items-center gap-2">
                             <Plus className="w-5 h-5" />
+
                             <h3 className="text-xl font-semibold">
                               Invite New User
                             </h3>

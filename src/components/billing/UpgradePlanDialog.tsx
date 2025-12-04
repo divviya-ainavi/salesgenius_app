@@ -430,11 +430,18 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
   };
 
   const handleUpgrade = async (plan: any) => {
+    console.log(
+      currentPlan,
+      plan,
+      isOrganizationPlan(plan) && currentPlan?.id !== plan.id,
+
+      "check plan details 441"
+    );
     if (!plan.stripe_price_id) {
       toast.error("This plan is not available for purchase yet");
       return;
     }
-    console.log(currentPlan, plan, "check plan details");
+
     // Check if this is an organization plan
     if (isOrganizationPlan(plan) && currentPlan?.id !== plan.id) {
       // Show organization plan dialog
@@ -518,8 +525,10 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
             await onPlanUpdated();
           }
 
-          setIsProcessingPayment(false);
-          dispatch(setShowUpgradeModal(false));
+          setTimeout(() => {
+            setIsProcessingPayment(false);
+            dispatch(setShowUpgradeModal(false));
+          }, 2000);
 
           return;
         } catch (error: any) {
@@ -530,60 +539,67 @@ export const UpgradePlanDialog: React.FC<UpgradePlanDialogProps> = () => {
           return;
         }
       } else {
-        console.log("🔄 Creating checkout session for plan:", plan.plan_name);
-
-        const payload = {
-          userid: user.id,
-          plan_id: plan.stripe_price_id,
-          emailid: user.email,
-          dbplan_id: plan.id,
-          coupon_id: hasCoupon ? "50LIFE" : "",
-          coupon: hasCoupon,
-        };
-
-        const endpoint = config.api.endpoints.checkoutSubscriptionDev;
-
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
-          );
-        }
-
-        const checkoutData = await response.json();
-        console.log("✅ Checkout session created:", checkoutData);
-
-        // Handle the response array format
-        if (
-          Array.isArray(checkoutData) &&
-          checkoutData.length > 0 &&
-          checkoutData[0].checkoutUrl
-        ) {
-          console.log(
-            "🔗 Redirecting to Stripe checkout:",
-            checkoutData[0].checkoutUrl
-          );
-          window.location.href = checkoutData[0].checkoutUrl;
-        } else if (checkoutData.checkoutUrl) {
-          console.log(
-            "🔗 Redirecting to Stripe checkout:",
-            checkoutData.checkoutUrl
-          );
-          window.location.href = checkoutData.checkoutUrl;
+        if (isOrganizationPlan(plan)) {
+          setSelectedOrgPlan(plan);
+          setOrgUserQuantity(2); // Reset to minimum
+          setShowOrgPlanDialog(true);
+          return;
         } else {
-          console.error("❌ Invalid checkout response format:", checkoutData);
-          throw new Error("No checkout URL received from server");
+          console.log("🔄 Creating checkout session for plan:", plan.plan_name);
+
+          const payload = {
+            userid: user.id,
+            plan_id: plan.stripe_price_id,
+            emailid: user.email,
+            dbplan_id: plan.id,
+            coupon_id: hasCoupon ? "50LIFE" : "",
+            coupon: hasCoupon,
+          };
+
+          const endpoint = config.api.endpoints.checkoutSubscriptionDev;
+
+          const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Checkout session creation failed: ${response.status} ${response.statusText} - ${errorText}`
+            );
+          }
+
+          const checkoutData = await response.json();
+          console.log("✅ Checkout session created:", checkoutData);
+
+          // Handle the response array format
+          if (
+            Array.isArray(checkoutData) &&
+            checkoutData.length > 0 &&
+            checkoutData[0].checkoutUrl
+          ) {
+            console.log(
+              "🔗 Redirecting to Stripe checkout:",
+              checkoutData[0].checkoutUrl
+            );
+            window.location.href = checkoutData[0].checkoutUrl;
+          } else if (checkoutData.checkoutUrl) {
+            console.log(
+              "🔗 Redirecting to Stripe checkout:",
+              checkoutData.checkoutUrl
+            );
+            window.location.href = checkoutData.checkoutUrl;
+          } else {
+            console.error("❌ Invalid checkout response format:", checkoutData);
+            throw new Error("No checkout URL received from server");
+          }
         }
       }
 
