@@ -30,6 +30,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Settings as SettingsIcon,
   Shield,
   Users,
@@ -73,12 +78,13 @@ import {
   Target,
   AlertTriangle,
   DollarSign,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { useDropzone } from "react-dropzone";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers, supabase } from "@/lib/supabase";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import {
@@ -90,6 +96,7 @@ import {
   setPersonalInsightKnowledge,
   setPlanExpiryModal,
   setSales_methodology,
+  setShowUpgradeModal,
 } from "../store/slices/orgSlice";
 import {
   setOrganizationDetails,
@@ -98,6 +105,7 @@ import {
 } from "../store/slices/authSlice";
 import { getCountries, getCitiesForCountry } from "@/data/countriesAndCities";
 import { config } from "@/lib/config";
+import { UpgradePlanDialog } from "@/components/billing/UpgradePlanDialog";
 import CryptoJS from "crypto-js";
 import {
   Dialog,
@@ -107,10 +115,295 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/ui/alert-dialog";
 import TourManagement from "@/components/admin/TourManagement";
 import { BusinessKnowledgeModal } from "@/components/business/BusinessKnowledgeModal";
 import { PersonalInsightsModal } from "../components/personal/PersonalInsightsModal";
 import { BillingComponent } from "@/components/billing/BillingComponent";
+import { UpdateTeamSizeDialog } from "@/components/admin/UpdateTeamSizeDialog";
+
+// Active User Card Component
+const ActiveUserCard = ({ listUser, role, allStatus, user, userRoleId }) => {
+  const [userPlan, setUserPlan] = useState(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+
+  const isOrganizationPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return planName.includes("organization");
+  };
+
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      parseFloat(plan.price) === 0
+    );
+  };
+
+  const isProPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan.plan_name?.toLowerCase() || "";
+    return planName.includes("pro") && !planName.includes("organization");
+  };
+
+  const canInviteUsers =
+    userPlan?.plan_master && isOrganizationPlan(userPlan.plan_master);
+
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const data = await dbHelpers.getUserPlanDetails(listUser.id);
+        // supabase
+        //   .from("user_plan")
+        //   .select("*, plan_master(*)")
+        //   .eq("user_id", listUser.id)
+        //   .eq("is_active", true)
+        //   .order("created_at", { ascending: false })
+        //   .limit(1)
+        //   .maybeSingle();
+
+        // if (!error && data) {
+        setUserPlan(data);
+        // }
+      } catch (err) {
+        console.error("Error fetching user plan:", err);
+      } finally {
+        setIsLoadingPlan(false);
+      }
+    };
+
+    fetchUserPlan();
+  }, [listUser.id]);
+
+  const handleRevokeAccess = async () => {
+    setIsRevoking(true);
+    setShowRevokeDialog(false);
+    try {
+      await dbHelpers.revokeUserAccess(listUser.id);
+
+      toast.success("Access revoked successfully");
+      setUserPlan(null);
+    } catch (err) {
+      console.error("Error revoking access:", err);
+      toast.error("Failed to revoke access");
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  const isExpiringSoon =
+    userPlan?.end_date &&
+    new Date(userPlan.end_date) <=
+      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const isExpired =
+    userPlan?.end_date && new Date(userPlan.end_date) < new Date();
+  const isRevoked = userPlan?.is_cancel;
+
+  const isOrgAdmin = listUser.id == user?.id;
+
+  return (
+    <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-gray-300 transition-colors">
+      <div className="flex items-center space-x-4">
+        <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+          <User className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div>
+          <p className="font-medium">{listUser.full_name}</p>
+          <p className="text-sm text-muted-foreground">{listUser.email}</p>
+          <div className="flex items-center space-x-2 mt-1 flex-wrap gap-1">
+            <Badge variant="outline" className={cn("text-xs", role.color)}>
+              <role.icon className="w-3 h-3 mr-1" />
+              {role?.label}
+            </Badge>
+            {listUser.status_id && (
+              <Badge
+                variant={
+                  allStatus?.find((x) => x?.id == listUser.status_id)?.label ===
+                  "active"
+                    ? "default"
+                    : "secondary"
+                }
+                className="text-xs"
+              >
+                {allStatus?.find((x) => x?.id == listUser.status_id)?.label}
+              </Badge>
+            )}
+            {userPlan && (
+              <Badge
+                variant="outline"
+                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+              >
+                <Crown className="w-3 h-3 mr-1" />
+                {userPlan.plan_master?.plan_name || "Pro"}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center space-x-3">
+        <div className="flex flex-col items-end gap-2">
+          {isLoadingPlan ? (
+            <div className="flex items-center text-muted-foreground">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              <span className="text-xs">Loading...</span>
+            </div>
+          ) : userPlan ? (
+            <>
+              <div className="text-right">
+                <p
+                  className={cn(
+                    "text-xs font-medium flex items-center justify-end gap-1",
+                    isExpired
+                      ? "text-red-600"
+                      : isExpiringSoon
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="w-3 h-3" />
+                  {isExpired ? "Expired" : "Expires"}
+                </p>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    isExpired
+                      ? "text-red-600"
+                      : isExpiringSoon
+                      ? "text-amber-600"
+                      : "text-foreground"
+                  )}
+                >
+                  {userPlan.end_date
+                    ? new Date(userPlan.end_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "-"}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                Joined{" "}
+                {listUser.created_at
+                  ? new Date(listUser.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "-"}
+              </span>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              Joined{" "}
+              {listUser.created_at
+                ? new Date(listUser.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "-"}
+            </span>
+          )}
+        </div>
+        {/* {console.log(userRoleId, "user role id in active user card")} */}
+        {userPlan && !isExpired && !isRevoked && user.id != listUser.id && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRevokeDialog(true)}
+            disabled={isRevoking}
+            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+          >
+            {isRevoking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Lock className="w-4 h-4 mr-1" />
+                Revoke Access
+              </>
+            )}
+          </Button>
+        )}
+        {/* {!isOrgAdmin && !isExpired && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )} */}
+      </div>
+
+      {/* Revoke Access Confirmation Dialog */}
+      <AlertDialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              Revoke User Access
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              <p className="text-base">
+                Are you sure you want to remove access for{" "}
+                <span className="font-semibold text-gray-900">
+                  {listUser.full_name || listUser.email}
+                </span>
+                ?
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-900 flex items-start gap-2">
+                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    If you revoke the access, the user will no longer be able to
+                    process transcripts, but they will still be able to view the
+                    previously processed data.
+                  </span>
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeAccess}
+              disabled={isRevoking}
+              className="bg-orange-600 hover:bg-orange-700 focus:ring-orange-600"
+            >
+              {isRevoking ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Revoking...
+                </>
+              ) : (
+                "Yes, Revoke Access"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
 // Mock user data - in real app this would come from auth context
 const mockCurrentUser = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -460,9 +753,42 @@ export const Settings = () => {
     allTitles?.find((f) => f.role_id != 2)?.id
   );
   const [orgUsers, setOrgUsers] = useState(mockOrgUsers);
+  const [invitedUsers, setInvitedUsers] = useState([]);
+  const [isActiveUsersOpen, setIsActiveUsersOpen] = useState(true);
+  const [isInvitedUsersOpen, setIsInvitedUsersOpen] = useState(false);
+  const [orgPlan, setOrgPlan] = useState(null);
+  const [isLoadingOrgPlan, setIsLoadingOrgPlan] = useState(false);
+  const [showUpdateTeamSizeDialog, setShowUpdateTeamSizeDialog] =
+    useState(false);
   const [trainingMaterials, setTrainingMaterials] = useState(
     mockTrainingMaterials
   );
+
+  const isOrganizationPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return planName.includes("organization");
+  };
+
+  const isFreePlan = (plan) => {
+    if (!plan) return true;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return (
+      planName.includes("free") ||
+      planName.includes("trial") ||
+      planName.includes("beta") ||
+      parseFloat(plan?.price || 0) === 0
+    );
+  };
+
+  const isProPlan = (plan) => {
+    if (!plan) return false;
+    const planName = plan?.plan_name?.toLowerCase() || "";
+    return planName.includes("pro") && !planName.includes("organization");
+  };
+
+  const canInviteUsers =
+    planDetails?.plan_master && isOrganizationPlan(planDetails.plan_master);
 
   // Password change state
   const [passwordChange, setPasswordChange] = useState({
@@ -478,6 +804,7 @@ export const Settings = () => {
   const [countrySearchValue, setCountrySearchValue] = useState("");
   const [citySearchValue, setCitySearchValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [removingInviteId, setRemovingInviteId] = useState(null);
 
   // Fireflies integration state
   const [firefliesToken, setFirefliesToken] = useState("");
@@ -494,8 +821,6 @@ export const Settings = () => {
   const [isConnectingFathom, setIsConnectingFathom] = useState(false);
   const [isDisconnectingFathom, setIsDisconnectingFathom] = useState(false);
 
-  // Platform selector state
-  const [selectedPlatform, setSelectedPlatform] = useState("fireflies");
   const [internalUploadedFiles, setInternalUploadedFiles] = useState([]);
   const [isUploadingBusiness, setIsUploadingBusiness] = useState(false);
   const [businessUploadProgress, setBusinessUploadProgress] = useState(0);
@@ -661,12 +986,40 @@ export const Settings = () => {
   useEffect(() => {
     loadPersonalInsightsData();
   }, [personalInsightsData]);
+
+  // Fetch organization plan
+  const fetchOrganizationPlan = async () => {
+    if (!organizationDetails?.id && !CURRENT_USER.organization_id) return;
+
+    setIsLoadingOrgPlan(true);
+    try {
+      const plan = await authHelpers.getOrganizationPlan(
+        organizationDetails?.id || CURRENT_USER.organization_id
+      );
+      setOrgPlan(plan);
+    } catch (error) {
+      console.error("Error fetching organization plan:", error);
+    } finally {
+      setIsLoadingOrgPlan(false);
+    }
+  };
+
+  // Handle team size update success
+  const handleTeamSizeUpdateSuccess = () => {
+    fetchOrganizationPlan();
+    toast.success("Team size updated successfully!");
+  };
+
   // Load initial data
   useEffect(() => {
     checkFirefliesStatus();
     checkFathomStatus();
     getInternalUploadedFiles();
   }, []);
+
+  useEffect(() => {
+    fetchOrganizationPlan();
+  }, [planDetails]);
 
   const handleViewBusinessKnowledge = (knowledgeData) => {
     console.log(knowledgeData, "check knowledge data 505");
@@ -1094,6 +1447,29 @@ export const Settings = () => {
     fetchUsers();
   }, [user, userRole, userRoleId, organizationDetails?.id]);
 
+  console.log(user?.title_id, organizationDetails?.id, "check users list");
+  // Fetch invited users
+  useEffect(() => {
+    const fetchInvitedUsers = async () => {
+      try {
+        if (organizationDetails?.id) {
+          console.log("1295");
+          // Fetch invited users from invites table
+          const data = await dbHelpers.getInvitedPendingUsers(
+            organizationDetails?.id
+          );
+          console.log(data, "invited users 1298");
+          // if (error) throw error;
+          setInvitedUsers(data || []);
+        }
+      } catch (err) {
+        console.error("Error fetching invited users:", err.message);
+      }
+    };
+
+    fetchInvitedUsers();
+  }, [user, organizationDetails?.id]);
+  console.log(invitedUsers, "check invited users");
   // console.log(profileSettings, "get org and users list");
 
   const handleSaveProfile = async () => {
@@ -1311,9 +1687,122 @@ export const Settings = () => {
     }
   };
 
+  // const handleInviteUser = async () => {
+  //   if (planDetails?.isExpired) {
+  //     // Show plan expiry modal
+  //     dispatch(
+  //       setPlanExpiryModal({
+  //         isOpen: true,
+  //         featureName: "Invite Users",
+  //         featureDescription:
+  //           "Access AI-powered company research and insights to better understand your prospects and prepare for sales conversations.",
+  //       })
+  //     );
+  //     return;
+  //   }
+  //   setIsLoading(true);
+  //   const email = newUserEmail.trim();
+  //   if (!email) {
+  //     setIsLoading(false);
+  //     toast.error("Please enter a valid email address");
+  //     return;
+  //   }
+
+  //   // Check organization plan seat availability
+  //   try {
+  //     const canAddResult = await dbHelpers.canAddUser(
+  //       organizationDetails?.id || CURRENT_USER.organization_id
+  //     );
+
+  //     if (!canAddResult.canAdd) {
+  //       setIsLoading(false);
+  //       if (canAddResult.reason === "User limit reached") {
+  //         toast.error(
+  //           `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
+  //           { duration: 5000 }
+  //         );
+  //       } else {
+  //         toast.error(canAddResult.reason || "Cannot add user at this time");
+  //       }
+  //       return;
+  //     }
+  //   } catch (error) {
+  //     setIsLoading(false);
+  //     console.error("Error checking seat availability:", error);
+  //     toast.error("Failed to verify team size availability");
+  //     return;
+  //   }
+
+  //   const token = createJWT({ email }, "SG", "invite");
+
+  //   const result = await dbHelpers.inviteUserByEmail(
+  //     email,
+  //     organizationDetails?.id || CURRENT_USER.organization_id || null,
+  //     newUserRole,
+  //     token,
+  //     user?.id,
+  //     isBetaUser ? "beta" : null
+  //   );
+
+  //   if (result.status === "invited" || result.status === "re-invited") {
+  //     const formData = new FormData();
+  //     formData.append("id", result?.id);
+  //     const response = await fetch(
+  //       `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+  //       {
+  //         method: "POST",
+  //         body: formData,
+  //       }
+  //     );
+  //     // console.log(response, "check response");
+  //     toast.success(
+  //       `Invitation ${
+  //         result.status === "re-invited" ? "re-" : ""
+  //       }sent to ${email}`
+  //     );
+
+  //     // Refresh invited users list
+  //     try {
+  //       const data = await dbHelpers.getInvitedPendingUsers(
+  //         organizationDetails?.id
+  //       );
+  //       // supabase
+  //       //   .from("invites")
+  //       //   .select("*")
+  //       //   .eq("organization_id", organizationDetails?.id)
+  //       //   .eq("status", "pending")
+  //       //   .order("invited_at", { ascending: false });
+
+  //       // if (!error) {
+  //       setInvitedUsers(data || []);
+  //       // }
+  //     } catch (err) {
+  //       console.error("Error refreshing invited users:", err);
+  //     }
+
+  //     // Refresh organization plan to update seat counts
+  //     await fetchOrganizationPlan();
+
+  //     setIsLoading(false);
+  //     // console.log("Invite ID:", result.id); // optional for webhook trigger
+  //   } else if (result.status === "registered") {
+  //     toast.info("User is already registered.");
+  //     setIsLoading(false);
+  //   } else if (result.status === "already-invited") {
+  //     toast.info("User was already invited within the last 24 hours");
+  //     setIsLoading(false);
+  //   } else {
+  //     toast.error(result.message || "Failed to invite user");
+  //     setIsLoading(false);
+  //   }
+
+  //   setNewUserEmail("");
+
+  //   setNewUserRole(null);
+  // };
+
   const handleInviteUser = async () => {
     if (planDetails?.isExpired) {
-      // Show plan expiry modal
       dispatch(
         setPlanExpiryModal({
           isOpen: true,
@@ -1324,6 +1813,7 @@ export const Settings = () => {
       );
       return;
     }
+
     setIsLoading(true);
     const email = newUserEmail.trim();
     if (!email) {
@@ -1332,11 +1822,35 @@ export const Settings = () => {
       return;
     }
 
+    const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
+
+    try {
+      const canAddResult = await authHelpers.canAddUser(orgId);
+
+      if (!canAddResult.canAdd) {
+        setIsLoading(false);
+        if (canAddResult.reason === "User limit reached") {
+          toast.error(
+            `Team size limit reached! You have ${canAddResult.planDetails?.buy_quantity} seats and all are currently in use. Please upgrade your team size to invite more users.`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.error(canAddResult.reason || "Cannot add user at this time");
+        }
+        return;
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error("Error checking seat availability:", error);
+      toast.error("Failed to verify team size availability");
+      return;
+    }
+
     const token = createJWT({ email }, "SG", "invite");
 
     const result = await dbHelpers.inviteUserByEmail(
       email,
-      organizationDetails?.id || CURRENT_USER.organization_id || null,
+      orgId,
       newUserRole,
       token,
       user?.id,
@@ -1344,23 +1858,43 @@ export const Settings = () => {
     );
 
     if (result.status === "invited" || result.status === "re-invited") {
-      const formData = new FormData();
-      formData.append("id", result?.id);
-      const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.userInviteProd}`,
-        {
-          method: "POST",
-          body: formData,
+      try {
+        await authHelpers.incrementUsedQuantity(orgId);
+
+        const formData = new FormData();
+        formData.append("id", result?.id);
+        const response = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.userInvite}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        toast.success(
+          `Invitation ${
+            result.status === "re-invited" ? "re-" : ""
+          }sent to ${email}`
+        );
+
+        try {
+          const data = await dbHelpers.getInvitedPendingUsers(orgId);
+          setInvitedUsers(data || []);
+        } catch (err) {
+          console.error("Error refreshing invited users:", err);
         }
-      );
-      // console.log(response, "check response");
-      toast.success(
-        `Invitation ${
-          result.status === "re-invited" ? "re-" : ""
-        }sent to ${email}`
-      );
+
+        await fetchOrganizationPlan();
+
+        setNewUserEmail("");
+        setNewUserRole(allTitles?.find((f) => f.role_id != 2)?.id);
+      } catch (error) {
+        console.error("Error updating seat count:", error);
+        toast.error(
+          "Invitation sent but failed to update seat count. Please refresh the page."
+        );
+      }
       setIsLoading(false);
-      // console.log("Invite ID:", result.id); // optional for webhook trigger
     } else if (result.status === "registered") {
       toast.info("User is already registered.");
       setIsLoading(false);
@@ -1371,10 +1905,40 @@ export const Settings = () => {
       toast.error(result.message || "Failed to invite user");
       setIsLoading(false);
     }
+  };
 
-    setNewUserEmail("");
+  const handleRemoveInvite = async (inviteId) => {
+    setRemovingInviteId(inviteId);
 
-    setNewUserRole(null);
+    try {
+      const orgId = organizationDetails?.id || CURRENT_USER.organization_id;
+
+      const { error } = await supabase
+        .from("invites")
+        .update({
+          status: "completed",
+          token: null,
+        })
+        .eq("id", inviteId);
+
+      if (error) {
+        throw error;
+      }
+
+      await authHelpers.decrementUsedQuantity(orgId);
+
+      const data = await dbHelpers.getInvitedPendingUsers(orgId);
+      setInvitedUsers(data || []);
+
+      await fetchOrganizationPlan();
+
+      toast.success("Invitation removed successfully");
+    } catch (error) {
+      console.error("Error removing invite:", error);
+      toast.error("Failed to remove invitation");
+    } finally {
+      setRemovingInviteId(null);
+    }
   };
 
   // Drag and drop configuration for business files
@@ -1981,6 +2545,7 @@ export const Settings = () => {
               <span>Organization</span>
             </TabsTrigger>
           )}
+          {console.log(userRoleId, userRole, "check user role id")}
           {(userRoleId == 2 || userRoleId == 1 || userRoleId == null) && (
             <TabsTrigger
               value="users"
@@ -2388,236 +2953,358 @@ export const Settings = () => {
                   <CardTitle className="flex items-center space-x-2">
                     <Mic className="w-5 h-5" />
                     <span>Meeting Recording Integration</span>
-                    {selectedPlatform === "fireflies" &&
-                    firefliesStatus?.connected ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Connected
-                      </Badge>
-                    ) : selectedPlatform === "fathom" &&
-                      fathomStatus?.connected ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Connected
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-gray-100 text-gray-800 border-gray-200"
-                      >
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Not Connected
-                      </Badge>
-                    )}
                   </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Connect your meeting recording platforms to automatically
+                    sync transcripts and recordings
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="platform-selector">Select Platform</Label>
-                    <Select
-                      value={selectedPlatform}
-                      onValueChange={setSelectedPlatform}
-                    >
-                      <SelectTrigger id="platform-selector">
-                        <SelectValue placeholder="Choose a platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fireflies">Fireflies.ai</SelectItem>
-                        <SelectItem value="fathom">Fathom</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  {/* Integrated Platforms - Compact Display */}
+                  {/* <div>
+                    <Label className="text-sm font-medium mb-3 block">
+                      Connected Platforms
+                    </Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      
+                      {firefliesStatus?.connected && (
+                        <div className="relative group">
+                          <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer">
+                            <div className="flex flex-col items-center text-center space-y-2">
+                              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                                <Zap className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-foreground">
+                                  Fireflies.ai
+                                </h4>
+                                <div className="flex items-center justify-center mt-1">
+                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
+                                  <span className="text-xs text-green-700">
+                                    Connected
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                     
+                      {fathomStatus?.connected && (
+                        <div className="relative group">
+                          <div className="border-2 border-green-200 bg-green-50 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer">
+                            <div className="flex flex-col items-center text-center space-y-2">
+                              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                                <Calendar className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm text-foreground">
+                                  Fathom
+                                </h4>
+                                <div className="flex items-center justify-center mt-1">
+                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
+                                  <span className="text-xs text-green-700">
+                                    Connected
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {!firefliesStatus?.connected &&
+                      !fathomStatus?.connected && (
+                        <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 text-center">
+                          <AlertCircle className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                          No platforms connected yet. Connect a platform below
+                          to get started.
+                        </div>
+                      )}
                   </div>
 
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPlatform === "fireflies"
-                      ? "Connect your Fireflies.ai account to automatically sync meeting transcripts and recordings."
-                      : "Connect your Fathom account to automatically sync meeting transcripts and recordings."}
-                  </p>
+                  <Separator /> */}
 
-                  {selectedPlatform === "fireflies" ? (
-                    !firefliesStatus?.connected ? (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="fireflies-token">
-                            Fireflies API Token
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              id="fireflies-token"
-                              type={showFirefliesToken ? "text" : "password"}
-                              placeholder="Enter your Fireflies API token"
-                              value={firefliesToken}
-                              onChange={(e) =>
-                                setFirefliesToken(e.target.value)
-                              }
-                              className="pr-10"
-                            />
+                  {/* Available Integrations - Expandable */}
+                  <div>
+                    {/* <Label className="text-sm font-medium mb-3 block">
+                      Available Platforms
+                    </Label> */}
+                    <div className="space-y-3">
+                      {/* Fireflies Integration */}
+                      {!firefliesStatus?.connected && (
+                        <Collapsible>
+                          <div className="border rounded-lg">
+                            <CollapsibleTrigger asChild>
+                              <div className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer rounded-lg transition-colors">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center flex-shrink-0">
+                                    <Zap className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-sm">
+                                      Fireflies.ai
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      AI meeting transcription
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gray-100 text-gray-800 border-gray-200"
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Connect
+                                </Badge>
+                              </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="border-t p-4 space-y-4 bg-muted/20">
+                                <div className="space-y-2">
+                                  <Label
+                                    htmlFor="fireflies-token"
+                                    className="text-sm"
+                                  >
+                                    Fireflies API Token
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      id="fireflies-token"
+                                      type={
+                                        showFirefliesToken ? "text" : "password"
+                                      }
+                                      placeholder="Enter your Fireflies API token"
+                                      value={firefliesToken}
+                                      onChange={(e) =>
+                                        setFirefliesToken(e.target.value)
+                                      }
+                                      className="pr-10"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() =>
+                                        setShowFirefliesToken(
+                                          !showFirefliesToken
+                                        )
+                                      }
+                                    >
+                                      {showFirefliesToken ? (
+                                        <EyeOff className="h-4 w-4" />
+                                      ) : (
+                                        <Eye className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Find your API key: Settings → Developer
+                                    Settings → Generate/View API Key
+                                  </p>
+                                </div>
+                                <Button
+                                  onClick={handleFirefliesConnect}
+                                  disabled={
+                                    isConnectingFireflies ||
+                                    !firefliesToken.trim()
+                                  }
+                                  className="w-full"
+                                  size="sm"
+                                >
+                                  {isConnectingFireflies ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Connecting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ExternalLink className="w-4 h-4 mr-2" />
+                                      Connect Fireflies
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </CollapsibleContent>
+                          </div>
+                        </Collapsible>
+                      )}
+
+                      {/* Fireflies - When Connected */}
+                      {firefliesStatus?.connected && (
+                        <div className="border-2 border-green-200 rounded-lg bg-green-50/50 p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center flex-shrink-0">
+                                <Zap className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm">
+                                  Fireflies.ai
+                                </h4>
+                                <div className="flex items-center mt-0.5">
+                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
+                                  <span className="text-xs text-green-700">
+                                    Integration Active
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                             <Button
-                              type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() =>
-                                setShowFirefliesToken(!showFirefliesToken)
-                              }
+                              onClick={handleFirefliesDisconnect}
+                              disabled={isDisconnectingFireflies}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
-                              {showFirefliesToken ? (
-                                <EyeOff className="h-4 w-4" />
+                              {isDisconnectingFireflies ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                "Disconnect"
                               )}
                             </Button>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            <p className="mb-1">
-                              <strong>Note:</strong> You can find your Fireflies
-                              API key in your Fireflies account under:
-                            </p>
-                            <p>
-                              Settings → Developer Settings → Generate/View API
-                              Key
-                            </p>
+                        </div>
+                      )}
+
+                      {/* Fathom Integration */}
+                      {!fathomStatus?.connected && (
+                        <Collapsible>
+                          <div className="border rounded-lg">
+                            <CollapsibleTrigger asChild>
+                              <div className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer rounded-lg transition-colors">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
+                                    <Calendar className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-sm">
+                                      Fathom
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      Free meeting recorder
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gray-100 text-gray-800 border-gray-200"
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Connect
+                                </Badge>
+                              </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="border-t p-4 space-y-4 bg-muted/20">
+                                <div className="space-y-2">
+                                  <Label
+                                    htmlFor="fathom-token"
+                                    className="text-sm"
+                                  >
+                                    Fathom API Token
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      id="fathom-token"
+                                      type={
+                                        showFathomToken ? "text" : "password"
+                                      }
+                                      placeholder="Enter your Fathom API token"
+                                      value={fathomToken}
+                                      onChange={(e) =>
+                                        setFathomToken(e.target.value)
+                                      }
+                                      className="pr-10"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() =>
+                                        setShowFathomToken(!showFathomToken)
+                                      }
+                                    >
+                                      {showFathomToken ? (
+                                        <EyeOff className="h-4 w-4" />
+                                      ) : (
+                                        <Eye className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Find your API key: Settings → Generate/View
+                                    API Key
+                                  </p>
+                                </div>
+                                <Button
+                                  onClick={handleFathomConnect}
+                                  disabled={
+                                    isConnectingFathom || !fathomToken.trim()
+                                  }
+                                  className="w-full"
+                                  size="sm"
+                                >
+                                  {isConnectingFathom ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Connecting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ExternalLink className="w-4 h-4 mr-2" />
+                                      Connect Fathom
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </CollapsibleContent>
+                          </div>
+                        </Collapsible>
+                      )}
+
+                      {/* Fathom - When Connected */}
+                      {fathomStatus?.connected && (
+                        <div className="border-2 border-green-200 rounded-lg bg-green-50/50 p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
+                                <Calendar className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-sm">
+                                  Fathom
+                                </h4>
+                                <div className="flex items-center mt-0.5">
+                                  <CheckCircle className="w-3 h-3 text-green-600 mr-1" />
+                                  <span className="text-xs text-green-700">
+                                    Integration Active
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleFathomDisconnect}
+                              disabled={isDisconnectingFathom}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              {isDisconnectingFathom ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                "Disconnect"
+                              )}
+                            </Button>
                           </div>
                         </div>
-
-                        <Button
-                          onClick={handleFirefliesConnect}
-                          disabled={
-                            isConnectingFireflies || !firefliesToken.trim()
-                          }
-                          className="w-full"
-                        >
-                          {isConnectingFireflies ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Connecting...
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Connect Fireflies
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">
-                              Fireflies Integration Active
-                            </span>
-                          </div>
-                          <p className="text-sm text-green-700">
-                            Your Fireflies.ai account is connected and ready to
-                            sync meeting data.
-                          </p>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={handleFirefliesDisconnect}
-                          disabled={isDisconnectingFireflies}
-                          className="w-full"
-                        >
-                          {isDisconnectingFireflies ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Disconnecting...
-                            </>
-                          ) : (
-                            "Disconnect Fireflies"
-                          )}
-                        </Button>
-                      </div>
-                    )
-                  ) : !fathomStatus?.connected ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fathom-token">Fathom API Token</Label>
-                        <div className="relative">
-                          <Input
-                            id="fathom-token"
-                            type={showFathomToken ? "text" : "password"}
-                            placeholder="Enter your Fathom API token"
-                            value={fathomToken}
-                            onChange={(e) => setFathomToken(e.target.value)}
-                            className="pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowFathomToken(!showFathomToken)}
-                          >
-                            {showFathomToken ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          <p className="mb-1">
-                            <strong>Note:</strong> You can find your Fathom API
-                            key in your Fathom account under:
-                          </p>
-                          <p>Settings → Generate/View API Key</p>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={handleFathomConnect}
-                        disabled={isConnectingFathom || !fathomToken.trim()}
-                        className="w-full"
-                      >
-                        {isConnectingFathom ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Connect Fathom
-                          </>
-                        )}
-                      </Button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">
-                            Fathom Integration Active
-                          </span>
-                        </div>
-                        <p className="text-sm text-green-700">
-                          Your Fathom account is connected and ready to sync
-                          meeting data.
-                        </p>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        onClick={handleFathomDisconnect}
-                        disabled={isDisconnectingFathom}
-                        className="w-full"
-                      >
-                        {isDisconnectingFathom ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Disconnecting...
-                          </>
-                        ) : (
-                          "Disconnect Fathom"
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -3152,166 +3839,527 @@ export const Settings = () => {
                 user
               )} */}
               {(userRole?.id == 2 || user?.title_id == 45) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Plus className="w-5 h-5" />
-                      <span>Invite New User</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-end space-x-4">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium mb-2 block">
-                          Email Address
-                        </label>
-                        <Input
-                          value={newUserEmail}
-                          onChange={(e) => setNewUserEmail(e.target.value)}
-                          placeholder="user@acmecorp.com"
-                          type="email"
-                        />
-                      </div>
-                      {user?.title_id != 45 && (
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">
-                            Role
-                          </label>
-                          {/* {console.log(
-                            newUserRole,
-                            "check new user role",
-                            allTitles
-                          )} */}
-                          <Select
-                            value={newUserRole?.toString()}
-                            onValueChange={(value) =>
-                              setNewUserRole(Number(value))
-                            }
+                <>
+                  {!canInviteUsers ? (
+                    <Card className="shadow-sm border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+                      <CardContent className="pt-6">
+                        <div className="text-center py-8">
+                          <div className="mb-6">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 mb-4">
+                              <Users className="w-10 h-10 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                              Invite Team Members
+                            </h3>
+                            <p className="text-gray-600 max-w-md mx-auto">
+                              Upgrade to an{" "}
+                              <span className="font-semibold text-blue-600">
+                                Organization Plan
+                              </span>{" "}
+                              to invite team members and collaborate together.
+                            </p>
+                          </div>
+
+                          <div className="bg-white rounded-lg p-6 max-w-lg mx-auto mb-6 shadow-sm">
+                            <div className="flex items-start gap-3 text-left mb-4">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  Unlimited Team Members
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Add as many users as you need
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3 text-left mb-4">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  Shared Workspace
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Collaborate on deals and insights
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3 text-left">
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  Role-Based Access
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Control permissions for team members
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => dispatch(setShowUpgradeModal(true))}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl px-8 py-6 text-lg h-auto gap-2"
                           >
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allTitles
-                                ?.filter((f) => f.role_id != 2)
-                                ?.map((x) => (
-                                  <SelectItem
-                                    key={x.id}
-                                    value={x.id.toString()}
-                                  >
-                                    {x.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                            <Crown className="w-5 h-5" />
+                            Upgrade to Organization Plan
+                          </Button>
+
+                          <p className="text-xs text-gray-500 mt-4">
+                            Currently on{" "}
+                            {planDetails?.plan_master?.plan_name || "Free"} plan
+                          </p>
                         </div>
-                      )}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="shadow-sm">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between mb-6">
+                          {console.log(orgPlan, "org plan details")}
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-5 h-5" />
 
-                      <Button onClick={handleInviteUser} disabled={isLoading}>
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Sending invite ...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 mr-1" />
-                            Send Invite
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              {/* Users List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>
-                      {user?.title_id == 45
-                        ? "Organizations"
-                        : "Organization Users"}
-                    </span>
-                    <Badge variant="secondary">
-                      {user?.title_id == 45
-                        ? getOrgList?.length + " organizations"
-                        : getUserslist?.length + " users"}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {user?.title_id == 45 ? (
-                    <div className="space-y-4">
-                      {getOrgList?.length > 0 &&
-                        getOrgList?.map((org) => {
-                          const role = userRoles[org.role] || {
-                            label: "Unknown",
-                            icon: User,
-                            color: "bg-gray-100 text-gray-700 border-gray-200",
-                          };
+                            <h3 className="text-xl font-semibold">
+                              Invite New User
+                            </h3>
+                          </div>
 
-                          return (
-                            <div
-                              key={org.id}
-                              className="flex items-center justify-between p-4 border border-border rounded-lg"
-                            >
-                              <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                  <User className="w-5 h-5 text-muted-foreground" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{org.name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {org.domain}
+                          {!isLoadingOrgPlan && orgPlan && (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-6 px-4 py-2 bg-muted/50 rounded-lg">
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Team Size
                                   </p>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    {org.industry_id && (
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-xs", role.color)}
-                                      >
-                                        <role.icon className="w-3 h-3 mr-1" />
-                                        {
-                                          industry?.find(
-                                            (x) => x.id == org.industry_id
-                                          )?.label
-                                        }
-                                      </Badge>
+                                  <p className="text-lg font-bold">
+                                    {orgPlan.buy_quantity}
+                                  </p>
+                                </div>
+                                <Separator
+                                  orientation="vertical"
+                                  className="h-10"
+                                />
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Used
+                                  </p>
+                                  <p className="text-lg font-bold">
+                                    {orgPlan.used_quantity}
+                                  </p>
+                                </div>
+                                <Separator
+                                  orientation="vertical"
+                                  className="h-10"
+                                />
+                                <div className="text-center">
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    Available
+                                  </p>
+                                  <p
+                                    className={cn(
+                                      "text-lg font-bold",
+                                      orgPlan.remaining_quantity === 0
+                                        ? "text-red-600"
+                                        : orgPlan.remaining_quantity <= 2
+                                        ? "text-amber-600"
+                                        : "text-green-600"
                                     )}
-
-                                    {org.status_id && (
-                                      <Badge
-                                        variant={
-                                          allStatus?.find(
-                                            (x) => x?.id == org.status_id
-                                          )?.label === "active"
-                                            ? "default"
-                                            : "secondary"
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {
-                                          allStatus?.find(
-                                            (x) => x?.id == org.status_id
-                                          )?.label
-                                        }
-                                      </Badge>
-                                    )}
-                                    {org.organization && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-muted"
-                                      >
-                                        {org.organization}
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  >
+                                    {orgPlan.remaining_quantity}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="text-right text-sm text-muted-foreground">
-                                  {/* <p>
+                              {console.log(orgPlan, "org plan details")}
+                              {orgPlan.status != "canceled" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2 h-10"
+                                  onClick={() =>
+                                    setShowUpdateTeamSizeDialog(true)
+                                  }
+                                >
+                                  <Target className="w-4 h-4" />
+                                  Update Team Size
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          {isLoadingOrgPlan && (
+                            <div className="flex items-center text-muted-foreground px-4 py-2">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              <span className="text-sm">Loading...</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-4 items-end">
+                          <div className="col-span-6">
+                            <label className="text-sm font-medium mb-2 block">
+                              Email Address
+                            </label>
+                            <Input
+                              value={newUserEmail}
+                              onChange={(e) => setNewUserEmail(e.target.value)}
+                              placeholder="user@acmecorp.com"
+                              type="email"
+                              className="h-11"
+                            />
+                          </div>
+                          {user?.title_id != 45 && (
+                            <div className="col-span-3">
+                              <label className="text-sm font-medium mb-2 block">
+                                Role
+                              </label>
+                              <Select
+                                value={newUserRole?.toString()}
+                                onValueChange={(value) =>
+                                  setNewUserRole(Number(value))
+                                }
+                              >
+                                <SelectTrigger className="h-11">
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allTitles
+                                    ?.filter((f) => f.role_id != 2)
+                                    ?.map((x) => (
+                                      <SelectItem
+                                        key={x.id}
+                                        value={x.id.toString()}
+                                      >
+                                        {x.name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div
+                            className={
+                              user?.title_id != 45 ? "col-span-3" : "col-span-6"
+                            }
+                          >
+                            <Button
+                              onClick={handleInviteUser}
+                              disabled={
+                                isLoading ||
+                                (orgPlan && orgPlan.remaining_quantity === 0)
+                              }
+                              className="w-full h-11 gap-2"
+                              size="lg"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Sending invite...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4" />
+                                  Send Invite
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {orgPlan && orgPlan.remaining_quantity === 0 && (
+                          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-red-900 font-medium">
+                                Team size limit reached
+                              </p>
+                              <p className="text-xs text-red-700 mt-0.5">
+                                All {orgPlan.buy_quantity} seats are currently
+                                in use. Please upgrade your team size to invite
+                                more users.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* {orgPlan && orgPlan.remaining_quantity > 0 && orgPlan.remaining_quantity <= 2 && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-amber-900 font-medium">Low availability</p>
+                          <p className="text-xs text-amber-700 mt-0.5">
+                            Only {orgPlan.remaining_quantity} seat{orgPlan.remaining_quantity === 1 ? '' : 's'} remaining. Consider upgrading your team size.
+                          </p>
+                        </div>
+                      </div>
+                    )} */}
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+
+              {/* Invited Users List */}
+              {user?.title_id != 45 && canInviteUsers && (
+                <Collapsible
+                  open={isInvitedUsersOpen}
+                  onOpenChange={setIsInvitedUsersOpen}
+                >
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <UserCheck className="w-5 h-5" />
+                            Invited Users
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              {invitedUsers?.length || 0} invited
+                            </Badge>
+                            <ChevronDown
+                              className={cn(
+                                "w-5 h-5 transition-transform duration-200",
+                                isInvitedUsersOpen && "transform rotate-180"
+                              )}
+                            />
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {invitedUsers?.length > 0 &&
+                            invitedUsers?.map((invite) => {
+                              const role = {
+                                label:
+                                  allTitles?.find(
+                                    (x) => x.id == invite?.title_id
+                                  )?.name || "User",
+                                icon: User,
+                                color:
+                                  "bg-amber-100 text-amber-800 border-amber-200",
+                              };
+
+                              return (
+                                <div
+                                  key={invite.id}
+                                  className="flex items-center justify-between p-5 border border-amber-200/60 bg-gradient-to-r from-amber-50/40 to-orange-50/30 rounded-xl hover:shadow-md hover:border-amber-300/80 transition-all duration-200"
+                                >
+                                  <div className="flex items-center space-x-4 flex-1">
+                                    <div className="relative">
+                                      <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center shadow-sm">
+                                        <UserCheck className="w-6 h-6 text-amber-700" />
+                                      </div>
+                                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+                                        <Clock className="w-2.5 h-2.5 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-foreground truncate mb-1">
+                                        {invite.email}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mb-2">
+                                        Awaiting acceptance
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-white/60 text-amber-900 border-amber-300/40 shadow-sm"
+                                        >
+                                          <role.icon className="w-3 h-3 mr-1" />
+                                          {role?.label}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2 ml-4">
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs font-medium bg-amber-100/80 text-amber-800 border-amber-300/60 px-2.5 py-1"
+                                      >
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        Pending
+                                      </Badge>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleRemoveInvite(invite.id)
+                                        }
+                                        disabled={
+                                          removingInviteId === invite.id
+                                        }
+                                        className="h-7 px-3 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-muted-foreground text-xs"
+                                      >
+                                        {removingInviteId === invite.id ? (
+                                          <>
+                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                            Removing...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <X className="w-3 h-3 mr-1" />
+                                            Revoke
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                    <span className="text-xs text-amber-700/70 flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {invite.invited_at
+                                        ? new Date(
+                                            invite.invited_at
+                                          ).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })
+                                        : "-"}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {invitedUsers?.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                              <p>No pending invitations</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )}
+
+              {/* Active Users List */}
+              {canInviteUsers && (
+                <Collapsible
+                  open={isActiveUsersOpen}
+                  onOpenChange={setIsActiveUsersOpen}
+                >
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            {user?.title_id == 45 ? (
+                              <>
+                                <Building className="w-5 h-5" />
+                                Organizations
+                              </>
+                            ) : (
+                              <>
+                                <Users className="w-5 h-5" />
+                                Active Users
+                              </>
+                            )}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {user?.title_id == 45
+                                ? getOrgList?.length + " organizations"
+                                : getUserslist?.length +
+                                  // ?.filter(
+                                  //     (u) =>
+                                  //       allStatus?.find((s) => s?.id == u.status_id)
+                                  //         ?.label === "active"
+                                  //   )
+                                  // ?.filter((u) => u.id != user?.id)?.length +
+                                  " active users"}
+                            </Badge>
+                            <ChevronDown
+                              className={cn(
+                                "w-5 h-5 transition-transform duration-200",
+                                isActiveUsersOpen && "transform rotate-180"
+                              )}
+                            />
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        {user?.title_id == 45 ? (
+                          <div className="space-y-4">
+                            {getOrgList?.length > 0 &&
+                              getOrgList?.map((org) => {
+                                const role = userRoles[org.role] || {
+                                  label: "Unknown",
+                                  icon: User,
+                                  color:
+                                    "bg-gray-100 text-gray-700 border-gray-200",
+                                };
+
+                                return (
+                                  <div
+                                    key={org.id}
+                                    className="flex items-center justify-between p-4 border border-border rounded-lg"
+                                  >
+                                    <div className="flex items-center space-x-4">
+                                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                        <User className="w-5 h-5 text-muted-foreground" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium">
+                                          {org.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {org.domain}
+                                        </p>
+                                        <div className="flex items-center space-x-2 mt-1">
+                                          {org.industry_id && (
+                                            <Badge
+                                              variant="outline"
+                                              className={cn(
+                                                "text-xs",
+                                                role.color
+                                              )}
+                                            >
+                                              <role.icon className="w-3 h-3 mr-1" />
+                                              {
+                                                industry?.find(
+                                                  (x) => x.id == org.industry_id
+                                                )?.label
+                                              }
+                                            </Badge>
+                                          )}
+
+                                          {org.status_id && (
+                                            <Badge
+                                              variant={
+                                                allStatus?.find(
+                                                  (x) => x?.id == org.status_id
+                                                )?.label === "active"
+                                                  ? "default"
+                                                  : "secondary"
+                                              }
+                                              className="text-xs"
+                                            >
+                                              {
+                                                allStatus?.find(
+                                                  (x) => x?.id == org.status_id
+                                                )?.label
+                                              }
+                                            </Badge>
+                                          )}
+                                          {org.organization && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs bg-muted"
+                                            >
+                                              {org.organization}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <div className="text-right text-sm text-muted-foreground">
+                                        {/* <p>
                                     Last login:{" "}
                                     {user.lastLogin
                                       ? new Date(
@@ -3319,16 +4367,16 @@ export const Settings = () => {
                                         ).toLocaleDateString()
                                       : "Never"}
                                   </p> */}
-                                  <p>
-                                    Joined:{" "}
-                                    {org.created_at
-                                      ? new Date(
-                                          org.created_at
-                                        ).toLocaleDateString()
-                                      : "-"}
-                                  </p>
-                                </div>
-                                {/* <Button
+                                        <p>
+                                          Joined:{" "}
+                                          {org.created_at
+                                            ? new Date(
+                                                org.created_at
+                                              ).toLocaleDateString()
+                                            : "-"}
+                                        </p>
+                                      </div>
+                                      {/* <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleRemoveUser(user.id)}
@@ -3336,121 +4384,70 @@ export const Settings = () => {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button> */}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {getUserslist?.length > 0 &&
-                        getUserslist
-                          ?.filter((u) => u.id != user?.id)
-                          ?.map((user) => {
-                            const getId = allTitles?.find(
-                              (x) => x.id == user?.title_id
-                            )?.role_id;
-                            const role = {
-                              label: allTitles?.find(
-                                (x) => x.id == user?.title_id
-                              )?.name,
-                              icon: User,
-                              color:
-                                getId == 3
-                                  ? "bg-purple-100 text-purple-800 border-purple-200"
-                                  : getId == 4
-                                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                                  : "bg-green-100 text-green-800 border-green-200",
-                            };
-
-                            return (
-                              <div
-                                key={user.id}
-                                className="flex items-center justify-between p-4 border border-border rounded-lg"
-                              >
-                                <div className="flex items-center space-x-4">
-                                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                                    <User className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">
-                                      {user.full_name}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {user.email}
-                                    </p>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                      <Badge
-                                        variant="outline"
-                                        className={cn("text-xs", role.color)}
-                                      >
-                                        <role.icon className="w-3 h-3 mr-1" />
-                                        {role?.label}
-                                      </Badge>
-                                      {user.status_id && (
-                                        <Badge
-                                          variant={
-                                            allStatus?.find(
-                                              (x) => x?.id == user.status_id
-                                            )?.label === "active"
-                                              ? "default"
-                                              : "secondary"
-                                          }
-                                          className="text-xs"
-                                        >
-                                          {
-                                            allStatus?.find(
-                                              (x) => x?.id == user.status_id
-                                            )?.label
-                                          }
-                                        </Badge>
-                                      )}
-                                      {user.organization && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs bg-muted"
-                                        >
-                                          {user.organization}
-                                        </Badge>
-                                      )}
                                     </div>
                                   </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="text-right text-sm text-muted-foreground">
-                                    {/* <p>
-                                      Last login:{" "}
-                                      {user.lastLogin
-                                        ? new Date(
-                                            user.lastLogin
-                                          ).toLocaleDateString()
-                                        : "Never"}
-                                    </p> */}
-                                    <p>
-                                      Joined:{" "}
-                                      {user.created_at
-                                        ? new Date(
-                                            user.created_at
-                                          ).toLocaleDateString()
-                                        : "-"}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    // onClick={() => handleDeleteClick(user)}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {getUserslist?.length > 0 &&
+                              getUserslist
+                                // ?.filter(
+                                //   (u) =>
+                                //     u.id != user?.id &&
+                                //     allStatus?.find((s) => s?.id == u.status_id)
+                                //       ?.label === "active"
+                                // )
+                                // ?.filter((u) => u.id != user?.id)
+                                ?.map((listUser) => {
+                                  const getId = allTitles?.find(
+                                    (x) => x.id == listUser?.title_id
+                                  )?.role_id;
+                                  const role = {
+                                    label: allTitles?.find(
+                                      (x) => x.id == listUser?.title_id
+                                    )?.name,
+                                    icon: User,
+                                    color:
+                                      getId == 3
+                                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                                        : getId == 4
+                                        ? "bg-blue-100 text-blue-800 border-blue-200"
+                                        : "bg-green-100 text-green-800 border-green-200",
+                                  };
+
+                                  return (
+                                    <ActiveUserCard
+                                      key={listUser.id}
+                                      listUser={listUser}
+                                      role={role}
+                                      allStatus={allStatus}
+                                      user={user}
+                                      userRoleId={userRoleId}
+                                    />
+                                  );
+                                })}
+                            {getUserslist?.length === 0 && (
+                              // ?.filter(
+                              //   (u) =>
+                              //     u.id != user?.id &&
+                              //     allStatus?.find((s) => s?.id == u.status_id)
+                              //       ?.label === "active"
+                              // )
+                              // ?.filter((u) => u.id != user?.id)?.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                <p>No active users found</p>
                               </div>
-                            );
-                          })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )}
             </div>
           </TabsContent>
         )}
@@ -4234,7 +5231,10 @@ export const Settings = () => {
 
         {/* Analytics Access */}
         <TabsContent value="billing" className="mt-6">
-          <BillingComponent />
+          <BillingComponent
+            orgPlan={orgPlan}
+            onPlanUpdate={fetchOrganizationPlan}
+          />
         </TabsContent>
       </Tabs>
 
@@ -4430,6 +5430,25 @@ export const Settings = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradePlanDialog />
+      {/* {console.log(orgPlan, "organizationPlan 326")} */}
+      {orgPlan && (
+        <UpdateTeamSizeDialog
+          isOpen={showUpdateTeamSizeDialog}
+          onClose={() => setShowUpdateTeamSizeDialog(false)}
+          organizationPlan={{
+            id: orgPlan.id,
+            buy_quantity: orgPlan.buy_quantity || 0,
+            used_quantity: orgPlan.used_quantity || 0,
+            amount: orgPlan.amount || 0,
+            currency: orgPlan.currency || "usd",
+            plan_id: orgPlan.plan_id,
+            stripe_subscription_id: orgPlan.stripe_subscription_id,
+          }}
+          onSuccess={handleTeamSizeUpdateSuccess}
+        />
+      )}
     </div>
   );
 };

@@ -70,12 +70,18 @@ const mainNavItems = [
       },
     ],
   },
-  {
-    title: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-    description: "Performance metrics and insights",
-  },
+  // {
+  //   title: "Analytics",
+  //   href: "/analytics",
+  //   icon: BarChart3,
+  //   description: "Performance metrics and insights",
+  // },
+  // {
+  //   title: "Deal Hub",
+  //   href: "/dealhub",
+  //   icon: BarChart3,
+  //   description: "Our CRM integration and deal tracking",
+  // },
   {
     title: "Settings",
     href: "/settings",
@@ -298,11 +304,11 @@ export const Sidebar = () => {
                     {/* {console.log(currentPlan, "check current plan")} */}
                     {currentPlan.plan_name}
                   </p>
-                  {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
+                  {/* {!isFreePlan(currentPlan) && !planDetails?.isExpired && (
                     <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
                       PRO
                     </span>
-                  )}
+                  )} */}
                 </div>
                 {isFreePlan(currentPlan) &&
                   planDetails &&
@@ -326,7 +332,7 @@ export const Sidebar = () => {
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
               >
                 <ArrowUp className="w-3 h-3 mr-1" />
-                Upgrade to Pro
+                Upgrade
               </Button>
             )}
           </div>

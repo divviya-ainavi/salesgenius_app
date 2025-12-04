@@ -26,8 +26,7 @@ import VersionChecker from "@/components/shared/VersionChecker";
 import { useEffect } from "react";
 import { analytics } from "@/lib/analytics";
 import { useDispatch } from "react-redux";
-import { dbHelpers, CURRENT_USER, authHelpers } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
+import { dbHelpers, CURRENT_USER, authHelpers, setupAuthStateListener } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import {
   setCommunicationTypes,
@@ -38,6 +37,7 @@ import {
 import { resetAuthState } from "./store/slices/authSlice";
 import { resetOrgState } from "./store/slices/orgSlice";
 import { toast } from "sonner";
+import DealHub from "@/pages/DealHub";
 
 const queryClient = new QueryClient();
 
@@ -64,11 +64,9 @@ const App = () => {
     fetchRoles();
   }, []);
 
-  // Monitor Supabase auth state for token expiry
+  // Monitor Supabase auth state for token expiry (singleton listener)
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const subscription = setupAuthStateListener(async (event, session) => {
       if (event === "SIGNED_OUT" && !sessionStorage.getItem("manual_logout")) {
         // Token expired - auto logout
         console.log("🔒 Supabase token expired - auto logout triggered");
@@ -92,7 +90,11 @@ const App = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Only unsubscribe if this component unmounts
+    return () => {
+      // We don't unsubscribe here to keep the singleton active
+      // The listener will remain active for the lifetime of the app
+    };
   }, [dispatch, navigate]);
   return (
     <QueryClientProvider client={queryClient}>
@@ -123,6 +125,7 @@ const App = () => {
             <Route path="research" element={<Research />} />
             <Route path="calls" element={<SalesCalls />} />
             <Route path="call-insights" element={<CallInsights />} />
+            <Route path="dealhub" element={<DealHub />} />
             <Route path="follow-ups">
               <Route index element={<Navigate to="/call-insights" replace />} />
               <Route path="actions" element={<ActionItems />} />

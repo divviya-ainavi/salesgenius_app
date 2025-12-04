@@ -1495,9 +1495,33 @@ export const SalesCalls = () => {
     }
   };
 
+  const cleanFathomSummary = (text: string) => {
+    let cleaned = text;
+
+    // Step 1: Remove markdown links and URLs
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+    // Step 2: Remove markdown headers (##, ###, etc.)
+    cleaned = cleaned.replace(/^#+\s*/gm, "");
+
+    // Step 3: Remove bullet points (-, *, etc.)
+    cleaned = cleaned.replace(/^\s*[-*]\s*/gm, "");
+
+    // Step 4: Clean multiple newlines
+    cleaned = cleaned.replace(/\n{2,}/g, "\n\n").trim();
+
+    // Step 5: Capitalize section headers (optional)
+    cleaned = cleaned.replace(
+      /(^|\n)([A-Za-z].*?:)/g,
+      (_, newline, header) => `${newline}${header.toUpperCase()}`
+    );
+
+    return cleaned;
+  };
+
   const handleViewSummary = async (call, type) => {
-    console.log(type, call, "view summary called");
-    if (type === "fireflies" || type === "fathom") {
+    // console.log(type, call, "view summary called");
+    if (type === "fireflies") {
       // setGetFirefliessummary(true);
       setProcessingFirefliesId(call.id);
 
@@ -1506,6 +1530,16 @@ export const SalesCalls = () => {
       setModalTitle(`Summary - ${call?.title || call.callId}`);
       setModalContent(shortSummary || "No summary available");
       // setGetFirefliessummary(false);
+    } else if (type === "fathom") {
+      // console.log(type, "check call in handleViewSummary");
+      // setGetFirefliessummary(true);
+      setProcessingFirefliesId(call.id);
+
+      const shortSummary = call?.hasSummary;
+      setModalTitle(`Summary - ${call?.title || call.callId}`);
+      setModalContent(
+        shortSummary ? cleanFathomSummary(shortSummary) : "No summary available"
+      );
     } else {
       setModalTitle(`Summary - ${call.callId}`);
       setModalContent(

@@ -28,7 +28,123 @@ const verifyPassword = (plainPassword, hashedPassword) => {
 };
 
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // Disable to reduce session checks
+    storage: window.localStorage,
+    storageKey: 'supabase.auth.token',
+    // Prevent excessive token refresh checks
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'x-application-name': 'salesgenius-ai',
+    },
+  },
+  // Reduce realtime connections that might trigger auth checks
+  realtime: {
+    params: {
+      eventsPerSecond: 2,
+    },
+  },
+})
+
+// Singleton auth state listener manager to prevent multiple listeners
+let authStateListenerActive = false;
+let authStateSubscription = null;
+
+export const setupAuthStateListener = (callback) => {
+  // Prevent multiple listeners
+  if (authStateListenerActive && authStateSubscription) {
+    console.log('Auth state listener already active, skipping setup');
+    return authStateSubscription;
+  }
+
+  console.log('Setting up auth state listener');
+  authStateListenerActive = true;
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  authStateSubscription = subscription;
+
+  return {
+    unsubscribe: () => {
+      console.log('Unsubscribing from auth state listener');
+      if (authStateSubscription) {
+        authStateSubscription.unsubscribe();
+        authStateSubscription = null;
+        authStateListenerActive = false;
+      }
+    }
+  };
+};
+
+// Session cache to prevent excessive getSession() calls
+let sessionCache = null;
+let sessionCacheTimestamp = null;
+let pendingSessionRequest = null; // For request deduplication
+const SESSION_CACHE_DURATION = 30000; // 30 seconds cache (increased from 10s)
+
+// Store the original getSession function
+const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
+
+// Override Supabase's getSession to use caching + request deduplication
+supabase.auth.getSession = async () => {
+  const now = Date.now();
+
+  // Return cached session if it's still valid
+  if (sessionCache && sessionCacheTimestamp && (now - sessionCacheTimestamp) < SESSION_CACHE_DURATION) {
+    console.log('✅ Using cached session (age: ' + Math.round((now - sessionCacheTimestamp) / 1000) + 's)');
+    return { data: { session: sessionCache }, error: null };
+  }
+
+  // If there's already a pending request, wait for it instead of making a new one
+  if (pendingSessionRequest) {
+    console.log('⏳ Waiting for pending session request...');
+    return await pendingSessionRequest;
+  }
+
+  // Fetch new session using original function
+  console.log('🔄 Fetching fresh session...');
+  pendingSessionRequest = originalGetSession().then(result => {
+    // Clear the pending request
+    pendingSessionRequest = null;
+
+    if (!result.error && result.data.session) {
+      sessionCache = result.data.session;
+      sessionCacheTimestamp = Date.now();
+    } else if (result.error) {
+      // Clear cache on error
+      sessionCache = null;
+      sessionCacheTimestamp = null;
+    }
+
+    return result;
+  }).catch(error => {
+    // Clear pending request on error
+    pendingSessionRequest = null;
+    sessionCache = null;
+    sessionCacheTimestamp = null;
+    throw error;
+  });
+
+  return await pendingSessionRequest;
+};
+
+// Helper to get cached session (now just calls the overridden function)
+export const getCachedSession = async () => {
+  const result = await supabase.auth.getSession();
+  return result.data.session;
+};
+
+// Clear session cache (call this on login/logout)
+export const clearSessionCache = () => {
+  sessionCache = null;
+  sessionCacheTimestamp = null;
+  pendingSessionRequest = null;
+  console.log('🗑️ Session cache cleared');
+};
 
 // Helper function to get current authenticated user
 export const getCurrentUser = async () => {
@@ -797,6 +913,117 @@ export const authHelpers = {
       return data;
     } catch (error) {
       console.error('Error updating organization HubSpot token:', error);
+      throw error;
+    }
+  },
+
+  // Get organization plan details
+  async getOrganizationPlan(organizationId) {
+    try {
+      const { data, error } = await supabase
+        .from('organization_plan')
+        .select('id, buy_quantity, used_quantity, plan_id, start_date, end_date, status, stripe_subscription_id')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        return {
+          ...data,
+          remaining_quantity: data.buy_quantity - data.used_quantity,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting organization plan:', error);
+      throw error;
+    }
+  },
+
+  // Check if organization can add more users
+  async canAddUser(organizationId) {
+    try {
+      const plan = await this.getOrganizationPlan(organizationId);
+
+      if (!plan) {
+        return {
+          canAdd: false,
+          reason: 'No active plan found',
+          planDetails: null,
+        };
+      }
+
+      const canAdd = plan.used_quantity < plan.buy_quantity;
+
+      return {
+        canAdd,
+        reason: canAdd ? null : 'User limit reached',
+        planDetails: plan,
+      };
+    } catch (error) {
+      console.error('Error checking if can add user:', error);
+      throw error;
+    }
+  },
+
+  // Update organization plan used quantity
+  async updateOrganizationPlanUsedQuantity(organizationId, newUsedQuantity) {
+    try {
+      const { data, error } = await supabase
+        .from('organization_plan')
+        .update({ used_quantity: newUsedQuantity })
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating organization plan used quantity:', error);
+      throw error;
+    }
+  },
+
+  // Increment used quantity (when user is added)
+  async incrementUsedQuantity(organizationId) {
+    try {
+      const plan = await this.getOrganizationPlan(organizationId);
+
+      if (!plan) {
+        throw new Error('No active plan found');
+      }
+
+      const newUsedQuantity = plan.used_quantity + 1;
+
+      if (newUsedQuantity > plan.buy_quantity) {
+        throw new Error('Cannot exceed buy quantity');
+      }
+
+      return await this.updateOrganizationPlanUsedQuantity(organizationId, newUsedQuantity);
+    } catch (error) {
+      console.error('Error incrementing used quantity:', error);
+      throw error;
+    }
+  },
+
+  // Decrement used quantity (when user is removed)
+  async decrementUsedQuantity(organizationId) {
+    try {
+      const plan = await this.getOrganizationPlan(organizationId);
+
+      if (!plan) {
+        throw new Error('No active plan found');
+      }
+
+      const newUsedQuantity = Math.max(0, plan.used_quantity - 1);
+
+      return await this.updateOrganizationPlanUsedQuantity(organizationId, newUsedQuantity);
+    } catch (error) {
+      console.error('Error decrementing used quantity:', error);
       throw error;
     }
   },
@@ -2773,6 +3000,47 @@ export const dbHelpers = {
   //   return data;
   // },
 
+  async getInvitedPendingUsers(orgId) {
+    let query = supabase
+      .from("invites")
+      .select("*")
+      .eq("organization_id", orgId)
+      .eq("status", "pending")
+      .order("invited_at", { ascending: false });
+
+    const { data, error } = await query;
+    // console.log(data, "2785")
+    if (error) throw error;
+    return data;
+  },
+
+  async getUserPlanDetails(userId) {
+    let query = supabase
+      .from("user_plan")
+      .select("*, plan_master(*)")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data, error } = await query;
+    // console.log(data, "2785")
+    if (error) throw error;
+    return data;
+  },
+
+  async revokeUserAccess(userId) {
+    const { data, error } = await supabase
+      .from("user_plan")
+      .update({ is_cancel: true })
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (error) throw error;
+    return data;
+  },
+
   async getCompaniesByUserId(userId, companySearch = "") {
     let query = supabase
       .from("company")
@@ -4649,6 +4917,42 @@ export const dbHelpers = {
       throw error;
     }
   },
+
+  async getOrganizationPlan(organization_id) {
+    try {
+      const { data, error } = await supabase
+        .from("organization_plan")
+        .select(
+          `
+            *,
+            plan_master (
+              id,
+              plan_name,
+              description,
+              price,
+              currency,
+              duration_days,
+              features
+            )
+          `
+        )
+        .eq("organization_id", organization_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching organization plan:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Error fetching organization plan:', error);
+      return null;
+    }
+  },
+
   // Tour Steps Management
   async getTourSteps() {
     try {

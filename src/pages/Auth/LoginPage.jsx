@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { supabase, authHelpers } from "@/lib/supabase";
+import { supabase, authHelpers, clearSessionCache } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { config } from "@/lib/config";
@@ -74,6 +74,25 @@ const LoginPage = () => {
       toast.success(location.state.message);
     }
   }, [navigate]);
+
+  // Clean up any lingering modal overlays on mount
+  useEffect(() => {
+    // Remove any Radix UI portal overlays that might be lingering
+    const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+    overlays.forEach((overlay) => overlay.remove());
+
+    // Remove any backdrop elements
+    const backdrops = document.querySelectorAll('.fixed.inset-0');
+    backdrops.forEach((backdrop) => {
+      if (backdrop.style.zIndex && parseInt(backdrop.style.zIndex) > 1000) {
+        backdrop.remove();
+      }
+    });
+
+    // Ensure body scroll is enabled
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -274,6 +293,9 @@ const LoginPage = () => {
             dispatch(setUserRole(null));
           }
         }
+
+        // Clear session cache to start fresh
+        clearSessionCache();
 
         // Save cleaned profile to authHelpers and localStorage
         await authHelpers.setCurrentUser(profileWithoutOrgDetails);

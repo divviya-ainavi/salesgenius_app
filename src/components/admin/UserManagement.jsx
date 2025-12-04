@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
+import {
   Users,
   Building,
   Shield,
@@ -26,15 +26,17 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Target
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import useUserManagement from '@/hooks/useUserManagement';
 import { config } from '@/lib/config';
+import { OrganizationTeamManagement } from './OrganizationTeamManagement';
 
 const UserManagement = () => {
-  const [activeTab, setActiveTab] = useState('profiles');
+  const [activeTab, setActiveTab] = useState('team');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrg, setSelectedOrg] = useState('all');
   const [selectedRole, setSelectedRole] = useState('all');
@@ -231,7 +233,11 @@ const UserManagement = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="team">
+            <Target className="w-4 h-4 mr-1" />
+            Team
+          </TabsTrigger>
           <TabsTrigger value="profiles">
             <Users className="w-4 h-4 mr-1" />
             Users ({filteredProfiles.length})
@@ -249,6 +255,11 @@ const UserManagement = () => {
             Roles ({roles.length})
           </TabsTrigger>
         </TabsList>
+
+        {/* Team Management Tab */}
+        <TabsContent value="team" className="mt-6">
+          <OrganizationTeamManagement />
+        </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="profiles" className="mt-6">
