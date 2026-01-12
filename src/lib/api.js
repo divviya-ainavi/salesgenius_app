@@ -2,7 +2,7 @@ import { analytics } from './analytics';
 
 // API Configuration
 const API_CONFIG = {
-  baseURL: 'https://salesgenius.ainavi.co.uk/n8n/webhook/',
+  baseURL: 'https://n8nsg.ainavi.co.uk/n8n/webhook/',
   timeout: 30000, // 30 seconds
   retries: 3,
   retryDelay: 1000, // 1 second
